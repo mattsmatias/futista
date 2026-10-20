@@ -7,7 +7,7 @@ import { storyIsAbout } from "@/lib/teams";
 import { getTeamInfo } from "@/lib/team-info";
 import TeamView from "./TeamView";
 
-export const revalidate = 900;
+export const revalidate = 120;
 export const maxDuration = 60;
 
 type Props = { params: { source: string; team: string } };

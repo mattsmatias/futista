@@ -9,6 +9,7 @@ import type { LeagueScorers } from "@/lib/scorers";
 import Flag from "./Flag";
 import { norm } from "@/lib/teams";
 import { useMatchState, StatusPill, useLiveExtras } from "@/lib/live";
+import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
 
 export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
@@ -63,7 +64,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
                     <td>{r.p}</td><td className="opt">{r.w}</td><td className="opt">{r.d}</td><td className="opt">{r.l}</td>
                     <td className="opt">{r.gf}–{r.ga}</td>
                     <td className={gd > 0 ? "pos-gd" : gd < 0 ? "neg-gd" : ""}>{gd > 0 ? `+${gd}` : gd}</td>
-                    <td className="pts">{r.pts}</td>
+                    <td className="pts"><Num v={r.pts} /></td>
                   </tr>
                 );
               })}
@@ -86,7 +87,7 @@ export function Match({ r, source }: { r: Result; source: string }) {
   return (
     <a className="match" href={matchHref(source, r.date, r.home.name, r.away.name)}>
       <span className={`side home${hw ? " win" : ""}`}>{r.home.name}<Badge t={r.home} /></span>
-      <span className="score"><b>{r.hs}</b><i>–</i><b>{r.as}</b></span>
+      <span className="score"><Num v={r.hs} /><i>–</i><Num v={r.as} /></span>
       <span className={`side away${aw ? " win" : ""}`}><Badge t={r.away} />{r.away.name}</span>
     </a>
   );
@@ -99,7 +100,7 @@ export function StateCenter({ s, time }: { s: MatchState; time: string }) {
   if (s.kind === "upcoming") return <span className="score ko">{time}</span>;
   return (
     <span className={`mid mid-${s.kind}`}>
-      {hasScore(s) && <span className="score"><b>{s.hs}</b><i>–</i><b>{s.as}</b></span>}
+      {hasScore(s) && <span className="score"><Num v={s.hs} /><i>–</i><Num v={s.as} /></span>}
       <StatusPill s={s} />
     </span>
   );
@@ -126,8 +127,8 @@ function UpcomingCard({ f }: { f: Fixture & { s: string; league: string } }) {
       <div className="sc-top"><span className={`dot-${f.s}`} />{i.league(f.s, f.league)}
         <span className="ft">{st.kind === "upcoming" ? `${i.day(f.date)} · ${f.time}` : <StatusPill s={st} />}</span>
       </div>
-      <div className="sc-row"><Badge t={f.home} /><span>{f.home.name}</span>{hasScore(st) && <b>{st.hs}</b>}</div>
-      <div className="sc-row"><Badge t={f.away} /><span>{f.away.name}</span>{hasScore(st) && <b>{st.as}</b>}</div>
+      <div className="sc-row"><Badge t={f.home} /><span>{f.home.name}</span>{hasScore(st) && <Num v={st.hs} />}</div>
+      <div className="sc-row"><Badge t={f.away} /><span>{f.away.name}</span>{hasScore(st) && <Num v={st.as} />}</div>
     </a>
   );
 }

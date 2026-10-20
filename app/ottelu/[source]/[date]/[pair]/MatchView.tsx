@@ -9,6 +9,7 @@ import SubBar from "../../../../SubBar";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
 import { useMatchState, StatusPill } from "@/lib/live";
+import { Num, AutoRefresh } from "@/lib/fresh";
 import Footer from "../../../../Footer";
 
 type Tab = "summary" | "h2h" | "table";
@@ -130,6 +131,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
   return (
     <>
       <SubBar />
+      <AutoRefresh />
       <main className="wrap entity">
         <section className={`match-hero mh-${s.source}`}>
           <div className="mh-meta">
@@ -144,7 +146,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
               {result
                 ? <div className="mh-score"><b className={hw ? "w" : ""}>{result.hs}</b><i>–</i><b className={aw ? "w" : ""}>{result.as}</b></div>
                 : liveScore
-                  ? <div className="mh-score"><b className="w">{liveScore.hs}</b><i>–</i><b className="w">{liveScore.as}</b></div>
+                  ? <div className="mh-score live"><Num v={liveScore.hs} /><i>–</i><Num v={liveScore.as} /></div>
                   : <div className="mh-time">{fixture!.time}</div>}
               {result
                 ? <span className="mh-status">{t("statusFt")}</span>

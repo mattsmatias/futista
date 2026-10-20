@@ -39,7 +39,7 @@ async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
   let xml: string;
   try {
     const res = await fetch(feedUrl, {
-      next: { revalidate: 600 }, // päivittyy 10 min välein
+      next: { revalidate: 180 }, // päivittyy 3 min välein
       headers: { "User-Agent": "Futista/1.0" },
     });
     if (!res.ok) return [];

@@ -5,7 +5,7 @@ import { teamSlug, findTeam } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
 
-export const revalidate = 900;
+export const revalidate = 120;
 export const maxDuration = 60;
 
 type Props = { params: { source: string; date: string; pair: string } };

@@ -29,9 +29,9 @@ export function Meta({ a }: { a: Article }) {
   );
 }
 
-export function Card({ a, wide }: { a: Article; wide?: boolean }) {
+export function Card({ a, wide, isNew }: { a: Article; wide?: boolean; isNew?: boolean }) {
   return (
-    <a className={`card${wide ? " wide" : ""}`} href={toLocal(a.link)}>
+    <a className={`card${wide ? " wide" : ""}${isNew ? " is-new" : ""}`} href={toLocal(a.link)}>
       <Art image={a.image} seed={a.id} tags={a.tags} source={a.source} big={wide} />
       <div className="card-body">
         <Chips a={a} />

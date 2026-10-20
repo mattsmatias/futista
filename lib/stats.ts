@@ -14,7 +14,7 @@ const UA = { "User-Agent": "Futista/1.0" };
 
 async function getHtml(url: string) {
   try {
-    const res = await fetch(url, { next: { revalidate: 900 }, headers: UA }); // 15 min välein
+    const res = await fetch(url, { next: { revalidate: 120 }, headers: UA }); // 2 min välein
     return res.ok ? await res.text() : null;
   } catch {
     return null;

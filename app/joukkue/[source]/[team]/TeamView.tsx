@@ -11,6 +11,7 @@ import { Card } from "../../../Cards";
 import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
 import Flag from "../../../Flag";
+import { AutoRefresh } from "@/lib/fresh";
 import { ageOf } from "@/lib/age";
 import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
 import type { Key } from "@/lib/i18n";
@@ -103,6 +104,7 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
   return (
     <>
       <SubBar />
+      <AutoRefresh every={120_000} />
       <main className="wrap entity">
         <section className="ent-hero" style={style}>
           <div className="ent-crest"><Badge t={team} size={84} /></div>

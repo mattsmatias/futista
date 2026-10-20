@@ -7,6 +7,7 @@ import Art from "./Art";
 import type { LeagueStats } from "@/lib/stats";
 import { Standings, Results, ScoreRail, UpcomingRail, LeaguePicker, Scorers } from "./Stats";
 import { useLeagues, useScorers } from "@/lib/leagues-client";
+import { useFreshStats, useFreshArticles } from "@/lib/fresh";
 import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import { Card, Meta } from "./Cards";
@@ -56,7 +57,10 @@ function TypeNav({ type, setType, className }: { type: string; setType: (t: stri
   );
 }
 
-export default function NewsBoard({ articles, stats }: { articles: Article[]; stats: LeagueStats[] }) {
+export default function NewsBoard({ articles: firstArticles, stats: firstStats }: { articles: Article[]; stats: LeagueStats[] }) {
+  // tiedot päivittyvät taustalla ilman sivun uudelleenlatausta
+  const stats = useFreshStats(firstStats);
+  const { articles, fresh } = useFreshArticles(firstArticles);
   const [league, setLeague] = useState<string>("all");
   const [club, setClub] = useState<string | null>(null);
   const [type, setType] = useState("all");
@@ -170,7 +174,7 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
         {!hero && <p className="empty">{t("empty")}</p>}
 
         {hero && (
-          <a className="hero" href={toLocal(hero.link)}>
+          <a className={`hero${fresh.has(hero.id) ? " is-new" : ""}`} key={hero.id} href={toLocal(hero.link)}>
             <Art image={hero.image} seed={hero.id} tags={hero.tags} source={hero.source} big />
             <div className="hero-txt">
               <div className="chips">
@@ -189,7 +193,7 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
             <div className="sec-head"><h2>{t("latest")}</h2></div>
             <div className="rail">
               {latest.map((a) => (
-                <a key={a.id} className="mini" href={toLocal(a.link)}>
+                <a key={a.id} className={`mini${fresh.has(a.id) ? " is-new" : ""}`} href={toLocal(a.link)}>
                   <Art image={a.image} seed={a.id} tags={a.tags} source={a.source} small />
                   <div><time dateTime={a.date} suppressHydrationWarning>{i.ago(a.date)} · {i.league(a.source, a.league)}</time><strong>{a.title}</strong></div>
                 </a>
@@ -208,13 +212,13 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
                     <h2><i className={`bar-${s.id}`} />{i.league(s.id, s.league)}</h2>
                     <button onClick={() => { setLeague(s.id); window.scrollTo({ top: 0 }); }}>{t("showAll")}</button>
                   </div>
-                  <div className="grid">{items.map((a, i) => <Card key={a.id} a={a} wide={i === 0} />)}</div>
+                  <div className="grid">{items.map((a, i) => <Card key={a.id} a={a} wide={i === 0} isNew={fresh.has(a.id)} />)}</div>
                 </section>
               );
             })
           : rest.length > 0 && (
               <section className="sec">
-                <div className="grid">{rest.map((a, i) => <Card key={a.id} a={a} wide={i === 0} />)}</div>
+                <div className="grid">{rest.map((a, i) => <Card key={a.id} a={a} wide={i === 0} isNew={fresh.has(a.id)} />)}</div>
               </section>
             )}
 
