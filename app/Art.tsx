@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useBrokenImage } from "@/lib/img";
 import { allClubs } from "@/lib/sources";
 
 const thumb = (src: string) => src.replace(/\.(jpe?g|png|webp)$/i, "-632x422.$1");
@@ -52,10 +53,12 @@ export default function Art({
 }: { image: string | null; seed: string; tags: string[]; source: string; big?: boolean; small?: boolean; className?: string }) {
   // kuva ei lataudu (poistettu, estetty tai verkkovirhe) → generoitu taustakuva rikkinäisen kuvan sijaan
   const [broken, setBroken] = useState(false);
+  const ref = useBrokenImage(() => setBroken(true));
   return (
     <div className={`art ${className}`}>
       {image && !broken ? (
         <img
+          ref={ref}
           src={small ? thumb(image) : image}
           onError={(e) => { if (small && e.currentTarget.src !== image) e.currentTarget.src = image; else setBroken(true); }}
           alt=""

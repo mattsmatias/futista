@@ -25,34 +25,47 @@ export function usePersistentState<T extends string = string>(key: string, initi
   return [v, set];
 }
 
-/** Vierityskohdan muisti: tallennetaan sivulta poistuttaessa, palautetaan takaisin-navigoinnissa */
+/** Vierityskohdan muisti: tallennetaan vierittäessä ja linkkiä painettaessa, palautetaan takaisin-navigoinnissa.
+ *  Poistuttaessa EI tallenneta, koska uusi sivu on silloin jo vieritetty alkuun (se nollaisi muistin). */
 export function ScrollMemory() {
   const path = usePathname();
   const back = useRef(false);
+  const keyRef = useRef("");
   useEffect(() => {
     const onPop = () => { back.current = true; };
+    // tallennus heti linkkiä painettaessa (ennen kuin navigointi vierittää uuden sivun alkuun)
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as Element | null)?.closest?.("a[href]") && keyRef.current) write(keyRef.current, String(Math.round(window.scrollY)));
+    };
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    document.addEventListener("click", onClick, true);
+    return () => { window.removeEventListener("popstate", onPop); document.removeEventListener("click", onClick, true); };
   }, []);
   useEffect(() => {
     const key = `futista:scroll:${location.pathname}${location.search}`;
+    keyRef.current = key;
+    let cancelled = false;
     if (back.current) {
       back.current = false;
       const y = Number(read(key) ?? 0);
       if (y > 0) {
-        // sisältö (suodattimet, listat) palautuu ensin, sitten vieritys; useampi yritys hitaasti latautuvalle sisällölle
+        // sisältö (suodattimet, välilehti, listat) palautuu ensin; yritetään kunnes sivu on tarpeeksi pitkä
         let n = 0;
         const tryScroll = () => {
+          if (cancelled) return;
           window.scrollTo(0, y);
-          if (Math.abs(window.scrollY - y) > 4 && n++ < 10) setTimeout(tryScroll, 100);
+          if (Math.abs(window.scrollY - y) > 4 && n++ < 25) setTimeout(tryScroll, 100);
         };
-        requestAnimationFrame(tryScroll);
+        setTimeout(tryScroll, 50);
       }
     }
     let t: ReturnType<typeof setTimeout> | null = null;
-    const save = () => { if (t) clearTimeout(t); t = setTimeout(() => write(key, String(Math.round(window.scrollY))), 120); };
+    let armed = false;
+    // ensimmäiset vieritystapahtumat ovat navigoinnin omia (alkuun vieritys / palautus): ei tallenneta niitä
+    const arm = setTimeout(() => { armed = true; }, 1500);
+    const save = () => { if (!armed) return; if (t) clearTimeout(t); t = setTimeout(() => write(key, String(Math.round(window.scrollY))), 150); };
     window.addEventListener("scroll", save, { passive: true });
-    return () => { window.removeEventListener("scroll", save); if (t) clearTimeout(t); write(key, String(Math.round(window.scrollY))); };
+    return () => { cancelled = true; clearTimeout(arm); window.removeEventListener("scroll", save); if (t) clearTimeout(t); };
   }, [path]);
   return null;
 }

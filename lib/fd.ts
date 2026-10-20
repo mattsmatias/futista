@@ -46,7 +46,7 @@ async function load(path: string): Promise<{ at: number; data: any }> {
   return { at: Date.now(), data };
 }
 
-export type FdResult<T> = { data: T; at: number } | null;
+export type FdResult<T> = { data: T; at: number | null } | null;
 
 /** Hakee polun ja hakuhetken; välimuistissa `ttl` sekuntia. null, jos avainta ei ole tai haku ei onnistu. */
 export async function fdMeta<T = any>(path: string, ttl: number): Promise<FdResult<T>> {
@@ -54,8 +54,11 @@ export async function fdMeta<T = any>(path: string, ttl: number): Promise<FdResu
   // ei hakuja julkaisun rakennusvaiheessa: sivut täydentyvät käyttöön
   if (process.env.NEXT_PHASE === "phase-production-build") return null;
   try {
-    const r = await unstable_cache(() => load(path), ["fd-v2", path], { revalidate: ttl })();
-    return { data: r.data as T, at: r.at };
+    // sama välimuistiavain kuin aiemmin: julkaisu ei tyhjennä välimuistia eikä aiheuta hakuryöppyä.
+    // Vanhat merkinnät ovat pelkkää dataa (ei hakuaikaa) → aika tuntematon (null) kunnes merkintä uusiutuu.
+    const r: any = await unstable_cache(() => load(path), ["fd-v1", path], { revalidate: ttl })();
+    const wrapped = r && typeof r === "object" && typeof r.at === "number" && "data" in r && Object.keys(r).length === 2;
+    return wrapped ? { data: r.data as T, at: r.at } : { data: r as T, at: null };
   } catch (e) {
     const err = e as SourceError;
     if (err?.kind !== "paused" && err?.kind !== "limit") console.error("football-data", path, err?.message ?? "");

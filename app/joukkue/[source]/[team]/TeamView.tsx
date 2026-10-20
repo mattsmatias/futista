@@ -97,7 +97,7 @@ function ClubInfo({ info }: { info: TeamInfo }) {
   );
 }
 
-export default function TeamView({ s, team, news, info, games }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null; games: Game[] | null }) {
+export default function TeamView({ s, team, news, info, infoFailed, games }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null; infoFailed?: boolean; games: Game[] | null }) {
   const i = useI18n();
   const { t } = i;
   const n = norm(team.name);
@@ -119,7 +119,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
   const src = SOURCES.find((x) => x.id === s.source)!;
   const hasSquad = !!info && info.squad.length > 0;
   const tabs = (["overview", "matches", "squad", "news", "table"] as Tab[]).filter((k) =>
-    k === "squad" ? hasSquad : k === "news" ? news.length > 0 || isMain(s.source) : k === "table" ? s.table.length > 0 : true);
+    k === "squad" ? hasSquad || !!infoFailed : k === "news" ? news.length > 0 || isMain(s.source) : k === "table" ? s.table.length > 0 : true);
   const [tab, setTab] = useState<Tab>("overview");
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -264,6 +264,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
         </>}
 
         {tab === "squad" && info && <Squad info={info} team={team.name} />}
+        {tab === "squad" && !info && infoFailed && <section className="panel"><p className="muted pad">{t("sourceDown")}</p></section>}
 
         {tab === "news" && <section className="sec">
           {news.length

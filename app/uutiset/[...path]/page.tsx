@@ -6,6 +6,7 @@ import { toLocal } from "@/lib/links";
 import { GenArt } from "../../Art";
 import Progress from "../../Progress";
 import Footer from "../../Footer";
+import SafeImg from "../../SafeImg";
 import { T, LeagueName, TypeName, LocalDate } from "@/lib/i18n";
 
 export const revalidate = 3600;
@@ -43,7 +44,7 @@ export default async function ArticlePage({ params }: Props) {
             {/* sumennettu tausta täyttää reunat, itse kuva näytetään kokonaan ja alkuperäisessä muodossaan */}
             <div className="story-bg" style={{ backgroundImage: `url("${a.image}")` }} aria-hidden="true" />
             <figure className="story-figure">
-              <img src={a.image} alt="" width={1264} height={843} referrerPolicy="no-referrer" fetchPriority="high" decoding="async" />
+              <SafeImg src={a.image} alt="" width={1264} height={843} referrerPolicy="no-referrer" fetchPriority="high" decoding="async" />
             </figure>
           </>
         ) : (
@@ -79,7 +80,7 @@ export default async function ArticlePage({ params }: Props) {
               <a key={m.id} className="card" href={toLocal(m.link)}>
                 <div className="art" style={{ aspectRatio: "16/10" }}>
                   {m.image
-                    ? <img src={m.image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                    ? <SafeImg src={m.image} alt="" loading="lazy" referrerPolicy="no-referrer" />
                     : <GenArt seed={m.id} tags={m.tags} source={m.source} />}
                 </div>
                 <div className="card-body">

@@ -119,8 +119,8 @@ export function matchState(
     const sc = { hs: hit.hs ?? null, as: hit.as ?? null };
     const extra = { phase: hit.phase, pens: hit.pens ?? null, aet: hit.aet };
     switch (hit.status) {
-      case "IN_PLAY": return { kind: "live", ...sc, min: hit.min, ...extra };
-      case "EXTRA_TIME": return { kind: "live", ...sc, min: hit.min, ...extra, phase: "et" };
+      case "IN_PLAY": return { kind: "live", ...sc, min: fmtClock(hit.min), ...extra };
+      case "EXTRA_TIME": return { kind: "live", ...sc, min: fmtClock(hit.min), ...extra, phase: "et" };
       case "PENALTY_SHOOTOUT": return { kind: "live", ...sc, ...extra, phase: "pens" };
       case "PAUSED": return { kind: "ht", ...sc, ...extra };
       case "FINISHED": case "AWARDED": return { kind: "ft", ...sc, pens: extra.pens, aet: extra.aet };

@@ -10,17 +10,20 @@ import Flag from "./Flag";
 import PlayerPhoto from "./PlayerPhoto";
 import { norm } from "@/lib/teams";
 import { usePersistentState } from "@/lib/persist";
+import { useBrokenImage } from "@/lib/img";
 import { useMatchState, StatusPill, useLiveExtras, useDataEnabled, LiveFreshness } from "@/lib/live";
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
 
 export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
   const [failed, setFailed] = useState(0); // 0 = alkuperäinen, 1 = .svg-yritys, 2 = värimerkki
+  const fail = () => setFailed((f) => (f === 0 && /\.png$/.test(t.crest ?? "") ? 1 : 2));
+  const ref = useBrokenImage(fail, [failed, t.crest]);
   if (t.crest && failed < 2) {
     const src = failed === 1 ? t.crest.replace(/\.png$/, ".svg") : t.crest;
     return (
       <img className="crest" src={src} alt="" width={size} height={size} style={size !== 26 ? { width: size, height: size } : undefined}
-        loading="lazy" decoding="async" onError={() => setFailed(failed === 0 && /\.png$/.test(t.crest!) ? 1 : 2)} />
+        loading="lazy" decoding="async" ref={ref} onError={fail} />
     );
   }
   const c = clubByName(t.name);

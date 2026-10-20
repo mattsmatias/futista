@@ -53,9 +53,12 @@ export async function GET() {
   const fdMatches = fdRes ? fromFd(fdRes.data) : [];
   const matches = mergeLive(fdMatches, espn.matches);
   // käynnissä olevien otteluiden tila tulee ESPN:stä, kun se vastaa; muuten football-datasta
-  const asOf = espn.ok && espn.at !== null ? espn.at : espn.at !== null && fdRes ? Math.min(espn.at, fdRes.at) : (fdRes?.at ?? espn.at ?? null);
+  // football-datan hakuaika; ennen tätä versiota tallennetuissa välimuistimerkinnöissä aikaa ei ole → arvioidaan
+  // yläkanttiin välimuistin iän mukaan (siirtymävaihe, kestää enintään yhden välimuistijakson)
+  const fdAt = fdRes ? fdRes.at ?? Date.now() - 45_000 : null;
+  const asOf = espn.ok && espn.at !== null ? espn.at : espn.at !== null && fdAt !== null ? Math.min(espn.at, fdAt) : (fdAt ?? espn.at ?? null);
   const sources = {
-    fd: { state: !fdOn ? "off" : fdRes ? "ok" : "error", at: fdRes?.at ?? null },
+    fd: { state: !fdOn ? "off" : fdRes ? "ok" : "error", at: fdAt },
     espn: { state: !espnOn() ? "off" : espn.at === null ? "error" : espn.ok ? "ok" : "partial", at: espn.at },
   };
   const error = asOf === null && (fdOn || espnOn()); // käytössä olevat lähteet eivät vastanneet
