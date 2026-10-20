@@ -137,3 +137,8 @@ export function matchState(
   // ilman rajapinnan tietoa: alkanut (tilannetta ja minuuttia ei tiedetä), ~2 h myöhemmin odottaa tulosta
   return now < kick + LIVE_MIN * 60_000 ? { kind: "live", inferred: true } : { kind: "ft", inferred: true };
 }
+
+/** Onko live-ottelu jo lähteen listoilla (sama ottelu ±2 vrk, esim. siirretty ottelu) → ei lisätä kaksoiskappaletta */
+export function knownFixture(list: { date: string; home: { name: string }; away: { name: string } }[], l: LiveMatch): boolean {
+  return list.some((f) => sameTeam(f.home.name, l.home) && sameTeam(f.away.name, l.away) && Math.abs(Date.parse(f.date + "T12:00:00Z") - l.kickoff) < 2 * 86400_000);
+}

@@ -5,6 +5,7 @@ import { fdMeta } from "./fd";
 import { unstable_cache } from "next/cache";
 import { helsinkiParts } from "./live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "./score";
+import { fillFromLastGood } from "./stats-merge";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
@@ -203,23 +204,6 @@ const cachedStats = unstable_cache(async () => {
   return s;
 }, ["stats-v4"], { revalidate: 120 });
 let lastGood: LeagueStats[] | null = null;
-
-/** Täydennä epäonnistuneet osat aiemmasta onnistuneesta hausta ja merkitse ne vanhentuneiksi */
-export function fillFromLastGood(partial: LeagueStats[], prev: LeagueStats[] | null): LeagueStats[] {
-  return partial.map((s) => {
-    const old = prev?.find((x) => x.source === s.source);
-    if (!s.failed?.length || !old) return s;
-    const out: LeagueStats = { ...s, failed: [], stale: true, updated: Math.min(s.updated ?? Infinity, old.updated ?? Infinity) };
-    for (const p of s.failed) {
-      if (p === "table" && old.table.length) out.table = old.table;
-      else if (p === "results" && old.results.length) out.results = old.results;
-      else if (p === "fixtures" && old.fixtures.length) out.fixtures = old.fixtures;
-      else out.failed!.push(p);
-    }
-    if (!Number.isFinite(out.updated!)) out.updated = null;
-    return out;
-  });
-}
 
 export async function getStats(): Promise<LeagueStats[]> {
   try {

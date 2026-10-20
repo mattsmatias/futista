@@ -9,3 +9,4 @@ out/
 .DS_Store
 # ilmoitusten salaiset avaimet: ei koskaan GitHubiin
 futista-avaimet.txt
+.test-build/

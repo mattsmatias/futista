@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
-import { matchState, isOn, helsinkiParts, sameTeam, bestTeam, type LiveMatch, type MatchState } from "./live-core";
+import { matchState, isOn, helsinkiParts, bestTeam, knownFixture, type LiveMatch, type MatchState } from "./live-core";
 import { isNewer } from "./live-merge";
 import type { Fixture, LeagueStats, Team } from "./stats";
 import { useI18n } from "./i18n";
@@ -93,7 +93,7 @@ export function useLiveExtras(stats: LeagueStats[]): (Fixture & { s: string; lea
   for (const l of live.filter((x) => isOn(x.status) || recent(x))) {
     const st = stats.find((s) => s.source === l.source);
     if (!st) continue;
-    const known = [...st.fixtures, ...st.results].some((f) => sameTeam(f.home.name, l.home) && sameTeam(f.away.name, l.away) && Math.abs(Date.parse(f.date) - l.kickoff) < 2 * 86400_000);
+    const known = knownFixture([...st.fixtures, ...st.results], l);
     if (known) continue;
     const teams = st.table.map((r) => r.team);
     const pick = (w: string[], name?: string, crest?: string): Team =>

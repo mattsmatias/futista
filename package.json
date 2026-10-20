@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "tsc -p tests/tsconfig.json && node --test .test-build/tests/*.test.js"
   },
   "dependencies": {
     "@mozilla/readability": "0.5.0",
