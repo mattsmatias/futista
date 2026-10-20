@@ -163,7 +163,7 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
             <div className="rail">
               {latest.map((a) => (
                 <a key={a.id} className="mini" href={toLocal(a.link)}>
-                  <Art image={a.image} seed={a.id} tags={a.tags} source={a.source} />
+                  <Art image={a.image} seed={a.id} tags={a.tags} source={a.source} small />
                   <div><time dateTime={a.date} suppressHydrationWarning>{i.ago(a.date)} · {i.league(a.source, a.league)}</time><strong>{a.title}</strong></div>
                 </a>
               ))}

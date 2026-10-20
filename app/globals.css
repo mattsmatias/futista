@@ -644,3 +644,33 @@ a.match:hover { background: var(--surface-2); }
   .appbar-space.tall { height: calc(104px + env(safe-area-inset-top, 0px)); }
 }
 @media (max-width: 380px) { .appbar.has-seg .seg button { font-size: 12px; padding: 8px 3px; } }
+
+/* ===== Kuvat alkuperäisessä muodossa ja terävinä ===== */
+.card .art { aspect-ratio: 3 / 2; }
+
+/* Pääuutinen: kuva kokonaan (3:2) ja teksti vieressä / alla, ei rajausta eikä suurennosta */
+.hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); min-height: 0; height: auto; max-height: none; aspect-ratio: auto; background: #0b0e14; }
+.hero::after { display: none; }
+.hero .art { position: relative; inset: auto; aspect-ratio: 3 / 2; }
+.hero-txt { position: relative; inset: auto; align-content: end; background: radial-gradient(120% 100% at 0% 100%, #1a1f28 0%, #0b0e14 70%); }
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-txt { padding: 18px 18px 20px; }
+}
+
+/* Juttusivun pääkuva: kokonainen kuva, reunoilla saman kuvan sumennettu tausta */
+.story-top.has-img { display: block; min-height: 0; overflow: hidden; background: #07090d; padding-top: calc(68px + env(safe-area-inset-top, 0px)); }
+.story-top.has-img::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(7,9,13,.15) 0%, rgba(7,9,13,.55) 60%, #07090d 100%); }
+.story-bg { position: absolute; inset: -60px; z-index: -2; background: center / cover no-repeat; filter: blur(40px) saturate(1.15) brightness(.55); }
+.story-figure { margin: 0 auto; max-width: 1080px; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+.story-figure img { display: block; width: 100%; height: auto; border-radius: var(--r-md); box-shadow: 0 30px 70px -25px rgba(0,0,0,.75); background: #11151c; }
+.story-top.has-img .wrap { padding-block: 26px 34px; }
+@media (max-width: 640px) {
+  .story-top.has-img { padding-top: calc(62px + env(safe-area-inset-top, 0px)); }
+  .story-figure { padding-inline: 0; }
+  .story-figure img { border-radius: 0; box-shadow: none; }
+  .story-top.has-img .wrap { padding-block: 20px 24px; }
+}
+
+/* Jutun sisäkuvat: koko kuva näkyy, ei rajausta eikä suurennosta yli alkuperäisen koon */
+.story-body img { width: auto; max-width: 100%; height: auto; max-height: none; object-fit: contain; margin-inline: auto; }

@@ -33,12 +33,18 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <>
       <Progress />
-      <header className="story-top">
-        <div className="art">
-          {a.image
-            ? <img src={a.image} alt="" referrerPolicy="no-referrer" fetchPriority="high" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <GenArt seed={a.source} tags={a.tags} source={a.sourceId} />}
-        </div>
+      <header className={`story-top${a.image ? " has-img" : ""}`}>
+        {a.image ? (
+          <>
+            {/* sumennettu tausta täyttää reunat, itse kuva näytetään kokonaan ja alkuperäisessä muodossaan */}
+            <div className="story-bg" style={{ backgroundImage: `url("${a.image}")` }} aria-hidden="true" />
+            <figure className="story-figure">
+              <img src={a.image} alt="" width={1264} height={843} referrerPolicy="no-referrer" fetchPriority="high" decoding="async" />
+            </figure>
+          </>
+        ) : (
+          <div className="art"><GenArt seed={a.source} tags={a.tags} source={a.sourceId} /></div>
+        )}
         <a className="back" href="/"><T k="back" /></a>
         <div className="wrap" style={{ maxWidth: 820 }}>
           <div className="chips">

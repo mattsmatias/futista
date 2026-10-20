@@ -29,6 +29,17 @@ const BAD_IMG = /placeholder|\/emoji\/|\/icons?\/|wp-smiley|gravatar|avatar|spin
  *  - "Lue myös" -osiot pois (niiden linkit eivät toimisi täällä) */
 function cleanImages(doc: any) {
   for (const img of [...doc.querySelectorAll("img")]) {
+    // suurin saatavilla oleva koko srcset-listasta (WordPress tarjoaa usein pienennöksen src:ssä)
+    const best = (img.getAttribute("data-srcset") || img.getAttribute("srcset") || "")
+      .split(",")
+      .map((c: string) => c.trim().split(/\s+/))
+      .filter((p: string[]) => p[0] && /^\d+w$/.test(p[1] || ""))
+      .sort((a: string[], b: string[]) => parseInt(b[1]) - parseInt(a[1]))[0]?.[0];
+    if (best && !BAD_IMG.test(best)) {
+      img.setAttribute("src", best);
+      img.removeAttribute("width");
+      img.removeAttribute("height");
+    }
     const lazy =
       img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-original") ||
       (img.getAttribute("data-srcset") || img.getAttribute("srcset") || "").split(",").pop()?.trim().split(" ")[0] || "";
