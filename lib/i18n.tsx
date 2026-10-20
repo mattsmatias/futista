@@ -203,7 +203,7 @@ const WD: Record<Lang, string[]> = {
   en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
 };
 
-export const translate = (lang: Lang, k: Key) => D[k][IDX[lang]];
+export const translate = (lang: Lang, k: Key): string => (D[k] ? D[k][IDX[lang]] : String(k));
 
 const STORE = "futista-kieli";
 const Ctx = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({ lang: "fi", setLang: () => {} });

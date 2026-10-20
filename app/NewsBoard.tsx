@@ -108,7 +108,7 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
           <TypeNav type={type} setType={setType} className="typenav top" />
           <div className="seg" role="tablist" aria-label="Sarja">
             <button className={league === "all" ? "on" : ""} onClick={() => { setLeague("all"); setClub(null); }}>{t("all")}</button>
-            {SOURCES.map((s) => (
+            {SOURCES.filter((s) => isMain(s.id)).map((s) => (
               <button key={s.id} className={league === s.id ? `on on-${s.id}` : ""} onClick={() => { setLeague(s.id); setClub(null); }}>
                 <span className={s.id === "ucl" ? "full long" : "full"}>{i.league(s.id, s.league)}</span>
                 <span className={s.id === "ucl" ? "short alt" : "short"}>{s.id === "laliga" ? i.league(s.id, s.league) : t(`lgs_${s.id}` as Key)}</span>
