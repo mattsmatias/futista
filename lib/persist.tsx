@@ -45,27 +45,35 @@ export function ScrollMemory() {
     const key = `futista:scroll:${location.pathname}${location.search}`;
     keyRef.current = key;
     let cancelled = false;
+    let stopUser: (() => void) | null = null;
     if (back.current) {
       back.current = false;
       const y = Number(read(key) ?? 0);
       if (y > 0) {
-        // sisältö (suodattimet, välilehti, listat) palautuu ensin; yritetään kunnes sivu on tarpeeksi pitkä
-        let n = 0;
-        const tryScroll = () => {
-          if (cancelled) return;
-          window.scrollTo(0, y);
-          if (Math.abs(window.scrollY - y) > 4 && n++ < 25) setTimeout(tryScroll, 100);
+        // Sisältö (suodattimet, välilehti, listat) palautuu ensin, ja reititin voi vierittää alkuun vielä
+        // palautuksen jälkeen: pidetään kohta paikallaan 6 s ajan (hidas palvelinvastaus), ellei käyttäjä itse vieritä.
+        const start = Date.now();
+        let user = false;
+        const onUser = () => { user = true; };
+        window.addEventListener("wheel", onUser, { passive: true });
+        window.addEventListener("touchstart", onUser, { passive: true });
+        window.addEventListener("keydown", onUser);
+        stopUser = () => { window.removeEventListener("wheel", onUser); window.removeEventListener("touchstart", onUser); window.removeEventListener("keydown", onUser); };
+        const tick = () => {
+          if (cancelled || user || Date.now() - start > 6000) { stopUser?.(); return; }
+          if (Math.abs(window.scrollY - y) > 4) window.scrollTo(0, y);
+          setTimeout(tick, 100);
         };
-        setTimeout(tryScroll, 50);
+        setTimeout(tick, 30);
       }
     }
     let t: ReturnType<typeof setTimeout> | null = null;
     let armed = false;
     // ensimmäiset vieritystapahtumat ovat navigoinnin omia (alkuun vieritys / palautus): ei tallenneta niitä
-    const arm = setTimeout(() => { armed = true; }, 1500);
+    const arm = setTimeout(() => { armed = true; }, 6200);
     const save = () => { if (!armed) return; if (t) clearTimeout(t); t = setTimeout(() => write(key, String(Math.round(window.scrollY))), 150); };
     window.addEventListener("scroll", save, { passive: true });
-    return () => { cancelled = true; clearTimeout(arm); window.removeEventListener("scroll", save); if (t) clearTimeout(t); };
+    return () => { cancelled = true; stopUser?.(); clearTimeout(arm); window.removeEventListener("scroll", save); if (t) clearTimeout(t); };
   }, [path]);
   return null;
 }
