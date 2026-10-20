@@ -17,7 +17,7 @@ const LEAGUE: Record<string, string> = {
 };
 
 type EspnTeam = { id: string; name: string; words: string[] };
-export type GameTeam = { name: string; logo?: string; code: string };
+export type GameTeam = { name: string; logo?: string; code: string; w?: string[] };
 export type Game = {
   id: string; epoch: number; date: string; time: string;
   comp: string; slug: string;
@@ -77,7 +77,8 @@ function toGame(e: any): Game | null {
     return kind === "upcoming" || kind === "postponed" || kind === "cancelled" || v === undefined || v === null || v === "" ? null : Number(v);
   };
   const tm = (x: any): GameTeam => ({
-    name: x.team?.shortDisplayName && x.team.shortDisplayName.length > 3 ? x.team.shortDisplayName : x.team?.displayName ?? "?",
+    name: x.team?.displayName ?? x.team?.shortDisplayName ?? "?",
+    w: words([x.team?.displayName, x.team?.shortDisplayName, x.team?.location, x.team?.name].filter(Boolean).join(" ")),
     logo: x.team?.logos?.[0]?.href ?? x.team?.logo,
     code: x.team?.abbreviation ?? (x.team?.displayName ?? "?").slice(0, 3).toUpperCase(),
   });
@@ -102,7 +103,7 @@ const scheduleOf = (id: string) =>
     }
     if (!seen.size) throw new Error("empty");
     return [...seen.values()].sort((x, y) => x.epoch - y.epoch);
-  }, ["espn-games-v1", id], { revalidate: 60 })();
+  }, ["espn-games-v2", id], { revalidate: 60 })();
 
 /** Liitä ottelu meidän otteluun (sama päivä ± 1 ja sama vastustaja) → linkki ottelusivulle ja meidän nimet */
 function link(g: Game, team: string, stats: LeagueStats[]) {
@@ -110,7 +111,7 @@ function link(g: Game, team: string, stats: LeagueStats[]) {
   for (const s of stats) {
     const all = [...s.results, ...s.fixtures];
     const hit = all.find((m) => Math.abs(day(m.date) - day(g.date)) <= 86400_000 &&
-      sameTeam(m.home.name, words(g.home.name)) && sameTeam(m.away.name, words(g.away.name)));
+      sameTeam(m.home.name, g.home.w ?? words(g.home.name)) && sameTeam(m.away.name, g.away.w ?? words(g.away.name)));
     if (hit) {
       g.href = matchHref(s.source, hit.date, hit.home.name, hit.away.name);
       g.home = { ...g.home, name: hit.home.name };
@@ -126,8 +127,20 @@ export async function getTeamGames(source: string, name: string, stats: LeagueSt
   try {
     const id = await findTeam(source, name);
     if (!id) return null;
-    const games = (await scheduleOf(id)).map((g) => ({ ...g }));
-    for (const g of games) if (g.slug === LEAGUE[source] || g.slug === "uefa.champions") link(g, name, stats);
+    const games = (await scheduleOf(id)).map((g) => ({ ...g, home: { ...g.home }, away: { ...g.away } }));
+    const known = stats.flatMap((s) => [...s.table.map((r) => r.team), ...s.results.flatMap((r) => [r.home, r.away])]);
+    const ours = (t: GameTeam): GameTeam => {
+      const w = t.w ?? words(t.name);
+      if (sameTeam(name, w)) return { ...t, name };
+      // tunnettu joukkue (esim. sarjakaveri) näytetään samalla nimellä kuin muualla sivustolla
+      const k = known.find((x) => words(x.name).length && words(x.name).every((y) => w.includes(y)));
+      return k ? { ...t, name: k.name } : t;
+    };
+    for (const g of games) {
+      if (g.slug === LEAGUE[source] || g.slug === "uefa.champions") link(g, name, stats);
+      if (!g.href) { g.home = ours(g.home); g.away = ours(g.away); }
+      delete g.home.w; delete g.away.w;
+    }
     return games;
   } catch (e) {
     console.error("espn", source, name, (e as Error)?.message);
