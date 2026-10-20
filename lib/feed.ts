@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { unstable_cache } from "next/cache";
 import { SOURCES, siteName, type Source, type SourceId } from "./sources";
 
 export type Article = {
@@ -77,7 +78,10 @@ async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
   });
 }
 
-export async function getArticles(): Promise<Article[]> {
+/** Uutiset kaikista syötteistä; käsitelty lista tallennetaan kolmeksi minuutiksi */
+export const getArticles = unstable_cache(readAll, ["articles-v2"], { revalidate: 180 });
+
+async function readAll(): Promise<Article[]> {
   const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, f))))).flat();
   // sama juttu voi tulla kahdesta syötteestä
   const seen = new Set<string>();

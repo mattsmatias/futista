@@ -2,6 +2,7 @@ import { parseHTML } from "linkedom";
 import { SOURCES, type SourceId } from "./sources";
 import { crestLookup } from "./crests";
 import { fd } from "./fd";
+import { unstable_cache } from "next/cache";
 import { helsinkiParts } from "./live-core";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
@@ -163,8 +164,11 @@ export async function getStatsWith(extra: string[] = []): Promise<LeagueStats[]>
   return [...main, ...(more.filter(Boolean) as LeagueStats[])];
 }
 
-/** Uutissarjojen tilastot (etusivu, ilmoitukset). Muut sarjat haetaan getLeague-funktiolla tarvittaessa. */
-export async function getStats(): Promise<LeagueStats[]> {
+/** Uutissarjojen tilastot (etusivu, ilmoitukset). Muut sarjat haetaan getLeague-funktiolla tarvittaessa.
+ *  Käsitelty tulos tallennetaan kahdeksi minuutiksi, jotta jokainen sivu ei jäsennä lähdesivuja uudelleen. */
+export const getStats = unstable_cache(computeStats, ["stats-v2"], { revalidate: 120 });
+
+async function computeStats(): Promise<LeagueStats[]> {
   const crest = await crestLookup();
   const withCrest = (t: Team): Team => (t.id ? t : { ...t, ...crest(t.name) });
   const stats = await Promise.all(
