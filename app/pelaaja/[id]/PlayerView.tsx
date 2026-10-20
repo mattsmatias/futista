@@ -4,6 +4,7 @@ import { useI18n, type Key } from "@/lib/i18n";
 import { ageOf } from "@/lib/age";
 import { Badge } from "../../Stats";
 import Flag from "../../Flag";
+import PlayerPhoto from "../../PlayerPhoto";
 import SubBar from "../../SubBar";
 import Footer from "../../Footer";
 
@@ -15,6 +16,7 @@ export type PlayerData = {
   id: number; name: string; dateOfBirth: string | null; nationality: string | null;
   position: string | null; shirtNumber: number | null;
   club: { name: string; crest?: string; href: string | null } | null;
+  photo: string | null;
   matches: PlayerMatch[];
 };
 
@@ -33,8 +35,8 @@ export default function PlayerView({ p }: { p: PlayerData }) {
       <SubBar />
       <main className="wrap entity">
         <section className="ent-hero player-hero" style={{ ["--c1" as any]: "var(--cl)", ["--c2" as any]: "var(--pl)" }}>
-          <div className="ent-crest pl-avatar">
-            <span>{initials}</span>
+          <div className={`ent-crest pl-avatar${p.photo ? " has-photo" : ""}`}>
+            {p.photo ? <PlayerPhoto name={p.name} initial={p.photo} size={100} className="big" /> : <span>{initials}</span>}
             {p.shirtNumber != null && <b className="pl-num">{p.shirtNumber}</b>}
           </div>
           <div className="ent-txt">

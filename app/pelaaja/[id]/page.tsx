@@ -5,6 +5,7 @@ import { getStatsWith, type LeagueStats, type Team } from "@/lib/stats";
 import { SOURCES } from "@/lib/sources";
 import { helsinkiParts } from "@/lib/live-core";
 import { matchHref, teamHref } from "@/lib/routes";
+import { getPhoto } from "@/lib/photos";
 import PlayerView, { type PlayerData } from "./PlayerView";
 
 export const revalidate = 1800;
@@ -57,8 +58,9 @@ async function load(id: string): Promise<PlayerData | null> {
     };
   }
 
+  const photo = await getPhoto(p.name, club?.name ?? "");
   return {
-    id: p.id, name: p.name, dateOfBirth: p.dateOfBirth ?? null, nationality: p.nationality ?? null,
+    id: p.id, name: p.name, photo, dateOfBirth: p.dateOfBirth ?? null, nationality: p.nationality ?? null,
     position: p.position ?? p.section ?? null, shirtNumber: p.shirtNumber ?? null, club,
     matches: matches.map((m) => {
       const source = SOURCES.find((s) => s.fd === m.competition?.code)?.id;

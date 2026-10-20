@@ -819,3 +819,15 @@ a { -webkit-tap-highlight-color: transparent; }
 .mh-score { gap: 14px; line-height: 1; background: none; }
 .mh-score i { display: block; width: 16px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.45); font-size: 0; opacity: 1; flex: none; }
 @media (max-width: 640px) { .mh-score { gap: 12px; } .mh-score i { width: 13px; height: 3px; } }
+
+/* Pelaajien kuvat */
+.pphoto { position: relative; flex: none; display: inline-grid; place-items: center; border-radius: 50%; overflow: hidden; background: linear-gradient(160deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 60%, var(--line))); }
+.pp-ini { font-weight: 800; color: var(--muted); letter-spacing: -0.02em; }
+.pphoto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 12%; opacity: 0; transition: opacity .35s ease; }
+.pphoto img.on { opacity: 1; }
+.sq-row { grid-template-columns: auto 1fr auto; }
+.sq-name { display: inline-flex; align-items: center; gap: 7px; }
+.tbl.scorers .pl b { display: inline-flex; align-items: center; gap: 6px; }
+.pl-avatar.has-photo { padding: 0; overflow: visible; background: linear-gradient(170deg, #fff, #e9edf5); }
+.pl-avatar .pphoto.big { width: 100% !important; height: 100% !important; border-radius: inherit; background: none; }
+.pl-avatar .pphoto.big img { object-fit: contain; object-position: center bottom; }

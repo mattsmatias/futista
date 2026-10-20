@@ -11,6 +11,7 @@ import { Card } from "../../../Cards";
 import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
 import Flag from "../../../Flag";
+import PlayerPhoto from "../../../PlayerPhoto";
 import { AutoRefresh } from "@/lib/fresh";
 import { ageOf } from "@/lib/age";
 import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
@@ -19,7 +20,7 @@ import type { Key } from "@/lib/i18n";
 const ORDER = ["Goalkeeper", "Defence", "Midfield", "Offence"];
 
 /** Pelaajat pelipaikoittain: lippu, nimi, ikä ja kotimaa */
-function Squad({ info }: { info: TeamInfo }) {
+function Squad({ info, team }: { info: TeamInfo; team: string }) {
   const i = useI18n();
   const { t } = i;
   const groups = [...ORDER, "other"].map((pos) => ({
@@ -30,8 +31,8 @@ function Squad({ info }: { info: TeamInfo }) {
   })).filter((g) => g.list.length);
   const Row = ({ p }: { p: SquadPlayer }) => (
     <a className="sq-row" href={`/pelaaja/${p.id}`}>
-      <Flag nation={p.nationality} />
-      <span className="sq-name">{p.name}</span>
+      <PlayerPhoto name={p.name} team={team} size={40} />
+      <span className="sq-name"><Flag nation={p.nationality} /> {p.name}</span>
       <span className="sq-meta">{ageOf(p.dateOfBirth) ?? "–"} {t("years")}</span>
     </a>
   );
@@ -42,8 +43,8 @@ function Squad({ info }: { info: TeamInfo }) {
         <div className="sq-group">
           <div className="day-label">{t("coach")}</div>
           <div className="sq-row static">
-            <Flag nation={info.coach.nationality} />
-            <span className="sq-name">{info.coach.name}</span>
+            <PlayerPhoto name={info.coach.name} team={team} size={40} />
+            <span className="sq-name"><Flag nation={info.coach.nationality} /> {info.coach.name}</span>
             <span className="sq-meta">{ageOf(info.coach.dateOfBirth) ?? "–"} {t("years")}</span>
           </div>
         </div>
@@ -162,7 +163,7 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
           </div>
         </div>
 
-        {info && info.squad.length > 0 && <Squad info={info} />}
+        {info && info.squad.length > 0 && <Squad info={info} team={team.name} />}
         {info && <ClubInfo info={info} />}
 
         {s.table.length > 0 && <section className="sec"><Standings s={s} highlight={[team.name]} /></section>}

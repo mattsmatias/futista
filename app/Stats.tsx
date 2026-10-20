@@ -7,6 +7,7 @@ import { useFavorites } from "@/lib/favorites";
 import { teamHref, matchHref } from "@/lib/routes";
 import type { LeagueScorers } from "@/lib/scorers";
 import Flag from "./Flag";
+import PlayerPhoto from "./PlayerPhoto";
 import { norm } from "@/lib/teams";
 import { useMatchState, StatusPill, useLiveExtras, useDataEnabled } from "@/lib/live";
 import { Num } from "@/lib/fresh";
@@ -282,8 +283,8 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
                   <td className="pos">{n > 0 && list[n - 1].goals === p.goals ? "" : n + 1}</td>
                   <td className="l">
                     <a className="pl" href={p.id ? `/pelaaja/${p.id}` : undefined}>
-                      <Flag nation={p.nationality} />
-                      <span><b>{p.name}</b><small className="mob-team">{p.team.name}</small></span>
+                      <PlayerPhoto name={p.name} team={p.team.name} size={34} />
+                      <span><b><Flag nation={p.nationality} /> {p.name}</b><small className="mob-team">{p.team.name}</small></span>
                     </a>
                   </td>
                   <td className="l opt"><a className="tm" href={teamHref(source, p.team.name)}><Badge t={p.team} />{p.team.name}</a></td>
