@@ -5,7 +5,8 @@ import { crestLookup } from "./crests";
 export type Team = { name: string; code: string; crest?: string };
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
 export type Result = { date: string; home: Team; away: Team; hs: number; as: number };
-export type LeagueStats = { source: SourceId; league: string; table: Row[]; results: Result[] };
+export type Fixture = { date: string; time: string; home: Team; away: Team };
+export type LeagueStats = { source: SourceId; league: string; table: Row[]; results: Result[]; fixtures: Fixture[] };
 
 const UA = { "User-Agent": "Futista/1.0" };
 
@@ -60,6 +61,34 @@ function parseTable(doc: any): Row[] {
   return [];
 }
 
+/** "Koti – Vieras" -solu kahdeksi joukkueeksi */
+function splitMatch(cell: any): [Team, Team] {
+  const parts = leaves(cell);
+  const i = parts.findIndex((p) => /^[–-]$/.test(p));
+  if (i >= 0) return [team(parts.slice(0, i)), team(parts.slice(i + 1))];
+  const [h, a] = parts.join(" ").split(/\s[–-]\s/);
+  return [team([h ?? ""]), team([a ?? ""])];
+}
+
+/** Otteluohjelma: Pvm | Koti – Vieras | Klo */
+function parseFixtures(doc: any): Fixture[] {
+  const out: Fixture[] = [];
+  const seen = new Set<string>();
+  for (const tr of doc.querySelectorAll("tr")) {
+    const td = [...tr.querySelectorAll("td")];
+    if (td.length < 3) continue;
+    const date = td[0].textContent.trim().match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    const time = td[td.length - 1].textContent.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+    if (!date || !time) continue;
+    const [home, away] = splitMatch(td[1]);
+    const f: Fixture = { date: `${date[3]}-${date[2]}-${date[1]}`, time: `${time[1].padStart(2, "0")}:${time[2]}`, home, away };
+    const key = `${f.date}|${home.name}|${away.name}`;
+    if (!seen.has(key)) { seen.add(key); out.push(f); }
+  }
+  const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+  return out.filter((f) => f.date >= today).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+}
+
 function parseResults(doc: any): Result[] {
   const out: Result[] = [];
   const seen = new Set<string>();
@@ -81,7 +110,7 @@ function parseResults(doc: any): Result[] {
     const key = `${r.date}|${r.home.name}|${r.away.name}`;
     if (!seen.has(key)) { seen.add(key); out.push(r); }
   }
-  return out.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+  return out.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function getStats(): Promise<LeagueStats[]> {
@@ -89,12 +118,15 @@ export async function getStats(): Promise<LeagueStats[]> {
   const withCrest = (t: Team): Team => ({ ...t, crest: crest(t.name) });
   const stats = await Promise.all(
     SOURCES.map(async (s) => {
-      const [t, r] = await Promise.all([getHtml(`${s.base}sarjataulukko/`), getHtml(`${s.base}tulokset/`)]);
+      const [t, r, f] = await Promise.all([
+        getHtml(`${s.base}sarjataulukko/`), getHtml(`${s.base}tulokset/`), getHtml(`${s.base}otteluohjelma/`),
+      ]);
       return {
         source: s.id,
         league: s.league,
         table: t ? parseTable(parseHTML(t).document) : [],
         results: r ? parseResults(parseHTML(r).document) : [],
+        fixtures: f ? parseFixtures(parseHTML(f).document) : [],
       };
     })
   );
@@ -103,5 +135,10 @@ export async function getStats(): Promise<LeagueStats[]> {
     ...s,
     table: s.table.map((row) => ({ ...row, team: withCrest(row.team) })),
     results: s.results.map((m) => ({ ...m, home: withCrest(m.home), away: withCrest(m.away) })),
+    fixtures: s.fixtures.map((m) => ({ ...m, home: withCrest(m.home), away: withCrest(m.away) })),
   }));
 }
+
+/** Etusivulle kevennetty versio (vähemmän dataa puhelimeen) */
+export const slimStats = (all: LeagueStats[]): LeagueStats[] =>
+  all.map((s) => ({ ...s, results: s.results.slice(0, 40), fixtures: s.fixtures.slice(0, 30) }));

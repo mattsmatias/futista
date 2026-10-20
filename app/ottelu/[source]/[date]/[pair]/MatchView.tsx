@@ -1,0 +1,137 @@
+"use client";
+import { useState } from "react";
+import type { Fixture, LeagueStats, Result, Row, Team } from "@/lib/stats";
+import { useI18n, type Key } from "@/lib/i18n";
+import { norm } from "@/lib/teams";
+import { teamHref } from "@/lib/routes";
+import { Badge, FormPills, Match, Standings } from "../../../../Stats";
+import SubBar from "../../../../SubBar";
+import Footer from "../../../../Footer";
+
+type Tab = "summary" | "h2h" | "table";
+
+function Compare({ label, a, b, lowerBetter }: { label: string; a: number; b: number; lowerBetter?: boolean }) {
+  const total = a + b || 1;
+  const aBetter = lowerBetter ? a < b : a > b, bBetter = lowerBetter ? b < a : b > a;
+  return (
+    <div className="cmp">
+      <div className="cmp-top"><b className={aBetter ? "lead" : ""}>{a}</b><span>{label}</span><b className={bBetter ? "lead" : ""}>{b}</b></div>
+      <div className="cmp-bar"><i className="h" style={{ width: `${(a / total) * 100}%` }} /><i className="a" style={{ width: `${(b / total) * 100}%` }} /></div>
+    </div>
+  );
+}
+
+function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
+  const i = useI18n();
+  const n = norm(team.name);
+  const list = s.results.filter((r) => norm(r.home.name) === n || norm(r.away.name) === n).slice(0, 5);
+  return (
+    <div className="panel">
+      <div className="panel-head"><h3 className="ph-team"><Badge t={team} size={22} />{team.name}</h3><span className="muted">{i.t("last5")}</span></div>
+      {list.length === 0 && <p className="muted pad">{i.t("noResults")}</p>}
+      {list.map((r) => (
+        <div className="day" key={r.date + r.home.name}>
+          <div className="day-label">{i.day(r.date)}</div>
+          <Match r={r} source={s.source} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function MatchView({ s, result, fixture }: { s: LeagueStats; result?: Result; fixture?: Fixture }) {
+  const i = useI18n();
+  const { t } = i;
+  const m = (result ?? fixture)!;
+  const [tab, setTab] = useState<Tab>("summary");
+  const row = (tm: Team): Row | undefined => s.table.find((r) => norm(r.team.name) === norm(tm.name));
+  const rh = row(m.home), ra = row(m.away);
+  const pair = [norm(m.home.name), norm(m.away.name)];
+  const meetings = s.results.filter((r) => pair.includes(norm(r.home.name)) && pair.includes(norm(r.away.name)));
+  const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
+
+  const tabs: { id: Tab; label: Key }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "h2h" }, { id: "table", label: "standing" }];
+
+  return (
+    <>
+      <SubBar />
+      <main className="wrap entity">
+        <section className={`match-hero mh-${s.source}`}>
+          <div className="mh-meta">
+            <span className={`chip chip-${s.source}`}>{i.league(s.source, s.league)}</span>
+            <span>{i.day(m.date)}{fixture ? ` · ${fixture.time}` : ""}</span>
+          </div>
+          <div className="mh-row">
+            <a className={`mh-team${aw ? " lost" : ""}`} href={teamHref(s.source, m.home.name)}>
+              <Badge t={m.home} size={72} /><b>{m.home.name}</b>{rh && <small>{rh.pos}.</small>}
+            </a>
+            <div className="mh-mid">
+              {result
+                ? <div className="mh-score"><b className={hw ? "w" : ""}>{result.hs}</b><i>–</i><b className={aw ? "w" : ""}>{result.as}</b></div>
+                : <div className="mh-time">{fixture!.time}</div>}
+              <span className={`mh-status${result ? "" : " up"}`}>{result ? t("statusFt") : t("statusUpcoming")}</span>
+            </div>
+            <a className={`mh-team${hw ? " lost" : ""}`} href={teamHref(s.source, m.away.name)}>
+              <Badge t={m.away} size={72} /><b>{m.away.name}</b>{ra && <small>{ra.pos}.</small>}
+            </a>
+          </div>
+        </section>
+
+        <div className="subtabs sticky" role="tablist">
+          {tabs.map((x) => (
+            <button key={x.id} role="tab" aria-selected={tab === x.id} className={tab === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>
+          ))}
+        </div>
+
+        {tab === "summary" && (
+          <>
+            <div className="panel">
+              <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("last5")}</span></div>
+              <div className="form-duo">
+                <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
+                <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>
+              </div>
+            </div>
+            {rh && ra && (
+              <div className="panel">
+                <div className="panel-head"><h3>{t("comparison")}</h3><span className="muted">{t("standing")}</span></div>
+                <div className="cmps">
+                  <Compare label={t("position")} a={rh.pos} b={ra.pos} lowerBetter />
+                  <Compare label={t("colPts")} a={rh.pts} b={ra.pts} />
+                  <Compare label={t("won")} a={rh.w} b={ra.w} />
+                  <Compare label={t("drawn")} a={rh.d} b={ra.d} />
+                  <Compare label={t("lost")} a={rh.l} b={ra.l} lowerBetter />
+                  <Compare label={t("goalsFor")} a={rh.gf} b={ra.gf} />
+                  <Compare label={t("goalsAgainst")} a={rh.ga} b={ra.ga} lowerBetter />
+                </div>
+              </div>
+            )}
+            <p className="muted note">{t("lineupsLater")}</p>
+          </>
+        )}
+
+        {tab === "h2h" && (
+          <>
+            <div className="panel">
+              <div className="panel-head"><h3>{t("seasonH2H")}</h3></div>
+              {meetings.length === 0 && <p className="muted pad">{t("noMeetings")}</p>}
+              {meetings.map((r) => (
+                <div className="day" key={r.date}>
+                  <div className="day-label">{i.day(r.date)}</div>
+                  <Match r={r} source={s.source} />
+                </div>
+              ))}
+            </div>
+            <div className="duo">
+              <TeamResults team={m.home} s={s} />
+              <TeamResults team={m.away} s={s} />
+            </div>
+          </>
+        )}
+
+        {tab === "table" && <Standings s={s} highlight={[m.home.name, m.away.name]} />}
+      </main>
+      <Footer />
+    </>
+  );
+}

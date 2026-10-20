@@ -8,7 +8,7 @@ import { useFavorites, HeartButton } from "@/lib/favorites";
 import { storyIsAbout, playedIn } from "@/lib/teams";
 import { pushState, pushEnable, pushDisable, type PushState } from "@/lib/push-client";
 import { Card } from "./Cards";
-import { Badge, Match } from "./Stats";
+import { Badge, Match, FixtureRow } from "./Stats";
 
 const Bell = ({ on }: { on: boolean }) => (
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -78,10 +78,16 @@ export default function Favorites({ articles, stats, league }: { articles: Artic
   const stories = articles.filter((a) => inLeague(a.source) && favs.some((f) => storyIsAbout(f, a.tags)));
   const results = stats
     .filter((s) => inLeague(s.source))
-    .flatMap((s) => s.results)
+    .flatMap((s) => s.results.map((r) => ({ ...r, source: s.source })))
     .filter((r) => favs.some((f) => playedIn(f, r.home.name, r.away.name)))
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 8);
+  const upcoming = stats
+    .filter((s) => inLeague(s.source))
+    .flatMap((s) => s.fixtures.map((f) => ({ ...f, source: s.source })))
+    .filter((f) => favs.some((x) => playedIn(x, f.home.name, f.away.name)))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+    .slice(0, 6);
 
   return (
     <main className="wrap favs">
@@ -90,6 +96,19 @@ export default function Favorites({ articles, stats, league }: { articles: Artic
 
       {favs.length > 0 && (
         <>
+          {upcoming.length > 0 && (
+            <section className="sec">
+              <div className="sec-head"><h2>{t("upcomingMatches")}</h2></div>
+              <div className="panel">
+                {upcoming.map((f) => (
+                  <div className="day" key={f.date + f.home.name}>
+                    <div className="day-label">{i.day(f.date)}</div>
+                    <FixtureRow f={f} source={f.source} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           {results.length > 0 && (
             <section className="sec">
               <div className="sec-head"><h2>{t("favResults")}</h2></div>
@@ -97,7 +116,7 @@ export default function Favorites({ articles, stats, league }: { articles: Artic
                 {results.map((r) => (
                   <div className="day" key={r.date + r.home.name}>
                     <div className="day-label">{i.day(r.date)}</div>
-                    <Match r={r} />
+                    <Match r={r} source={r.source} />
                   </div>
                 ))}
               </div>

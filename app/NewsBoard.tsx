@@ -5,7 +5,7 @@ import { toLocal } from "@/lib/links";
 import { SOURCES } from "@/lib/sources";
 import Art from "./Art";
 import type { LeagueStats } from "@/lib/stats";
-import { Standings, Results, ScoreRail } from "./Stats";
+import { Standings, Results, ScoreRail, UpcomingRail } from "./Stats";
 import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import { Card, Meta } from "./Cards";
@@ -21,7 +21,7 @@ const Icon = {
 
 const TYPES: { id: string; label: Key; icon: JSX.Element }[] = [
   { id: "all", label: "news", icon: Icon.home },
-  { id: "results", label: "results", icon: Icon.score },
+  { id: "results", label: "matches", icon: Icon.score },
   { id: "table", label: "table", icon: Icon.table },
   { id: "Siirtouutiset", label: "transfers", icon: Icon.swap },
   { id: "favs", label: "favorites", icon: Icon.heart },
@@ -117,13 +117,14 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
 
       {view === "results" && (
         <main className="wrap">
-          <div className="sec-head page-head"><h2>{t("results")}</h2></div>
+          <div className="sec-head page-head"><h2>{t("matches")}</h2></div>
           <Results stats={leagueStats} />
         </main>
       )}
 
       {view === "news" && <main className="wrap">
         {type === "all" && !club && <ScoreRail stats={leagueStats} onMore={() => go("results")} />}
+        {type === "all" && !club && <UpcomingRail stats={leagueStats} onMore={() => go("results")} />}
         {!hero && <p className="empty">{t("empty")}</p>}
 
         {hero && (

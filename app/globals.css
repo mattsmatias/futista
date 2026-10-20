@@ -511,3 +511,106 @@ main > .page-head { margin-bottom: -22px; }          /* otsikko → sisältö no
 .story-body figure { margin: 1.4em 0; }
 .story-body img { display: block; width: 100%; height: auto; max-height: min(70vh, 560px); object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2); }
 .story-body svg, .story-body iframe { display: none; }
+
+/* ===== Ottelut: alavälilehdet, tulevat ottelut ===== */
+.subtabs { display: inline-flex; gap: 4px; padding: 4px; margin: 0 0 16px; border-radius: 999px; background: var(--surface-2); }
+.subtabs button { padding: 8px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 700; color: var(--muted); transition: background .15s, color .15s; }
+.subtabs button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 6px -2px rgba(0,0,0,.25); }
+.subtabs.sticky { position: sticky; top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px) + 8px); z-index: 5; display: flex; width: fit-content; max-width: 100%; margin: 20px auto 16px; box-shadow: var(--shadow); }
+.match { transition: background .15s; }
+a.match:hover { background: var(--surface-2); }
+.match .side.upcoming { color: var(--fg); font-weight: 600; }
+.score.ko { font-size: 14px; color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.score-card.up .sc-row { color: var(--fg); font-weight: 600; grid-template-columns: auto 1fr; }
+.score-card.up .ft { color: var(--fg); }
+.tbl a.tm:hover { text-decoration: underline; text-underline-offset: 3px; }
+.tbl tr.hl td { background: color-mix(in srgb, var(--pl) 12%, transparent); }
+.tbl tr.hl td:first-child { box-shadow: inset 3px 0 0 var(--pl); }
+
+/* Kunto-pillerit */
+.form { display: inline-flex; gap: 4px; }
+.fp { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font: 800 11px var(--ui); color: #fff; }
+.fp-w { background: var(--win); } .fp-d { background: #8b95a7; } .fp-l { background: #e5484d; }
+.fp:hover { transform: translateY(-1px); }
+
+/* ===== Seura- ja ottelusivut ===== */
+.subback { display: grid; place-items: center; width: 40px; height: 40px; margin-left: -8px; border-radius: 12px; }
+.subback:hover { background: var(--surface-2); }
+.grow { flex: 1; }
+.entity { padding-top: 20px; padding-bottom: 48px; display: grid; gap: 18px; }
+.entity > * { min-width: 0; }
+.entity .sec { margin: 0; }
+
+.ent-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 20px; padding: 28px; border-radius: var(--r-lg); color: #fff;
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--c1) 92%, #000) 0%, color-mix(in srgb, var(--c1) 55%, #07090d) 55%, #07090d 100%); }
+.ent-hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%; background: var(--c2); opacity: .22; filter: blur(30px); pointer-events: none; }
+.ent-crest { display: grid; place-items: center; width: 108px; height: 108px; border-radius: 28px; background: rgba(255,255,255,.96); box-shadow: 0 12px 30px -10px rgba(0,0,0,.5); }
+.ent-crest .crest, .ent-crest .badge { object-fit: contain; }
+.ent-txt { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+.ent-txt h1 { margin: 0; font: 800 clamp(26px, 5vw, 44px)/1.02 var(--display); letter-spacing: -0.035em; overflow-wrap: anywhere; }
+.ent-sub { margin: 0; opacity: .8; font-weight: 600; }
+.ent-hero .chip { background: rgba(255,255,255,.16); color: #fff; }
+.ent-hero .heart { position: relative; z-index: 1; width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; display: grid; place-items: center; }
+.ent-hero .heart.on { color: #ff3d6e; background: #fff; }
+
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.kpis > div { display: grid; gap: 4px; align-content: center; padding: 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
+.kpis b { font: 700 22px/1 var(--mono); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.kpis span:not(.form) { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kpis .kpi-form .form { margin-bottom: 2px; }
+
+.next-card { display: grid; gap: 14px; padding: 18px 20px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); transition: border-color .15s; }
+.next-card:hover { border-color: color-mix(in srgb, var(--fg) 22%, transparent); }
+.nc-label { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.nc-row { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 12px; }
+.nc-team { display: grid; justify-items: center; gap: 8px; text-align: center; font-size: 15px; }
+.nc-vs { font: 700 22px var(--mono); padding: 8px 14px; border-radius: 12px; background: var(--surface-2); }
+
+/* Ottelusivun tulostaulu */
+.match-hero { position: relative; overflow: hidden; padding: 22px 20px 26px; border-radius: var(--r-lg); color: #fff; background: radial-gradient(120% 120% at 50% 0%, #1d2330 0%, #07090d 70%); }
+.match-hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 80% at 50% -10%, color-mix(in srgb, var(--accent, var(--pl)) 45%, transparent), transparent 70%); pointer-events: none; }
+.mh-laliga { --accent: var(--laliga); } .mh-valioliiga { --accent: var(--pl); }
+.mh-meta { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-weight: 600; opacity: .9; flex-wrap: wrap; }
+.match-hero .chip { background: rgba(255,255,255,.14); color: #fff; }
+.mh-row { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 12px; margin-top: 22px; }
+.mh-team { display: grid; justify-items: center; gap: 10px; text-align: center; transition: opacity .15s; }
+.mh-team b { font: 700 clamp(14px, 2.6vw, 19px)/1.15 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.mh-team small { font-size: 12px; opacity: .65; font-weight: 600; }
+.mh-team.lost { opacity: .6; }
+.mh-team .crest, .mh-team .badge { padding: 8px; border-radius: 22px; background: rgba(255,255,255,.96); box-sizing: content-box; object-fit: contain; }
+.mh-mid { display: grid; justify-items: center; gap: 10px; }
+.mh-score { display: flex; align-items: center; gap: 10px; font: 800 clamp(40px, 9vw, 64px)/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+.mh-score b { opacity: .75; } .mh-score b.w { opacity: 1; }
+.mh-score i { font-style: normal; opacity: .4; font-weight: 500; }
+.mh-time { font: 800 clamp(30px, 7vw, 46px)/1 var(--mono); letter-spacing: -0.03em; }
+.mh-status { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.12); }
+.mh-status.up { background: var(--accent, var(--pl)); }
+
+.form-duo { display: grid; gap: 2px; padding: 8px 0; }
+.form-duo > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+.fd-name, .ph-team { display: flex; align-items: center; gap: 9px; font-weight: 600; min-width: 0; }
+.cmps { display: grid; gap: 16px; padding: 18px 16px 20px; }
+.cmp { display: grid; gap: 7px; }
+.cmp-top { display: grid; grid-template-columns: 3ch 1fr 3ch; align-items: center; font-size: 13px; color: var(--muted); font-weight: 600; text-align: center; }
+.cmp-top b { font: 700 15px var(--mono); color: var(--muted); }
+.cmp-top b:first-child { text-align: left; } .cmp-top b:last-child { text-align: right; }
+.cmp-top b.lead { color: var(--fg); }
+.cmp-bar { display: flex; gap: 4px; height: 6px; }
+.cmp-bar i { display: block; border-radius: 99px; min-width: 4px; }
+.cmp-bar .h { background: var(--fg); }
+.cmp-bar .a { background: color-mix(in srgb, var(--fg) 25%, transparent); }
+.note { text-align: center; margin: 0; }
+
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .entity { padding-top: 14px; gap: 14px; }
+  .ent-hero { grid-template-columns: auto 1fr; padding: 20px; gap: 14px; }
+  .ent-crest { width: 76px; height: 76px; border-radius: 20px; }
+  .ent-crest .crest, .ent-crest .badge { width: 56px !important; height: 56px !important; }
+  .ent-hero .heart { position: absolute; top: 14px; right: 14px; width: 42px; height: 42px; }
+  .kpis { gap: 8px; } .kpis > div { padding: 12px; } .kpis b { font-size: 18px; }
+  .kpis .kpi-form { grid-column: 1 / -1; }
+  .mh-row { gap: 8px; }
+  .mh-team .crest, .mh-team .badge { width: 52px !important; height: 52px !important; padding: 6px; border-radius: 16px; }
+  .subtabs.sticky { width: 100%; } .subtabs.sticky button { flex: 1; padding-inline: 8px; }
+}
