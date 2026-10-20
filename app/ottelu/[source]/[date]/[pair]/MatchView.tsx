@@ -136,7 +136,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
         <section className={`match-hero mh-${s.source}`}>
           <div className="mh-meta">
             <span className={`chip chip-${s.source}`}>{i.league(s.source, s.league)}</span>
-            <span>{i.day(m.date)}{fixture ? ` · ${fixture.time}` : ""}</span>
+            <span>{i.day(m.date)}{fixture?.time ? ` · ${fixture.time}` : ""}</span>
           </div>
           <div className="mh-row">
             <a className={`mh-team${aw ? " lost" : ""}`} href={teamHref(s.source, m.home.name)}>

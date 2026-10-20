@@ -802,3 +802,10 @@ a { -webkit-tap-highlight-color: transparent; }
 .sk-line { height: 18px; border-radius: 8px !important; }
 .sk-line.w90 { width: 90%; height: 34px; } .sk-line.w70 { width: 70%; height: 34px; } .sk-line.w80 { width: 80%; }
 @media (max-width: 640px) { .sk-row { grid-template-columns: repeat(3, 1fr); } .sk-hero { height: 150px; } }
+
+/* Tulostaulu: keskiosa on aina vähintään tuloksen levyinen, joten numerot eivät jää logojen alle */
+.mh-row { grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr); }
+.mh-mid { min-width: max-content; position: relative; z-index: 1; }
+.mh-score { white-space: nowrap; justify-content: center; }
+.mh-score b { display: inline-block; min-width: .62em; text-align: center; }
+@media (max-width: 640px) { .mh-score { font-size: clamp(34px, 10vw, 46px); gap: 8px; } .mh-team b { font-size: 14px; } }
