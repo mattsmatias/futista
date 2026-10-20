@@ -147,6 +147,7 @@ const D = {
   recentResults: ["Viimeisimmät tulokset", "Senaste resultat", "Recent results"],
   teamNews: ["Uutiset", "Nyheter", "News"],
   overview: ["Yleiskatsaus", "Översikt", "Overview"],
+  allComps: ["Kaikki", "Alla", "All"],
   overviewShort: ["Yleistä", "Översikt", "Overview"],
   seeAll: ["Näytä kaikki", "Visa alla", "See all"],
   noTeamNews: ["Ei tuoreita uutisia tästä joukkueesta.", "Inga färska nyheter om laget.", "No recent news about this team."],

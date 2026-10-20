@@ -17,6 +17,9 @@ import { AutoRefresh } from "@/lib/fresh";
 import { ageOf } from "@/lib/age";
 import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
 import type { Key } from "@/lib/i18n";
+import type { Game, GameTeam } from "@/lib/espn";
+import { StatusPill } from "@/lib/live";
+import { Num } from "@/lib/fresh";
 
 type Tab = "overview" | "matches" | "squad" | "news" | "table";
 const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", news: "teamNews", table: "table" };
@@ -93,7 +96,81 @@ function ClubInfo({ info }: { info: TeamInfo }) {
   );
 }
 
-export default function TeamView({ s, team, news, info }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null }) {
+/** Kilpailujen nimet suomeksi / ruotsiksi / englanniksi (ESPN:n tunnuksen mukaan) */
+const COMP: Record<string, [string, string, string]> = {
+  "esp.1": ["LaLiga", "LaLiga", "LaLiga"],
+  "eng.1": ["Valioliiga", "Premier League", "Premier League"],
+  "ger.1": ["Bundesliga", "Bundesliga", "Bundesliga"],
+  "ita.1": ["Serie A", "Serie A", "Serie A"],
+  "fra.1": ["Ligue 1", "Ligue 1", "Ligue 1"],
+  "ned.1": ["Eredivisie", "Eredivisie", "Eredivisie"],
+  "por.1": ["Liga Portugal", "Liga Portugal", "Liga Portugal"],
+  "eng.2": ["Championship", "Championship", "Championship"],
+  "uefa.champions": ["Mestarien liiga", "Champions League", "Champions League"],
+  "uefa.europa": ["Eurooppa-liiga", "Europa League", "Europa League"],
+  "uefa.europa.conf": ["Konferenssiliiga", "Conference League", "Conference League"],
+  "uefa.super_cup": ["UEFA Super Cup", "UEFA Super Cup", "UEFA Super Cup"],
+  "uefa.champions_qual": ["Mestarien liigan karsinta", "CL-kval", "CL qualifying"],
+  "uefa.europa_qual": ["Eurooppa-liigan karsinta", "EL-kval", "EL qualifying"],
+  "uefa.europa.conf_qual": ["Konferenssiliigan karsinta", "ECL-kval", "ECL qualifying"],
+  "esp.copa_del_rey": ["Copa del Rey", "Copa del Rey", "Copa del Rey"],
+  "esp.super_cup": ["Espanjan Supercup", "Spanska supercupen", "Spanish Super Cup"],
+  "eng.fa": ["FA Cup", "FA-cupen", "FA Cup"],
+  "eng.league_cup": ["Liigacup", "Ligacupen", "League Cup"],
+  "eng.charity": ["Community Shield", "Community Shield", "Community Shield"],
+  "ger.dfb_pokal": ["DFB-Pokal", "DFB-Pokal", "DFB-Pokal"],
+  "ger.super_cup": ["Saksan Supercup", "Tyska supercupen", "German Super Cup"],
+  "ita.coppa_italia": ["Coppa Italia", "Coppa Italia", "Coppa Italia"],
+  "ita.super_cup": ["Italian Supercup", "Italienska supercupen", "Italian Super Cup"],
+  "fra.coupe_de_france": ["Ranskan cup", "Franska cupen", "Coupe de France"],
+  "fra.super_cup": ["Ranskan Supercup", "Franska supercupen", "Trophée des Champions"],
+  "ned.cup": ["KNVB Beker", "KNVB Beker", "KNVB Cup"],
+  "por.taca.portugal": ["Portugalin cup", "Portugisiska cupen", "Taça de Portugal"],
+  "por.league_cup": ["Portugalin liigacup", "Portugisiska ligacupen", "Taça da Liga"],
+  "fifa.cwc": ["Seurajoukkueiden MM", "Klubb-VM", "Club World Cup"],
+  "club.friendly": ["Harjoitusottelu", "Träningsmatch", "Friendly"],
+};
+const LANG_IDX: Record<string, number> = { fi: 0, sv: 1, en: 2 };
+const compName = (g: Game, lang: string) => COMP[g.slug]?.[LANG_IDX[lang] ?? 0] ?? g.comp;
+const compClass = (slug: string) =>
+  slug.startsWith("uefa.champions") ? "c-ucl" : slug.startsWith("uefa.europa.conf") ? "c-uecl" : slug.startsWith("uefa.europa") ? "c-uel"
+    : slug === "club.friendly" ? "c-fr" : /\.(1|2)$/.test(slug) ? "c-lg" : "c-cup";
+
+function GBadge({ t, size = 26 }: { t: GameTeam; size?: number }) {
+  return <Badge t={{ name: t.name, code: t.code, crest: t.logo }} size={size} />;
+}
+
+/** Yksi ottelu mistä tahansa kilpailusta */
+function GameRow({ g }: { g: Game }) {
+  const i = useI18n();
+  const played = g.kind === "ft";
+  const on = g.kind === "live" || g.kind === "ht";
+  const hw = played && g.hs! > g.as!, aw = played && g.as! > g.hs!;
+  const body = (
+    <>
+      <span className={`side home${hw ? " win" : ""}${played ? "" : " upcoming"}`}>{g.home.name}<GBadge t={g.home} /></span>
+      {g.kind === "upcoming"
+        ? <span className="score ko">{g.time}</span>
+        : <span className={`mid mid-${g.kind}`}>
+            {g.hs !== null && g.as !== null && <span className="score"><Num v={g.hs} /><i>–</i><Num v={g.as} /></span>}
+            {g.kind === "live" && g.clock
+              ? <span className="st st-live"><i />{g.clock}</span>
+              : !played && <StatusPill s={{ kind: g.kind }} />}
+          </span>}
+      <span className={`side away${aw ? " win" : ""}${played ? "" : " upcoming"}`}><GBadge t={g.away} />{g.away.name}</span>
+    </>
+  );
+  return (
+    <div className="day">
+      <div className="day-label g-label"><span className={`g-comp ${compClass(g.slug)}`}>{compName(g, i.lang)}</span><span>{i.day(g.date)}{g.kind === "upcoming" ? "" : ` · ${g.time}`}</span></div>
+      {g.href
+        ? <a className={`match${on ? " is-live" : ""}`} href={g.href}>{body}</a>
+        : <div className={`match${on ? " is-live" : ""}`}>{body}</div>}
+    </div>
+  );
+}
+
+export default function TeamView({ s, team, news, info, games }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null; games: Game[] | null }) {
   const i = useI18n();
   const { t } = i;
   const n = norm(team.name);
@@ -102,6 +179,15 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
   const fixtures = s.fixtures.filter((f) => mine(f.home, f.away));
   const results = s.results.filter((r) => mine(r.home, r.away));
   const next = fixtures[0];
+  const [comp, setComp] = useState("all");
+  const all = games ?? [];
+  const upcoming = all.filter((g) => g.kind === "upcoming" || g.kind === "live" || g.kind === "ht" || g.kind === "postponed")
+    .sort((a, b) => Number(b.kind === "live" || b.kind === "ht") - Number(a.kind === "live" || a.kind === "ht") || a.epoch - b.epoch);
+  const played = all.filter((g) => g.kind === "ft" || g.kind === "suspended" || g.kind === "cancelled").sort((a, b) => b.epoch - a.epoch);
+  const comps = [...new Map(all.map((g) => [g.slug, g] as const)).values()];
+  const pick = (l: Game[]) => (comp === "all" ? l : l.filter((g) => g.slug === comp));
+  const nextGame = upcoming[0];
+  const anyLive = all.some((g) => g.kind === "live" || g.kind === "ht");
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
   const hasSquad = !!info && info.squad.length > 0;
@@ -124,7 +210,25 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
       if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
     }
   };
-  const lists = (n: number) => (
+  const gameLists = (n: number) => {
+    const up = n < 10 ? upcoming : pick(upcoming), past = n < 10 ? played : pick(played);
+    return (
+      <div className="duo">
+        <div className="panel">
+          <div className="panel-head"><h3>{t("nextMatches")}</h3>{n < 10 && up.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
+          {up.length === 0 && <p className="muted pad">{t("noFixtures")}</p>}
+          {up.slice(0, n).map((g) => <GameRow key={g.id} g={g} />)}
+        </div>
+        <div className="panel">
+          <div className="panel-head"><h3>{t("recentResults")}</h3>{n < 10 && past.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
+          {past.length === 0 && <p className="muted pad">{t("noResults")}</p>}
+          {past.slice(0, n).map((g) => <GameRow key={g.id} g={g} />)}
+          <div className="panel-src">{t("source")}: ESPN</div>
+        </div>
+      </div>
+    );
+  };
+  const lists = (n: number) => games && games.length ? gameLists(n) : (
     <div className="duo">
       <div className="panel">
         <div className="panel-head"><h3>{t("nextMatches")}</h3>{n < 10 && fixtures.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
@@ -154,7 +258,7 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
   return (
     <>
       <SubBar />
-      <AutoRefresh every={120_000} />
+      <AutoRefresh every={anyLive ? 45_000 : 120_000} />
       <main className="wrap entity">
         <section className="ent-hero" style={style}>
           <div className="ent-crest"><Badge t={team} size={84} /></div>
@@ -184,7 +288,22 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
               <div className="kpi-form"><FormPills team={team.name} results={s.results} source={s.source} /><span>{t("form")}</span></div>
             </div>
           )}
-          {next && (
+          {nextGame ? (() => {
+            const g = nextGame;
+            const on = g.kind === "live" || g.kind === "ht";
+            const inner = (
+              <>
+                <span className="nc-label"><span className={`g-comp ${compClass(g.slug)}`}>{compName(g, i.lang)}</span> {on ? "" : `${t("nextMatch")} · ${i.day(g.date)} ${g.time}`}</span>
+                <span className="nc-row">
+                  <span className="nc-team"><GBadge t={g.home} size={44} /><b>{g.home.name}</b></span>
+                  <span className={`nc-vs${on ? " nc-live" : ""}`}>{on && g.hs !== null ? `${g.hs}–${g.as}` : g.time}</span>
+                  <span className="nc-team"><GBadge t={g.away} size={44} /><b>{g.away.name}</b></span>
+                </span>
+                {on && <span className="nc-state">{g.kind === "live" && g.clock ? <span className="st st-live"><i />{g.clock}</span> : <StatusPill s={{ kind: g.kind }} />}</span>}
+              </>
+            );
+            return g.href ? <a className="next-card" href={g.href}>{inner}</a> : <div className="next-card">{inner}</div>;
+          })() : next && (
             <a className="next-card" href={matchHref(s.source, next.date, next.home.name, next.away.name)}>
               <span className="nc-label">{t("nextMatch")} · {i.day(next.date)} {next.time}</span>
               <span className="nc-row">
@@ -202,7 +321,19 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
           {info && <ClubInfo info={info} />}
         </>}
 
-        {tab === "matches" && lists(40)}
+        {tab === "matches" && <>
+          {comps.length > 1 && (
+            <div className="comp-filter">
+              <button className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
+              {comps.map((g) => (
+                <button key={g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
+                  <span className={`g-dot ${compClass(g.slug)}`} />{compName(g, i.lang)}
+                </button>
+              ))}
+            </div>
+          )}
+          {lists(60)}
+        </>}
 
         {tab === "squad" && info && <Squad info={info} team={team.name} />}
 
