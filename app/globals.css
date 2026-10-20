@@ -814,3 +814,11 @@ a { -webkit-tap-highlight-color: transparent; }
 .match .score, .match .mid { white-space: nowrap; }
 /* Selain laski tuloksen leveyden väärin (fonttikoko riippuu näytön leveydestä): leveys annetaan suoraan */
 .mh-score, .mh-mid, .match .mid, .match .score { width: max-content; }
+
+/* Tulostaulun numerot: selkeä fontti (nolla ilman viivaa), väliviiva erillisenä */
+.mh-score { font-family: var(--display); font-weight: 800; letter-spacing: 0; gap: 14px; font-variant-numeric: tabular-nums; line-height: 1; }
+.mh-score b { min-width: 0; padding: 0; background: none !important; }
+.mh-score i { display: block; width: 16px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.45); font-size: 0; opacity: 1; flex: none; }
+@media (max-width: 640px) { .mh-score { font-size: clamp(32px, 9vw, 42px); gap: 12px; } .mh-score i { width: 13px; height: 3px; } }
+/* kortit ja otterivit: sama selkeä nolla */
+.score, .sc-row b { font-family: var(--ui); font-weight: 800; }
