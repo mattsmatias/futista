@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getStats } from "@/lib/stats";
+import { getStatsWith } from "@/lib/stats";
 import { teamSlug, findTeam } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
@@ -11,7 +11,7 @@ export const maxDuration = 60;
 type Props = { params: { source: string; date: string; pair: string } };
 
 async function load(p: Props["params"]) {
-  const all = await getStats();
+  const all = await getStatsWith([p.source]);
   const s = all.find((x) => x.source === p.source);
   if (!s) return null;
   const [h, a] = decodeURIComponent(p.pair).split("--");

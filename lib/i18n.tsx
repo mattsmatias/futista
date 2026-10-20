@@ -27,6 +27,7 @@ const D = {
   lg_primeira: ["Liga Portugal", "Liga Portugal", "Liga Portugal"],
   lg_championship: ["Championship", "Championship", "Championship"],
   otherLeagues: ["Muut sarjat", "Andra ligor", "Other leagues"],
+  loading: ["Ladataan…", "Laddar…", "Loading…"],
   mainLeagues: ["Pääsarjat", "Huvudligor", "Main leagues"],
   scorers: ["Maalipörssi", "Skytteliga", "Top scorers"],
   player: ["Pelaaja", "Spelare", "Player"],

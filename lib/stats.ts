@@ -148,12 +148,27 @@ async function fromFd(s: (typeof SOURCES)[number]): Promise<LeagueStats> {
   return { source: s.id, league: s.league, table, results, fixtures };
 }
 
+/** Yksittäinen sarja: uutissarjat lähdesivuilta, muut football-datasta */
+export async function getLeague(id: string): Promise<LeagueStats | null> {
+  const s = SOURCES.find((x) => x.id === id);
+  if (!s) return null;
+  if (s.feeds.length) return (await getStats()).find((x) => x.source === id) ?? null;
+  return fromFd(s);
+}
+
+/** Uutissarjat (La Liga, Valioliiga, Mestarien liiga) + halutut muut sarjat */
+export async function getStatsWith(extra: string[] = []): Promise<LeagueStats[]> {
+  const ids = [...new Set(extra)].filter((id) => SOURCES.some((s) => s.id === id && !s.feeds.length));
+  const [main, more] = await Promise.all([getStats(), Promise.all(ids.map((id) => getLeague(id)))]);
+  return [...main, ...(more.filter(Boolean) as LeagueStats[])];
+}
+
+/** Uutissarjojen tilastot (etusivu, ilmoitukset). Muut sarjat haetaan getLeague-funktiolla tarvittaessa. */
 export async function getStats(): Promise<LeagueStats[]> {
   const crest = await crestLookup();
   const withCrest = (t: Team): Team => (t.id ? t : { ...t, ...crest(t.name) });
   const stats = await Promise.all(
-    SOURCES.map(async (s) => {
-      if (!s.feeds.length) return fromFd(s);
+    SOURCES.filter((s) => s.feeds.length).map(async (s) => {
       const p = s.pages ?? { table: `${s.base}sarjataulukko/`, results: `${s.base}tulokset/`, fixtures: `${s.base}otteluohjelma/` };
       // sama sivu haetaan vain kerran (Mestarien liigassa kaikki on yhdellä sivulla)
       const urls = [...new Set([p.table, p.results, p.fixtures])];

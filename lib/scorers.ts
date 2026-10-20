@@ -1,7 +1,7 @@
-// Maalipörssi jokaiseen sarjaan football-data.orgista (päivittyy tunnin välein).
+// Maalipörssi sarjaan football-data.orgista (päivittyy tunnin välein).
 import { SOURCES } from "./sources";
 import { fd } from "./fd";
-import type { LeagueStats, Team } from "./stats";
+import { getLeague, type Team } from "./stats";
 import { bestTeam, words } from "./live-core";
 
 export type Scorer = {
@@ -10,21 +10,20 @@ export type Scorer = {
 };
 export type LeagueScorers = { source: string; list: Scorer[] };
 
-export async function getScorers(stats: LeagueStats[]): Promise<LeagueScorers[]> {
-  return Promise.all(
-    SOURCES.map(async (s) => {
-      const data = await fd<any>(`/competitions/${s.fd}/scorers?limit=15`, 3600);
-      const teams = stats.find((x) => x.source === s.id)?.table.map((r) => r.team) ?? [];
-      const list: Scorer[] = (data?.scorers ?? []).map((x: any) => {
-        // sama joukkue kuin sarjataulukossa (nimi ja linkki), muuten rajapinnan nimi
-        const ours = teams.find((t) => t.id === x.team?.id) ?? bestTeam(teams, [...words(x.team?.name ?? ""), ...words(x.team?.shortName ?? "")]);
-        return {
-          id: x.player?.id, name: x.player?.name ?? "?", nationality: x.player?.nationality ?? null,
-          team: ours ?? { name: x.team?.shortName || x.team?.name || "?", code: x.team?.tla ?? "", crest: x.team?.crest, id: x.team?.id },
-          goals: x.goals ?? 0, assists: x.assists ?? null, penalties: x.penalties ?? null, played: x.playedMatches ?? null,
-        };
-      });
-      return { source: s.id, list };
-    })
-  );
+export async function getScorers(id: string): Promise<LeagueScorers | null> {
+  const s = SOURCES.find((x) => x.id === id);
+  if (!s) return null;
+  const [data, league] = await Promise.all([fd<any>(`/competitions/${s.fd}/scorers?limit=15`, 3600), getLeague(id)]);
+  if (!data) return null;
+  const teams = league?.table.map((r) => r.team) ?? [];
+  const list: Scorer[] = (data.scorers ?? []).map((x: any) => {
+    // sama joukkue kuin sarjataulukossa (nimi ja linkki), muuten rajapinnan nimi
+    const ours = teams.find((t) => t.id === x.team?.id) ?? bestTeam(teams, [...words(x.team?.name ?? ""), ...words(x.team?.shortName ?? "")]);
+    return {
+      id: x.player?.id, name: x.player?.name ?? "?", nationality: x.player?.nationality ?? null,
+      team: ours ?? { name: x.team?.shortName || x.team?.name || "?", code: x.team?.tla ?? "", crest: x.team?.crest, id: x.team?.id },
+      goals: x.goals ?? 0, assists: x.assists ?? null, penalties: x.penalties ?? null, played: x.playedMatches ?? null,
+    };
+  });
+  return { source: s.id, list };
 }

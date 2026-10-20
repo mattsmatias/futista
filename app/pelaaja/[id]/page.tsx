@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { fd } from "@/lib/fd";
-import { getStats, type LeagueStats, type Team } from "@/lib/stats";
+import { getStatsWith, type LeagueStats, type Team } from "@/lib/stats";
 import { SOURCES } from "@/lib/sources";
 import { helsinkiParts } from "@/lib/live-core";
 import { matchHref, teamHref } from "@/lib/routes";
@@ -24,13 +24,15 @@ function ours(stats: LeagueStats[], source: string | undefined, id: number): Tea
 
 async function load(id: string): Promise<PlayerData | null> {
   if (!/^\d+$/.test(id)) return null;
-  const [p, pm, stats] = await Promise.all([
+  const [p, pm] = await Promise.all([
     fd<any>(`/persons/${id}`, 86400),
     fd<any>(`/persons/${id}/matches?limit=12`, 1800),
-    getStats(),
   ]);
   if (!p?.name) return null;
   const matches: any[] = pm?.matches ?? [];
+  // uutissarjat + ne muut sarjat, joissa pelaaja on pelannut (nimiä ja linkkejä varten)
+  const comps = [...new Set(matches.map((m) => SOURCES.find((s) => s.fd === m.competition?.code)?.id).filter(Boolean))] as string[];
+  const stats = await getStatsWith(comps);
 
   // seura = joukkue, joka esiintyy useimmin seurajoukkueiden otteluissa
   const count = new Map<number, { n: number; team: any; comp: string }>();

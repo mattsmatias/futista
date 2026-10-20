@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getStats } from "@/lib/stats";
+import { getLeague } from "@/lib/stats";
 import { getArticles } from "@/lib/feed";
 import { findTeam } from "@/lib/routes";
 import { storyIsAbout } from "@/lib/teams";
@@ -13,7 +13,7 @@ export const maxDuration = 60;
 type Props = { params: { source: string; team: string } };
 
 async function load(p: Props["params"]) {
-  const s = (await getStats()).find((x) => x.source === p.source);
+  const s = await getLeague(p.source);
   if (!s) return null;
   const team = findTeam(s, decodeURIComponent(p.team));
   return team ? { s, team } : null;

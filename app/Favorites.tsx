@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
 import { SOURCES, isMain } from "@/lib/sources";
+import { useLeagues } from "@/lib/leagues-client";
 import { useI18n } from "@/lib/i18n";
 import { useFavorites, HeartButton } from "@/lib/favorites";
 import { storyIsAbout, playedIn } from "@/lib/teams";
@@ -60,7 +61,12 @@ function NotifyCard() {
   );
 }
 
-export default function Favorites({ articles, stats, league }: { articles: Article[]; stats: LeagueStats[]; league: string }) {
+const OTHER = SOURCES.filter((s) => !s.feeds.length).map((s) => s.id);
+
+export default function Favorites({ articles, stats: mainStats, league }: { articles: Article[]; stats: LeagueStats[]; league: string }) {
+  // muiden sarjojen joukkueet ja ottelut ladataan erikseen
+  const more = useLeagues(league === "all" ? OTHER : []);
+  const stats = [...mainStats, ...more.data];
   const i = useI18n();
   const { t } = i;
   const { favs } = useFavorites();
@@ -153,8 +159,8 @@ export default function Favorites({ articles, stats, league }: { articles: Artic
             </div>
           ) : (
             <details className="panel team-pick fold" key={l.id}>
-              <summary className="panel-head"><h3><i className={`bar-${l.id}`} />{l.name}</h3><span className="muted">{l.teams.length}</span></summary>
-              {list}
+              <summary className="panel-head"><h3><i className={`bar-${l.id}`} />{l.name}</h3><span className="muted">{l.teams.length || (more.loading ? "…" : "")}</span></summary>
+              {l.teams.length ? list : <p className="muted pad">{more.loading ? t("loading") : t("noTable")}</p>}
             </details>
           );
         })}
