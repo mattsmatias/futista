@@ -35,7 +35,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Ulkopuoliset sisällöt",
         p: [
-          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com) ja joukkueiden logot football-data.orgin palvelimelta. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi kyseisille palvelimille.",
+          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com) ja joukkueiden logot football-data.orgin ja TheSportsDB:n palvelimilta. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi kyseisille palvelimille.",
           "Fontit toimitetaan Futistan omalta palvelimelta, joten niitä ladattaessa tietoja ei välity Googlelle.",
         ],
       },
@@ -77,7 +77,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Externt innehåll",
         p: [
-          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com) och lagens logotyper från football-data.orgs server. När bilderna laddas skickar din webbläsare din IP-adress till dessa servrar.",
+          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com) och lagens logotyper från football-data.orgs och TheSportsDB:s servrar. När bilderna laddas skickar din webbläsare din IP-adress till dessa servrar.",
           "Typsnitten levereras från Futistas egen server, så inga uppgifter skickas till Google när de laddas.",
         ],
       },
@@ -119,7 +119,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "External content",
         p: [
-          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com) and team logos from football-data.org. When these images load, your browser sends your IP address to those servers.",
+          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com) and team logos from football-data.org and TheSportsDB. When these images load, your browser sends your IP address to those servers.",
           "Fonts are served from Futista's own server, so nothing is sent to Google when they load.",
         ],
       },
@@ -146,7 +146,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Tekijänoikeudet teksteihin ja kuviin kuuluvat lähteille ja niiden kuvatoimistoille.",
         ],
       },
-      { h: "Joukkueiden logot", p: ["Logot tulevat palvelusta [football-data.org](https://www.football-data.org). Seurojen nimet ja logot ovat seurojen omia tavaramerkkejä."] },
+      { h: "Joukkueiden logot", p: ["Logot tulevat palveluista [football-data.org](https://www.football-data.org) ja [TheSportsDB](https://www.thesportsdb.com). Seurojen nimet ja logot ovat seurojen omia tavaramerkkejä."] },
       { h: "Päivittyminen", p: ["Uutiset päivittyvät automaattisesti noin 10 minuutin välein, tulokset ja sarjataulukot noin 15 minuutin välein."] },
       { h: "Riippumattomuus", p: ["Futista on riippumaton fanisivusto, eikä se ole La Ligan, Premier Leaguen tai minkään seuran virallinen palvelu."] },
     ],
@@ -162,7 +162,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Upphovsrätten till texter och bilder tillhör källorna och deras bildbyråer.",
         ],
       },
-      { h: "Lagens logotyper", p: ["Logotyperna kommer från [football-data.org](https://www.football-data.org). Klubbarnas namn och logotyper är klubbarnas egna varumärken."] },
+      { h: "Lagens logotyper", p: ["Logotyperna kommer från [football-data.org](https://www.football-data.org) och [TheSportsDB](https://www.thesportsdb.com). Klubbarnas namn och logotyper är klubbarnas egna varumärken."] },
       { h: "Uppdatering", p: ["Nyheterna uppdateras automatiskt ungefär var tionde minut, resultat och tabeller ungefär var femtonde minut."] },
       { h: "Oberoende", p: ["Futista är en oberoende fansajt och inte en officiell tjänst från La Liga, Premier League eller någon klubb."] },
     ],
@@ -178,7 +178,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Copyright in the texts and images belongs to the sources and their photo agencies.",
         ],
       },
-      { h: "Team logos", p: ["Logos come from [football-data.org](https://www.football-data.org). Club names and logos are the clubs' own trademarks."] },
+      { h: "Team logos", p: ["Logos come from [football-data.org](https://www.football-data.org) and [TheSportsDB](https://www.thesportsdb.com). Club names and logos are the clubs' own trademarks."] },
       { h: "Updates", p: ["News updates automatically about every 10 minutes, results and standings about every 15 minutes."] },
       { h: "Independence", p: ["Futista is an independent fan site and is not an official service of La Liga, the Premier League or any club."] },
     ],

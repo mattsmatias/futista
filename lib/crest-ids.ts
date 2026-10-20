@@ -50,7 +50,20 @@ const IDS: Record<string, number> = {
   bournemouth: 1044,
 };
 
+// Seurat, joita ei löydy football-data.orgin julkisesta palvelusta: logo TheSportsDB:stä
+const URLS: Record<string, string> = {
+  "hull city": "https://r2.thesportsdb.com/images/media/team/badge/fbqqda1601726113.png/small",
+  hull: "https://r2.thesportsdb.com/images/media/team/badge/fbqqda1601726113.png/small",
+  "coventry city": "https://r2.thesportsdb.com/images/media/team/badge/uxyqys1424033798.png/small",
+  coventry: "https://r2.thesportsdb.com/images/media/team/badge/uxyqys1424033798.png/small",
+  "racing santander": "https://r2.thesportsdb.com/images/media/team/badge/97kkiq1536575158.png/small",
+  "racing de santander": "https://r2.thesportsdb.com/images/media/team/badge/97kkiq1536575158.png/small",
+  racing: "https://r2.thesportsdb.com/images/media/team/badge/97kkiq1536575158.png/small",
+};
+
 export function staticCrest(name: string): string | undefined {
-  const id = IDS[norm(name)];
+  const n = norm(name);
+  if (URLS[n]) return URLS[n];
+  const id = IDS[n];
   return id ? `https://crests.football-data.org/${id}.png` : undefined;
 }
