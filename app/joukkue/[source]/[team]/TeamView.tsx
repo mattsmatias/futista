@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
 import { clubByName, SOURCES, isMain } from "@/lib/sources";
@@ -16,6 +17,9 @@ import { AutoRefresh } from "@/lib/fresh";
 import { ageOf } from "@/lib/age";
 import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
 import type { Key } from "@/lib/i18n";
+
+type Tab = "overview" | "matches" | "squad" | "news" | "table";
+const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", news: "teamNews", table: "table" };
 
 const ORDER = ["Goalkeeper", "Defence", "Midfield", "Offence"];
 
@@ -100,6 +104,51 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
   const next = fixtures[0];
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
+  const hasSquad = !!info && info.squad.length > 0;
+  const tabs = (["overview", "matches", "squad", "news", "table"] as Tab[]).filter((k) =>
+    k === "squad" ? hasSquad : k === "news" ? news.length > 0 || isMain(s.source) : k === "table" ? s.table.length > 0 : true);
+  const [tab, setTab] = useState<Tab>("overview");
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = location.hash.slice(1) as Tab;
+    if (tabs.includes(h)) setTab(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const go = (k: Tab) => {
+    setTab(k);
+    try { history.replaceState(history.state, "", k === "overview" ? location.pathname + location.search : `#${k}`); } catch {}
+    const el = tabsRef.current;
+    if (el) {
+      const hero = el.previousElementSibling as HTMLElement | null;
+      const y = (hero ? hero.getBoundingClientRect().bottom : el.getBoundingClientRect().top) + window.scrollY - 70;
+      if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    }
+  };
+  const lists = (n: number) => (
+    <div className="duo">
+      <div className="panel">
+        <div className="panel-head"><h3>{t("nextMatches")}</h3>{n < 10 && fixtures.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
+        {fixtures.length === 0 && <p className="muted pad">{t("noFixtures")}</p>}
+        {fixtures.slice(0, n).map((f) => (
+          <div className="day" key={f.date + f.home.name}>
+            <div className="day-label">{i.day(f.date)}</div>
+            <FixtureRow f={f} source={s.source} />
+          </div>
+        ))}
+      </div>
+      <div className="panel">
+        <div className="panel-head"><h3>{t("recentResults")}</h3>{n < 10 && results.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
+        {results.length === 0 && <p className="muted pad">{t("noResults")}</p>}
+        {results.slice(0, n).map((r) => (
+          <div className="day" key={r.date + r.home.name}>
+            <div className="day-label">{i.day(r.date)}</div>
+            <Match r={r} source={s.source} />
+          </div>
+        ))}
+        <div className="panel-src">{t("source")}: {src.name}</div>
+      </div>
+    </div>
+  );
   const style = { ["--c1" as any]: club?.c1 ?? `var(--lg-${s.source})`, ["--c2" as any]: club?.c2 ?? "var(--surface-2)" };
 
   return (
@@ -117,63 +166,54 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
           <HeartButton team={team.name} label={t("favToggle")} />
         </section>
 
-        {row && (
-          <div className="kpis">
-            <div><b>{row.pos}.</b><span>{t("position")}</span></div>
-            <div><b>{row.pts}</b><span>{t("colPts")}</span></div>
-            <div><b>{row.p}</b><span>{t("played")}</span></div>
-            <div><b>{row.w}-{row.d}-{row.l}</b><span>{t("colW")}-{t("colD")}-{t("colL")}</span></div>
-            <div><b>{row.gf}–{row.ga}</b><span>{t("colG")}</span></div>
-            <div className="kpi-form"><FormPills team={team.name} results={s.results} source={s.source} /><span>{t("form")}</span></div>
-          </div>
-        )}
-
-        {next && (
-          <a className="next-card" href={matchHref(s.source, next.date, next.home.name, next.away.name)}>
-            <span className="nc-label">{t("nextMatch")} · {i.day(next.date)} {next.time}</span>
-            <span className="nc-row">
-              <span className="nc-team"><Badge t={next.home} size={44} /><b>{next.home.name}</b></span>
-              <span className="nc-vs">{next.time}</span>
-              <span className="nc-team"><Badge t={next.away} size={44} /><b>{next.away.name}</b></span>
-            </span>
-          </a>
-        )}
-
-        <div className="duo">
-          <div className="panel">
-            <div className="panel-head"><h3>{t("nextMatches")}</h3></div>
-            {fixtures.length === 0 && <p className="muted pad">{t("noFixtures")}</p>}
-            {fixtures.slice(0, 8).map((f) => (
-              <div className="day" key={f.date + f.home.name}>
-                <div className="day-label">{i.day(f.date)}</div>
-                <FixtureRow f={f} source={s.source} />
-              </div>
-            ))}
-          </div>
-          <div className="panel">
-            <div className="panel-head"><h3>{t("recentResults")}</h3></div>
-            {results.length === 0 && <p className="muted pad">{t("noResults")}</p>}
-            {results.slice(0, 8).map((r) => (
-              <div className="day" key={r.date + r.home.name}>
-                <div className="day-label">{i.day(r.date)}</div>
-                <Match r={r} source={s.source} />
-              </div>
-            ))}
-            <div className="panel-src">{t("source")}: {src.name}</div>
-          </div>
+        <div className="subtabs sticky ent-tabs" role="tablist" ref={tabsRef}>
+          {tabs.map((k) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => go(k)}>{t(LABEL[k])}</button>
+          ))}
         </div>
 
-        {info && info.squad.length > 0 && <Squad info={info} team={team.name} />}
-        {info && <ClubInfo info={info} />}
+        <div className="tab-pane" key={tab}>
+        {tab === "overview" && <>
+          {row && (
+            <div className="kpis">
+              <div><b>{row.pos}.</b><span>{t("position")}</span></div>
+              <div><b>{row.pts}</b><span>{t("colPts")}</span></div>
+              <div><b>{row.p}</b><span>{t("played")}</span></div>
+              <div><b>{row.w}-{row.d}-{row.l}</b><span>{t("colW")}-{t("colD")}-{t("colL")}</span></div>
+              <div><b>{row.gf}–{row.ga}</b><span>{t("colG")}</span></div>
+              <div className="kpi-form"><FormPills team={team.name} results={s.results} source={s.source} /><span>{t("form")}</span></div>
+            </div>
+          )}
+          {next && (
+            <a className="next-card" href={matchHref(s.source, next.date, next.home.name, next.away.name)}>
+              <span className="nc-label">{t("nextMatch")} · {i.day(next.date)} {next.time}</span>
+              <span className="nc-row">
+                <span className="nc-team"><Badge t={next.home} size={44} /><b>{next.home.name}</b></span>
+                <span className="nc-vs">{next.time}</span>
+                <span className="nc-team"><Badge t={next.away} size={44} /><b>{next.away.name}</b></span>
+              </span>
+            </a>
+          )}
+          {lists(3)}
+          {news.length > 0 && <section className="sec">
+            <div className="sec-head"><h2>{t("teamNews")}</h2><button className="see-all" onClick={() => go("news")}>{t("seeAll")} →</button></div>
+            <div className="grid">{news.slice(0, 3).map((a, k) => <Card key={a.id} a={a} wide={k === 0} />)}</div>
+          </section>}
+          {info && <ClubInfo info={info} />}
+        </>}
 
-        {s.table.length > 0 && <section className="sec"><Standings s={s} highlight={[team.name]} /></section>}
+        {tab === "matches" && lists(40)}
 
-        {(news.length > 0 || isMain(s.source)) && <section className="sec">
-          <div className="sec-head"><h2>{t("teamNews")}</h2></div>
+        {tab === "squad" && info && <Squad info={info} team={team.name} />}
+
+        {tab === "news" && <section className="sec">
           {news.length
             ? <div className="grid">{news.map((a, k) => <Card key={a.id} a={a} wide={k === 0} />)}</div>
             : <p className="muted">{t("noTeamNews")}</p>}
         </section>}
+
+        {tab === "table" && <section className="sec"><Standings s={s} highlight={[team.name]} /></section>}
+        </div>
       </main>
       <Footer />
     </>

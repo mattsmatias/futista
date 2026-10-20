@@ -146,6 +146,8 @@ const D = {
   nextMatches: ["Seuraavat ottelut", "Kommande matcher", "Next matches"],
   recentResults: ["Viimeisimmät tulokset", "Senaste resultat", "Recent results"],
   teamNews: ["Uutiset", "Nyheter", "News"],
+  overview: ["Yleiskatsaus", "Översikt", "Overview"],
+  seeAll: ["Näytä kaikki", "Visa alla", "See all"],
   noTeamNews: ["Ei tuoreita uutisia tästä joukkueesta.", "Inga färska nyheter om laget.", "No recent news about this team."],
   homeShort: ["K", "H", "H"],
   awayShort: ["V", "B", "A"],

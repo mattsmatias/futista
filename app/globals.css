@@ -831,3 +831,18 @@ a { -webkit-tap-highlight-color: transparent; }
 .pl-avatar.has-photo { padding: 0; overflow: visible; background: linear-gradient(170deg, #fff, #e9edf5); }
 .pl-avatar .pphoto.big { width: 100% !important; height: 100% !important; border-radius: inherit; background: none; }
 .pl-avatar .pphoto.big img { object-fit: contain; object-position: center bottom; }
+
+/* Joukkuesivun välilehdet */
+.ent-tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ent-tabs::-webkit-scrollbar { display: none; }
+.ent-tabs button { white-space: nowrap; flex: none; }
+.tab-pane { animation: tabIn .25s ease both; }
+@keyframes tabIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.see-all { font-size: 13px; font-weight: 600; color: var(--muted); padding: 6px 12px; border-radius: 999px; background: var(--surface-2); white-space: nowrap; }
+.see-all:hover { color: var(--fg); }
+.panel-head .see-all { padding: 5px 10px; font-size: 12.5px; }
+@media (max-width: 640px) {
+  .subtabs.sticky.ent-tabs { width: 100%; justify-content: flex-start; }
+  .subtabs.sticky.ent-tabs button { flex: 1 0 auto; padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .tab-pane { animation: none; } }
