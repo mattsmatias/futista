@@ -6,6 +6,7 @@ import { norm } from "@/lib/teams";
 import { teamHref } from "@/lib/routes";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import SubBar from "../../../../SubBar";
+import { useMatchState, StatusPill } from "@/lib/live";
 import Footer from "../../../../Footer";
 
 type Tab = "summary" | "h2h" | "table";
@@ -48,6 +49,8 @@ export default function MatchView({ s, result, fixture }: { s: LeagueStats; resu
   const rh = row(m.home), ra = row(m.away);
   const pair = [norm(m.home.name), norm(m.away.name)];
   const meetings = s.results.filter((r) => pair.includes(norm(r.home.name)) && pair.includes(norm(r.away.name)));
+  const st = useMatchState({ ...m, time: fixture?.time, source: s.source });
+  const liveScore = !result && st.hs != null && st.as != null ? { hs: st.hs, as: st.as } : null;
   const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
 
   const tabs: { id: Tab; label: Key }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "h2h" }, { id: "table", label: "standing" }];
@@ -68,8 +71,14 @@ export default function MatchView({ s, result, fixture }: { s: LeagueStats; resu
             <div className="mh-mid">
               {result
                 ? <div className="mh-score"><b className={hw ? "w" : ""}>{result.hs}</b><i>–</i><b className={aw ? "w" : ""}>{result.as}</b></div>
-                : <div className="mh-time">{fixture!.time}</div>}
-              <span className={`mh-status${result ? "" : " up"}`}>{result ? t("statusFt") : t("statusUpcoming")}</span>
+                : liveScore
+                  ? <div className="mh-score"><b className="w">{liveScore.hs}</b><i>–</i><b className="w">{liveScore.as}</b></div>
+                  : <div className="mh-time">{fixture!.time}</div>}
+              {result
+                ? <span className="mh-status">{t("statusFt")}</span>
+                : st.kind === "upcoming"
+                  ? <span className="mh-status up">{t("statusUpcoming")}</span>
+                  : <StatusPill s={st} />}
             </div>
             <a className={`mh-team${hw ? " lost" : ""}`} href={teamHref(s.source, m.away.name)}>
               <Badge t={m.away} size={72} /><b>{m.away.name}</b>{ra && <small>{ra.pos}.</small>}

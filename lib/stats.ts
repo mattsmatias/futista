@@ -142,6 +142,11 @@ export async function getStats(): Promise<LeagueStats[]> {
       };
     })
   );
+  // pelattu ottelu pois otteluohjelmasta, jos se on jo tuloksissa
+  for (const s of stats) {
+    const played = new Set(s.results.map((r) => `${r.date}|${r.home.name}|${r.away.name}`));
+    s.fixtures = s.fixtures.filter((f) => !played.has(`${f.date}|${f.home.name}|${f.away.name}`));
+  }
   // logot taulukkoon ja tuloksiin
   return stats.map((s) => ({
     ...s,

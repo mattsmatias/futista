@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import InstallApp from "./InstallApp";
 import { I18nProvider } from "@/lib/i18n";
 import { FavoritesProvider } from "@/lib/favorites";
+import { LiveProvider } from "@/lib/live";
 import { Unbounded, Onest, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--f-display", display: "swap" });
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <I18nProvider>
           <FavoritesProvider>
-            {children}
+            <LiveProvider>{children}</LiveProvider>
             <InstallApp />
           </FavoritesProvider>
         </I18nProvider>

@@ -6,6 +6,8 @@ import { useI18n, type Key } from "@/lib/i18n";
 import { useFavorites } from "@/lib/favorites";
 import { teamHref, matchHref } from "@/lib/routes";
 import { norm } from "@/lib/teams";
+import { useMatchState, StatusPill } from "@/lib/live";
+import type { MatchState } from "@/lib/live-core";
 
 export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
   const [failed, setFailed] = useState(0); // 0 = alkuperäinen, 1 = .svg-yritys, 2 = värimerkki
@@ -88,13 +90,42 @@ export function Match({ r, source }: { r: Result; source: string }) {
   );
 }
 
-/** Tuleva ottelu: koti – kellonaika – vieras */
-export function FixtureRow({ f, source }: { f: Fixture; source: string }) {
+const hasScore = (s: MatchState) => s.hs !== undefined && s.hs !== null && s.as !== undefined && s.as !== null;
+
+/** Ottelun keskiosa: kellonaika, LIVE-tilanne tai tila (Päättynyt, Keskeytetty, Siirretty…) */
+export function StateCenter({ s, time }: { s: MatchState; time: string }) {
+  if (s.kind === "upcoming") return <span className="score ko">{time}</span>;
   return (
-    <a className="match" href={matchHref(source, f.date, f.home.name, f.away.name)}>
+    <span className={`mid mid-${s.kind}`}>
+      {hasScore(s) && <span className="score"><b>{s.hs}</b><i>–</i><b>{s.as}</b></span>}
+      <StatusPill s={s} />
+    </span>
+  );
+}
+
+/** Tuleva tai käynnissä oleva ottelu: koti – kellonaika / LIVE – vieras */
+export function FixtureRow({ f, source }: { f: Fixture; source: string }) {
+  const s = useMatchState({ ...f, source });
+  return (
+    <a className={`match${s.kind === "live" || s.kind === "ht" ? " is-live" : ""}`} href={matchHref(source, f.date, f.home.name, f.away.name)}>
       <span className="side home upcoming">{f.home.name}<Badge t={f.home} /></span>
-      <span className="score ko">{f.time}</span>
+      <StateCenter s={s} time={f.time} />
       <span className="side away upcoming"><Badge t={f.away} />{f.away.name}</span>
+    </a>
+  );
+}
+
+function UpcomingCard({ f }: { f: Fixture & { s: string; league: string } }) {
+  const i = useI18n();
+  const st = useMatchState({ ...f, source: f.s });
+  const live = st.kind === "live" || st.kind === "ht";
+  return (
+    <a className={`score-card up${live ? " is-live" : ""}`} href={matchHref(f.s, f.date, f.home.name, f.away.name)}>
+      <div className="sc-top"><span className={`dot-${f.s}`} />{i.league(f.s, f.league)}
+        <span className="ft">{st.kind === "upcoming" ? `${i.day(f.date)} · ${f.time}` : <StatusPill s={st} />}</span>
+      </div>
+      <div className="sc-row"><Badge t={f.home} /><span>{f.home.name}</span>{hasScore(st) && <b>{st.hs}</b>}</div>
+      <div className="sc-row"><Badge t={f.away} /><span>{f.away.name}</span>{hasScore(st) && <b>{st.as}</b>}</div>
     </a>
   );
 }
@@ -180,13 +211,7 @@ export function UpcomingRail({ stats, onMore }: { stats: LeagueStats[]; onMore: 
     <section className="sec">
       <div className="sec-head"><h2>{t("upcomingMatches")}</h2><button onClick={onMore}>{t("allFixtures")}</button></div>
       <div className="rail scores">
-        {items.map((f) => (
-          <a key={f.s + f.date + f.home.name} className="score-card up" href={matchHref(f.s, f.date, f.home.name, f.away.name)}>
-            <div className="sc-top"><span className={`dot-${f.s}`} />{i.league(f.s, f.league)}<span className="ft">{i.day(f.date)} · {f.time}</span></div>
-            <div className="sc-row"><Badge t={f.home} /><span>{f.home.name}</span></div>
-            <div className="sc-row"><Badge t={f.away} /><span>{f.away.name}</span></div>
-          </a>
-        ))}
+        {items.map((f) => <UpcomingCard key={f.s + f.date + f.home.name} f={f} />)}
       </div>
     </section>
   );

@@ -674,3 +674,21 @@ a.match:hover { background: var(--surface-2); }
 
 /* Jutun sisäkuvat: koko kuva näkyy, ei rajausta eikä suurennosta yli alkuperäisen koon */
 .story-body img { width: auto; max-width: 100%; height: auto; max-height: none; object-fit: contain; margin-inline: auto; }
+
+/* ===== LIVE ja ottelun tila ===== */
+.st { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font: 800 10.5px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.st i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: livepulse 1.4s ease-in-out infinite; }
+.st-live { background: #e5484d; color: #fff; }
+.st-ht { background: color-mix(in srgb, #e5484d 16%, transparent); color: #e5484d; }
+.st-ft { background: var(--surface-2); color: var(--muted); }
+.st-suspended { background: color-mix(in srgb, var(--uel) 18%, transparent); color: var(--uel); }
+.st-postponed, .st-cancelled { background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+@keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.mid { display: grid; justify-items: center; gap: 4px; }
+.match.is-live .score { background: color-mix(in srgb, #e5484d 14%, transparent); color: #e5484d; }
+.score-card.is-live { border-color: color-mix(in srgb, #e5484d 45%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #e5484d 25%, transparent); }
+.score-card .ft .st { font-size: 9.5px; padding: 2px 7px; }
+.score-card.up .sc-row { grid-template-columns: auto 1fr auto; }
+.mh-mid .st { font-size: 11.5px; padding: 5px 10px; }
+.mh-mid .st-ft { background: rgba(255,255,255,.12); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .st i { animation: none; } }
