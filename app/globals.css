@@ -850,5 +850,5 @@ a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 640px) {
   .ent-tabs .full { display: none; } .ent-tabs .short { display: inline; }
   .subtabs.sticky.ent-tabs { gap: 2px; padding: 3px; }
-  .subtabs.sticky.ent-tabs button { padding: 8px 9px; font-size: 13px; }
+  .subtabs.sticky.ent-tabs button { padding: 8px 7px; font-size: 12.5px; }
 }
