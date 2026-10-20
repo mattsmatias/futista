@@ -34,6 +34,11 @@ function same(ours: string, theirs: string[]) {
   return w.every((x) => theirs.includes(x) || (alias[x] && theirs.includes(alias[x])));
 }
 
+/** Löytyykö nimestä vähintään yksi selvä (väh. 4 kirjaimen) sana, esim. "Sabah FC Masazir" ↔ "Sabah" */
+function partly(ours: string, theirs: string[]) {
+  return words(ours).some((x) => x.length >= 4 && theirs.includes(x));
+}
+
 function tzOffset(epoch: number) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Helsinki", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
@@ -58,10 +63,12 @@ export function matchState(
   now: number | null,
 ): MatchState {
   const kick = m.time ? helsinkiEpoch(m.date, m.time) : null;
-  const hit = live.find((l) =>
-    l.source === m.source &&
-    (kick === null || Math.abs(l.kickoff - kick) < 36 * 3600_000) &&
-    same(m.home.name, l.home) && same(m.away.name, l.away));
+  const near = (l: LiveMatch, h: number) => kick === null || Math.abs(l.kickoff - kick) < h * 3600_000;
+  // 1) molemmat nimet täsmäävät, 2) toinen täsmää ja toisesta löytyy selvä nimen osa samaan aikaan alkavassa ottelussa
+  const hit =
+    live.find((l) => l.source === m.source && near(l, 36) && same(m.home.name, l.home) && same(m.away.name, l.away)) ??
+    live.find((l) => l.source === m.source && near(l, 3) &&
+      ((same(m.home.name, l.home) && partly(m.away.name, l.away)) || (partly(m.home.name, l.home) && same(m.away.name, l.away))));
   if (hit) {
     const sc = { hs: hit.hs, as: hit.as };
     switch (hit.status) {
