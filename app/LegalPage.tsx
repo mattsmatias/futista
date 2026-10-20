@@ -21,7 +21,9 @@ function Rich({ text }: { text: string }) {
 export default function LegalPage({ kind }: { kind: "privacy" | "about" }) {
   const { lang, t } = useI18n();
   const doc = (kind === "privacy" ? PRIVACY : ABOUT)[lang];
-  const fill = (s: string) => s.replace("{owner}", SITE.owner).replace("{email}", SITE.email);
+  // kappale jätetään pois, jos sen paikkamerkin tietoa ei ole täytetty (ei keksitä yhteystietoja)
+  const fill = (s: string) =>
+    (s.includes("{owner}") && !SITE.owner) || (s.includes("{email}") && !SITE.email) ? "" : s.replace("{owner}", SITE.owner).replace("{email}", SITE.email);
   const updated = new Date(SITE.updated + "T12:00:00").toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long", year: "numeric" });
 
   return (

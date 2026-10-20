@@ -11,6 +11,10 @@ export const PRIVACY: Record<Lang, Doc> = {
     intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä, analytiikkaa, mainosseurantaa eikä evästeitä.",
     sections: [
       {
+        h: "Rekisterinpitäjä ja yhteystiedot",
+        p: ["Rekisterinpitäjä: {owner}", "Yhteydenotot tietosuoja-asioissa: {email}"],
+      },
+      {
         h: "Laitteellesi tallennettavat tiedot",
         p: [
           "Sivu tallentaa selaimesi omaan muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
@@ -34,7 +38,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Ulkopuoliset sisällöt",
         p: [
-          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com) ja joukkueiden logot football-data.orgin ja TheSportsDB:n palvelimilta. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi kyseisille palvelimille.",
+          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com), joukkueiden logot football-data.orgin, TheSportsDB:n ja ESPN:n palvelimilta, pelaajakuvat TheSportsDB:n palvelimilta ja maiden liput flagcdn.comista. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi ja selaimen perustiedot kyseisille palvelimille.",
+          "Ottelu- ja tilastotiedot Futistan palvelin hakee itse (football-data.org, ESPN, TheSportsDB). Näihin hakuihin ei liitetä sinun tietojasi.",
           "Fontit toimitetaan Futistan omalta palvelimelta, joten niitä ladattaessa tietoja ei välity Googlelle.",
         ],
       },
@@ -51,6 +56,10 @@ export const PRIVACY: Record<Lang, Doc> = {
     title: "Integritet",
     intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering, ingen analys, ingen annonsspårning och inga kakor.",
     sections: [
+      {
+        h: "Personuppgiftsansvarig och kontakt",
+        p: ["Personuppgiftsansvarig: {owner}", "Kontakt i dataskyddsfrågor: {email}"],
+      },
       {
         h: "Uppgifter som sparas på din enhet",
         p: [
@@ -75,7 +84,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Externt innehåll",
         p: [
-          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com) och lagens logotyper från football-data.orgs och TheSportsDB:s servrar. När bilderna laddas skickar din webbläsare din IP-adress till dessa servrar.",
+          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com), lagens logotyper från football-data.orgs, TheSportsDB:s och ESPN:s servrar, spelarbilder från TheSportsDB och landsflaggor från flagcdn.com. När bilderna laddas skickar din webbläsare din IP-adress och grundläggande webbläsarinformation till dessa servrar.",
+          "Match- och statistikuppgifter hämtas av Futistas egen server (football-data.org, ESPN, TheSportsDB). Inga uppgifter om dig skickas med dessa förfrågningar.",
           "Typsnitten levereras från Futistas egen server, så inga uppgifter skickas till Google när de laddas.",
         ],
       },
@@ -92,6 +102,10 @@ export const PRIVACY: Record<Lang, Doc> = {
     title: "Privacy",
     intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up, no analytics, no ad tracking and no cookies.",
     sections: [
+      {
+        h: "Controller and contact",
+        p: ["Controller: {owner}", "Privacy contact: {email}"],
+      },
       {
         h: "What is stored on your device",
         p: [
@@ -116,7 +130,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "External content",
         p: [
-          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com) and team logos from football-data.org and TheSportsDB. When these images load, your browser sends your IP address to those servers.",
+          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com), team logos from football-data.org, TheSportsDB and ESPN, player photos from TheSportsDB and country flags from flagcdn.com. When these images load, your browser sends your IP address and basic browser details to those servers.",
+          "Match and statistics data is fetched by Futista's own server (football-data.org, ESPN, TheSportsDB). None of your data is included in those requests.",
           "Fonts are served from Futista's own server, so nothing is sent to Google when they load.",
         ],
       },
