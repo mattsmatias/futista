@@ -6,7 +6,7 @@ import { useI18n, type Key } from "@/lib/i18n";
 import { useFavorites } from "@/lib/favorites";
 import { teamHref, matchHref } from "@/lib/routes";
 import { norm } from "@/lib/teams";
-import { useMatchState, StatusPill } from "@/lib/live";
+import { useMatchState, StatusPill, useLiveExtras } from "@/lib/live";
 import type { MatchState } from "@/lib/live-core";
 
 export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
@@ -134,7 +134,8 @@ function UpcomingCard({ f }: { f: Fixture & { s: string; league: string } }) {
 export function Results({ stats }: { stats: LeagueStats[] }) {
   const i = useI18n();
   const { t } = i;
-  const hasFixtures = stats.some((s) => s.fixtures.length);
+  const extras = useLiveExtras(stats);
+  const hasFixtures = stats.some((s) => s.fixtures.length) || extras.length > 0;
   const [tab, setTab] = useState<"up" | "done">(hasFixtures ? "up" : "done");
   return (
     <>
@@ -145,7 +146,7 @@ export function Results({ stats }: { stats: LeagueStats[] }) {
       <div className="results">
         {stats.map((s) => {
           const src = SOURCES.find((x) => x.id === s.source)!;
-          const list: (Result | Fixture)[] = tab === "up" ? s.fixtures : s.results;
+          const list: (Result | Fixture)[] = tab === "up" ? [...extras.filter((x) => x.s === s.source), ...s.fixtures] : s.results;
           const days = [...new Set(list.map((r) => r.date))].slice(0, tab === "up" ? 8 : 6);
           return (
             <div className="panel" key={s.source}>
@@ -202,10 +203,10 @@ export function ScoreRail({ stats, onMore }: { stats: LeagueStats[]; onMore: () 
 export function UpcomingRail({ stats, onMore }: { stats: LeagueStats[]; onMore: () => void }) {
   const i = useI18n();
   const { t } = i;
-  const items = stats
-    .flatMap((s) => s.fixtures.slice(0, 8).map((f) => ({ ...f, s: s.source, league: s.league })))
+  const extras = useLiveExtras(stats);
+  const items = [...extras, ...stats.flatMap((s) => s.fixtures.slice(0, 8).map((f) => ({ ...f, s: s.source, league: s.league })))]
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-    .slice(0, 10);
+    .slice(0, 12);
   if (!items.length) return null;
   return (
     <section className="sec">

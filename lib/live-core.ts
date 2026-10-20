@@ -14,6 +14,10 @@ export type LiveMatch = {
   away: string[];
   hs: number | null;
   as: number | null;
+  homeName?: string;   // näyttönimi ja logo, jos ottelu puuttuu lähteen otteluohjelmasta
+  awayName?: string;
+  homeCrest?: string;
+  awayCrest?: string;
 };
 
 export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled";
@@ -32,6 +36,26 @@ function same(ours: string, theirs: string[]) {
   if (!w.length) return false;
   const alias: Record<string, string> = { wolves: "wolverhampton", spurs: "tottenham", inter: "internazionale", atleti: "atletico", nottingham: "nottingham" };
   return w.every((x) => theirs.includes(x) || (alias[x] && theirs.includes(alias[x])));
+}
+
+export const isOn = (s: LiveStatus) => s === "IN_PLAY" || s === "PAUSED" || s === "EXTRA_TIME" || s === "PENALTY_SHOOTOUT" || s === "SUSPENDED";
+
+/** Aikaleima → Suomen ajan päivä (YYYY-MM-DD) ja kellonaika (HH:MM) */
+export function helsinkiParts(epoch: number) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Helsinki", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date(epoch));
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return { date: `${g("year")}-${g("month")}-${g("day")}`, time: `${g("hour")}:${g("minute")}` };
+}
+
+/** Onko rajapinnan joukkue sama kuin meidän joukkue (nimi täsmää tai selvä nimen osa löytyy) */
+export const sameTeam = (ours: string, theirs: string[]) => same(ours, theirs) || partly(ours, theirs);
+
+/** Paras vastine joukkuelistasta: ensin täsmällinen nimi, sitten yksiselitteinen nimen osa */
+export function bestTeam<T extends { name: string }>(teams: T[], theirs: string[]): T | undefined {
+  const exact = teams.find((t) => same(t.name, theirs));
+  if (exact) return exact;
+  const part = teams.filter((t) => partly(t.name, theirs));
+  return part.length === 1 ? part[0] : undefined;
 }
 
 /** Löytyykö nimestä vähintään yksi selvä (väh. 4 kirjaimen) sana, esim. "Sabah FC Masazir" ↔ "Sabah" */

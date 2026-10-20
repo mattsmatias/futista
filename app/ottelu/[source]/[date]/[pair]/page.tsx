@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getStats } from "@/lib/stats";
-import { teamSlug } from "@/lib/routes";
+import { teamSlug, findTeam } from "@/lib/routes";
 import MatchView from "./MatchView";
 
 export const revalidate = 900;
@@ -15,8 +15,13 @@ async function load(p: Props["params"]) {
   const hit = (x: { date: string; home: { name: string }; away: { name: string } }) =>
     x.date === p.date && teamSlug(x.home.name) === h && teamSlug(x.away.name) === a;
   const result = s.results.find(hit);
-  const fixture = result ? undefined : s.fixtures.find(hit);
-  if (!result && !fixture) return null;
+  let fixture = result ? undefined : s.fixtures.find(hit);
+  if (!result && !fixture) {
+    // käynnissä oleva ottelu on jo poistunut lähteen otteluohjelmasta: näytetään joukkueiden perusteella (tila tulee LIVE-tiedoista)
+    const home = findTeam(s, h), away = findTeam(s, a);
+    if (!home || !away || !/^\d{4}-\d{2}-\d{2}$/.test(p.date)) return null;
+    fixture = { date: p.date, time: "", home, away };
+  }
   return { s, result, fixture };
 }
 

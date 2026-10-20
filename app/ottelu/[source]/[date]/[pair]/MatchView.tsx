@@ -49,7 +49,7 @@ export default function MatchView({ s, result, fixture }: { s: LeagueStats; resu
   const rh = row(m.home), ra = row(m.away);
   const pair = [norm(m.home.name), norm(m.away.name)];
   const meetings = s.results.filter((r) => pair.includes(norm(r.home.name)) && pair.includes(norm(r.away.name)));
-  const st = useMatchState({ ...m, time: fixture?.time, source: s.source });
+  const st = useMatchState({ ...m, time: fixture?.time || undefined, source: s.source });
   const liveScore = !result && st.hs != null && st.as != null ? { hs: st.hs, as: st.as } : null;
   const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
 

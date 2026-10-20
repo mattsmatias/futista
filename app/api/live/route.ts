@@ -30,6 +30,10 @@ export async function GET() {
             away: t(m.awayTeam),
             hs: m.score?.fullTime?.home ?? null,
             as: m.score?.fullTime?.away ?? null,
+            homeName: m.homeTeam?.shortName || m.homeTeam?.name,
+            awayName: m.awayTeam?.shortName || m.awayTeam?.name,
+            homeCrest: m.homeTeam?.crest,
+            awayCrest: m.awayTeam?.crest,
           }));
       }
     } catch {}
