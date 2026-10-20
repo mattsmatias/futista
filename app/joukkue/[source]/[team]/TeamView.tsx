@@ -168,7 +168,7 @@ export default function TeamView({ s, team, news, info }: { s: LeagueStats; team
 
         <div className="subtabs sticky ent-tabs" role="tablist" ref={tabsRef}>
           {tabs.map((k) => (
-            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => go(k)}>{t(LABEL[k])}</button>
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => go(k)}>{k === "overview" ? <><span className="full">{t("overview")}</span><span className="short">{t("overviewShort")}</span></> : t(LABEL[k])}</button>
           ))}
         </div>
 
