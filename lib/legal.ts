@@ -10,7 +10,6 @@ export const PRIVACY: Record<Lang, Doc> = {
     title: "Tietosuoja",
     intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä, analytiikkaa, mainosseurantaa eikä evästeitä.",
     sections: [
-      { h: "Rekisterinpitäjä", p: ["{owner}", "{email}"] },
       {
         h: "Laitteellesi tallennettavat tiedot",
         p: [
@@ -42,7 +41,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Oikeutesi",
         p: [
-          "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Muita tietoja meillä ei sinusta ole. Kysymykset voit lähettää yllä olevaan osoitteeseen.",
+          "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Muita tietoja meillä ei sinusta ole.",
           "Sinulla on oikeus tehdä valitus [tietosuojavaltuutetulle](https://tietosuoja.fi).",
         ],
       },
@@ -52,7 +51,6 @@ export const PRIVACY: Record<Lang, Doc> = {
     title: "Integritet",
     intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering, ingen analys, ingen annonsspårning och inga kakor.",
     sections: [
-      { h: "Personuppgiftsansvarig", p: ["{owner}", "{email}"] },
       {
         h: "Uppgifter som sparas på din enhet",
         p: [
@@ -84,7 +82,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Dina rättigheter",
         p: [
-          "Du raderar aviseringsuppgifterna genom att stänga av aviseringarna. Andra uppgifter om dig har vi inte. Frågor kan skickas till adressen ovan.",
+          "Du raderar aviseringsuppgifterna genom att stänga av aviseringarna. Andra uppgifter om dig har vi inte.",
           "Du har rätt att lämna klagomål till [dataombudsmannen i Finland](https://tietosuoja.fi/sv).",
         ],
       },
@@ -94,7 +92,6 @@ export const PRIVACY: Record<Lang, Doc> = {
     title: "Privacy",
     intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up, no analytics, no ad tracking and no cookies.",
     sections: [
-      { h: "Data controller", p: ["{owner}", "{email}"] },
       {
         h: "What is stored on your device",
         p: [
@@ -126,7 +123,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Your rights",
         p: [
-          "You delete your notification data by turning notifications off. We hold no other data about you. You can send questions to the address above.",
+          "You delete your notification data by turning notifications off. We hold no other data about you.",
           "You have the right to lodge a complaint with the [Data Protection Ombudsman of Finland](https://tietosuoja.fi/en).",
         ],
       },
