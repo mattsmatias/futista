@@ -3,6 +3,7 @@ import { fd } from "./fd";
 import { SOURCES } from "./sources";
 import { helsinkiParts, words, sameTeam } from "./live-core";
 import { matchHref } from "./routes";
+import { fdScore } from "./score";
 import type { LeagueStats, Team } from "./stats";
 
 export type MatchExtra = {
@@ -43,19 +44,29 @@ export async function getMatchExtra(source: string, date: string, home: Team, aw
   };
 }
 
+/** Kuuluuko ottelutunniste sarjan kauden otteluihin (estää mielivaltaiset tunnisteet, jotka kuluttaisivat kiintiötä) */
+export async function isKnownMatch(source: string, apiId: number): Promise<boolean> {
+  const code = SOURCES.find((s) => s.id === source)?.fd;
+  if (!code) return false;
+  const season = await fd<any>(`/competitions/${code}/matches`, 3600);
+  return (season?.matches ?? []).some((x: any) => x.id === apiId);
+}
+
 /** Aiemmat kohtaamiset (haetaan vasta, kun H2H-välilehti avataan) */
 export async function getMeetings(stats: LeagueStats[], apiId: number): Promise<Meeting[]> {
   const h2h = await fd<any>(`/matches/${apiId}/head2head?limit=12`, 86400);
   const meetings: Meeting[] = (h2h?.matches ?? [])
-    .filter((x: any) => x.id !== apiId && x.score?.fullTime?.home != null)
-    .map((x: any) => {
+    .filter((x: any) => x.id !== apiId && (x.status === "FINISHED" || x.status === "AWARDED"))
+    .map((x: any) => ({ x, sc: fdScore(x.score) }))
+    .filter(({ sc }: any) => sc.hs !== null && sc.as !== null) // puuttuva tulos ei ole 0–0
+    .map(({ x, sc }: any) => {
       const src = SOURCES.find((s) => s.fd === x.competition?.code)?.id ?? null;
       const d = helsinkiParts(Date.parse(x.utcDate)).date;
       const pick = (t: any): Team => teamById(stats, src, t.id) ?? teamById(stats, null, t.id) ?? { name: t.shortName ?? t.name, code: t.tla ?? "", crest: t.crest, id: t.id };
       const h = pick(x.homeTeam), a = pick(x.awayTeam);
       // linkki vain, jos ottelu löytyy tämän kauden tuloksista
       const inStats = src && stats.find((s) => s.source === src)?.results.some((r) => r.date === d && r.home.name === h.name && r.away.name === a.name);
-      return { date: d, comp: x.competition?.name ?? "", source: src, home: h, away: a, hs: x.score.fullTime.home, as: x.score.fullTime.away, href: inStats ? matchHref(src!, d, h.name, a.name) : null };
+      return { date: d, comp: x.competition?.name ?? "", source: src, home: h, away: a, hs: sc.hs, as: sc.as, href: inStats ? matchHref(src!, d, h.name, a.name) : null };
     });
   return meetings;
 }

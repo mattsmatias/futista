@@ -86,7 +86,8 @@ export function GameRow({ g, nations, highlight, hideDate }: { g: Game; nations?
         ? <span className="score ko">{g.time}</span>
         : <span className={`mid mid-${g.kind}`}>
             {g.hs !== null && g.as !== null && <span className="score"><Num v={g.hs} /><i>–</i><Num v={g.as} /></span>}
-            {!played && <StatusPill s={{ kind: g.kind, min: g.clock }} />}
+            {!played && <StatusPill s={{ kind: g.kind, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet }} />}
+            {played && (g.pens || g.aet) && <small className="r-note">{g.pens ? `${i.t("pensShort")} ${g.pens[0]}–${g.pens[1]}` : i.t("aetShort")}</small>}
           </span>}
       {side(g.away, false, aw)}
     </>

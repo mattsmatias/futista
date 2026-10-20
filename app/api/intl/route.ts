@@ -6,8 +6,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET() {
-  const games = await getIntl();
-  return NextResponse.json({ games: games ?? [] }, {
-    headers: { "Cache-Control": games ? "public, s-maxage=60, stale-while-revalidate=300" : "public, s-maxage=30" },
+  const r = await getIntl();
+  // error = tietolähde ei vastannut (eri asia kuin "ei otteluita")
+  return NextResponse.json({ games: r?.games ?? [], at: r?.at ?? null, partial: (r?.failed ?? 0) > 0, error: !r }, {
+    headers: { "Cache-Control": r ? "public, s-maxage=60, stale-while-revalidate=300" : "public, s-maxage=30" },
   });
 }

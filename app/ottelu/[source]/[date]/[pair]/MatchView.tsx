@@ -8,7 +8,7 @@ import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import SubBar from "../../../../SubBar";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
-import { useMatchState, StatusPill } from "@/lib/live";
+import { useMatchState, StatusPill, LiveFreshness } from "@/lib/live";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import Footer from "../../../../Footer";
 
@@ -32,7 +32,7 @@ function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
   return (
     <div className="panel">
       <div className="panel-head"><h3 className="ph-team"><Badge t={team} size={22} />{team.name}</h3><span className="muted">{i.t("last5")}</span></div>
-      {list.length === 0 && <p className="muted pad">{i.t("noResults")}</p>}
+      {list.length === 0 && <p className="muted pad">{i.t("noPlayed")}</p>}
       {list.map((r) => (
         <div className="day" key={r.date + r.home.name}>
           <div className="day-label">{i.day(r.date)}</div>
@@ -110,13 +110,16 @@ function Info({ e }: { e: MatchExtra }) {
 export default function MatchView({ s, result, fixture, extra = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null }) {
   // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
   const [history, setHistory] = useState<Meeting[] | null>(null);
+  const [h2hErr, setH2hErr] = useState(false);
   const i = useI18n();
   const { t } = i;
   const m = (result ?? fixture)!;
   const [tab, setTab] = useState<Tab>("summary");
   useEffect(() => {
     if (tab !== "h2h" || history !== null || !extra?.apiId) return;
-    fetch(`/api/h2h/${extra.apiId}?l=${s.source}`).then((r) => r.json()).then((d) => setHistory(d.meetings ?? [])).catch(() => setHistory([]));
+    // virhe ≠ "ei aiempia otteluita": virheestä kerrotaan erikseen
+    fetch(`/api/h2h/${extra.apiId}?l=${s.source}`).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .then((d) => setHistory(d.meetings ?? [])).catch(() => setH2hErr(true));
   }, [tab, history, extra, s.source]);
   const row = (tm: Team): Row | undefined => s.table.find((r) => norm(r.team.name) === norm(tm.name));
   const rh = row(m.home), ra = row(m.away);
@@ -131,7 +134,8 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
   return (
     <>
       <SubBar />
-      <AutoRefresh />
+      {/* päättynyttä ottelua ei päivitetä live-tahdilla */}
+      <AutoRefresh every={result ? 900_000 : st.kind === "live" || st.kind === "ht" ? 60_000 : 300_000} />
       <main className="wrap entity">
         <section className={`match-hero mh-${s.source}`}>
           <div className="mh-meta">
@@ -149,7 +153,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                   ? <div className="mh-score mh-live"><Num v={liveScore.hs} /><i>–</i><Num v={liveScore.as} /></div>
                   : <div className="mh-time">{fixture!.time}</div>}
               {result
-                ? <span className="mh-status">{t("statusFt")}</span>
+                ? <span className="mh-status">{t("statusFt")}{result.note === "pens" ? ` · ${t("pensShort")}${result.pens ? ` ${result.pens[0]}–${result.pens[1]}` : ""}` : result.note === "aet" ? ` · ${t("aetShort")}` : ""}</span>
                 : st.kind === "upcoming"
                   ? <span className="mh-status up">{t("statusUpcoming")}</span>
                   : <StatusPill s={st} />}
@@ -160,6 +164,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
           </div>
         </section>
 
+        {!result && st.kind !== "upcoming" && <LiveFreshness always />}
         <div className="subtabs sticky" role="tablist">
           {tabs.map((x) => (
             <button key={x.id} role="tab" aria-selected={tab === x.id} className={tab === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>
@@ -206,7 +211,8 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                 </div>
               ))}
             </div>
-            {extra?.apiId && (history === null
+            {extra?.apiId && h2hErr && <p className="muted pad">{t("sourceDown")}</p>}
+            {extra?.apiId && !h2hErr && (history === null
               ? <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>
               : <History list={history} home={m.home} away={m.away} />)}
             <div className="duo">

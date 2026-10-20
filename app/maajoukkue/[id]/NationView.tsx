@@ -7,6 +7,7 @@ import { StatusPill } from "@/lib/live";
 import SubBar from "../../SubBar";
 import Footer from "../../Footer";
 import { GameRow, GBadge, compName, compClass, useTeamName } from "../../Games";
+import { SrcLine } from "../../Stats";
 
 const isOn = (g: Game) => g.kind === "live" || g.kind === "ht";
 
@@ -35,7 +36,7 @@ export default function NationView({ id, team, games }: { id: string; team: Game
         <section className="ent-hero" style={{ ["--c1" as any]: "var(--c-nt, #0b7fc7)", ["--c2" as any]: "var(--surface-2)" }}>
           <div className="ent-crest"><GBadge t={team} size={84} /></div>
           <div className="ent-txt">
-            <span className="chip">{t("nationalTeam")}</span>
+            <span className="chip">{t("nationalTeamMen")}</span>
             <h1>{nm(team)}</h1>
             {form.length > 0 && (
               <p className="ent-sub"><span className="form">
@@ -53,7 +54,7 @@ export default function NationView({ id, team, games }: { id: string; team: Game
               <span className={`nc-vs${isOn(next) ? " nc-live" : ""}`}>{isOn(next) && next.hs !== null ? `${next.hs}–${next.as}` : next.time}</span>
               <a className="nc-team" href={next.away.id ? `/maajoukkue/${next.away.id}` : undefined}><GBadge t={next.away} size={44} /><b>{nm(next.away)}</b></a>
             </span>
-            {isOn(next) && <span className="nc-state"><StatusPill s={{ kind: next.kind, min: next.clock }} /></span>}
+            {isOn(next) && <span className="nc-state"><StatusPill s={{ kind: next.kind, min: next.clock, phase: next.phase, pens: next.pens }} /></span>}
           </div>
         )}
 
@@ -71,14 +72,14 @@ export default function NationView({ id, team, games }: { id: string; team: Game
         <div className="duo">
           <div className="panel">
             <div className="panel-head"><h3>{t("nextMatches")}</h3></div>
-            {pick(up).length === 0 && <p className="muted pad">{t("noFixtures")}</p>}
+            {pick(up).length === 0 && <p className="muted pad">{t("noUpcoming")}</p>}
             {pick(up).map((g) => <GameRow key={g.id} g={g} nations highlight={id} />)}
           </div>
           <div className="panel">
             <div className="panel-head"><h3>{t("recentResults")}</h3></div>
-            {pick(played).length === 0 && <p className="muted pad">{t("noResults")}</p>}
+            {pick(played).length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
             {pick(played).map((g) => <GameRow key={g.id} g={g} nations highlight={id} />)}
-            <div className="panel-src">{t("source")}: ESPN</div>
+            <SrcLine name="ESPN" />
           </div>
         </div>
         <p className="pad"><a className="see-all" href="/maajoukkueet">{t("nationalTeams")} →</a></p>

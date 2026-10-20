@@ -26,7 +26,11 @@ export default async function ArticlePage({ params }: Props) {
   const a = await getFullArticle(params.path);
   if (!a) notFound();
 
-  const more = (await getArticles())
+  const all = await getArticles();
+  // NEWS_FULLTEXT=0: näytetään vain otsikko, lyhyt ote ja linkki alkuperäiseen (käyttöoikeutta ei ole varmistettu)
+  const excerptOnly = process.env.NEWS_FULLTEXT === "0";
+  const excerpt = all.find((x) => x.link === a.source)?.excerpt ?? "";
+  const more = all
     .filter((x) => x.link !== a.source && x.tags.some((t) => a.tags.includes(t)))
     .slice(0, 3);
 
@@ -60,7 +64,9 @@ export default async function ArticlePage({ params }: Props) {
       </header>
 
       <article className="wrap story">
-        <div className="story-body" dangerouslySetInnerHTML={{ __html: a.html }} />
+        {excerptOnly
+          ? <div className="story-body">{excerpt && <p>{excerpt}</p>}<p><a className="see-all" href={a.source} target="_blank" rel="noopener"><T k="readAtSource" /> {a.sourceName} →</a></p></div>
+          : <div className="story-body" dangerouslySetInnerHTML={{ __html: a.html }} />}
         <div className="source"><T k="source" />: <a href={a.source} target="_blank" rel="noopener">{a.sourceName}</a></div>
         {a.tags.length > 0 && <div className="tags">{a.tags.map((t) => <span key={t}>{t}</span>)}</div>}
       </article>

@@ -1,23 +1,37 @@
 import { parseHTML } from "linkedom";
 import { SOURCES, type SourceId } from "./sources";
 import { crestLookup } from "./crests";
-import { fd } from "./fd";
+import { fdMeta } from "./fd";
 import { unstable_cache } from "next/cache";
 import { helsinkiParts } from "./live-core";
+import { fdScore, seasonLabel, seasonFromDate } from "./score";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
-export type Result = { date: string; home: Team; away: Team; hs: number; as: number };
+export type Result = { date: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null };
 export type Fixture = { date: string; time: string; home: Team; away: Team };
-export type LeagueStats = { source: SourceId; league: string; table: Row[]; results: Result[]; fixtures: Fixture[] };
+export type Part = "table" | "results" | "fixtures";
+export type LeagueStats = {
+  source: SourceId; league: string; table: Row[]; results: Result[]; fixtures: Fixture[];
+  season?: string | null;   // esim. "2026–27"
+  updated?: number | null;  // vanhimman käytetyn lähdevastauksen aika (ms) – ei hakuyrityksen aika
+  failed?: Part[];          // osat, joita lähde ei juuri nyt antanut (ja joista ei ole aiempaa tietoa)
+  stale?: boolean;          // osa tiedoista on aiemmasta onnistuneesta hausta
+};
 
 const UA = { "User-Agent": "Futista/1.0" };
 
-async function getHtml(url: string) {
+/** Lähdesivu ja sen luontihetki (palvelimen Date-otsake; välimuistissa enintään 2 min) */
+async function getHtml(url: string): Promise<{ html: string; at: number } | null> {
   try {
-    const res = await fetch(url, { next: { revalidate: 120 }, headers: UA }); // 2 min välein
-    if (!res.ok) console.error("lähdesivu", url, res.status);
-    return res.ok ? await res.text() : null;
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 12_000);
+    const res = await fetch(url, { next: { revalidate: 120 }, headers: UA, signal: ctl.signal }); // 2 min välein
+    clearTimeout(to);
+    if (!res.ok) { console.error("lähdesivu", url, res.status); return null; }
+    const html = await res.text();
+    const d = Date.parse(res.headers.get("date") ?? "");
+    return { html, at: Number.isFinite(d) ? d : Date.now() };
   } catch (e) {
     console.error("lähdesivu", url, (e as Error)?.message);
     return null;
@@ -110,7 +124,7 @@ function parseResults(doc: any): Result[] {
     const td = [...tr.querySelectorAll("td")];
     if (td.length < 3) continue;
     const date = td[0].textContent.trim().match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    const score = td[td.length - 1].textContent.trim().match(/^(\d+)\s*[-–]\s*(\d+)(?:\s*(?:rp|ja|jatk)\.?)?$/i);
+    const score = td[td.length - 1].textContent.trim().match(/^(\d+)\s*[-–]\s*(\d+)(?:\s*(rp|ja|jatk)\.?)?$/i);
     if (!date || !score) continue;
     const parts = leaves(td[1]);
     let i = parts.findIndex((p) => /^[–-]$/.test(p));
@@ -121,6 +135,7 @@ function parseResults(doc: any): Result[] {
       home = [h ?? ""]; away = [a ?? ""];
     }
     const r: Result = { date: `${date[3]}-${date[2]}-${date[1]}`, home: team(home), away: team(away), hs: +score[1], as: +score[2] };
+    if (score[3]) r.note = /rp/i.test(score[3]) ? "pens" : "aet";
     const key = `${r.date}|${r.home.name}|${r.away.name}`;
     if (!seen.has(key)) { seen.add(key); out.push(r); }
   }
@@ -129,10 +144,11 @@ function parseResults(doc: any): Result[] {
 
 /** Sarja kokonaan football-data.orgista (sarjat ilman uutislähdettä) */
 async function fromFd(s: (typeof SOURCES)[number]): Promise<LeagueStats> {
-  const [st, mt] = await Promise.all([
-    fd<any>(`/competitions/${s.fd}/standings`, 900),
-    fd<any>(`/competitions/${s.fd}/matches`, 900),
+  const [stR, mtR] = await Promise.all([
+    fdMeta<any>(`/competitions/${s.fd}/standings`, 900),
+    fdMeta<any>(`/competitions/${s.fd}/matches`, 900),
   ]);
+  const st = stR?.data, mt = mtR?.data;
   const team = (t: any): Team => ({ name: t?.shortName || t?.name || "?", code: t?.tla || (t?.shortName || "").slice(0, 3).toUpperCase(), crest: t?.crest, id: t?.id });
   const total = (st?.standings ?? []).find((x: any) => x.type === "TOTAL")?.table ?? [];
   const table: Row[] = total.map((r: any) => ({
@@ -140,15 +156,23 @@ async function fromFd(s: (typeof SOURCES)[number]): Promise<LeagueStats> {
   }));
   const matches: any[] = mt?.matches ?? [];
   const results: Result[] = matches
-    .filter((m) => (m.status === "FINISHED" || m.status === "AWARDED") && m.score?.fullTime?.home != null)
-    .map((m) => ({ date: helsinkiParts(Date.parse(m.utcDate)).date, home: team(m.homeTeam), away: team(m.awayTeam), hs: m.score.fullTime.home, as: m.score.fullTime.away }))
+    .filter((m) => (m.status === "FINISHED" || m.status === "AWARDED"))
+    .map((m) => ({ m, sc: fdScore(m.score) }))
+    .filter(({ sc }) => sc.hs !== null && sc.as !== null) // puuttuva tulos ei ole 0–0
+    .map(({ m, sc }) => ({
+      date: helsinkiParts(Date.parse(m.utcDate)).date, home: team(m.homeTeam), away: team(m.awayTeam), hs: sc.hs!, as: sc.as!,
+      ...(sc.pens ? { note: "pens" as const, pens: sc.pens } : sc.aet ? { note: "aet" as const } : {}),
+    }))
     .sort((a, b) => b.date.localeCompare(a.date));
   const since = Date.now() - 3 * 3600_000;
   const fixtures: Fixture[] = matches
     .filter((m) => ["SCHEDULED", "TIMED", "IN_PLAY", "PAUSED", "EXTRA_TIME", "PENALTY_SHOOTOUT", "SUSPENDED"].includes(m.status) && Date.parse(m.utcDate) >= since - 3 * 3600_000 && m.homeTeam?.id && m.awayTeam?.id)
     .map((m) => ({ ...helsinkiParts(Date.parse(m.utcDate)), home: team(m.homeTeam), away: team(m.awayTeam) }))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  return { source: s.id, league: s.league, table, results, fixtures };
+  const failed: Part[] = [...(stR ? [] : ["table" as const]), ...(mtR ? [] : ["results" as const, "fixtures" as const])];
+  const times = [stR?.at, mtR?.at].filter((x): x is number => typeof x === "number");
+  const season = seasonLabel(st?.season?.startDate ?? mt?.resultSet?.first ?? null, st?.season?.endDate ?? null);
+  return { source: s.id, league: s.league, table, results, fixtures, season, updated: times.length ? Math.min(...times) : null, failed };
 }
 
 /** Yksittäinen sarja: uutissarjat lähdesivuilta, muut football-datasta */
@@ -168,13 +192,34 @@ export async function getStatsWith(extra: string[] = []): Promise<LeagueStats[]>
 
 /** Uutissarjojen tilastot (etusivu, ilmoitukset). Muut sarjat haetaan getLeague-funktiolla tarvittaessa.
  *  Käsitelty tulos tallennetaan kahdeksi minuutiksi, jotta jokainen sivu ei jäsennä lähdesivuja uudelleen. */
+class PartialStats extends Error {
+  constructor(public partial: LeagueStats[]) { super("osittaiset tilastot"); }
+}
 const cachedStats = unstable_cache(async () => {
   const s = await computeStats();
-  // tyhjää tulosta ei tallenneta välimuistiin (lähdesivu ei hetkeen vastannut)
-  if (!s.some((x) => x.table.length || x.results.length)) throw new Error("tyhjät tilastot");
+  // tyhjää tai osittaista tulosta ei tallenneta välimuistiin: edellinen onnistunut tulos jää voimaan
+  if (!s.some((x) => x.table.length || x.results.length)) throw new PartialStats(s);
+  if (s.some((x) => x.failed?.length)) throw new PartialStats(s);
   return s;
-}, ["stats-v3"], { revalidate: 120 });
+}, ["stats-v4"], { revalidate: 120 });
 let lastGood: LeagueStats[] | null = null;
+
+/** Täydennä epäonnistuneet osat aiemmasta onnistuneesta hausta ja merkitse ne vanhentuneiksi */
+export function fillFromLastGood(partial: LeagueStats[], prev: LeagueStats[] | null): LeagueStats[] {
+  return partial.map((s) => {
+    const old = prev?.find((x) => x.source === s.source);
+    if (!s.failed?.length || !old) return s;
+    const out: LeagueStats = { ...s, failed: [], stale: true, updated: Math.min(s.updated ?? Infinity, old.updated ?? Infinity) };
+    for (const p of s.failed) {
+      if (p === "table" && old.table.length) out.table = old.table;
+      else if (p === "results" && old.results.length) out.results = old.results;
+      else if (p === "fixtures" && old.fixtures.length) out.fixtures = old.fixtures;
+      else out.failed!.push(p);
+    }
+    if (!Number.isFinite(out.updated!)) out.updated = null;
+    return out;
+  });
+}
 
 export async function getStats(): Promise<LeagueStats[]> {
   try {
@@ -182,7 +227,9 @@ export async function getStats(): Promise<LeagueStats[]> {
     return lastGood;
   } catch (e) {
     console.error("tilastot", (e as Error)?.message);
-    return lastGood ?? [];
+    const partial = e instanceof PartialStats ? e.partial : null;
+    if (partial) return fillFromLastGood(partial, lastGood);
+    return lastGood ? lastGood.map((s) => ({ ...s, stale: true })) : [];
   }
 }
 
@@ -197,13 +244,22 @@ async function computeStats(): Promise<LeagueStats[]> {
       const pages = await Promise.all(urls.map(getHtml));
       const page = (u: string) => pages[urls.indexOf(u)];
       const [t, r, f] = [page(p.table), page(p.results), page(p.fixtures)];
-      return {
+      const failed: Part[] = [...(t ? [] : ["table" as const]), ...(r ? [] : ["results" as const]), ...(f ? [] : ["fixtures" as const])];
+      const times = pages.filter(Boolean).map((x) => x!.at);
+      const out: LeagueStats = {
         source: s.id,
         league: s.league,
-        table: t ? parseTable(parseHTML(t).document) : [],
-        results: r ? parseResults(parseHTML(r).document) : [],
-        fixtures: f ? parseFixtures(parseHTML(f).document) : [],
+        table: t ? parseTable(parseHTML(t.html).document) : [],
+        results: r ? parseResults(parseHTML(r.html).document) : [],
+        fixtures: f ? parseFixtures(parseHTML(f.html).document) : [],
+        // lähdesivun taulukko on aina kuluvalta kaudelta (syksy–kevät)
+        season: seasonFromDate(new Date()),
+        updated: times.length ? Math.min(...times) : null,
+        failed,
       };
+      // sivu saatiin mutta taulukkoa ei tunnistettu (esim. sivun rakenne muuttui): käsitellään puuttuvana
+      if (t && !out.table.length && !failed.includes("table")) out.failed!.push("table");
+      return out;
     })
   );
   // pelattu ottelu pois otteluohjelmasta, jos se on jo tuloksissa

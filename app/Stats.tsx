@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Fixture, LeagueStats, Result, Team } from "@/lib/stats";
 import { SOURCES, clubByName } from "@/lib/sources";
 import { useI18n, type Key } from "@/lib/i18n";
@@ -9,7 +9,7 @@ import type { LeagueScorers } from "@/lib/scorers";
 import Flag from "./Flag";
 import PlayerPhoto from "./PlayerPhoto";
 import { norm } from "@/lib/teams";
-import { useMatchState, StatusPill, useLiveExtras, useDataEnabled } from "@/lib/live";
+import { useMatchState, StatusPill, useLiveExtras, useDataEnabled, LiveFreshness } from "@/lib/live";
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
 
@@ -30,6 +30,23 @@ export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
   );
 }
 
+const hm = (ms: number) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
+
+/** Lähderivi: lähde, viimeisimmän onnistuneen päivityksen aika ja varoitus vanhentuneesta tiedosta */
+export function SrcLine({ name, updated, stale, maxAgeMin = 30 }: { name: string; updated?: number | null; stale?: boolean; maxAgeMin?: number }) {
+  const { t } = useI18n();
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => { setNow(Date.now()); }, [updated]);
+  const old = stale || (updated && now !== null ? now - updated > maxAgeMin * 60_000 : false);
+  return (
+    <div className={`panel-src${old ? " warn" : ""}`}>
+      {t("source")}: {name}
+      {updated ? <span suppressHydrationWarning> · {t("dataUpdated")} {hm(updated)}</span> : null}
+      {old ? <span> · {t("dataStale")}</span> : null}
+    </div>
+  );
+}
+
 function zoneOf(source: string, pos: number) {
   return SOURCES.find((s) => s.id === source)?.zones.find((z) => pos >= z.from && pos <= z.to);
 }
@@ -45,9 +62,9 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
     <div className="panel">
       <div className="panel-head">
         <h3><i className={`bar-${s.source}`} />{i.league(s.source, s.league)}</h3>
-        <span className="muted">{t("standing")}</span>
+        <span className="muted">{t("standing")}{s.season ? ` · ${s.season}` : ""}</span>
       </div>
-      {rows.length === 0 ? <p className="muted pad">{t("noTable")}</p> : (
+      {rows.length === 0 ? <p className="muted pad">{s.failed?.includes("table") ? t("sourceDown") : t("noTable")}</p> : (
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
@@ -78,17 +95,19 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
           {src.zones.map((z) => <span key={z.kind}><i className={`zk z-${z.kind}`} />{t(`zone_${z.kind}` as Key)}</span>)}
         </div>
       )}
+      {!compact && <SrcLine name={src.name} updated={s.updated} stale={s.stale} maxAgeMin={60} />}
     </div>
   );
 }
 
 /** Pelattu ottelu: koti – tulos – vieras, vie ottelusivulle */
 export function Match({ r, source }: { r: Result; source: string }) {
+  const { t } = useI18n();
   const hw = r.hs > r.as, aw = r.as > r.hs;
   return (
     <a className="match" href={matchHref(source, r.date, r.home.name, r.away.name)}>
       <span className={`side home${hw ? " win" : ""}`}>{r.home.name}<Badge t={r.home} /></span>
-      <span className="score"><Num v={r.hs} /><i>–</i><Num v={r.as} /></span>
+      <span className="score"><Num v={r.hs} /><i>–</i><Num v={r.as} />{r.note && <small className="r-note" title={r.pens ? `${r.pens[0]}–${r.pens[1]}` : undefined}>{r.note === "pens" ? `${t("pensShort")}${r.pens ? ` ${r.pens[0]}–${r.pens[1]}` : ""}` : t("aetShort")}</small>}</span>
       <span className={`side away${aw ? " win" : ""}`}><Badge t={r.away} />{r.away.name}</span>
     </a>
   );
@@ -158,7 +177,7 @@ export function Results({ stats }: { stats: LeagueStats[] }) {
                 <h3><i className={`bar-${s.source}`} />{i.league(s.source, s.league)}</h3>
                 <span className="muted">{tab === "up" ? t("upcomingMatches") : t("results")}</span>
               </div>
-              {days.length === 0 && <p className="muted pad">{tab === "up" ? t("noFixtures") : t("noResults")}</p>}
+              {days.length === 0 && <p className="muted pad">{s.failed?.includes(tab === "up" ? "fixtures" : "results") ? t("sourceDown") : tab === "up" ? t("noUpcoming") : t("noPlayed")}</p>}
               {days.map((d) => (
                 <div className="day" key={d}>
                   <div className="day-label">{i.day(d)}</div>
@@ -169,11 +188,12 @@ export function Results({ stats }: { stats: LeagueStats[] }) {
                   )}
                 </div>
               ))}
-              <div className="panel-src">{t("source")}: {src.name}</div>
+              <SrcLine name={src.name} updated={s.updated} stale={s.stale} />
             </div>
           );
         })}
       </div>
+      <LiveFreshness />
     </>
   );
 }
@@ -272,7 +292,7 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
     <div className="panel">
       <div className="panel-head">
         <h3><i className={`bar-${source}`} />{i.league(source, league)}</h3>
-        <span className="muted">{t("scorers")}</span>
+        <span className="muted">{t("scorers")}{data?.season ? ` · ${data.season}` : ""}</span>
       </div>
       {list.length === 0 ? <p className="muted pad">{t("noScorers")}</p> : (
         <div className="tbl-wrap">
@@ -291,14 +311,14 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
                   <td className="l opt"><a className="tm" href={teamHref(source, p.team.name)}><Badge t={p.team} />{p.team.name}</a></td>
                   <td className="opt">{p.played ?? "–"}</td>
                   <td className="opt">{p.assists ?? "–"}</td>
-                  <td className="pts">{p.goals}</td>
+                  <td className="pts">{p.goals ?? "–"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      <div className="panel-src">{t("source")}: football-data.org</div>
+      <SrcLine name="football-data.org" updated={data?.updated} maxAgeMin={180} />
     </div>
   );
 }

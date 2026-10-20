@@ -7,6 +7,6 @@ export const maxDuration = 60;
 export const metadata: Metadata = { title: "Maajoukkueet – maaottelut ja Huuhkajat – Futista" };
 
 export default async function Page() {
-  const games = await getIntl();
-  return <IntlPage games={games} />;
+  const r = await getIntl();
+  return <IntlPage data={r ? { games: r.games, at: r.at, partial: r.failed > 0 } : null} />;
 }

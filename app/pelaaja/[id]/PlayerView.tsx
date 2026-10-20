@@ -60,7 +60,7 @@ export default function PlayerView({ p }: { p: PlayerData }) {
 
         <section className="panel">
           <div className="panel-head"><h3>{t("lastMatches")}</h3></div>
-          {p.matches.length === 0 && <p className="muted pad">{t("noResults")}</p>}
+          {p.matches.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
           {p.matches.map((m, n) => {
             const body = (
               <>

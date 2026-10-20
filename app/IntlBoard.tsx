@@ -5,26 +5,34 @@ import type { Game } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
 import { GameRow, compName, compClass } from "./Games";
+import { SrcLine } from "./Stats";
 
 const FIN = "458";
 const isOn = (g: Game) => g.kind === "live" || g.kind === "ht";
 const isFin = (g: Game) => g.home.id === FIN || g.away.id === FIN;
 
-export default function IntlBoard({ initial }: { initial?: Game[] | null }) {
+export type IntlData = { games: Game[]; at: number | null; partial: boolean };
+
+export default function IntlBoard({ initial }: { initial?: IntlData | null }) {
   const i = useI18n();
   const { t } = i;
-  const [games, setGames] = useState<Game[] | null>(initial ?? null);
+  const [data, setData] = useState<IntlData | null>(initial ?? null);
+  const games = data?.games ?? null;
   const [failed, setFailed] = useState(false);
   const [comp, setComp] = useState("all");
   const [tab, setTab] = useState<"up" | "played">("up");
 
+  // virhe: säilytetään edellinen kelvollinen tieto ja kerrotaan siitä
   const load = () =>
-    fetch("/api/intl").then((r) => r.json()).then((j) => { if (j?.games?.length) setGames(j.games); else if (!games) setFailed(true); })
-      .catch(() => { if (!games) setFailed(true); });
+    fetch("/api/intl").then((r) => r.json()).then((j) => {
+      if (j?.error) { setFailed(true); return; }
+      setFailed(false);
+      setData((prev) => (prev?.at && j.at && j.at < prev.at ? prev : { games: j.games ?? [], at: j.at ?? null, partial: !!j.partial }));
+    }).catch(() => setFailed(true));
   useEffect(() => { if (!initial) load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useVisibleInterval(() => load(), games?.some(isOn) ? 45_000 : 120_000);
 
-  if (!games) return failed ? <p className="muted pad">{t("noFixtures")}</p> : <p className="muted pad loading">{t("loading")}</p>;
+  if (!games) return failed ? <p className="muted pad">{t("sourceDown")}</p> : <p className="muted pad loading">{t("loading")}</p>;
 
   const up = games.filter((g) => g.kind === "upcoming" || isOn(g) || g.kind === "postponed")
     .sort((a, b) => Number(isOn(b)) - Number(isOn(a)) || a.epoch - b.epoch);
@@ -66,7 +74,8 @@ export default function IntlBoard({ initial }: { initial?: Game[] | null }) {
         <button className={tab === "played" ? "on" : ""} onClick={() => setTab("played")}>{t("playedTab")}</button>
       </div>
 
-      {days.length === 0 && <p className="muted pad">{tab === "up" ? t("noFixtures") : t("noResults")}</p>}
+      {failed && <p className="fresh-line warn" role="status">{t("sourceDown")}</p>}
+      {days.length === 0 && <p className="muted pad">{tab === "up" ? t("noUpcoming") : t("noPlayed")}</p>}
       <div className="intl-days">
         {days.map(([d, gs]) => (
           <section className="panel" key={d}>
@@ -75,7 +84,7 @@ export default function IntlBoard({ initial }: { initial?: Game[] | null }) {
           </section>
         ))}
       </div>
-      <p className="panel-src">{t("source")}: ESPN</p>
+      <SrcLine name="ESPN" updated={data?.at} stale={failed || data?.partial} maxAgeMin={10} />
     </div>
   );
 }

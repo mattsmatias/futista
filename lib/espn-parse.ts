@@ -1,0 +1,103 @@
+// ESPN:n otteluiden tulkinta (puhdas logiikka, testataan tests/-kansiossa).
+import { words, fmtClock, helsinkiParts, type Kind, type LiveMatch, type LiveStatus } from "./live-core";
+
+export type Phase = { kind: Kind; phase?: "et" | "pens"; aet?: boolean };
+
+/**
+ * ESPN:n tila → meidän tila. Nimet esim. STATUS_FIRST_HALF, STATUS_HALFTIME, STATUS_SECOND_HALF,
+ * STATUS_END_OF_REGULATION, STATUS_OVERTIME / jatkoajan puoliajat (period 3–4), STATUS_SHOOTOUT (period 5),
+ * STATUS_FULL_TIME, STATUS_FINAL_AET, STATUS_FINAL_PEN, STATUS_POSTPONED, STATUS_CANCELED, STATUS_ABANDONED.
+ */
+export function parseStatus(type: any, period?: number): Phase {
+  const n: string = String(type?.name ?? "").toUpperCase();
+  const state: string = type?.state ?? "";
+  const p = Number(period ?? 0);
+  if (/POSTPONED/.test(n)) return { kind: "postponed" };
+  if (/CANCEL/.test(n)) return { kind: "cancelled" };
+  if (/ABANDON|SUSPEND/.test(n)) return { kind: "suspended" };
+  if (state === "post" || /FINAL|FULL_TIME/.test(n)) {
+    const pens = /PEN|SHOOTOUT/.test(n);
+    return { kind: "ft", aet: pens || /AET|EXTRA|OVERTIME/.test(n) || p >= 3, phase: pens ? "pens" : undefined };
+  }
+  if (state === "in") {
+    if (/SHOOTOUT|PENALT/.test(n) || p >= 5) return { kind: "live", phase: "pens" };
+    if (/HALFTIME/.test(n) && !/ET|EXTRA|OVERTIME/.test(n) && p <= 2) return { kind: "ht" };
+    if (/OVERTIME|EXTRA|_ET|END_OF_REGULATION/.test(n) || p >= 3) return { kind: "live", phase: "et" };
+    return { kind: "live" };
+  }
+  return { kind: "upcoming" };
+}
+
+const num = (v: any): number | null => {
+  if (v === undefined || v === null || v === "") return null;
+  const n = Number(typeof v === "object" ? v.value ?? v.displayValue : v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Varsinainen tilanne (ilman rangaistuspotkuja) ja pilkkujen tulos erikseen */
+export function parseScore(h: any, a: any, st: Phase): { hs: number | null; as: number | null; pens: [number, number] | null } {
+  const known = st.kind !== "upcoming" && st.kind !== "postponed" && st.kind !== "cancelled";
+  const hs = known ? num(h?.score) : null, as = known ? num(a?.score) : null;
+  const ph = num(h?.shootoutScore), pa = num(a?.shootoutScore);
+  return { hs, as, pens: ph !== null && pa !== null ? [ph, pa] : null };
+}
+
+/** Aikuisten miesten joukkue? (varmistus: nuorten, naisten ja olympiajoukkueet pidetään erillään) */
+export const isSeniorMen = (name: string) => !/\b(U-?\d{2}|under[- ]?\d{2}|women|womens|wnt|olympic|ii|b team|reserves?)\b/i.test(name);
+
+export type GameTeam = { name: string; logo?: string; code: string; id?: string; w?: string[] };
+export type Game = {
+  id: string; epoch: number; date: string; time: string;
+  comp: string; slug: string; season?: string | null;
+  home: GameTeam; away: GameTeam; hs: number | null; as: number | null;
+  kind: Kind; clock?: string; href?: string;
+  phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
+};
+
+export function toGame(e: any, slug?: string, compName?: string): Game | null {
+  const c = e?.competitions?.[0];
+  const cs: any[] = c?.competitors ?? [];
+  const h = cs.find((x) => x.homeAway === "home"), a = cs.find((x) => x.homeAway === "away");
+  if (!h || !a || !e?.date) return null;
+  const epoch = Date.parse(e.date);
+  if (!Number.isFinite(epoch)) return null;
+  const { date, time } = helsinkiParts(epoch);
+  const st = parseStatus(c?.status?.type ?? e?.status?.type, c?.status?.period ?? e?.status?.period);
+  const sc = parseScore(h, a, st);
+  const tm = (x: any): GameTeam => ({
+    name: x.team?.displayName ?? x.team?.shortDisplayName ?? "?",
+    w: words([x.team?.displayName, x.team?.shortDisplayName, x.team?.location, x.team?.name].filter(Boolean).join(" ")),
+    logo: x.team?.logos?.[0]?.href ?? x.team?.logo,
+    code: x.team?.abbreviation ?? (x.team?.displayName ?? "?").slice(0, 3).toUpperCase(),
+    id: x.team?.id ? String(x.team.id) : undefined,
+  });
+  const seasonYear = e?.season?.year;
+  return {
+    id: String(e.id), epoch, date, time,
+    comp: e.league?.name ?? e.league?.abbreviation ?? compName ?? "", slug: e.league?.slug ?? slug ?? "",
+    season: e?.season?.displayName ?? (seasonYear ? String(seasonYear) : null),
+    home: tm(h), away: tm(a), hs: sc.hs, as: sc.as, kind: st.kind,
+    clock: st.kind === "live" && st.phase !== "pens" ? fmtClock(c?.status?.displayClock) : undefined,
+    phase: st.phase, pens: sc.pens, aet: st.aet,
+  };
+}
+
+/** ESPN-tapahtuma → live-tilannekuva (sama muoto kuin football-datasta) */
+export function toLive(e: any, source: string): LiveMatch | null {
+  const g = toGame(e);
+  if (!g) return null;
+  const status: LiveStatus =
+    g.kind === "live" ? (g.phase === "pens" ? "PENALTY_SHOOTOUT" : g.phase === "et" ? "EXTRA_TIME" : "IN_PLAY")
+      : g.kind === "ht" ? "PAUSED" : g.kind === "ft" ? "FINISHED" : g.kind === "postponed" ? "POSTPONED"
+        : g.kind === "cancelled" ? "CANCELLED" : g.kind === "suspended" ? "SUSPENDED" : "SCHEDULED";
+  const c = e.competitions[0].competitors;
+  const h = c.find((x: any) => x.homeAway === "home"), a = c.find((x: any) => x.homeAway === "away");
+  const w = (x: any) => [...new Set(words([x.team?.displayName, x.team?.shortDisplayName, x.team?.location, x.team?.name, x.team?.abbreviation].filter(Boolean).join(" ")))];
+  return {
+    source, kickoff: g.epoch, status, home: w(h), away: w(a), hs: g.hs, as: g.as,
+    min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet,
+    homeName: h.team?.shortDisplayName || h.team?.displayName, awayName: a.team?.shortDisplayName || a.team?.displayName,
+    homeCrest: h.team?.logo ?? h.team?.logos?.[0]?.href, awayCrest: a.team?.logo ?? a.team?.logos?.[0]?.href,
+    src: "espn",
+  };
+}

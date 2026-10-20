@@ -6,6 +6,7 @@ import { SOURCES } from "@/lib/sources";
 import { helsinkiParts } from "@/lib/live-core";
 import { matchHref, teamHref } from "@/lib/routes";
 import { getPhoto } from "@/lib/photos";
+import { fdScore } from "@/lib/score";
 import PlayerView, { type PlayerData } from "./PlayerView";
 
 export const revalidate = 1800;
@@ -43,7 +44,13 @@ async function load(id: string): Promise<PlayerData | null> {
       c.n++; count.set(t.id, c);
     }
   }
-  const top = [...count.values()].sort((a, b) => b.n - a.n)[0];
+  // nykyinen seura football-datasta (currentTeam); vasta jos sitä ei ole, viimeisimmän seuraottelun joukkue.
+  // Ei "eniten otteluita" -päättelyä: seurasiirron jälkeen se näyttäisi vanhan seuran.
+  const latestClub = matches.filter((x) => !NATIONAL.has(x.competition?.code)).sort((a, b) => Date.parse(b.utcDate) - Date.parse(a.utcDate))[0];
+  const cur = p.currentTeam?.id ? p.currentTeam : null;
+  const latestTeam = latestClub ? [latestClub.homeTeam, latestClub.awayTeam].find((t: any) => count.get(t.id)?.n && count.get(t.id)!.n >= 2) : null;
+  const pickTeam = cur ?? latestTeam;
+  const top = pickTeam ? { n: 2, team: pickTeam, comp: "" } : undefined;
   let club: PlayerData["club"] = null;
   if (top && top.n >= 2) {
     // kotimaan sarja ensin, Mestarien liiga vasta sitten
@@ -67,13 +74,14 @@ async function load(id: string): Promise<PlayerData | null> {
       const date = helsinkiParts(Date.parse(m.utcDate));
       const h = source ? ours(stats, source, m.homeTeam.id) : undefined;
       const a = source ? ours(stats, source, m.awayTeam.id) : undefined;
-      const done = (m.status === "FINISHED" || m.status === "AWARDED") && m.score?.fullTime?.home != null;
+      const sc = fdScore(m.score);
+      const done = (m.status === "FINISHED" || m.status === "AWARDED") && sc.hs !== null && sc.as !== null;
       return {
         source: source ?? null, comp: m.competition?.name ?? "", emblem: m.competition?.emblem ?? null,
         date: date.date, time: date.time,
         home: { name: h?.name ?? m.homeTeam.shortName ?? m.homeTeam.name, code: m.homeTeam.tla ?? "", crest: h?.crest ?? m.homeTeam.crest },
         away: { name: a?.name ?? m.awayTeam.shortName ?? m.awayTeam.name, code: m.awayTeam.tla ?? "", crest: a?.crest ?? m.awayTeam.crest },
-        hs: done ? m.score.fullTime.home : null, as: done ? m.score.fullTime.away : null,
+        hs: done ? sc.hs : null, as: done ? sc.as : null,
         href: source && h && a ? matchHref(source, date.date, h.name, a.name) : null,
       };
     }).sort((x, y) => (y.date + y.time).localeCompare(x.date + x.time)),

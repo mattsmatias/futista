@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { HeartButton } from "@/lib/favorites";
 import { norm } from "@/lib/teams";
 import { matchHref } from "@/lib/routes";
-import { Badge, FixtureRow, FormPills, Match, Standings } from "../../../Stats";
+import { Badge, FixtureRow, FormPills, Match, Standings, SrcLine } from "../../../Stats";
 import { Card } from "../../../Cards";
 import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
@@ -142,12 +142,12 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
       <div className="duo">
         <div className="panel">
           <div className="panel-head"><h3>{t("nextMatches")}</h3>{n < 10 && up.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
-          {up.length === 0 && <p className="muted pad">{t("noFixtures")}</p>}
+          {up.length === 0 && <p className="muted pad">{t("noUpcoming")}</p>}
           {up.slice(0, n).map((g) => <GameRow key={g.id} g={g} />)}
         </div>
         <div className="panel">
           <div className="panel-head"><h3>{t("recentResults")}</h3>{n < 10 && past.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
-          {past.length === 0 && <p className="muted pad">{t("noResults")}</p>}
+          {past.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
           {past.slice(0, n).map((g) => <GameRow key={g.id} g={g} />)}
           <div className="panel-src">{t("source")}: ESPN</div>
         </div>
@@ -158,7 +158,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
     <div className="duo">
       <div className="panel">
         <div className="panel-head"><h3>{t("nextMatches")}</h3>{n < 10 && fixtures.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
-        {fixtures.length === 0 && <p className="muted pad">{t("noFixtures")}</p>}
+        {fixtures.length === 0 && <p className="muted pad">{t("noUpcoming")}</p>}
         {fixtures.slice(0, n).map((f) => (
           <div className="day" key={f.date + f.home.name}>
             <div className="day-label">{i.day(f.date)}</div>
@@ -168,14 +168,14 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
       </div>
       <div className="panel">
         <div className="panel-head"><h3>{t("recentResults")}</h3>{n < 10 && results.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
-        {results.length === 0 && <p className="muted pad">{t("noResults")}</p>}
+        {results.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
         {results.slice(0, n).map((r) => (
           <div className="day" key={r.date + r.home.name}>
             <div className="day-label">{i.day(r.date)}</div>
             <Match r={r} source={s.source} />
           </div>
         ))}
-        <div className="panel-src">{t("source")}: {src.name}</div>
+        <SrcLine name={src.name} updated={s.updated} stale={s.stale} />
       </div>
     </div>
   );
@@ -225,7 +225,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
                   <span className={`nc-vs${on ? " nc-live" : ""}`}>{on && g.hs !== null ? `${g.hs}–${g.as}` : g.time}</span>
                   <span className="nc-team"><GBadge t={g.away} size={44} /><b>{g.away.name}</b></span>
                 </span>
-                {on && <span className="nc-state"><StatusPill s={{ kind: g.kind, min: g.clock }} /></span>}
+                {on && <span className="nc-state"><StatusPill s={{ kind: g.kind, min: g.clock, phase: g.phase, pens: g.pens }} /></span>}
               </>
             );
             return g.href ? <a className="next-card" href={g.href}>{inner}</a> : <div className="next-card">{inner}</div>;

@@ -1,6 +1,7 @@
-// Ottelun tila (LIVE / Päättynyt / Keskeytetty / Siirretty) – käytetään selaimessa.
-// 1) football-data.orgin ilmainen avain antaa oikean tilan ja tilanteen (pienellä viiveellä)
-// 2) ilman avainta tila päätellään alkamisajasta: alkanut → LIVE, ~2 h myöhemmin → Päättynyt
+// Ottelun tila (LIVE / Puoliaika / Päättynyt / Keskeytetty / Siirretty / Peruttu) – käytetään selaimessa.
+// 1) /api/live yhdistää ESPN:n (reaaliaikainen kello) ja football-data.orgin (virallinen, viiveellä) tiedot
+// 2) ilman rajapinnan tietoa tila päätellään alkamisajasta, ja se merkitään päätellyksi (inferred):
+//    näytetään "Alkanut" / "Odottaa tulosta" eikä keksittyä tulosta tai minuuttia
 
 export type LiveStatus =
   | "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED" | "EXTRA_TIME" | "PENALTY_SHOOTOUT"
@@ -18,30 +19,29 @@ export type LiveMatch = {
   awayName?: string;
   homeCrest?: string;
   awayCrest?: string;
-  min?: string;        // peliminuutti, esim. "67'", "45+2'", "90+4'" (ESPN)
+  min?: string;        // peliminuutti, esim. "67'", "45+2'", "90+4'" (vain ESPN:n kellosta, ei koskaan arvioitu)
+  phase?: "et" | "pens";            // jatkoaika / rangaistuspotkukilpailu käynnissä
+  pens?: [number, number] | null;   // rangaistuspotkukilpailun tulos (ei sisälly hs/as-lukuihin)
+  aet?: boolean;                    // päättyi jatkoajan jälkeen
+  src?: "fd" | "espn" | "fd+espn";  // mistä tila on peräisin
 };
 
 export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled";
-export type MatchState = { kind: Kind; hs?: number | null; as?: number | null; min?: string };
+export type MatchState = {
+  kind: Kind; hs?: number | null; as?: number | null; min?: string;
+  phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
+  inferred?: boolean; // tila päätelty alkamisajasta (ei rajapinnan tietoa)
+};
 
 /** ESPN:n kello ("45'+2'", "67'") → "45+2'" / "67'" */
 export function fmtClock(c?: string | null): string | undefined {
   if (!c) return undefined;
-  const m = c.replace(/\s/g, "").match(/^(\d+)'?(?:\+(\d+)'?)?$/);
+  const m = c.replace(/\s/g, "").match(/^(\d{1,3})'?(?:\+(\d{1,2})'?)?$/);
   if (!m) return undefined;
-  return m[2] ? `${m[1]}+${m[2]}'` : `${m[1]}'`;
-}
-
-/** Arvioitu peliminuutti alkamisajasta, jos tarkkaa kelloa ei ole (1. puoliaika 45 + lisäaika, tauko 15 min) */
-export function estimateMin(kick: number | null, now: number | null, paused?: boolean): string | undefined {
-  if (kick === null || now === null || paused) return undefined;
-  const e = Math.floor((now - kick) / 60_000) + 1;
-  if (e < 1) return undefined;
-  if (e <= 45) return `${e}'`;
-  if (e <= 50) return `45+${e - 45}'`;      // 1. puoliajan lisäaika
-  if (e <= 62) return undefined;              // todennäköisesti tauko – ei arvata
-  const m = e - 17;                            // tauko + lisäaika
-  return m <= 90 ? `${Math.max(46, m)}'` : `90+${Math.min(m - 90, 15)}'`;
+  const base = Number(m[1]), add = m[2] ? Number(m[2]) : 0;
+  // järkevyystarkistus: 0' tai yli 130' (jatkoaika + lisäaika) ei ole luotettava minuutti
+  if (base < 1 || base > 130 || add > 30) return undefined;
+  return add ? `${base}+${add}'` : `${base}'`;
 }
 
 const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "de", "la", "cd", "ud", "sd", "sad", "fk", "bk", "if", "balompie", "1907", "1909", "1913", "and", "hove", "albion", "calcio", "futbol"]);
@@ -115,23 +115,25 @@ export function matchState(
     live.find((l) => l.source === m.source && near(l, 3) &&
       ((same(m.home.name, l.home) && partly(m.away.name, l.away)) || (partly(m.home.name, l.home) && same(m.away.name, l.away))));
   if (hit) {
-    // käynnissä olevan ottelun tilanne; jos rajapinta ei vielä kerro sitä, ottelu on alkanut 0–0
-    const sc = { hs: hit.hs ?? 0, as: hit.as ?? 0 };
-    const min = hit.min ?? estimateMin(hit.kickoff, now);
+    // tilanne vain, jos rajapinta kertoo sen (puuttuva tulos ei ole 0–0)
+    const sc = { hs: hit.hs ?? null, as: hit.as ?? null };
+    const extra = { phase: hit.phase, pens: hit.pens ?? null, aet: hit.aet };
     switch (hit.status) {
-      case "IN_PLAY": case "EXTRA_TIME": case "PENALTY_SHOOTOUT": return { kind: "live", ...sc, min };
-      case "PAUSED": return { kind: "ht", ...sc };
-      case "FINISHED": case "AWARDED": return { kind: "ft", ...sc };
+      case "IN_PLAY": return { kind: "live", ...sc, min: hit.min, ...extra };
+      case "EXTRA_TIME": return { kind: "live", ...sc, min: hit.min, ...extra, phase: "et" };
+      case "PENALTY_SHOOTOUT": return { kind: "live", ...sc, ...extra, phase: "pens" };
+      case "PAUSED": return { kind: "ht", ...sc, ...extra };
+      case "FINISHED": case "AWARDED": return { kind: "ft", ...sc, pens: extra.pens, aet: extra.aet };
       case "SUSPENDED": return { kind: "suspended", ...sc };
       case "TIMED": case "SCHEDULED":
-        // rajapinnan tila voi päivittyä viiveellä: alkamisajan jälkeen ottelu on käynnissä
-        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return { kind: "live", hs: hit.hs ?? 0, as: hit.as ?? 0, min: estimateMin(kick, now) };
+        // rajapinnan tila voi päivittyä viiveellä: alkamisajan jälkeen ottelu on todennäköisesti alkanut
+        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return { kind: "live", ...sc, inferred: true };
         break;
       case "POSTPONED": return { kind: "postponed" };
       case "CANCELLED": return { kind: "cancelled" };
     }
   }
   if (now === null || kick === null || now < kick) return { kind: "upcoming" };
-  // ilman rajapinnan tietoa: alkanut → LIVE (tilannetta ei tiedetä), ~2 h myöhemmin → Päättynyt
-  return now < kick + LIVE_MIN * 60_000 ? { kind: "live", min: estimateMin(kick, now) } : { kind: "ft" };
+  // ilman rajapinnan tietoa: alkanut (tilannetta ja minuuttia ei tiedetä), ~2 h myöhemmin odottaa tulosta
+  return now < kick + LIVE_MIN * 60_000 ? { kind: "live", inferred: true } : { kind: "ft", inferred: true };
 }
