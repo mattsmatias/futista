@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
-import { SOURCES } from "@/lib/sources";
+import { SOURCES, isMain } from "@/lib/sources";
 import { useI18n } from "@/lib/i18n";
 import { useFavorites, HeartButton } from "@/lib/favorites";
 import { storyIsAbout, playedIn } from "@/lib/teams";
@@ -134,9 +134,8 @@ export default function Favorites({ articles, stats, league }: { articles: Artic
       <section className="sec">
         <div className="sec-head"><h2>{favs.length ? t("favEdit") : t("favPick")}</h2></div>
         {!favs.length && <p className="fav-hint">{t("favHint")}</p>}
-        {leagues.map((l) => (
-          <div className="panel team-pick" key={l.id}>
-            <div className="panel-head"><h3><i className={`bar-${l.id}`} />{l.name}</h3></div>
+        {leagues.map((l) => {
+          const list = (
             <ul>
               {l.teams.map((tm) => (
                 <li key={tm.name}>
@@ -145,8 +144,20 @@ export default function Favorites({ articles, stats, league }: { articles: Artic
                 </li>
               ))}
             </ul>
-          </div>
-        ))}
+          );
+          // muut sarjat suljettuina, jotta lista pysyy lyhyenä
+          return isMain(l.id) ? (
+            <div className="panel team-pick" key={l.id}>
+              <div className="panel-head"><h3><i className={`bar-${l.id}`} />{l.name}</h3></div>
+              {list}
+            </div>
+          ) : (
+            <details className="panel team-pick fold" key={l.id}>
+              <summary className="panel-head"><h3><i className={`bar-${l.id}`} />{l.name}</h3><span className="muted">{l.teams.length}</span></summary>
+              {list}
+            </details>
+          );
+        })}
       </section>
     </main>
   );

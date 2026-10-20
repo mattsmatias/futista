@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { words, type LiveMatch, type LiveStatus } from "@/lib/live-core";
+import { SOURCES } from "@/lib/sources";
 
 // Käynnissä olevien ja päivän otteluiden tila football-data.orgin ilmaisesta rajapinnasta.
 // Ilman FOOTBALL_DATA_KEY-avainta palautetaan tyhjä lista (sivu päättelee tilan alkamisajasta).
 export const revalidate = 60;
 
-const COMP: Record<string, string> = { PL: "valioliiga", PD: "laliga", CL: "ucl" };
+const COMP: Record<string, string> = Object.fromEntries(SOURCES.map((s) => [s.fd, s.id]));
 const day = (offset: number) => new Date(Date.now() + offset * 86400_000).toISOString().slice(0, 10);
 
 export async function GET() {
@@ -14,7 +15,7 @@ export async function GET() {
   if (key) {
     try {
       const res = await fetch(
-        `https://api.football-data.org/v4/matches?competitions=PL,PD,CL&dateFrom=${day(-1)}&dateTo=${day(1)}`,
+        `https://api.football-data.org/v4/matches?competitions=${Object.keys(COMP).join(",")}&dateFrom=${day(-1)}&dateTo=${day(1)}`,
         { headers: { "X-Auth-Token": key }, next: { revalidate: 60 } },
       );
       if (res.ok) {

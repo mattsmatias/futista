@@ -1,9 +1,9 @@
 // Uutislähteet. Uuden lähteen saa lisättyä tähän listaan.
-export type SourceId = "laliga" | "valioliiga" | "ucl";
+export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship";
 
 export type Club = { tag: string; name: string; short: string; c1: string; c2: string };
 
-export type Zone = { from: number; to: number; label: string; kind: "ucl" | "uel" | "uecl" | "rel" | "r16" | "po" };
+export type Zone = { from: number; to: number; label: string; kind: "ucl" | "uel" | "uecl" | "rel" | "r16" | "po" | "promo" | "pp" };
 
 const EURO_ZONES: Zone[] = [
   { from: 1, to: 4, label: "Mestarien liiga", kind: "ucl" },
@@ -17,7 +17,8 @@ export type Source = {
   name: string;   // näkyy "Lähde:"-rivillä
   league: string; // näkyy välilehdellä
   base: string;
-  feeds: string[];  // RSS-syötteet
+  feeds: string[];  // RSS-syötteet (tyhjä = sarja ilman uutisia, tiedot football-datasta)
+  fd: string;       // football-data.orgin sarjakoodi
   pages?: { table: string; results: string; fixtures: string }; // tilastosivut, oletuksena base + sarjataulukko/ jne.
   clubs: Club[];  // seurapikavalinnat (tag = syötteen kategoria)
   zones: Zone[];  // sarjataulukon värikoodit
@@ -30,6 +31,7 @@ export const SOURCES: Source[] = [
     league: "La Liga",
     base: "https://www.laliiga.com/",
     feeds: ["https://www.laliiga.com/feed/"],
+    fd: "PD",
     clubs: [
       { tag: "Real Madrid", name: "Real Madrid", short: "RM", c1: "#2b2f4a", c2: "#c9a227" },
       { tag: "Barcelona", name: "Barcelona", short: "FCB", c1: "#004d98", c2: "#a50044" },
@@ -43,6 +45,7 @@ export const SOURCES: Source[] = [
     league: "Valioliiga",
     base: "https://www.valioliiga.com/",
     feeds: ["https://www.valioliiga.com/feed/"],
+    fd: "PL",
     clubs: [
       { tag: "Manchester United", name: "Man United", short: "MU", c1: "#da291c", c2: "#1a1a1a" },
       { tag: "Liverpool", name: "Liverpool", short: "LIV", c1: "#c8102e", c2: "#00a398" },
@@ -61,6 +64,7 @@ export const SOURCES: Source[] = [
     league: "Mestarien liiga",
     base: "https://www.valioliiga.com/",
     feeds: ["https://www.valioliiga.com/tag/mestarien-liiga/feed/", "https://www.laliiga.com/tag/mestarien-liiga/feed/"],
+    fd: "CL",
     pages: {
       table: "https://www.valioliiga.com/mestarien-liiga/",
       results: "https://www.valioliiga.com/mestarien-liiga/",
@@ -79,7 +83,23 @@ export const SOURCES: Source[] = [
       { from: 9, to: 24, label: "Pudotuspelikarsinta", kind: "po" },
     ],
   },
+  // Sarjat ilman suomenkielisiä uutisia: taulukko, ottelut ja maalipörssi football-data.orgista
+  fdLeague("bundesliga", "Bundesliga", "BL1", [z(1, 4, "ucl"), z(5, 5, "uel"), z(6, 6, "uecl"), z(16, 18, "rel")]),
+  fdLeague("seriea", "Serie A", "SA", [z(1, 4, "ucl"), z(5, 5, "uel"), z(6, 6, "uecl"), z(18, 20, "rel")]),
+  fdLeague("ligue1", "Ligue 1", "FL1", [z(1, 4, "ucl"), z(5, 5, "uel"), z(6, 6, "uecl"), z(16, 18, "rel")]),
+  fdLeague("eredivisie", "Eredivisie", "DED", [z(1, 2, "ucl"), z(3, 3, "uel"), z(16, 18, "rel")]),
+  fdLeague("primeira", "Liga Portugal", "PPL", [z(1, 2, "ucl"), z(3, 3, "uel"), z(16, 18, "rel")]),
+  fdLeague("championship", "Championship", "ELC", [z(1, 2, "promo"), z(3, 6, "pp"), z(22, 24, "rel")]),
 ];
+
+function z(from: number, to: number, kind: Zone["kind"]): Zone { return { from, to, label: kind, kind }; }
+function fdLeague(id: SourceId, league: string, fd: string, zones: Zone[]): Source {
+  return { id, name: "football-data.org", league, base: "", feeds: [], fd, clubs: [], zones };
+}
+
+/** Sarjat, joista on uutisia (näkyvät etusivulla ja yläpalkin valitsimessa) */
+export const MAIN = ["laliga", "valioliiga", "ucl"] as string[];
+export const isMain = (id: string) => MAIN.includes(id);
 
 /** Uutisen sivusto (luotto-merkintää varten) linkin perusteella */
 export const siteName = (link: string) => (/laliiga\.com/.test(link) ? "LaLiiga.com" : "Valioliiga.com");

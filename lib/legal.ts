@@ -137,7 +137,7 @@ export const PRIVACY: Record<Lang, Doc> = {
 export const ABOUT: Record<Lang, Doc> = {
   fi: {
     title: "Tietoa ja lähteet",
-    intro: "Futista kokoaa La Ligan ja Valioliigan uutiset, tulokset ja sarjataulukot yhteen paikkaan modernissa muodossa.",
+    intro: "Futista kokoaa La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan suurimpien sarjojen tulokset, otteluohjelmat ja sarjataulukot yhteen paikkaan modernissa muodossa.",
     sections: [
       {
         h: "Uutislähteet",
@@ -146,6 +146,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Tekijänoikeudet teksteihin ja kuviin kuuluvat lähteille ja niiden kuvatoimistoille.",
         ],
       },
+      { h: "Muut sarjat, pelaajat ja LIVE", p: ["Bundesligan, Serie A:n, Ligue 1:n, Eredivisien, Liga Portugalin ja Championshipin tiedot, maalipörssit, joukkueiden pelaajat, pelaajasivut, ottelutilat (LIVE) ja aiemmat kohtaamiset tulevat palvelusta [football-data.org](https://www.football-data.org)."] },
       { h: "Joukkueiden logot", p: ["Logot tulevat palveluista [football-data.org](https://www.football-data.org) ja [TheSportsDB](https://www.thesportsdb.com). Seurojen nimet ja logot ovat seurojen omia tavaramerkkejä."] },
       { h: "Päivittyminen", p: ["Uutiset päivittyvät automaattisesti noin 10 minuutin välein, tulokset ja sarjataulukot noin 15 minuutin välein."] },
       { h: "Riippumattomuus", p: ["Futista on riippumaton fanisivusto, eikä se ole La Ligan, Premier Leaguen tai minkään seuran virallinen palvelu."] },
@@ -153,7 +154,7 @@ export const ABOUT: Record<Lang, Doc> = {
   },
   sv: {
     title: "Om och källor",
-    intro: "Futista samlar nyheter, resultat och tabeller från La Liga och Premier League på ett ställe i modern form.",
+    intro: "Futista samlar nyheter från La Liga, Premier League och Champions League samt resultat, spelscheman och tabeller från Europas största ligor på ett ställe i modern form.",
     sections: [
       {
         h: "Nyhetskällor",
@@ -162,6 +163,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Upphovsrätten till texter och bilder tillhör källorna och deras bildbyråer.",
         ],
       },
+      { h: "Andra ligor, spelare och LIVE", p: ["Uppgifter om Bundesliga, Serie A, Ligue 1, Eredivisie, Liga Portugal och Championship, skytteligor, spelartrupper, spelarsidor, matchstatus (LIVE) och tidigare möten kommer från [football-data.org](https://www.football-data.org)."] },
       { h: "Lagens logotyper", p: ["Logotyperna kommer från [football-data.org](https://www.football-data.org) och [TheSportsDB](https://www.thesportsdb.com). Klubbarnas namn och logotyper är klubbarnas egna varumärken."] },
       { h: "Uppdatering", p: ["Nyheterna uppdateras automatiskt ungefär var tionde minut, resultat och tabeller ungefär var femtonde minut."] },
       { h: "Oberoende", p: ["Futista är en oberoende fansajt och inte en officiell tjänst från La Liga, Premier League eller någon klubb."] },
@@ -169,7 +171,7 @@ export const ABOUT: Record<Lang, Doc> = {
   },
   en: {
     title: "About and sources",
-    intro: "Futista brings La Liga and Premier League news, results and standings together in one modern place.",
+    intro: "Futista brings La Liga, Premier League and Champions League news together with results, fixtures and standings from Europe's biggest leagues in one modern place.",
     sections: [
       {
         h: "News sources",
@@ -178,6 +180,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Copyright in the texts and images belongs to the sources and their photo agencies.",
         ],
       },
+      { h: "Other leagues, players and LIVE", p: ["Data for the Bundesliga, Serie A, Ligue 1, Eredivisie, Liga Portugal and Championship, top scorers, squads, player pages, match status (LIVE) and previous meetings come from [football-data.org](https://www.football-data.org)."] },
       { h: "Team logos", p: ["Logos come from [football-data.org](https://www.football-data.org) and [TheSportsDB](https://www.thesportsdb.com). Club names and logos are the clubs' own trademarks."] },
       { h: "Updates", p: ["News updates automatically about every 10 minutes, results and standings about every 15 minutes."] },
       { h: "Independence", p: ["Futista is an independent fan site and is not an official service of La Liga, the Premier League or any club."] },

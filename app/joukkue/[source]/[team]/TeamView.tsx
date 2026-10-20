@@ -1,7 +1,7 @@
 "use client";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
-import { clubByName, SOURCES } from "@/lib/sources";
+import { clubByName, SOURCES, isMain } from "@/lib/sources";
 import { useI18n } from "@/lib/i18n";
 import { HeartButton } from "@/lib/favorites";
 import { norm } from "@/lib/teams";
@@ -10,8 +10,84 @@ import { Badge, FixtureRow, FormPills, Match, Standings } from "../../../Stats";
 import { Card } from "../../../Cards";
 import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
+import Flag from "../../../Flag";
+import { ageOf } from "@/lib/age";
+import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
+import type { Key } from "@/lib/i18n";
 
-export default function TeamView({ s, team, news }: { s: LeagueStats; team: Team; news: Article[] }) {
+const ORDER = ["Goalkeeper", "Defence", "Midfield", "Offence"];
+
+/** Pelaajat pelipaikoittain: lippu, nimi, ikä ja kotimaa */
+function Squad({ info }: { info: TeamInfo }) {
+  const i = useI18n();
+  const { t } = i;
+  const groups = [...ORDER, "other"].map((pos) => ({
+    pos,
+    list: info.squad
+      .filter((p) => (pos === "other" ? !ORDER.includes(p.position ?? "") : p.position === pos))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  })).filter((g) => g.list.length);
+  const Row = ({ p }: { p: SquadPlayer }) => (
+    <a className="sq-row" href={`/pelaaja/${p.id}`}>
+      <Flag nation={p.nationality} />
+      <span className="sq-name">{p.name}</span>
+      <span className="sq-meta">{ageOf(p.dateOfBirth) ?? "–"} {t("years")}</span>
+    </a>
+  );
+  return (
+    <section className="panel squad">
+      <div className="panel-head"><h3>{t("squad")}</h3><span className="muted">{info.squad.length}</span></div>
+      {info.coach && (
+        <div className="sq-group">
+          <div className="day-label">{t("coach")}</div>
+          <div className="sq-row static">
+            <Flag nation={info.coach.nationality} />
+            <span className="sq-name">{info.coach.name}</span>
+            <span className="sq-meta">{ageOf(info.coach.dateOfBirth) ?? "–"} {t("years")}</span>
+          </div>
+        </div>
+      )}
+      <div className="sq-cols">
+        {groups.map((g) => (
+          <div className="sq-group" key={g.pos}>
+            <div className="day-label">{t(`pos_${g.pos}` as Key)} · {g.list.length}</div>
+            {g.list.map((p) => <Row key={p.id} p={p} />)}
+          </div>
+        ))}
+      </div>
+      <div className="panel-src">{t("source")}: football-data.org</div>
+    </section>
+  );
+}
+
+/** Seuran perustiedot */
+function ClubInfo({ info }: { info: TeamInfo }) {
+  const { t } = useI18n();
+  const items: [string, React.ReactNode][] = [];
+  if (info.venue) items.push([t("stadium"), info.venue]);
+  if (info.founded) items.push([t("founded"), info.founded]);
+  if (info.colors) items.push([t("colors"), info.colors]);
+  if (info.website) items.push([t("website"), <a key="w" href={info.website} target="_blank" rel="noopener nofollow">{info.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</a>]);
+  if (!items.length && !info.competitions.length) return null;
+  return (
+    <section className="panel">
+      <div className="panel-head"><h3>{t("clubInfo")}</h3></div>
+      <dl className="facts">
+        {items.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+      {info.competitions.length > 0 && (
+        <div className="comps">
+          <span className="day-label">{t("competitions")}</span>
+          <div>{info.competitions.map((c) => (
+            <span className="comp" key={c.code}>{c.emblem && <img src={c.emblem} alt="" width={18} height={18} loading="lazy" />}{c.name}</span>
+          ))}</div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default function TeamView({ s, team, news, info }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null }) {
   const i = useI18n();
   const { t } = i;
   const n = norm(team.name);
@@ -22,7 +98,7 @@ export default function TeamView({ s, team, news }: { s: LeagueStats; team: Team
   const next = fixtures[0];
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
-  const style = { ["--c1" as any]: club?.c1 ?? ({ laliga: "var(--laliga)", valioliiga: "var(--pl)", ucl: "var(--cl)" } as Record<string, string>)[s.source], ["--c2" as any]: club?.c2 ?? "var(--surface-2)" };
+  const style = { ["--c1" as any]: club?.c1 ?? `var(--lg-${s.source})`, ["--c2" as any]: club?.c2 ?? "var(--surface-2)" };
 
   return (
     <>
@@ -84,14 +160,17 @@ export default function TeamView({ s, team, news }: { s: LeagueStats; team: Team
           </div>
         </div>
 
+        {info && info.squad.length > 0 && <Squad info={info} />}
+        {info && <ClubInfo info={info} />}
+
         {s.table.length > 0 && <section className="sec"><Standings s={s} highlight={[team.name]} /></section>}
 
-        <section className="sec">
+        {(news.length > 0 || isMain(s.source)) && <section className="sec">
           <div className="sec-head"><h2>{t("teamNews")}</h2></div>
           {news.length
             ? <div className="grid">{news.map((a, k) => <Card key={a.id} a={a} wide={k === 0} />)}</div>
             : <p className="muted">{t("noTeamNews")}</p>}
-        </section>
+        </section>}
       </main>
       <Footer />
     </>

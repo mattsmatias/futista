@@ -13,7 +13,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["500"], variable: "--
 
 export const metadata: Metadata = {
   title: "Futista – jalkapallouutiset suomeksi",
-  description: "Tuoreimmat La Liga- ja Valioliiga-uutiset, tulokset ja siirrot suomeksi.",
+  description: "La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan sarjojen tulokset, LIVE-tilanteet ja sarjataulukot suomeksi.",
   appleWebApp: { capable: true, title: "Futista", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {

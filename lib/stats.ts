@@ -1,8 +1,10 @@
 import { parseHTML } from "linkedom";
 import { SOURCES, type SourceId } from "./sources";
 import { crestLookup } from "./crests";
+import { fd } from "./fd";
+import { helsinkiParts } from "./live-core";
 
-export type Team = { name: string; code: string; crest?: string };
+export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
 export type Result = { date: string; home: Team; away: Team; hs: number; as: number };
 export type Fixture = { date: string; time: string; home: Team; away: Team };
@@ -122,11 +124,36 @@ function parseResults(doc: any): Result[] {
   return out.sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/** Sarja kokonaan football-data.orgista (sarjat ilman uutislähdettä) */
+async function fromFd(s: (typeof SOURCES)[number]): Promise<LeagueStats> {
+  const [st, mt] = await Promise.all([
+    fd<any>(`/competitions/${s.fd}/standings`, 900),
+    fd<any>(`/competitions/${s.fd}/matches`, 900),
+  ]);
+  const team = (t: any): Team => ({ name: t?.shortName || t?.name || "?", code: t?.tla || (t?.shortName || "").slice(0, 3).toUpperCase(), crest: t?.crest, id: t?.id });
+  const total = (st?.standings ?? []).find((x: any) => x.type === "TOTAL")?.table ?? [];
+  const table: Row[] = total.map((r: any) => ({
+    pos: r.position, team: team(r.team), p: r.playedGames, w: r.won, d: r.draw, l: r.lost, gf: r.goalsFor, ga: r.goalsAgainst, pts: r.points,
+  }));
+  const matches: any[] = mt?.matches ?? [];
+  const results: Result[] = matches
+    .filter((m) => (m.status === "FINISHED" || m.status === "AWARDED") && m.score?.fullTime?.home != null)
+    .map((m) => ({ date: helsinkiParts(Date.parse(m.utcDate)).date, home: team(m.homeTeam), away: team(m.awayTeam), hs: m.score.fullTime.home, as: m.score.fullTime.away }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const since = Date.now() - 3 * 3600_000;
+  const fixtures: Fixture[] = matches
+    .filter((m) => ["SCHEDULED", "TIMED", "IN_PLAY", "PAUSED", "EXTRA_TIME", "PENALTY_SHOOTOUT", "SUSPENDED"].includes(m.status) && Date.parse(m.utcDate) >= since - 3 * 3600_000 && m.homeTeam?.id && m.awayTeam?.id)
+    .map((m) => ({ ...helsinkiParts(Date.parse(m.utcDate)), home: team(m.homeTeam), away: team(m.awayTeam) }))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  return { source: s.id, league: s.league, table, results, fixtures };
+}
+
 export async function getStats(): Promise<LeagueStats[]> {
   const crest = await crestLookup();
-  const withCrest = (t: Team): Team => ({ ...t, crest: crest(t.name) });
+  const withCrest = (t: Team): Team => (t.id ? t : { ...t, ...crest(t.name) });
   const stats = await Promise.all(
     SOURCES.map(async (s) => {
+      if (!s.feeds.length) return fromFd(s);
       const p = s.pages ?? { table: `${s.base}sarjataulukko/`, results: `${s.base}tulokset/`, fixtures: `${s.base}otteluohjelma/` };
       // sama sivu haetaan vain kerran (Mestarien liigassa kaikki on yhdellä sivulla)
       const urls = [...new Set([p.table, p.results, p.fixtures])];

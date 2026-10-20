@@ -5,6 +5,8 @@ import { SOURCES, clubByName } from "@/lib/sources";
 import { useI18n, type Key } from "@/lib/i18n";
 import { useFavorites } from "@/lib/favorites";
 import { teamHref, matchHref } from "@/lib/routes";
+import type { LeagueScorers } from "@/lib/scorers";
+import Flag from "./Flag";
 import { norm } from "@/lib/teams";
 import { useMatchState, StatusPill, useLiveExtras } from "@/lib/live";
 import type { MatchState } from "@/lib/live-core";
@@ -238,5 +240,60 @@ export function FormPills({ team, results, source }: { team: string; results: Re
         );
       })}
     </span>
+  );
+}
+
+/** Sarjavalitsin Sarjataulukot- ja Ottelut-näkymiin: pääsarjat + muut sarjat */
+export function LeaguePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const i = useI18n();
+  return (
+    <div className="lpick" role="tablist" aria-label={i.t("otherLeagues")}>
+      <button className={value === "main" ? "on" : ""} onClick={() => onChange("main")}>{i.t("mainLeagues")}</button>
+      {SOURCES.map((s) => (
+        <button key={s.id} className={value === s.id ? `on on-${s.id}` : ""} onClick={() => onChange(s.id)}>
+          <i className={`dot-${s.id}`} />{i.league(s.id, s.league)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Maalipörssi */
+export function Scorers({ data, source, league }: { data?: LeagueScorers; source: string; league: string }) {
+  const i = useI18n();
+  const { t } = i;
+  const list = data?.list ?? [];
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <h3><i className={`bar-${source}`} />{i.league(source, league)}</h3>
+        <span className="muted">{t("scorers")}</span>
+      </div>
+      {list.length === 0 ? <p className="muted pad">{t("noScorers")}</p> : (
+        <div className="tbl-wrap">
+          <table className="tbl scorers">
+            <thead><tr><th>#</th><th className="l">{t("player")}</th><th className="l opt">{t("team")}</th><th className="opt">{t("colP")}</th><th className="opt">{t("assistsShort")}</th><th>{t("goalsShort")}</th></tr></thead>
+            <tbody>
+              {list.map((p, n) => (
+                <tr key={p.id ?? n}>
+                  <td className="pos">{n > 0 && list[n - 1].goals === p.goals ? "" : n + 1}</td>
+                  <td className="l">
+                    <a className="pl" href={p.id ? `/pelaaja/${p.id}` : undefined}>
+                      <Flag nation={p.nationality} />
+                      <span><b>{p.name}</b><small className="mob-team">{p.team.name}</small></span>
+                    </a>
+                  </td>
+                  <td className="l opt"><a className="tm" href={teamHref(source, p.team.name)}><Badge t={p.team} />{p.team.name}</a></td>
+                  <td className="opt">{p.played ?? "–"}</td>
+                  <td className="opt">{p.assists ?? "–"}</td>
+                  <td className="pts">{p.goals}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="panel-src">{t("source")}: football-data.org</div>
+    </div>
   );
 }

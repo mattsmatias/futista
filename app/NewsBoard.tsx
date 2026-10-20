@@ -2,10 +2,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Article } from "@/lib/feed";
 import { toLocal } from "@/lib/links";
-import { SOURCES } from "@/lib/sources";
+import { SOURCES, isMain } from "@/lib/sources";
 import Art from "./Art";
 import type { LeagueStats } from "@/lib/stats";
-import { Standings, Results, ScoreRail, UpcomingRail } from "./Stats";
+import { Standings, Results, ScoreRail, UpcomingRail, LeaguePicker, Scorers } from "./Stats";
+import type { LeagueScorers } from "@/lib/scorers";
 import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import { Card, Meta } from "./Cards";
@@ -55,7 +56,7 @@ function TypeNav({ type, setType, className }: { type: string; setType: (t: stri
   );
 }
 
-export default function NewsBoard({ articles, stats }: { articles: Article[]; stats: LeagueStats[] }) {
+export default function NewsBoard({ articles, stats, scorers = [] }: { articles: Article[]; stats: LeagueStats[]; scorers?: LeagueScorers[] }) {
   const [league, setLeague] = useState<string>("all");
   const [club, setClub] = useState<string | null>(null);
   const [type, setType] = useState("all");
@@ -84,7 +85,12 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
     if (v === "taulukko") setType("table");
     if (v === "suosikit") setType("favs");
   }, []);
-  const leagueStats = stats.filter((s) => league === "all" || s.source === league);
+  // etusivulla ja uutisissa vain sarjat, joista on uutisia; muut sarjat valitaan sarjavalitsimesta
+  const leagueStats = stats.filter((s) => isMain(s.source) && (league === "all" || s.source === league));
+  const [pick, setPick] = useState("main");
+  const [tableTab, setTableTab] = useState<"table" | "scorers">("table");
+  useEffect(() => { setPick("main"); }, [league]);
+  const pickStats = pick === "main" ? leagueStats : stats.filter((s) => s.source === pick);
   const go = (t: string) => { setType(t); window.scrollTo({ top: 0 }); };
   const [hero, ...rest] = list;
   const latest = rest.slice(0, 8);
@@ -123,8 +129,17 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
 
       {view === "table" && (
         <main className="wrap">
-          <div className="sec-head page-head"><h2>{t("standings")}</h2></div>
-          <div className="duo">{leagueStats.map((s) => <Standings key={s.source} s={s} />)}</div>
+          <div className="sec-head page-head"><h2>{tableTab === "table" ? t("standings") : t("scorers")}</h2></div>
+          <LeaguePicker value={pick} onChange={setPick} />
+          <div className="subtabs" role="tablist">
+            <button role="tab" aria-selected={tableTab === "table"} className={tableTab === "table" ? "on" : ""} onClick={() => setTableTab("table")}>{t("standing")}</button>
+            <button role="tab" aria-selected={tableTab === "scorers"} className={tableTab === "scorers" ? "on" : ""} onClick={() => setTableTab("scorers")}>{t("scorers")}</button>
+          </div>
+          <div className="duo">
+            {pickStats.map((s) => tableTab === "table"
+              ? <Standings key={s.source} s={s} />
+              : <Scorers key={s.source} data={scorers.find((x) => x.source === s.source)} source={s.source} league={s.league} />)}
+          </div>
         </main>
       )}
 
@@ -133,7 +148,8 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
       {view === "results" && (
         <main className="wrap">
           <div className="sec-head page-head"><h2>{t("matches")}</h2></div>
-          <Results stats={leagueStats} />
+          <LeaguePicker value={pick} onChange={setPick} />
+          <Results key={pick} stats={pickStats} />
         </main>
       )}
 
