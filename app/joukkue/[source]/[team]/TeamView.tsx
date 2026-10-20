@@ -14,6 +14,7 @@ import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
 import Flag from "../../../Flag";
 import PlayerPhoto from "../../../PlayerPhoto";
+import SafeImg from "../../../SafeImg";
 import { AutoRefresh } from "@/lib/fresh";
 import { ageOf } from "@/lib/age";
 import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
@@ -89,7 +90,7 @@ function ClubInfo({ info }: { info: TeamInfo }) {
         <div className="comps">
           <span className="day-label">{t("competitions")}</span>
           <div>{info.competitions.map((c) => (
-            <span className="comp" key={c.code}>{c.emblem && <img src={c.emblem} alt="" width={18} height={18} loading="lazy" />}{c.name}</span>
+            <span className="comp" key={c.code}>{c.emblem && <SafeImg src={c.emblem} alt="" width={18} height={18} loading="lazy" />}{c.name}</span>
           ))}</div>
         </div>
       )}

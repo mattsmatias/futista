@@ -13,6 +13,7 @@ import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import IntlBoard from "./IntlBoard";
 import { usePersistentState } from "@/lib/persist";
+import { useBrokenImage } from "@/lib/img";
 import { Card, Meta } from "./Cards";
 import Favorites from "./Favorites";
 import { staticCrest } from "@/lib/crest-ids";
@@ -21,10 +22,11 @@ import { staticCrest } from "@/lib/crest-ids";
 function ClubLogo({ tag, short }: { tag: string; short: string }) {
   const src = staticCrest(tag);
   const [failed, setFailed] = useState(false);
+  const ref = useBrokenImage(() => setFailed(true));
   if (!src || failed) return <div className="club-badge">{short}</div>;
   return (
     <div className="club-badge logo">
-      <img src={src} alt="" width={40} height={40} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+      <img ref={ref} src={src} alt="" width={40} height={40} loading="lazy" decoding="async" onError={() => setFailed(true)} />
     </div>
   );
 }

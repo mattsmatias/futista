@@ -1,4 +1,5 @@
 "use client";
+import SafeImg from "../../SafeImg";
 import type { Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
 import { ageOf } from "@/lib/age";
@@ -41,8 +42,8 @@ export default function PlayerView({ p }: { p: PlayerData }) {
           </div>
           <div className="ent-txt">
             {p.club && (p.club.href
-              ? <a className="chip pl-club" href={p.club.href}>{p.club.crest && <img src={p.club.crest} alt="" width={16} height={16} />}{p.club.name}</a>
-              : <span className="chip pl-club">{p.club.crest && <img src={p.club.crest} alt="" width={16} height={16} />}{p.club.name}</span>)}
+              ? <a className="chip pl-club" href={p.club.href}>{p.club.crest && <SafeImg src={p.club.crest} alt="" width={16} height={16} />}{p.club.name}</a>
+              : <span className="chip pl-club">{p.club.crest && <SafeImg src={p.club.crest} alt="" width={16} height={16} />}{p.club.name}</span>)}
             <h1>{p.name}</h1>
             <p className="ent-sub">{[pos, age != null ? `${age} ${t("years")}` : null].filter(Boolean).join(" · ")}</p>
           </div>

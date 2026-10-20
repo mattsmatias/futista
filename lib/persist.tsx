@@ -31,11 +31,18 @@ export function ScrollMemory() {
   const path = usePathname();
   const back = useRef(false);
   const keyRef = useRef("");
+  // linkkiä painettu: navigointi vierittää vanhaa sivua (pehmeästi) alkuun ennen kuin osoite vaihtuu,
+  // joten vanhan sivun kohtaa ei saa enää tallentaa
+  const leaving = useRef(false);
   useEffect(() => {
     const onPop = () => { back.current = true; };
     // tallennus heti linkkiä painettaessa (ennen kuin navigointi vierittää uuden sivun alkuun)
     const onClick = (e: MouseEvent) => {
-      if ((e.target as Element | null)?.closest?.("a[href]") && keyRef.current) write(keyRef.current, String(Math.round(window.scrollY)));
+      if ((e.target as Element | null)?.closest?.("a[href]") && keyRef.current) {
+        write(keyRef.current, String(Math.round(window.scrollY)));
+        leaving.current = true;
+        setTimeout(() => { leaving.current = false; }, 3000); // jos navigointia ei tapahtunutkaan
+      }
     };
     window.addEventListener("popstate", onPop);
     document.addEventListener("click", onClick, true);
@@ -44,6 +51,7 @@ export function ScrollMemory() {
   useEffect(() => {
     const key = `futista:scroll:${location.pathname}${location.search}`;
     keyRef.current = key;
+    leaving.current = false;
     let cancelled = false;
     let stopUser: (() => void) | null = null;
     if (back.current) {
@@ -61,7 +69,7 @@ export function ScrollMemory() {
         stopUser = () => { window.removeEventListener("wheel", onUser); window.removeEventListener("touchstart", onUser); window.removeEventListener("keydown", onUser); };
         const tick = () => {
           if (cancelled || user || Date.now() - start > 6000) { stopUser?.(); return; }
-          if (Math.abs(window.scrollY - y) > 4) window.scrollTo(0, y);
+          if (Math.abs(window.scrollY - y) > 4) window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
           setTimeout(tick, 100);
         };
         setTimeout(tick, 30);
@@ -70,8 +78,8 @@ export function ScrollMemory() {
     let t: ReturnType<typeof setTimeout> | null = null;
     let armed = false;
     // ensimmäiset vieritystapahtumat ovat navigoinnin omia (alkuun vieritys / palautus): ei tallenneta niitä
-    const arm = setTimeout(() => { armed = true; }, 6200);
-    const save = () => { if (!armed) return; if (t) clearTimeout(t); t = setTimeout(() => write(key, String(Math.round(window.scrollY))), 150); };
+    const arm = setTimeout(() => { armed = true; }, 800);
+    const save = () => { if (!armed || leaving.current) return; if (t) clearTimeout(t); t = setTimeout(() => write(key, String(Math.round(window.scrollY))), 150); };
     window.addEventListener("scroll", save, { passive: true });
     return () => { cancelled = true; stopUser?.(); clearTimeout(arm); window.removeEventListener("scroll", save); if (t) clearTimeout(t); };
   }, [path]);
