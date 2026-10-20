@@ -7,6 +7,6 @@ export const maxDuration = 60;
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const s = await getLeague(params.id);
-  if (!s || !s.table.length) return NextResponse.json({ stats: s }, { status: s ? 200 : 404, headers: { "Cache-Control": "no-store" } });
+  if (!s || !s.table.length) return NextResponse.json({ stats: s }, { status: s ? 200 : 404, headers: { "Cache-Control": "public, s-maxage=300" } });
   return NextResponse.json({ stats: s }, { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800" } });
 }

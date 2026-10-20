@@ -3,8 +3,6 @@ import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
 import { teamSlug, findTeam } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
-import { hasFd } from "@/lib/fd";
-import { unstable_noStore as noStore } from "next/cache";
 import MatchView from "./MatchView";
 
 export const revalidate = 900;
@@ -42,7 +40,6 @@ export default async function MatchPage({ params }: Props) {
   const d = await load(params);
   if (!d) notFound();
   const m = (d.result ?? d.fixture)!;
-  const { extra, meetings } = await getMatchExtra(d.all, d.s.source, m.date, m.home, m.away, !!d.result);
-  if (hasFd() && !extra) noStore(); // lisätiedot jäivät saamatta: ei tallenneta vajaana
-  return <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} meetings={meetings} />;
+  const extra = await getMatchExtra(d.s.source, m.date, m.home, m.away);
+  return <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} />;
 }

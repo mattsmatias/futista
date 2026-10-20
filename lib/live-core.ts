@@ -110,6 +110,6 @@ export function matchState(
     }
   }
   if (now === null || kick === null || now < kick) return { kind: "upcoming" };
-  // ilman rajapinnan tietoa: alkanut → LIVE (0–0, kunnes tilanne päivittyy), ~2 h myöhemmin → Päättynyt
-  return now < kick + LIVE_MIN * 60_000 ? { kind: "live", hs: 0, as: 0 } : { kind: "ft" };
+  // ilman rajapinnan tietoa: alkanut → LIVE (tilannetta ei tiedetä), ~2 h myöhemmin → Päättynyt
+  return now < kick + LIVE_MIN * 60_000 ? { kind: "live" } : { kind: "ft" };
 }

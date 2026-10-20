@@ -19,7 +19,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const r = await fetch("/api/live");
         const d = await r.json();
         // hetkellinen virhe: pidetään edelliset tilanteet ja yritetään pian uudelleen
-        if (d.error) { setTimeout(load, 15_000); return; }
+        if (d.error) return;
         if (!stop) setLive(d.matches ?? []);
       } catch {}
     };

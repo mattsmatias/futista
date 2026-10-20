@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Fixture, LeagueStats, Result, Row, Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
 import { norm } from "@/lib/teams";
@@ -106,11 +106,17 @@ function Info({ e }: { e: MatchExtra }) {
   );
 }
 
-export default function MatchView({ s, result, fixture, extra = null, meetings: history = [] }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; meetings?: Meeting[] }) {
+export default function MatchView({ s, result, fixture, extra = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null }) {
+  // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
+  const [history, setHistory] = useState<Meeting[] | null>(null);
   const i = useI18n();
   const { t } = i;
   const m = (result ?? fixture)!;
   const [tab, setTab] = useState<Tab>("summary");
+  useEffect(() => {
+    if (tab !== "h2h" || history !== null || !extra?.apiId) return;
+    fetch(`/api/h2h/${extra.apiId}?l=${s.source}`).then((r) => r.json()).then((d) => setHistory(d.meetings ?? [])).catch(() => setHistory([]));
+  }, [tab, history, extra, s.source]);
   const row = (tm: Team): Row | undefined => s.table.find((r) => norm(r.team.name) === norm(tm.name));
   const rh = row(m.home), ra = row(m.away);
   const pair = [norm(m.home.name), norm(m.away.name)];
@@ -198,7 +204,9 @@ export default function MatchView({ s, result, fixture, extra = null, meetings: 
                 </div>
               ))}
             </div>
-            <History list={history} home={m.home} away={m.away} />
+            {extra?.apiId && (history === null
+              ? <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>
+              : <History list={history} home={m.home} away={m.away} />)}
             <div className="duo">
               <TeamResults team={m.home} s={s} />
               <TeamResults team={m.away} s={s} />

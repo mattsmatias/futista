@@ -14,7 +14,8 @@ const day = (offset: number) => new Date(Date.now() + offset * 86400_000).toISOS
 export async function GET() {
   if (!hasFd()) return NextResponse.json({ enabled: false, matches: [] }, { headers: { "Cache-Control": "public, s-maxage=300" } });
   const data = await fd<any>(`/matches?competitions=${Object.keys(COMP).join(",")}&dateFrom=${day(-1)}&dateTo=${day(1)}`, 45);
-  if (!data) return NextResponse.json({ enabled: true, matches: [], error: true }, { headers: { "Cache-Control": "no-store" } });
+  // virhe tallennetaan minuutiksi, jotta kävijät eivät kuormita rajapintaa
+  if (!data) return NextResponse.json({ enabled: true, matches: [], error: true }, { headers: { "Cache-Control": "public, s-maxage=60" } });
   const t = (x: any) => [...new Set([...words(x?.name ?? ""), ...words(x?.shortName ?? ""), ...words(x?.tla ?? "")])];
   const matches: LiveMatch[] = (data.matches ?? [])
     .filter((m: any) => COMP[m.competition?.code])
