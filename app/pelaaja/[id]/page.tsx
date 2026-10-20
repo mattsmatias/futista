@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { fd } from "@/lib/fd";
+import { fd, hasFd } from "@/lib/fd";
+import { unstable_noStore as noStore } from "next/cache";
 import { getStatsWith, type LeagueStats, type Team } from "@/lib/stats";
 import { SOURCES } from "@/lib/sources";
 import { helsinkiParts } from "@/lib/live-core";
@@ -28,7 +29,8 @@ async function load(id: string): Promise<PlayerData | null> {
     fd<any>(`/persons/${id}`, 86400),
     fd<any>(`/persons/${id}/matches?limit=12`, 1800),
   ]);
-  if (!p?.name) return null;
+  if (!p?.name) { if (hasFd()) noStore(); return null; }
+  if (!pm) noStore();
   const matches: any[] = pm?.matches ?? [];
   // uutissarjat + ne muut sarjat, joissa pelaaja on pelannut (nimiä ja linkkejä varten)
   const comps = [...new Set(matches.map((m) => SOURCES.find((s) => s.fd === m.competition?.code)?.id).filter(Boolean))] as string[];
