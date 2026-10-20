@@ -6,7 +6,7 @@ import { findTeam } from "@/lib/routes";
 import { storyIsAbout } from "@/lib/teams";
 import { getTeamInfo } from "@/lib/team-info";
 import { getTeamGames } from "@/lib/espn";
-import { hasFd } from "@/lib/fd";
+import { hasFd, fdFailingRecently } from "@/lib/fd";
 import TeamView from "./TeamView";
 
 export const revalidate = 120;
@@ -40,6 +40,7 @@ export default async function TeamPage({ params }: Props) {
   // joukkueen uutiset kaikista lähteistä (esim. Real Madridin Mestarien liiga -jutut La Ligan sivulla)
   const news = articles.filter((a) => storyIsAbout(d.team.name, a.tags)).slice(0, 9);
   // kokoonpanon haku epäonnistui (≠ joukkueelta ei ole kokoonpanoa): kerrotaan siitä välilehdellä
-  const infoFailed = !!d.team.id && hasFd() && !info;
+  // (joukkueen tunniste tulee myös football-datasta, joten sen puuttuminen lähteen ollessa alhaalla on sama tilanne)
+  const infoFailed = hasFd() && !info && (!!d.team.id || fdFailingRecently());
   return <TeamView s={d.s} team={d.team} news={news} info={info} infoFailed={infoFailed} games={games} />;
 }

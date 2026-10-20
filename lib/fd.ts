@@ -73,3 +73,9 @@ export async function fd<T = any>(path: string, ttl: number): Promise<T | null> 
 
 export const hasFd = () => !!process.env.FOOTBALL_DATA_KEY && process.env.FD_OFF !== "1";
 export const fdState = () => guard.state();
+
+/** Onko football-data viime aikoina antanut virheen tai tauon (tämän palvelininstanssin näkökulmasta) */
+export const fdFailingRecently = (ms = 10 * 60_000) => {
+  const st = guard.state();
+  return Date.now() < st.blockedUntil || (!!st.lastError && Date.now() - st.lastError.at < ms);
+};
