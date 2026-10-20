@@ -67,7 +67,7 @@ export function useTeamName(nations?: boolean) {
   return (t: GameTeam) => (nations ? country(t.name, lang as "fi" | "sv" | "en")?.name ?? t.name : t.name);
 }
 
-/** Yksi ottelu mistä tahansa kilpailusta. nations = maaottelu (nimet suomeksi, linkit maajoukkueen sivulle) */
+/** Yksi ottelu mistä tahansa kilpailusta. nations = maaottelu (maiden nimet valitulla kielellä) */
 export function GameRow({ g, nations, highlight, hideDate }: { g: Game; nations?: boolean; highlight?: string; hideDate?: boolean }) {
   const i = useI18n();
   const nm = useTeamName(nations);
@@ -77,7 +77,7 @@ export function GameRow({ g, nations, highlight, hideDate }: { g: Game; nations?
   const side = (t: GameTeam, home: boolean, win: boolean) => {
     const cls = `side ${home ? "home" : "away"}${win ? " win" : ""}${played ? "" : " upcoming"}${highlight && t.id === highlight ? " hl" : ""}`;
     const inner = home ? <>{nm(t)}<GBadge t={t} /></> : <><GBadge t={t} />{nm(t)}</>;
-    return nations && t.id ? <a className={cls} href={`/maajoukkue/${t.id}`}>{inner}</a> : <span className={cls}>{inner}</span>;
+    return <span className={cls}>{inner}</span>;
   };
   const body = (
     <>
@@ -99,9 +99,8 @@ export function GameRow({ g, nations, highlight, hideDate }: { g: Game; nations?
         {!hideDate && <span>{i.day(g.date)}{g.kind === "upcoming" ? "" : ` · ${g.time}`}</span>}
         {hideDate && g.kind !== "upcoming" && <span>{g.time}</span>}
       </div>
-      {g.href
-        ? <a className={`match${on ? " is-live" : ""}`} href={g.href}>{body}</a>
-        : <div className={`match${on ? " is-live" : ""}`}>{body}</div>}
+      {/* sarjaotteluille sarjan ottelusivu, muille (cupit, EL, ECL, maaottelut) perustason ottelusivu */}
+      <a className={`match${on ? " is-live" : ""}`} href={g.href ?? `/ottelu/e/${g.id}`}>{body}</a>
     </div>
   );
 }

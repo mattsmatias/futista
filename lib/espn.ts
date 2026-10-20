@@ -6,8 +6,8 @@ import { getJson } from "./http";
 import { words, sameTeam, helsinkiParts, type LiveMatch } from "./live-core";
 import type { LeagueStats, Team } from "./stats";
 import { matchHref } from "./routes";
-import { toGame, toLive, isSeniorMen, type Game, type GameTeam } from "./espn-parse";
-export type { Game, GameTeam } from "./espn-parse";
+import { toGame, toLive, isSeniorMen, parseSummary, type Game, type GameTeam, type EspnMatch } from "./espn-parse";
+export type { Game, GameTeam, EspnMatch } from "./espn-parse";
 
 const BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 
@@ -227,4 +227,23 @@ export async function getEspnLive(): Promise<{ matches: LiveMatch[]; at: number 
     for (const e of b.events) { const m = toLive(e, source); if (m) out.push(m); }
   }));
   return { matches: out, at, ok };
+}
+
+// ---- Yksittäinen ottelu (perustason ottelusivu cup-, EL-, ECL- ja maaotteluille) ----
+const summary = (id: string) =>
+  unstable_cache(async (): Promise<{ at: number; m: EspnMatch }> => {
+    const j = await getJson(`${BASE}all/summary?event=${id}`, 10000);
+    const m = parseSummary(j, id);
+    if (!m) throw new Error("no match");
+    return { at: Date.now(), m };
+  }, ["espn-summary-v1", id], { revalidate: 60 })();
+
+export async function getEspnMatch(id: string): Promise<{ at: number; m: EspnMatch } | null> {
+  if (!espnOn() || !/^\d{5,12}$/.test(id) || process.env.NEXT_PHASE === "phase-production-build") return null;
+  try {
+    return await summary(id);
+  } catch (e) {
+    console.error("espn match", id, (e as Error)?.message);
+    return null;
+  }
 }

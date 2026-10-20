@@ -101,3 +101,31 @@ export function toLive(e: any, source: string): LiveMatch | null {
     src: "espn",
   };
 }
+
+export type EspnMatch = {
+  game: Game;
+  season: string | null;
+  ht: [number, number] | null;   // 1. puoliajan maalit (linescores), jos saatavilla
+  venue: string | null;
+};
+
+/** ESPN:n ottelusivun (summary) perustiedot. Puuttuvat tiedot jäävät null-arvoiksi. */
+export function parseSummary(d: any, id: string): EspnMatch | null {
+  const c = d?.header?.competitions?.[0];
+  if (!c) return null;
+  const league = d?.header?.league ?? {};
+  const g = toGame({ id, date: c.date, competitions: [c], league: { slug: league.slug, name: league.name }, season: d?.header?.season });
+  if (!g) return null;
+  const cs: any[] = c.competitors ?? [];
+  const h = cs.find((x) => x.homeAway === "home"), a = cs.find((x) => x.homeAway === "away");
+  const first = (x: any) => { const v = Number(x?.linescores?.[0]?.displayValue ?? x?.linescores?.[0]?.value); return Number.isFinite(v) ? v : null; };
+  const hh = first(h), ah = first(a);
+  // puoliaikatulos vain, jos ottelu on edennyt toiselle puoliajalle tai päättynyt
+  const pastHalf = g.kind === "ft" || g.kind === "ht" || (g.kind === "live" && Number(c.status?.period ?? 0) >= 2);
+  return {
+    game: g,
+    season: d?.header?.season?.name ?? (d?.header?.season?.year ? String(d.header.season.year) : null),
+    ht: pastHalf && hh !== null && ah !== null ? [hh, ah] : null,
+    venue: d?.gameInfo?.venue?.fullName || null,
+  };
+}

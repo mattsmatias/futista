@@ -891,3 +891,5 @@ div.match { cursor: default; }
 @media (prefers-color-scheme: dark) { .fresh-line.warn, .panel-src.warn { color: #f0a05a; } }
 .r-note { display: block; font: 600 10.5px/1.2 var(--ui); color: var(--muted); text-align: center; letter-spacing: 0; }
 .score .r-note { display: inline; margin-left: 2px; font-size: 10.5px; }
+.mh-generic { --accent: #0b7fc7; }
+.match-hero .chip.g-comp { background: rgba(255,255,255,.12); color: #fff; }

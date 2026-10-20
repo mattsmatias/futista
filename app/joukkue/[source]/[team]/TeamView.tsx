@@ -228,7 +228,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
                 {on && <span className="nc-state"><StatusPill s={{ kind: g.kind, min: g.clock, phase: g.phase, pens: g.pens }} /></span>}
               </>
             );
-            return g.href ? <a className="next-card" href={g.href}>{inner}</a> : <div className="next-card">{inner}</div>;
+            return <a className="next-card" href={g.href ?? `/ottelu/e/${g.id}`}>{inner}</a>;
           })() : next && (
             <a className="next-card" href={matchHref(s.source, next.date, next.home.name, next.away.name)}>
               <span className="nc-label">{t("nextMatch")} · {i.day(next.date)} {next.time}</span>

@@ -47,15 +47,15 @@ export default function NationView({ id, team, games }: { id: string; team: Game
         </section>
 
         {next && (
-          <div className="next-card">
+          <a className="next-card" href={`/ottelu/e/${next.id}`}>
             <span className="nc-label"><span className={`g-comp ${compClass(next.slug)}`}>{compName(next, i.lang)}</span> {isOn(next) ? "" : `${t("nextMatch")} · ${i.day(next.date)} ${next.time}`}</span>
             <span className="nc-row">
-              <a className="nc-team" href={next.home.id ? `/maajoukkue/${next.home.id}` : undefined}><GBadge t={next.home} size={44} /><b>{nm(next.home)}</b></a>
+              <span className="nc-team"><GBadge t={next.home} size={44} /><b>{nm(next.home)}</b></span>
               <span className={`nc-vs${isOn(next) ? " nc-live" : ""}`}>{isOn(next) && next.hs !== null ? `${next.hs}–${next.as}` : next.time}</span>
-              <a className="nc-team" href={next.away.id ? `/maajoukkue/${next.away.id}` : undefined}><GBadge t={next.away} size={44} /><b>{nm(next.away)}</b></a>
+              <span className="nc-team"><GBadge t={next.away} size={44} /><b>{nm(next.away)}</b></span>
             </span>
             {isOn(next) && <span className="nc-state"><StatusPill s={{ kind: next.kind, min: next.clock, phase: next.phase, pens: next.pens }} /></span>}
-          </div>
+          </a>
         )}
 
         {comps.length > 1 && (

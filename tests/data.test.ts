@@ -6,7 +6,7 @@ import { createGuard, retryAfterMs, SourceError, type Fetched } from "../lib/gua
 import { mergeLive, findMatch, isNewer } from "../lib/live-merge";
 import { matchState, fmtClock, helsinkiParts, helsinkiEpoch, knownFixture, words, type LiveMatch } from "../lib/live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "../lib/score";
-import { parseStatus, parseScore, toGame, toLive, isSeniorMen } from "../lib/espn-parse";
+import { parseStatus, parseScore, toGame, toLive, isSeniorMen, parseSummary } from "../lib/espn-parse";
 import { fillFromLastGood } from "../lib/stats-merge";
 
 // ---------- apurit ----------
@@ -277,4 +277,20 @@ test("kausi ja joukkuetyyppi", () => {
 test("ESPN-tilanne: shootoutScore ei kuulu tulokseen", () => {
   const sc = parseScore({ score: "1", shootoutScore: 5 }, { score: { value: 1 }, shootoutScore: 4 }, { kind: "ft" });
   assert.deepEqual(sc, { hs: 1, as: 1, pens: [5, 4] });
+});
+
+test("perustason ottelusivu: puoliaika, kausi ja puuttuvat tiedot", () => {
+  const ev = espnEvent({ status: "STATUS_FULL_TIME", state: "post", period: 2, hs: "1", as: "0" });
+  const c: any = ev.competitions[0];
+  c.date = ev.date;
+  c.competitors[0].linescores = [{ displayValue: "1" }, { displayValue: "0" }];
+  c.competitors[1].linescores = [{ displayValue: "0" }, { displayValue: "0" }];
+  const m = parseSummary({ header: { competitions: [c], league: { slug: "uefa.nations", name: "UEFA Nations League" }, season: { year: 2026, name: "2026-27 UEFA Nations League" } }, gameInfo: {} }, "401861138")!;
+  assert.deepEqual([m.game.kind, m.game.hs, m.game.as, m.ht, m.season, m.venue, m.game.slug], ["ft", 1, 0, [1, 0], "2026-27 UEFA Nations League", null, "uefa.nations"]);
+  // tulevalle ottelulle ei puoliaikaa eikä tulosta
+  const up = espnEvent({ status: "STATUS_SCHEDULED", state: "pre" });
+  const u: any = up.competitions[0]; u.date = up.date;
+  const mu = parseSummary({ header: { competitions: [u], league: { slug: "eng.league_cup" } } }, "1")!;
+  assert.deepEqual([mu.game.kind, mu.game.hs, mu.ht, mu.season], ["upcoming", null, null, null]);
+  assert.equal(parseSummary({}, "2"), null);
 });
