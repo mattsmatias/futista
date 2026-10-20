@@ -39,9 +39,11 @@ export function useMatchState(m: Parameters<typeof matchState>[0]): MatchState {
 
 /** Käynnissä olevat ottelut, joita lähteen otteluohjelmassa ei (enää) ole – näytetään LIVE-listoissa */
 export function useLiveExtras(stats: LeagueStats[]): (Fixture & { s: string; league: string })[] {
-  const { live } = useContext(LiveCtx);
+  const { live, now } = useContext(LiveCtx);
   const out: (Fixture & { s: string; league: string })[] = [];
-  for (const l of live.filter((x) => isOn(x.status))) {
+  // käynnissä olevat + juuri päättyneet (kunnes lähde päivittää tuloksen)
+  const recent = (x: LiveMatch) => (x.status === "FINISHED" || x.status === "AWARDED") && now !== null && now - x.kickoff < 4 * 3600_000;
+  for (const l of live.filter((x) => isOn(x.status) || recent(x))) {
     const st = stats.find((s) => s.source === l.source);
     if (!st) continue;
     const known = [...st.fixtures, ...st.results].some((f) => sameTeam(f.home.name, l.home) && sameTeam(f.away.name, l.away) && Math.abs(Date.parse(f.date) - l.kickoff) < 2 * 86400_000);
