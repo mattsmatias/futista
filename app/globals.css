@@ -869,3 +869,15 @@ a { -webkit-tap-highlight-color: transparent; }
 .comp-filter button.on { background: var(--surface); color: var(--fg); border-color: var(--line); box-shadow: 0 1px 6px -2px rgba(0,0,0,.25); }
 .g-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--gc); }
 div.match { cursor: default; }
+.c-nt { --gc: #0b7fc7; }
+.match a.side { color: inherit; }
+.match a.side:hover { text-decoration: underline; text-underline-offset: 3px; }
+.match .side.hl { color: var(--fg); font-weight: 800; }
+.dot-intl { background: #0b7fc7; } .lpick button.on-intl { color: #0b7fc7; }
+.intl .fin-card { margin-bottom: 16px; border-color: color-mix(in srgb, #0b7fc7 35%, var(--line)); }
+.intl .fin-card .panel-head h3 img { border-radius: 2px; box-shadow: 0 0 0 1px var(--line); }
+.intl-days { display: grid; gap: 14px; }
+@media (min-width: 900px) { .intl-days { grid-template-columns: 1fr 1fr; align-items: start; } }
+.intl-intro { margin: -6px 0 16px; }
+.intl .subtabs { margin-top: 2px; }
+.nc-team[href] { color: inherit; }

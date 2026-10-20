@@ -11,6 +11,7 @@ import { useFreshStats, useFreshArticles } from "@/lib/fresh";
 import { useDataEnabled } from "@/lib/live";
 import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
+import IntlBoard from "./IntlBoard";
 import { Card, Meta } from "./Cards";
 import Favorites from "./Favorites";
 import { staticCrest } from "@/lib/crest-ids";
@@ -89,6 +90,7 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
     if (v === "tulokset") setType("results");
     if (v === "taulukko") setType("table");
     if (v === "suosikit") setType("favs");
+    if (v === "maajoukkueet") { setType("results"); setTimeout(() => setPick("intl"), 0); }
   }, []);
   // etusivulla ja uutisissa vain sarjat, joista on uutisia; muut sarjat valitaan sarjavalitsimesta
   const leagueStats = stats.filter((s) => isMain(s.source) && (league === "all" || s.source === league));
@@ -97,7 +99,8 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
   const dataOn = useDataEnabled();
   useEffect(() => { if (!dataOn) { setTableTab("table"); setPick((p) => (p === "main" || isMain(p) ? p : "main")); } }, [dataOn]);
   useEffect(() => { setPick("main"); }, [league]);
-  const other = pick !== "main" && !isMain(pick) && (view === "table" || view === "results");
+  useEffect(() => { if (view === "table" && pick === "intl") setPick("main"); }, [view, pick]);
+  const other = pick !== "main" && pick !== "intl" && !isMain(pick) && (view === "table" || view === "results");
   const loaded = useLeagues(other ? [pick] : []);
   const pickStats = pick === "main" ? leagueStats : isMain(pick) ? stats.filter((s) => s.source === pick) : loaded.data;
   const pickLoading = other && loaded.loading;
@@ -166,8 +169,8 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
       {view === "results" && (
         <main className="wrap">
           <div className="sec-head page-head"><h2>{t("matches")}</h2></div>
-          <LeaguePicker value={pick} onChange={setPick} />
-          {pickLoading ? <p className="muted pad loading">{t("loading")}</p> : <Results key={pick} stats={pickStats} />}
+          <LeaguePicker value={pick} onChange={setPick} intl />
+          {pick === "intl" ? <IntlBoard /> : pickLoading ? <p className="muted pad loading">{t("loading")}</p> : <Results key={pick} stats={pickStats} />}
         </main>
       )}
 

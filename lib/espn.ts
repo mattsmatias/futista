@@ -17,7 +17,7 @@ const LEAGUE: Record<string, string> = {
 };
 
 type EspnTeam = { id: string; name: string; words: string[] };
-export type GameTeam = { name: string; logo?: string; code: string; w?: string[] };
+export type GameTeam = { name: string; logo?: string; code: string; id?: string; w?: string[] };
 export type Game = {
   id: string; epoch: number; date: string; time: string;
   comp: string; slug: string;
@@ -64,7 +64,7 @@ function kindOf(type: any): Kind {
   return "upcoming";
 }
 
-function toGame(e: any): Game | null {
+function toGame(e: any, slug?: string, compName?: string): Game | null {
   const c = e?.competitions?.[0];
   const cs: any[] = c?.competitors ?? [];
   const h = cs.find((x) => x.homeAway === "home"), a = cs.find((x) => x.homeAway === "away");
@@ -81,16 +81,17 @@ function toGame(e: any): Game | null {
     w: words([x.team?.displayName, x.team?.shortDisplayName, x.team?.location, x.team?.name].filter(Boolean).join(" ")),
     logo: x.team?.logos?.[0]?.href ?? x.team?.logo,
     code: x.team?.abbreviation ?? (x.team?.displayName ?? "?").slice(0, 3).toUpperCase(),
+    id: x.team?.id ? String(x.team.id) : undefined,
   });
   return {
     id: String(e.id), epoch, date, time,
-    comp: e.league?.name ?? e.league?.abbreviation ?? "", slug: e.league?.slug ?? "",
+    comp: e.league?.name ?? e.league?.abbreviation ?? compName ?? "", slug: e.league?.slug ?? slug ?? "",
     home: tm(h), away: tm(a), hs: sc(h), as: sc(a), kind,
     clock: kind === "live" ? c.status?.displayClock : undefined,
   };
 }
 
-const scheduleOf = (id: string) =>
+export const scheduleOf = (id: string) =>
   unstable_cache(async (): Promise<Game[]> => {
     const [past, next] = await Promise.all([
       getJson(`${BASE}all/teams/${id}/schedule`),
@@ -169,6 +170,73 @@ export async function getTeamGames(source: string, name: string, stats: LeagueSt
     return games;
   } catch (e) {
     console.error("espn", source, name, (e as Error)?.message);
+    return null;
+  }
+}
+
+/** Yksittäisen joukkueen (myös maajoukkueen) kaikki ottelut ESPN-tunnuksella */
+export async function getGamesById(id: string): Promise<Game[] | null> {
+  if (!/^\d+$/.test(id) || process.env.NEXT_PHASE === "phase-production-build") return null;
+  try {
+    return (await scheduleOf(id)).map((g) => {
+      const c = { ...g, home: { ...g.home }, away: { ...g.away } };
+      delete c.home.w; delete c.away.w;
+      return c;
+    });
+  } catch (e) {
+    console.error("espn team", id, (e as Error)?.message);
+    return null;
+  }
+}
+
+// ---- Maaottelut ----
+/** Maajoukkueiden kilpailut, joiden otteluita haetaan */
+export const INTL = ["uefa.nations", "fifa.friendly", "uefa.euroq", "fifa.worldq.uefa", "concacaf.nations.league", "caf.nations_qual"];
+export const FINLAND = "458";
+
+const ymd = (iso: string) => iso.slice(0, 10).replace(/-/g, "");
+
+/** Maaotteluikkunoiden päivät (ystävyysotteluiden kalenterista, joka kattaa kaikki ikkunat) */
+const intlDays = unstable_cache(async (): Promise<string[]> => {
+  const j = await getJson(`${BASE}fifa.friendly/scoreboard`);
+  const cal: string[] = (j?.leagues?.[0]?.calendar ?? []).filter((x: any) => typeof x === "string");
+  if (!cal.length) throw new Error("no calendar");
+  return [...new Set(cal.map((d) => d.slice(0, 10)))].sort();
+}, ["espn-intl-days-v1"], { revalidate: 21600 });
+
+const dayGames = (comp: string, day: string, past: boolean) =>
+  unstable_cache(async (): Promise<Game[]> => {
+    const j = await getJson(`${BASE}${comp}/scoreboard?dates=${ymd(day)}`);
+    const name = j?.leagues?.[0]?.name;
+    return (j?.events ?? []).map((e: any) => toGame(e, comp, name)).filter(Boolean) as Game[];
+  }, ["espn-intl-v1", comp, day], { revalidate: past ? 21600 : 120 })();
+
+async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let k = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (k < items.length) { const i = k++; out[i] = await fn(items[i]); }
+  }));
+  return out;
+}
+
+/** Viimeisimmät ja tulevat maaottelut (6 pelipäivää kumpaankin suuntaan) */
+export async function getIntl(): Promise<Game[] | null> {
+  if (process.env.NEXT_PHASE === "phase-production-build") return null;
+  try {
+    const days = await intlDays();
+    // ESPN:n päivät ovat UTC-päiviä; eilinen lasketaan vielä "tuleviin", jotta myöhäiset ottelut päivittyvät
+    const yesterday = helsinkiParts(Date.now() - 86400_000).date;
+    const past = days.filter((d) => d < yesterday).slice(-6);
+    const next = days.filter((d) => d >= yesterday).slice(0, 7);
+    const jobs = [...past.map((d) => [d, true] as const), ...next.map((d) => [d, false] as const)]
+      .flatMap(([d, p]) => INTL.map((c) => ({ c, d, p })));
+    const res = await pool(jobs, 8, ({ c, d, p }) => dayGames(c, d, p).catch(() => [] as Game[]));
+    const seen = new Map<string, Game>();
+    for (const g of res.flat()) seen.set(g.id, g);
+    return [...seen.values()].sort((a, b) => a.epoch - b.epoch);
+  } catch (e) {
+    console.error("espn intl", (e as Error)?.message);
     return null;
   }
 }

@@ -246,7 +246,7 @@ export function FormPills({ team, results, source }: { team: string; results: Re
 }
 
 /** Sarjavalitsin Sarjataulukot- ja Ottelut-näkymiin: pääsarjat + muut sarjat */
-export function LeaguePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function LeaguePicker({ value, onChange, intl }: { value: string; onChange: (v: string) => void; intl?: boolean }) {
   const i = useI18n();
   // muut sarjat tulevat football-datasta: piilotetaan, jos se ei ole käytössä
   const enabled = useDataEnabled();
@@ -258,6 +258,7 @@ export function LeaguePicker({ value, onChange }: { value: string; onChange: (v:
           <i className={`dot-${s.id}`} />{i.league(s.id, s.league)}
         </button>
       ))}
+      {intl && <button className={value === "intl" ? "on on-intl" : ""} onClick={() => onChange("intl")}><i className="dot-intl" />{i.t("nationalTeams")}</button>}
     </div>
   );
 }

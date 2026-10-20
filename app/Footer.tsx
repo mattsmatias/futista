@@ -11,6 +11,7 @@ export default function Footer() {
           <span>{t("tagline")}</span>
         </div>
         <nav className="foot-links" aria-label={t("footerNav")}>
+          <a href="/maajoukkueet">{t("nationalTeams")}</a>
           <a href="/tietoa">{t("about")}</a>
           <a href="/tietosuoja">{t("privacy")}</a>
         </nav>
