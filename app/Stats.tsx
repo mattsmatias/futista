@@ -9,6 +9,7 @@ import type { LeagueScorers } from "@/lib/scorers";
 import Flag from "./Flag";
 import PlayerPhoto from "./PlayerPhoto";
 import { norm } from "@/lib/teams";
+import { usePersistentState } from "@/lib/persist";
 import { useMatchState, StatusPill, useLiveExtras, useDataEnabled, LiveFreshness } from "@/lib/live";
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
@@ -159,7 +160,7 @@ export function Results({ stats }: { stats: LeagueStats[] }) {
   const { t } = i;
   const extras = useLiveExtras(stats);
   const hasFixtures = stats.some((s) => s.fixtures.length) || extras.length > 0;
-  const [tab, setTab] = useState<"up" | "done">(hasFixtures ? "up" : "done");
+  const [tab, setTab] = usePersistentState<"up" | "done">("resultsTab", hasFixtures ? "up" : "done", ["up", "done"]);
   return (
     <>
       <div className="subtabs" role="tablist">

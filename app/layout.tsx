@@ -5,6 +5,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { FavoritesProvider } from "@/lib/favorites";
 import { LiveProvider } from "@/lib/live";
 import FastLinks from "./FastLinks";
+import { ScrollMemory } from "@/lib/persist";
 import { Unbounded, Onest, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--f-display", display: "swap" });
@@ -13,6 +14,10 @@ const read = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600"], variab
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["500"], variable: "--f-mono", display: "swap" });
 
 export const metadata: Metadata = {
+  // futista.fi on ensisijainen osoite: canonical-osoitteet ja jakamisen esikatselut osoittavat sinne
+  metadataBase: new URL("https://futista.fi"),
+  alternates: { canonical: "./" },
+  openGraph: { siteName: "Futista", locale: "fi_FI", type: "website" },
   title: "Futista – jalkapallouutiset suomeksi",
   description: "La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan sarjojen tulokset, LIVE-tilanteet ja sarjataulukot suomeksi.",
   appleWebApp: { capable: true, title: "Futista", statusBarStyle: "black-translucent" },
@@ -43,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <LiveProvider>{children}</LiveProvider>
             <InstallApp />
             <FastLinks />
+            <ScrollMemory />
           </FavoritesProvider>
         </I18nProvider>
       </body>

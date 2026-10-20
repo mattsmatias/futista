@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { usePersistentState } from "@/lib/persist";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
 import { clubByName, SOURCES, isMain } from "@/lib/sources";
@@ -105,7 +106,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
   const fixtures = s.fixtures.filter((f) => mine(f.home, f.away));
   const results = s.results.filter((r) => mine(r.home, r.away));
   const next = fixtures[0];
-  const [comp, setComp] = useState("all");
+  const [comp, setComp] = usePersistentState("comp", "all");
   const all = games ?? [];
   const upcoming = all.filter((g) => g.kind === "upcoming" || g.kind === "live" || g.kind === "ht" || g.kind === "postponed")
     .sort((a, b) => Number(b.kind === "live" || b.kind === "ht") - Number(a.kind === "live" || a.kind === "ht") || a.epoch - b.epoch);
@@ -133,7 +134,8 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
     if (el) {
       const hero = el.previousElementSibling as HTMLElement | null;
       const y = (hero ? hero.getBoundingClientRect().bottom : el.getBoundingClientRect().top) + window.scrollY - 70;
-      if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y), behavior: reduce ? "auto" : "smooth" });
     }
   };
   const gameLists = (n: number) => {
@@ -249,10 +251,10 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
 
         {tab === "matches" && <>
           {comps.length > 1 && (
-            <div className="comp-filter">
-              <button className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
+            <div className="comp-filter" role="group" aria-label={t("competition")}>
+              <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
               {comps.map((g) => (
-                <button key={g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
+                <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
                   <span className={`g-dot ${compClass(g.slug)}`} />{compName(g, i.lang)}
                 </button>
               ))}

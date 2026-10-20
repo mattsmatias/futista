@@ -12,6 +12,7 @@ import { useDataEnabled } from "@/lib/live";
 import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import IntlBoard from "./IntlBoard";
+import { usePersistentState } from "@/lib/persist";
 import { Card, Meta } from "./Cards";
 import Favorites from "./Favorites";
 import { staticCrest } from "@/lib/crest-ids";
@@ -63,9 +64,9 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
   // tiedot päivittyvät taustalla ilman sivun uudelleenlatausta
   const stats = useFreshStats(firstStats);
   const { articles, fresh } = useFreshArticles(firstArticles);
-  const [league, setLeague] = useState<string>("all");
+  const [league, setLeague] = usePersistentState("league", "all");
   const [club, setClub] = useState<string | null>(null);
-  const [type, setType] = useState("all");
+  const [type, setType] = usePersistentState("type", "all");
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => { setNow(Date.now()); }, []);
   const i = useI18n();
@@ -94,11 +95,13 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
   }, []);
   // etusivulla ja uutisissa vain sarjat, joista on uutisia; muut sarjat valitaan sarjavalitsimesta
   const leagueStats = stats.filter((s) => isMain(s.source) && (league === "all" || s.source === league));
-  const [pick, setPick] = useState("main");
-  const [tableTab, setTableTab] = useState<"table" | "scorers">("table");
+  const [pick, setPick] = usePersistentState("pick", "main");
+  const [tableTab, setTableTab] = usePersistentState<"table" | "scorers">("tableTab", "table", ["table", "scorers"]);
   const dataOn = useDataEnabled();
-  useEffect(() => { if (!dataOn) { setTableTab("table"); setPick((p) => (p === "main" || isMain(p) ? p : "main")); } }, [dataOn]);
-  useEffect(() => { setPick("main"); }, [league]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!dataOn) { setTableTab("table"); if (!(pick === "main" || pick === "intl" || isMain(pick))) setPick("main"); } }, [dataOn]);
+  // sarjan vaihto palauttaa sarjavalinnan (tehdään napin painalluksessa, ei sivun palautuessa)
+  const chooseLeague = (id: string) => { setLeague(id); setClub(null); setPick("main"); };
   useEffect(() => { if (view === "table" && pick === "intl") setPick("main"); }, [view, pick]);
   const other = pick !== "main" && pick !== "intl" && !isMain(pick) && (view === "table" || view === "results");
   const loaded = useLeagues(other ? [pick] : []);
@@ -117,9 +120,9 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
           <a href="/" className="logo"><span>Futista</span></a>
           <TypeNav type={type} setType={setType} className="typenav top" />
           <div className="seg" role="tablist" aria-label="Sarja">
-            <button className={league === "all" ? "on" : ""} onClick={() => { setLeague("all"); setClub(null); }}>{t("all")}</button>
+            <button className={league === "all" ? "on" : ""} onClick={() => chooseLeague("all")}>{t("all")}</button>
             {SOURCES.filter((s) => isMain(s.id)).map((s) => (
-              <button key={s.id} className={league === s.id ? `on on-${s.id}` : ""} onClick={() => { setLeague(s.id); setClub(null); }}>
+              <button key={s.id} className={league === s.id ? `on on-${s.id}` : ""} onClick={() => chooseLeague(s.id)}>
                 <span className={s.id === "ucl" ? "full long" : "full"}>{i.league(s.id, s.league)}</span>
                 <span className={s.id === "ucl" ? "short alt" : "short"}>{s.id === "laliga" ? i.league(s.id, s.league) : t(`lgs_${s.id}` as Key)}</span>
               </button>
@@ -216,7 +219,7 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
                 <section key={s.id} className="sec">
                   <div className="sec-head">
                     <h2><i className={`bar-${s.id}`} />{i.league(s.id, s.league)}</h2>
-                    <button onClick={() => { setLeague(s.id); window.scrollTo({ top: 0 }); }}>{t("showAll")}</button>
+                    <button onClick={() => { chooseLeague(s.id); window.scrollTo({ top: 0 }); }}>{t("showAll")}</button>
                   </div>
                   <div className="grid">{items.map((a, i) => <Card key={a.id} a={a} wide={i === 0} isNew={fresh.has(a.id)} />)}</div>
                 </section>

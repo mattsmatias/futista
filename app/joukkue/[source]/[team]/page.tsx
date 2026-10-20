@@ -22,7 +22,10 @@ async function load(p: Props["params"]) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const d = await load(params);
-  return { title: d ? `${d.team.name} – ottelut, tulokset ja uutiset – Futista` : "Futista" };
+  if (!d) return { title: "Futista" };
+  const title = `${d.team.name} – ottelut, tulokset ja uutiset – Futista`;
+  const description = `${d.team.name}: kaikki ottelut, tulokset, kokoonpano, sarjataulukko (${d.s.league}) ja uusimmat uutiset suomeksi.`;
+  return { title, description, openGraph: { title, description } };
 }
 
 export default async function TeamPage({ params }: Props) {

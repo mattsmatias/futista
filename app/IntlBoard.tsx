@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Game } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
+import { usePersistentState } from "@/lib/persist";
 import { GameRow, compName, compClass } from "./Games";
 import { SrcLine } from "./Stats";
 
@@ -19,8 +20,8 @@ export default function IntlBoard({ initial }: { initial?: IntlData | null }) {
   const [data, setData] = useState<IntlData | null>(initial ?? null);
   const games = data?.games ?? null;
   const [failed, setFailed] = useState(false);
-  const [comp, setComp] = useState("all");
-  const [tab, setTab] = useState<"up" | "played">("up");
+  const [comp, setComp] = usePersistentState("intlComp", "all");
+  const [tab, setTab] = usePersistentState<"up" | "played">("intlTab", "up", ["up", "played"]);
 
   // virhe: säilytetään edellinen kelvollinen tieto ja kerrotaan siitä
   const load = () =>
@@ -59,10 +60,10 @@ export default function IntlBoard({ initial }: { initial?: IntlData | null }) {
       </section>
 
       {comps.length > 1 && (
-        <div className="comp-filter">
-          <button className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
+        <div className="comp-filter" role="group" aria-label={t("competition")}>
+          <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
           {comps.map((g) => (
-            <button key={g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
+            <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
               <span className={`g-dot ${compClass(g.slug)}`} />{compName(g, i.lang)}
             </button>
           ))}
@@ -70,8 +71,8 @@ export default function IntlBoard({ initial }: { initial?: IntlData | null }) {
       )}
 
       <div className="subtabs" role="tablist">
-        <button className={tab === "up" ? "on" : ""} onClick={() => setTab("up")}>{t("upcoming")}</button>
-        <button className={tab === "played" ? "on" : ""} onClick={() => setTab("played")}>{t("playedTab")}</button>
+        <button role="tab" aria-selected={tab === "up"} className={tab === "up" ? "on" : ""} onClick={() => setTab("up")}>{t("upcoming")}</button>
+        <button role="tab" aria-selected={tab === "played"} className={tab === "played" ? "on" : ""} onClick={() => setTab("played")}>{t("playedTab")}</button>
       </div>
 
       {failed && <p className="fresh-line warn" role="status">{t("sourceDown")}</p>}

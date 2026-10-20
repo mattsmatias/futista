@@ -849,8 +849,6 @@ a { -webkit-tap-highlight-color: transparent; }
 .ent-tabs .short { display: none; }
 @media (max-width: 640px) {
   .ent-tabs .full { display: none; } .ent-tabs .short { display: inline; }
-  .subtabs.sticky.ent-tabs { gap: 2px; padding: 3px; }
-  .subtabs.sticky.ent-tabs button { padding: 8px 7px; font-size: 12.5px; }
 }
 
 /* Joukkueen kaikki ottelut (kaikki kilpailut) */
@@ -893,3 +891,16 @@ div.match { cursor: default; }
 .score .r-note { display: inline; margin-left: 2px; font-size: 10.5px; }
 .mh-generic { --accent: #0b7fc7; }
 .match-hero .chip.g-comp { background: rgba(255,255,255,.12); color: #fff; }
+
+/* Välilehdet: aktiivinen erottuu selvästi (tausta, lihavointi ja alleviivaus); painallusalue vähintään 40 px */
+.subtabs button { min-height: 40px; position: relative; }
+.subtabs button.on { font-weight: 800; }
+.subtabs button.on::after { content: ""; position: absolute; left: 30%; right: 30%; bottom: 5px; height: 2px; border-radius: 2px; background: currentColor; }
+@media (max-width: 640px) {
+  /* ei kutisteta tekstiä: liian pitkä rivi vierii sivusuunnassa */
+  .subtabs.sticky.ent-tabs button { padding: 9px 12px; font-size: 13.5px; flex: 0 0 auto; }
+  .subtabs.sticky.ent-tabs { padding: 4px; gap: 4px; }
+}
+/* sticky-palkki ei peitä ankkurilla tai ohjelmallisesti vieritettyä sisältöä */
+.tab-pane, [id] { scroll-margin-top: calc(var(--appbar-h, 64px) + 70px); }
+.comp-filter button:focus-visible, .subtabs button:focus-visible, .lpick button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }

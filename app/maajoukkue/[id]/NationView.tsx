@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { usePersistentState } from "@/lib/persist";
 import type { Game, GameTeam } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { AutoRefresh } from "@/lib/fresh";
@@ -15,7 +15,7 @@ export default function NationView({ id, team, games }: { id: string; team: Game
   const i = useI18n();
   const { t } = i;
   const nm = useTeamName(true);
-  const [comp, setComp] = useState("all");
+  const [comp, setComp] = usePersistentState("comp", "all");
   const pick = (l: Game[]) => (comp === "all" ? l : l.filter((g) => g.slug === comp));
   const up = games.filter((g) => g.kind === "upcoming" || isOn(g) || g.kind === "postponed")
     .sort((a, b) => Number(isOn(b)) - Number(isOn(a)) || a.epoch - b.epoch);
@@ -59,10 +59,10 @@ export default function NationView({ id, team, games }: { id: string; team: Game
         )}
 
         {comps.length > 1 && (
-          <div className="comp-filter">
-            <button className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
+          <div className="comp-filter" role="group" aria-label={t("competition")}>
+            <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
             {comps.map((g) => (
-              <button key={g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
+              <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
                 <span className={`g-dot ${compClass(g.slug)}`} />{compName(g, i.lang)}
               </button>
             ))}

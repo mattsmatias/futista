@@ -1,3 +1,5 @@
+"use client";
+import { useState } from "react";
 import { allClubs } from "@/lib/sources";
 
 const thumb = (src: string) => src.replace(/\.(jpe?g|png|webp)$/i, "-632x422.$1");
@@ -48,12 +50,14 @@ export function GenArt({ seed, tags, source }: { seed: string; tags: string[]; s
 export default function Art({
   image, seed, tags, source, big, small, className = "",
 }: { image: string | null; seed: string; tags: string[]; source: string; big?: boolean; small?: boolean; className?: string }) {
+  // kuva ei lataudu (poistettu, estetty tai verkkovirhe) → generoitu taustakuva rikkinäisen kuvan sijaan
+  const [broken, setBroken] = useState(false);
   return (
     <div className={`art ${className}`}>
-      {image ? (
+      {image && !broken ? (
         <img
           src={small ? thumb(image) : image}
-          onError={(e) => { if (e.currentTarget.src !== image) e.currentTarget.src = image; }}
+          onError={(e) => { if (small && e.currentTarget.src !== image) e.currentTarget.src = image; else setBroken(true); }}
           alt=""
           width={1264}
           height={843}
