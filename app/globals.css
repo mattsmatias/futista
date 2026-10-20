@@ -812,3 +812,5 @@ a { -webkit-tap-highlight-color: transparent; }
 /* Sama suoja otteluriveille (myös LIVE-tilanne + merkki) */
 .match { grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr); }
 .match .score, .match .mid { white-space: nowrap; }
+/* Selain laski tuloksen leveyden väärin (fonttikoko riippuu näytön leveydestä): leveys annetaan suoraan */
+.mh-score, .mh-mid, .match .mid, .match .score { width: max-content; }
