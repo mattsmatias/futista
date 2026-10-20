@@ -33,6 +33,8 @@ function leaves(el: any): string[] {
 }
 
 const SHORT = /^(Man City|Man Utd|[A-Z]{2,4})$/;
+// oikeat seuranimet, jotka alkavat kolmella isolla kirjaimella
+const KEEP_PREFIX = new Set(["PSV", "AEK", "RCD", "SSC", "OGC", "AFC", "BSC", "TSG", "PAO", "HJK", "KuPS"]);
 
 function team(parts: string[]): Team {
   const real = parts.filter((p) => !SHORT.test(p));
@@ -42,7 +44,14 @@ function team(parts: string[]): Team {
   const m = name.match(/^(.*?[a-z.])([A-Z]{3})$/);
   if (m) name = m[1];
   name = name.replace(/\s*(Man City|Man Utd)$/, "").trim();
-  return { name, code: short ?? name.replace(/[^A-Za-zÀ-ÿ]/g, "").slice(0, 3).toUpperCase() };
+  // lyhenne nimen edessä tai perässä välilyönnillä: "SHA FC Shakhtar Donetsk", "SK Slavia Praha SPR"
+  let code = short;
+  const pre = name.match(/^([A-Z]{3})\s+(.+)$/);
+  if (pre && pre[2] === pre[1]) name = pre[1]; // "AEK AEK"
+  else if (pre && !KEEP_PREFIX.has(pre[1])) { code = code ?? pre[1]; name = pre[2]; }
+  const post = name.match(/^(.*[a-zäöü].*?)\s+([A-Z]{3})$/);
+  if (post) { code = code ?? post[2]; name = post[1]; }
+  return { name, code: code ?? name.replace(/[^A-Za-zÀ-ÿ]/g, "").slice(0, 3).toUpperCase() };
 }
 
 function parseTable(doc: any): Row[] {
@@ -96,7 +105,7 @@ function parseResults(doc: any): Result[] {
     const td = [...tr.querySelectorAll("td")];
     if (td.length < 3) continue;
     const date = td[0].textContent.trim().match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    const score = td[td.length - 1].textContent.trim().match(/^(\d+)\s*[-–:]\s*(\d+)(?:\s*(?:rp|ja|jatk)\.?)?$/i);
+    const score = td[td.length - 1].textContent.trim().match(/^(\d+)\s*[-–]\s*(\d+)(?:\s*(?:rp|ja|jatk)\.?)?$/i);
     if (!date || !score) continue;
     const parts = leaves(td[1]);
     let i = parts.findIndex((p) => /^[–-]$/.test(p));

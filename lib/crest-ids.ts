@@ -60,7 +60,7 @@ const IDS: Record<string, number> = {
   monaco: 548,
   lille: 521,
   "olympique lyonnais": 523, lyon: 523,
-  inter: 108, internazionale: 108, "internazionale milano": 108, "inter milan": 108,
+  inter: 108, internazionale: 108, "internazionale milano": 108, "inter milano": 108, "inter milan": 108,
   milan: 98,
   juventus: 109,
   napoli: 113,
