@@ -67,8 +67,9 @@ export function useDataEnabled() { const c: Ctx = useContext(LiveCtx); return c.
 export function StatusPill({ s }: { s: MatchState }) {
   const { t } = useI18n();
   if (s.kind === "upcoming") return null;
+  if (s.kind === "live") return <span className="st st-live"><i />{t("live")}{s.min && <b className="st-min">{s.min}</b>}</span>;
   const label =
-    s.kind === "live" ? t("live") : s.kind === "ht" ? t("halfTime") : s.kind === "ft" ? t("statusFt")
+    s.kind === "ht" ? t("halfTime") : s.kind === "ft" ? t("statusFt")
       : s.kind === "suspended" ? t("suspended") : s.kind === "postponed" ? t("postponed") : t("cancelled");
-  return <span className={`st st-${s.kind}`}>{(s.kind === "live" || s.kind === "ht") && <i />}{label}</span>;
+  return <span className={`st st-${s.kind}`}>{s.kind === "ht" && <i />}{label}</span>;
 }

@@ -18,10 +18,31 @@ export type LiveMatch = {
   awayName?: string;
   homeCrest?: string;
   awayCrest?: string;
+  min?: string;        // peliminuutti, esim. "67'", "45+2'", "90+4'" (ESPN)
 };
 
 export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled";
-export type MatchState = { kind: Kind; hs?: number | null; as?: number | null };
+export type MatchState = { kind: Kind; hs?: number | null; as?: number | null; min?: string };
+
+/** ESPN:n kello ("45'+2'", "67'") → "45+2'" / "67'" */
+export function fmtClock(c?: string | null): string | undefined {
+  if (!c) return undefined;
+  const m = c.replace(/\s/g, "").match(/^(\d+)'?(?:\+(\d+)'?)?$/);
+  if (!m) return undefined;
+  return m[2] ? `${m[1]}+${m[2]}'` : `${m[1]}'`;
+}
+
+/** Arvioitu peliminuutti alkamisajasta, jos tarkkaa kelloa ei ole (1. puoliaika 45 + lisäaika, tauko 15 min) */
+export function estimateMin(kick: number | null, now: number | null, paused?: boolean): string | undefined {
+  if (kick === null || now === null || paused) return undefined;
+  const e = Math.floor((now - kick) / 60_000) + 1;
+  if (e < 1) return undefined;
+  if (e <= 45) return `${e}'`;
+  if (e <= 50) return `45+${e - 45}'`;      // 1. puoliajan lisäaika
+  if (e <= 62) return undefined;              // todennäköisesti tauko – ei arvata
+  const m = e - 17;                            // tauko + lisäaika
+  return m <= 90 ? `${Math.max(46, m)}'` : `90+${Math.min(m - 90, 15)}'`;
+}
 
 const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "de", "la", "cd", "ud", "sd", "sad", "fk", "bk", "if", "balompie", "1907", "1909", "1913", "and", "hove", "albion", "calcio", "futbol"]);
 
@@ -96,14 +117,15 @@ export function matchState(
   if (hit) {
     // käynnissä olevan ottelun tilanne; jos rajapinta ei vielä kerro sitä, ottelu on alkanut 0–0
     const sc = { hs: hit.hs ?? 0, as: hit.as ?? 0 };
+    const min = hit.min ?? estimateMin(hit.kickoff, now);
     switch (hit.status) {
-      case "IN_PLAY": case "EXTRA_TIME": case "PENALTY_SHOOTOUT": return { kind: "live", ...sc };
+      case "IN_PLAY": case "EXTRA_TIME": case "PENALTY_SHOOTOUT": return { kind: "live", ...sc, min };
       case "PAUSED": return { kind: "ht", ...sc };
       case "FINISHED": case "AWARDED": return { kind: "ft", ...sc };
       case "SUSPENDED": return { kind: "suspended", ...sc };
       case "TIMED": case "SCHEDULED":
         // rajapinnan tila voi päivittyä viiveellä: alkamisajan jälkeen ottelu on käynnissä
-        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return { kind: "live", hs: hit.hs ?? 0, as: hit.as ?? 0 };
+        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return { kind: "live", hs: hit.hs ?? 0, as: hit.as ?? 0, min: estimateMin(kick, now) };
         break;
       case "POSTPONED": return { kind: "postponed" };
       case "CANCELLED": return { kind: "cancelled" };
@@ -111,5 +133,5 @@ export function matchState(
   }
   if (now === null || kick === null || now < kick) return { kind: "upcoming" };
   // ilman rajapinnan tietoa: alkanut → LIVE (tilannetta ei tiedetä), ~2 h myöhemmin → Päättynyt
-  return now < kick + LIVE_MIN * 60_000 ? { kind: "live" } : { kind: "ft" };
+  return now < kick + LIVE_MIN * 60_000 ? { kind: "live", min: estimateMin(kick, now) } : { kind: "ft" };
 }

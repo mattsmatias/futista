@@ -125,7 +125,7 @@ const D = {
   statusFt: ["Päättynyt", "Slutspelad", "Full time"],
   statusUpcoming: ["Tulossa", "Kommande", "Upcoming"],
   live: ["LIVE", "LIVE", "LIVE"],
-  halfTime: ["Tauko", "Paus", "Half-time"],
+  halfTime: ["Puoliaika", "Halvtid", "Half-time"],
   suspended: ["Keskeytetty", "Avbruten", "Suspended"],
   postponed: ["Siirretty", "Uppskjuten", "Postponed"],
   cancelled: ["Peruttu", "Inställd", "Cancelled"],

@@ -225,7 +225,7 @@ export default function TeamView({ s, team, news, info, games }: { s: LeagueStat
                   <span className={`nc-vs${on ? " nc-live" : ""}`}>{on && g.hs !== null ? `${g.hs}–${g.as}` : g.time}</span>
                   <span className="nc-team"><GBadge t={g.away} size={44} /><b>{g.away.name}</b></span>
                 </span>
-                {on && <span className="nc-state">{g.kind === "live" && g.clock ? <span className="st st-live"><i />{g.clock}</span> : <StatusPill s={{ kind: g.kind }} />}</span>}
+                {on && <span className="nc-state"><StatusPill s={{ kind: g.kind, min: g.clock }} /></span>}
               </>
             );
             return g.href ? <a className="next-card" href={g.href}>{inner}</a> : <div className="next-card">{inner}</div>;

@@ -3,7 +3,7 @@
 // Ei avainta. Vastaukset välimuistissa: joukkuelistat vuorokauden, otteluohjelma minuutin.
 import { unstable_cache } from "next/cache";
 import { getJson } from "./http";
-import { words, sameTeam, helsinkiParts } from "./live-core";
+import { words, sameTeam, helsinkiParts, fmtClock } from "./live-core";
 import type { LeagueStats, Team } from "./stats";
 import { matchHref } from "./routes";
 import type { Kind } from "./live-core";
@@ -87,7 +87,7 @@ function toGame(e: any, slug?: string, compName?: string): Game | null {
     id: String(e.id), epoch, date, time,
     comp: e.league?.name ?? e.league?.abbreviation ?? compName ?? "", slug: e.league?.slug ?? slug ?? "",
     home: tm(h), away: tm(a), hs: sc(h), as: sc(a), kind,
-    clock: kind === "live" ? c.status?.displayClock : undefined,
+    clock: kind === "live" ? fmtClock(c.status?.displayClock) ?? c.status?.displayClock : undefined,
   };
 }
 
@@ -239,4 +239,46 @@ export async function getIntl(): Promise<Game[] | null> {
     console.error("espn intl", (e as Error)?.message);
     return null;
   }
+}
+
+// ---- Live-kello sarjojen otteluille ----
+export type EspnLive = {
+  source: string; kickoff: number; status: "IN_PLAY" | "PAUSED" | "FINISHED" | "SCHEDULED" | "POSTPONED" | "CANCELLED" | "SUSPENDED";
+  home: string[]; away: string[]; hs: number | null; as: number | null; min?: string;
+  homeName: string; awayName: string; homeCrest?: string; awayCrest?: string;
+};
+
+const board = (slug: string) =>
+  unstable_cache(async (): Promise<any[]> => {
+    const j = await getJson(`${BASE}${slug}/scoreboard`, 8000);
+    return j?.events ?? [];
+  }, ["espn-board-v1", slug], { revalidate: 30 })();
+
+/** Päivän ottelut ESPN:stä kaikista seuratuista sarjoista: tarkka tila, tilanne ja peliminuutti */
+export async function getEspnLive(): Promise<EspnLive[]> {
+  if (process.env.NEXT_PHASE === "phase-production-build") return [];
+  const out: EspnLive[] = [];
+  await Promise.all(Object.entries(LEAGUE).map(async ([source, slug]) => {
+    const events = await board(slug).catch(() => [] as any[]);
+    for (const e of events) {
+      const c = e?.competitions?.[0];
+      const cs: any[] = c?.competitors ?? [];
+      const h = cs.find((x) => x.homeAway === "home"), a = cs.find((x) => x.homeAway === "away");
+      if (!h || !a || !e.date) continue;
+      const kind = kindOf(c.status?.type);
+      const status: EspnLive["status"] =
+        kind === "live" ? "IN_PLAY" : kind === "ht" ? "PAUSED" : kind === "ft" ? "FINISHED" : kind === "postponed" ? "POSTPONED"
+          : kind === "cancelled" ? "CANCELLED" : kind === "suspended" ? "SUSPENDED" : "SCHEDULED";
+      const sc = (x: any) => { const v = x?.score?.value ?? x?.score; return v === undefined || v === null || v === "" || kind === "upcoming" ? null : Number(v); };
+      const w = (x: any) => words([x.team?.displayName, x.team?.shortDisplayName, x.team?.location, x.team?.name, x.team?.abbreviation].filter(Boolean).join(" "));
+      out.push({
+        source, kickoff: Date.parse(e.date), status,
+        home: w(h), away: w(a), hs: sc(h), as: sc(a),
+        min: kind === "live" ? fmtClock(c.status?.displayClock) : undefined,
+        homeName: h.team?.shortDisplayName || h.team?.displayName, awayName: a.team?.shortDisplayName || a.team?.displayName,
+        homeCrest: h.team?.logo ?? h.team?.logos?.[0]?.href, awayCrest: a.team?.logo ?? a.team?.logos?.[0]?.href,
+      });
+    }
+  }));
+  return out;
 }

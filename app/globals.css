@@ -881,3 +881,4 @@ div.match { cursor: default; }
 .intl-intro { margin: -6px 0 16px; }
 .intl .subtabs { margin-top: 2px; }
 .nc-team[href] { color: inherit; }
+.st-min { font: 800 1em/1 var(--mono); letter-spacing: 0; margin-left: 2px; padding-left: 6px; border-left: 1px solid rgba(255,255,255,.45); text-transform: none; }

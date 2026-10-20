@@ -53,7 +53,7 @@ export default function NationView({ id, team, games }: { id: string; team: Game
               <span className={`nc-vs${isOn(next) ? " nc-live" : ""}`}>{isOn(next) && next.hs !== null ? `${next.hs}–${next.as}` : next.time}</span>
               <a className="nc-team" href={next.away.id ? `/maajoukkue/${next.away.id}` : undefined}><GBadge t={next.away} size={44} /><b>{nm(next.away)}</b></a>
             </span>
-            {isOn(next) && <span className="nc-state">{next.kind === "live" && next.clock ? <span className="st st-live"><i />{next.clock}</span> : <StatusPill s={{ kind: next.kind }} />}</span>}
+            {isOn(next) && <span className="nc-state"><StatusPill s={{ kind: next.kind, min: next.clock }} /></span>}
           </div>
         )}
 
