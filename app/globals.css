@@ -786,7 +786,7 @@ details.fold[open] > summary::after { transform: rotate(180deg); }
 }
 .is-new::before { content: ""; position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #e5484d; z-index: 3; box-shadow: 0 0 0 3px color-mix(in srgb, #e5484d 25%, transparent); }
 .card.is-new, .mini.is-new, .hero.is-new { position: relative; }
-.mh-score.live b { opacity: 1; }
+.mh-score.mh-live b { opacity: 1; }
 a { -webkit-tap-highlight-color: transparent; }
 
 .skel .sk { border-radius: var(--r-md); background: linear-gradient(90deg, var(--surface-2) 25%, color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
@@ -815,10 +815,7 @@ a { -webkit-tap-highlight-color: transparent; }
 /* Selain laski tuloksen leveyden väärin (fonttikoko riippuu näytön leveydestä): leveys annetaan suoraan */
 .mh-score, .mh-mid, .match .mid, .match .score { width: max-content; }
 
-/* Tulostaulun numerot: selkeä fontti (nolla ilman viivaa), väliviiva erillisenä */
-.mh-score { font-family: var(--display); font-weight: 800; letter-spacing: 0; gap: 14px; font-variant-numeric: tabular-nums; line-height: 1; }
-.mh-score b { min-width: 0; padding: 0; background: none !important; }
+/* Tulostaulu: väliviiva erillisenä numeroiden välissä (fontti ennallaan) */
+.mh-score { gap: 14px; line-height: 1; background: none; }
 .mh-score i { display: block; width: 16px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.45); font-size: 0; opacity: 1; flex: none; }
-@media (max-width: 640px) { .mh-score { font-size: clamp(32px, 9vw, 42px); gap: 12px; } .mh-score i { width: 13px; height: 3px; } }
-/* kortit ja otterivit: sama selkeä nolla */
-.score, .sc-row b { font-family: var(--ui); font-weight: 800; }
+@media (max-width: 640px) { .mh-score { gap: 12px; } .mh-score i { width: 13px; height: 3px; } }

@@ -146,7 +146,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
               {result
                 ? <div className="mh-score"><b className={hw ? "w" : ""}>{result.hs}</b><i>–</i><b className={aw ? "w" : ""}>{result.as}</b></div>
                 : liveScore
-                  ? <div className="mh-score live"><Num v={liveScore.hs} /><i>–</i><Num v={liveScore.as} /></div>
+                  ? <div className="mh-score mh-live"><Num v={liveScore.hs} /><i>–</i><Num v={liveScore.as} /></div>
                   : <div className="mh-time">{fixture!.time}</div>}
               {result
                 ? <span className="mh-status">{t("statusFt")}</span>
