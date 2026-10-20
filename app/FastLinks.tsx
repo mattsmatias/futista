@@ -1,6 +1,6 @@
 "use client";
 // Välitön sivunvaihto koko sivustolle: sisäiset linkit avataan sovelluksen sisällä (ei koko sivun
-// uudelleenlatausta), ja näkyvissä olevat linkit ladataan valmiiksi ennen kuin niitä painetaan.
+// uudelleenlatausta), ja linkki ladataan valmiiksi jo ennen kuin sitä ehditään painaa.
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
@@ -34,20 +34,8 @@ export default function FastLinks() {
     };
     const onIntent = (e: Event) => prefetch(internal(e.target as Element));
 
-    const io = "IntersectionObserver" in window
-      ? new IntersectionObserver((entries) => {
-          for (const en of entries) if (en.isIntersecting) { prefetch(internal(en.target)); io?.unobserve(en.target); }
-        }, { rootMargin: "300px" })
-      : null;
-    const seen = new WeakSet<Element>();
-    let queued = false;
-    const scan = () => {
-      queued = false;
-      document.querySelectorAll('a[href^="/"]').forEach((a) => { if (!seen.has(a)) { seen.add(a); io?.observe(a); } });
-    };
-    const mo = new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(scan); } });
-    scan();
-    mo.observe(document.body, { childList: true, subtree: true });
+    // ennakkolataus vasta kun linkkiä ollaan painamassa (osoitin päällä / sormi ruudulla):
+    // näkyvien linkkien massalataus kuormitti tilastorajapintaa liikaa
 
     document.addEventListener("click", onClick);
     document.addEventListener("pointerdown", onIntent, { passive: true });
@@ -56,8 +44,6 @@ export default function FastLinks() {
       document.removeEventListener("click", onClick);
       document.removeEventListener("pointerdown", onIntent);
       document.removeEventListener("mouseover", onIntent);
-      mo.disconnect();
-      io?.disconnect();
     };
   }, [router]);
   return null;

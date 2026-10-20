@@ -80,10 +80,8 @@ async function load(id: string): Promise<PlayerData | null> {
   };
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const d = await load(params.id);
-  return { title: d ? `${d.name} – pelaaja – Futista` : "Futista" };
-}
+// Otsikko ilman rajapintahakua (ennakkolataus hakee otsikon, eikä sen pidä kuormittaa football-dataa)
+export const metadata: Metadata = { title: "Pelaaja – Futista" };
 
 export default async function PlayerPage({ params }: Props) {
   const d = await load(params.id);
