@@ -4,6 +4,7 @@ import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
 import { SOURCES, isMain } from "@/lib/sources";
 import { useLeagues } from "@/lib/leagues-client";
+import { useDataEnabled } from "@/lib/live";
 import { useI18n } from "@/lib/i18n";
 import { useFavorites, HeartButton } from "@/lib/favorites";
 import { storyIsAbout, playedIn } from "@/lib/teams";
@@ -65,7 +66,8 @@ const OTHER = SOURCES.filter((s) => !s.feeds.length).map((s) => s.id);
 
 export default function Favorites({ articles, stats: mainStats, league }: { articles: Article[]; stats: LeagueStats[]; league: string }) {
   // muiden sarjojen joukkueet ja ottelut ladataan erikseen
-  const more = useLeagues(league === "all" ? OTHER : []);
+  const dataOn = useDataEnabled();
+  const more = useLeagues(league === "all" && dataOn ? OTHER : []);
   const stats = [...mainStats, ...more.data];
   const i = useI18n();
   const { t } = i;
@@ -73,7 +75,7 @@ export default function Favorites({ articles, stats: mainStats, league }: { arti
 
   // Kaikki joukkueet sarjataulukoista; jos taulukkoa ei saatu, pikavalintojen seurat
   const inLeague = (src: string) => league === "all" || src === league;
-  const leagues = SOURCES.filter((s) => inLeague(s.id)).map((s) => {
+  const leagues = SOURCES.filter((s) => inLeague(s.id) && (dataOn || s.feeds.length)).map((s) => {
     const st = stats.find((x) => x.source === s.id);
     const teams: Team[] = st?.table.length
       ? [...st.table].map((r) => r.team).sort((a, b) => a.name.localeCompare(b.name, "fi"))

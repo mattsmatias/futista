@@ -8,7 +8,7 @@ import { teamHref, matchHref } from "@/lib/routes";
 import type { LeagueScorers } from "@/lib/scorers";
 import Flag from "./Flag";
 import { norm } from "@/lib/teams";
-import { useMatchState, StatusPill, useLiveExtras } from "@/lib/live";
+import { useMatchState, StatusPill, useLiveExtras, useDataEnabled } from "@/lib/live";
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
 
@@ -247,10 +247,12 @@ export function FormPills({ team, results, source }: { team: string; results: Re
 /** Sarjavalitsin Sarjataulukot- ja Ottelut-näkymiin: pääsarjat + muut sarjat */
 export function LeaguePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const i = useI18n();
+  // muut sarjat tulevat football-datasta: piilotetaan, jos se ei ole käytössä
+  const enabled = useDataEnabled();
   return (
     <div className="lpick" role="tablist" aria-label={i.t("otherLeagues")}>
       <button className={value === "main" ? "on" : ""} onClick={() => onChange("main")}>{i.t("mainLeagues")}</button>
-      {SOURCES.map((s) => (
+      {SOURCES.filter((s) => enabled || s.feeds.length).map((s) => (
         <button key={s.id} className={value === s.id ? `on on-${s.id}` : ""} onClick={() => onChange(s.id)}>
           <i className={`dot-${s.id}`} />{i.league(s.id, s.league)}
         </button>

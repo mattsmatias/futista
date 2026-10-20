@@ -4,13 +4,14 @@ import { matchState, isOn, helsinkiParts, sameTeam, bestTeam, type LiveMatch, ty
 import type { Fixture, LeagueStats, Team } from "./stats";
 import { useI18n } from "./i18n";
 
-type Ctx = { live: LiveMatch[]; now: number | null };
-const LiveCtx = createContext<Ctx>({ live: [], now: null });
+type Ctx = { live: LiveMatch[]; now: number | null; enabled: boolean };
+const LiveCtx = createContext<Ctx>({ live: [], now: null, enabled: true });
 
 /** Hakee otteluiden tilan minuutin välein, kun sivu on näkyvissä */
 export function LiveProvider({ children }: { children: React.ReactNode }) {
   const [live, setLive] = useState<LiveMatch[]>([]);
   const [now, setNow] = useState<number | null>(null);
+  const [enabled, setEnabled] = useState(true);
   useEffect(() => {
     let stop = false;
     const load = async () => {
@@ -20,7 +21,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const d = await r.json();
         // hetkellinen virhe: pidetään edelliset tilanteet ja yritetään pian uudelleen
         if (d.error) return;
-        if (!stop) setLive(d.matches ?? []);
+        if (!stop) { setLive(d.matches ?? []); setEnabled(d.enabled !== false); }
       } catch {}
     };
     setNow(Date.now());
@@ -31,7 +32,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     document.addEventListener("visibilitychange", vis);
     return () => { stop = true; clearInterval(a); clearInterval(b); document.removeEventListener("visibilitychange", vis); };
   }, []);
-  return <LiveCtx.Provider value={{ live, now }}>{children}</LiveCtx.Provider>;
+  return <LiveCtx.Provider value={{ live, now, enabled }}>{children}</LiveCtx.Provider>;
 }
 
 export function useMatchState(m: Parameters<typeof matchState>[0]): MatchState {
@@ -58,6 +59,9 @@ export function useLiveExtras(stats: LeagueStats[]): (Fixture & { s: string; lea
   }
   return out;
 }
+
+/** Onko football-data käytössä (muut sarjat, maalipörssi, pelaajat) */
+export function useDataEnabled() { const c: Ctx = useContext(LiveCtx); return c.enabled; }
 
 /** Pieni tilamerkki: LIVE, Tauko, Päättynyt, Keskeytetty, Siirretty, Peruttu */
 export function StatusPill({ s }: { s: MatchState }) {

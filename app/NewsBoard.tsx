@@ -8,6 +8,7 @@ import type { LeagueStats } from "@/lib/stats";
 import { Standings, Results, ScoreRail, UpcomingRail, LeaguePicker, Scorers } from "./Stats";
 import { useLeagues, useScorers } from "@/lib/leagues-client";
 import { useFreshStats, useFreshArticles } from "@/lib/fresh";
+import { useDataEnabled } from "@/lib/live";
 import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import { Card, Meta } from "./Cards";
@@ -93,6 +94,8 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
   const leagueStats = stats.filter((s) => isMain(s.source) && (league === "all" || s.source === league));
   const [pick, setPick] = useState("main");
   const [tableTab, setTableTab] = useState<"table" | "scorers">("table");
+  const dataOn = useDataEnabled();
+  useEffect(() => { if (!dataOn) { setTableTab("table"); setPick((p) => (p === "main" || isMain(p) ? p : "main")); } }, [dataOn]);
   useEffect(() => { setPick("main"); }, [league]);
   const other = pick !== "main" && !isMain(pick) && (view === "table" || view === "results");
   const loaded = useLeagues(other ? [pick] : []);
@@ -140,10 +143,10 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
         <main className="wrap">
           <div className="sec-head page-head"><h2>{tableTab === "table" ? t("standings") : t("scorers")}</h2></div>
           <LeaguePicker value={pick} onChange={setPick} />
-          <div className="subtabs" role="tablist">
+          {dataOn && <div className="subtabs" role="tablist">
             <button role="tab" aria-selected={tableTab === "table"} className={tableTab === "table" ? "on" : ""} onClick={() => setTableTab("table")}>{t("standing")}</button>
             <button role="tab" aria-selected={tableTab === "scorers"} className={tableTab === "scorers" ? "on" : ""} onClick={() => setTableTab("scorers")}>{t("scorers")}</button>
-          </div>
+          </div>}
           {pickLoading && <p className="muted pad loading">{t("loading")}</p>}
           <div className="duo">
             {tableTab === "table"
