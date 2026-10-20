@@ -1,0 +1,495 @@
+/* Futista — urheilusovelluksen yönäkymä: syvä grafiitti, pyöristetyt lasipinnat,
+   sarjat erottuvat omilla väreillään (La Liga = liekki, Valioliiga = violetti). */
+:root {
+  --bg: #f3f4f7; --surface: #ffffff; --surface-2: #eceef3; --fg: #0b0e14; --muted: #5d6676;
+  --line: rgba(11,14,20,.09); --glass: rgba(255,255,255,.72); --shadow: 0 10px 30px -12px rgba(11,14,20,.18);
+  --laliga: #f0472b; --pl: #7c3aed; --win: #0ea56b; --gold: #c27c0e;
+  --display: var(--f-display, "Unbounded"), "Arial Black", system-ui, sans-serif;
+  --ui: var(--f-ui, "Onest"), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --read: var(--f-read, "Source Serif 4"), Georgia, serif;
+  --mono: var(--f-mono, "JetBrains Mono"), ui-monospace, monospace;
+  --r-lg: 24px; --r-md: 18px; --r-sm: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #07090d; --surface: #11151c; --surface-2: #1a1f28; --fg: #f2f5f9; --muted: #8b95a7;
+    --line: rgba(255,255,255,.08); --glass: rgba(10,13,18,.68); --shadow: 0 16px 40px -16px rgba(0,0,0,.7);
+    --laliga: #ff5a3c; --pl: #a17cff; --win: #34d399; --gold: #f2b544; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #07090d; --surface: #11151c; --surface-2: #1a1f28; --fg: #f2f5f9; --muted: #8b95a7;
+  --line: rgba(255,255,255,.08); --glass: rgba(10,13,18,.68); --shadow: 0 16px 40px -16px rgba(0,0,0,.7);
+  --laliga: #ff5a3c; --pl: #a17cff; --win: #34d399; --gold: #f2b544; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--ui); -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+:focus-visible { outline: 2px solid var(--pl); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* Yläpalkki */
+/* Kiinteä yläpalkki: pysyy paikallaan koko vierityksen ajan (sticky hyppii iOS:llä) */
+:root { --appbar-h: 64px; }
+.appbar { position: fixed; top: 0; left: 0; right: 0; z-index: 30; padding-top: env(safe-area-inset-top, 0px); background: var(--glass); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border-bottom: 1px solid var(--line); transform: translateZ(0); will-change: transform; }
+.appbar-space { height: calc(var(--appbar-h) + env(safe-area-inset-top, 0px)); }
+.appbar-in { display: flex; align-items: center; gap: 16px; height: var(--appbar-h); }
+.logo { display: flex; align-items: center; gap: 10px; font: 700 19px/1 var(--display); letter-spacing: -0.035em; }
+.logo-mark { width: 32px; height: 32px; flex: none; background: url("/logo.svg") center / contain no-repeat; border-radius: 9px; }
+.seg { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--surface-2); margin-left: auto; }
+.seg button { padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: var(--muted); transition: background .2s, color .2s; white-space: nowrap; }
+.seg button.on { background: var(--surface); color: var(--fg); box-shadow: 0 2px 10px -4px rgba(0,0,0,.35); }
+.seg button.on-laliga { color: var(--laliga); }
+.seg button.on-valioliiga { color: var(--pl); }
+.typenav { display: flex; gap: 4px; }
+.typenav button { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: var(--muted); }
+.typenav button svg { width: 18px; height: 18px; }
+.typenav button.on { color: var(--fg); background: var(--surface-2); }
+
+/* Seurat */
+.clubs { display: flex; gap: 16px; overflow-x: auto; padding-block: 18px 4px; scrollbar-width: none; }
+.clubs::-webkit-scrollbar { display: none; }
+.club { flex: none; display: grid; justify-items: center; gap: 7px; width: 64px; }
+.club-ring { width: 60px; height: 60px; border-radius: 50%; padding: 3px; background: var(--line); transition: transform .2s; }
+.club.on .club-ring { background: conic-gradient(var(--c1), var(--c2), var(--c1)); }
+.club-badge { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--display); color: #fff; background: linear-gradient(135deg, var(--c1), var(--c2)); border: 3px solid var(--bg); }
+.club-all .club-badge { background: var(--surface-2); color: var(--fg); }
+.club span { font-size: 11.5px; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.2; }
+.club.on span { color: var(--fg); }
+.club:hover .club-ring { transform: scale(1.05); }
+
+main { padding-block: 18px 64px; display: grid; gap: 40px; }
+.empty { color: var(--muted); padding: 40px 0; }
+
+/* Kuva tai generatiivinen taide */
+.art { position: relative; overflow: hidden; background: var(--surface-2); }
+.art img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+.gen { position: absolute; inset: 0; }
+.gen svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .22; }
+.gen b { position: absolute; right: -4%; bottom: -14%; font: 800 clamp(70px, 16vw, 190px)/1 var(--display); color: rgba(255,255,255,.13); letter-spacing: -0.04em; white-space: nowrap; }
+
+/* Pääuutinen */
+.hero { position: relative; display: block; border-radius: var(--r-lg); overflow: hidden; min-height: 480px; box-shadow: var(--shadow); isolation: isolate; }
+.hero .art { position: absolute; inset: 0; }
+.hero::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(4,6,10,0) 25%, rgba(4,6,10,.55) 55%, rgba(4,6,10,.94) 100%); }
+.hero-txt { position: absolute; inset: auto 0 0 0; z-index: 2; padding: clamp(20px, 3vw, 36px); display: grid; gap: 14px; color: #fff; }
+.hero h1 { font: 700 clamp(26px, 3.4vw, 44px)/1.08 var(--display); letter-spacing: -0.03em; margin: 0; max-width: 20ch; text-wrap: balance; }
+.hero p { margin: 0; color: rgba(255,255,255,.78); font-size: 16.5px; max-width: 58ch; }
+.hero:hover .art img { transform: scale(1.04); }
+
+/* Merkinnät */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; padding: 5px 10px; border-radius: 999px; background: var(--surface-2); color: var(--fg); }
+.chip-laliga { background: color-mix(in srgb, var(--laliga) 16%, transparent); color: var(--laliga); }
+.chip-valioliiga { background: color-mix(in srgb, var(--pl) 16%, transparent); color: var(--pl); }
+.chip-tulokset { background: color-mix(in srgb, var(--win) 16%, transparent); color: var(--win); }
+.chip-siirtouutiset { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
+.hero .chip { background: rgba(255,255,255,.14); color: #fff; backdrop-filter: blur(8px); }
+.hero .chip-laliga { background: var(--laliga); }
+.hero .chip-valioliiga { background: var(--pl); }
+.live { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: pulse 1.8s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.meta time { font-family: var(--mono); font-size: 11.5px; }
+.meta .src { margin-left: auto; opacity: .85; }
+.hero .meta { color: rgba(255,255,255,.7); }
+
+/* Osiot */
+.sec { display: grid; gap: 16px; min-width: 0; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sec-head h2 { font: 700 20px/1.1 var(--display); letter-spacing: -0.02em; margin: 0; display: flex; align-items: center; gap: 10px; }
+.sec-head h2 i { width: 10px; height: 10px; border-radius: 3px; }
+.sec-head button { font-size: 13px; font-weight: 600; color: var(--muted); padding: 6px 12px; border-radius: 999px; background: var(--surface-2); }
+.sec-head button:hover { color: var(--fg); }
+.bar-laliga { background: var(--laliga); }
+.bar-valioliiga { background: var(--pl); }
+
+/* Tuoreimmat-rivi */
+.rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+.mini { scroll-snap-align: start; display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; padding: 10px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.mini .art { width: 76px; height: 76px; border-radius: var(--r-sm); }
+.mini .gen b { font-size: 34px; bottom: -6px; right: -4px; }
+.mini strong { font-size: 14px; line-height: 1.3; font-weight: 650; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mini time { display: block; font: 500 11px var(--mono); color: var(--muted); margin-bottom: 3px; }
+.mini:hover { border-color: color-mix(in srgb, var(--fg) 20%, transparent); }
+
+/* Korttiruudukko */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.card { display: grid; grid-template-rows: auto 1fr; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; min-width: 0; }
+.card .art { aspect-ratio: 16/10; }
+.card-body { display: grid; gap: 10px; align-content: start; padding: 16px 16px 14px; }
+.card h3 { font: 650 18.5px/1.25 var(--ui); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .meta { padding-top: 8px; border-top: 1px solid var(--line); margin-top: auto; }
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.card:hover .art img { transform: scale(1.05); }
+.grid .card:first-child.wide { grid-column: span 2; grid-template-columns: 1.2fr 1fr; grid-template-rows: auto; }
+.grid .card:first-child.wide .art { aspect-ratio: auto; min-height: 100%; }
+.grid .card:first-child.wide h3 { font: 700 22px/1.2 var(--display); letter-spacing: -0.025em; }
+
+.foot { border-top: 1px solid var(--line); }
+.foot-in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-block: 24px 32px; color: var(--muted); font-size: 13px; }
+
+/* Puhelimen alapalkki */
+.bottomnav { display: none; }
+
+/* Artikkeli */
+.progress { position: fixed; top: 0; left: 0; height: 3px; z-index: 40; background: linear-gradient(90deg, var(--laliga), var(--pl)); width: 0; }
+.story-top { position: relative; min-height: min(62vh, 560px); display: flex; align-items: flex-end; color: #fff; isolation: isolate; }
+.story-top .art { position: absolute; inset: 0; z-index: -2; }
+.story-top::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(4,6,10,.35) 0%, rgba(4,6,10,.2) 35%, rgba(4,6,10,.95) 100%); }
+.story-top .wrap { width: 100%; padding-block: 28px 34px; display: grid; gap: 16px; }
+.story-top h1 { font: 700 clamp(28px, 4.6vw, 54px)/1.06 var(--display); letter-spacing: -0.035em; margin: 0; max-width: 22ch; text-wrap: balance; }
+.story-top .meta { color: rgba(255,255,255,.75); }
+.story-top .chip { background: rgba(255,255,255,.15); color: #fff; }
+.story-top .chip-laliga { background: var(--laliga); }
+.story-top .chip-valioliiga { background: var(--pl); }
+.back { position: absolute; top: 16px; left: max(16px, env(safe-area-inset-left, 0px)); z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 999px; background: rgba(0,0,0,.4); backdrop-filter: blur(10px); color: #fff; font-weight: 600; font-size: 13.5px; }
+.story { max-width: 720px; margin: 0 auto; padding-block: 32px 40px; display: grid; gap: 22px; }
+.story-body { font: 19px/1.75 var(--read); min-width: 0; overflow-wrap: anywhere; }
+.story-body p { margin: 0 0 1.15em; }
+.story-body > p:first-child { font: 600 20px/1.6 var(--ui); }
+.story-body h2, .story-body h3 { font: 700 22px/1.25 var(--display); letter-spacing: -0.02em; margin: 1.6em 0 .5em; }
+.story-body a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pl); }
+.story-body img { border-radius: var(--r-sm); height: auto; margin-block: 10px; }
+.story-body figcaption { font: 13px var(--ui); color: var(--muted); }
+.story-body blockquote { margin: 1.4em 0; padding: 16px 20px; border-radius: var(--r-sm); background: var(--surface); border-left: 4px solid var(--pl); font-style: italic; }
+.source { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.source a { color: var(--fg); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags span { font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.more { max-width: 1200px; margin: 0 auto; padding-bottom: 56px; }
+
+@media (max-width: 960px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Alle 1120 px: välilehdet alapalkkiin, jotta yläpalkki mahtuu kaikilla kielillä */
+@media (max-width: 1120px) { .typenav.top { display: none; } }
+@media (max-width: 640px) {
+  :root { --appbar-h: 58px; }
+  .logo span { display: none; }
+  .seg button { padding: 7px 11px; font-size: 13px; }
+  .grid { grid-template-columns: 1fr; }
+  .grid .card:first-child.wide { grid-column: auto; grid-template-columns: 1fr; }
+  .grid .card:first-child.wide .art { aspect-ratio: 16/10; }
+  .hero { min-height: 430px; border-radius: 20px; }
+  .hero p { display: none; }
+}
+@media (max-width: 1120px) {
+  main { gap: 32px; padding-bottom: 110px; }
+  .bottomnav { display: flex; position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: min(calc(100% - 24px), 420px); justify-content: space-around; padding: 8px; border-radius: 22px; background: var(--glass); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .bottomnav button { display: grid; justify-items: center; gap: 3px; padding: 6px 10px; border-radius: 14px; font-size: 11px; font-weight: 600; color: var(--muted); flex: 1; }
+  .bottomnav button svg { width: 21px; height: 21px; }
+  .bottomnav button.on { color: var(--fg); background: var(--surface-2); }
+  .foot-in { padding-bottom: 110px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ---------- Tilastot ---------- */
+:root { --ucl: #2563eb; --uel: #ea8a0c; --uecl: #0d9488; --rel: #e11d48; }
+.page-head { padding-top: 6px; }
+.page-head h2 { font-size: 26px; }
+.muted { color: var(--muted); font-size: 13px; }
+.pad { padding: 16px; }
+.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; min-width: 0; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.panel-head h3 { margin: 0; font: 700 16px/1 var(--display); letter-spacing: -0.02em; display: flex; align-items: center; gap: 9px; }
+.panel-head h3 i { width: 10px; height: 10px; border-radius: 3px; }
+.panel-src { padding: 10px 16px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+
+.badge { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--muted); font: 700 8.5px var(--ui); letter-spacing: 0.02em; }
+
+.tbl-wrap { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.tbl th { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 10px 6px; text-align: center; }
+.tbl td { padding: 9px 6px; text-align: center; border-top: 1px solid var(--line); }
+.tbl .l { text-align: left; }
+.tbl .tm { display: flex; align-items: center; gap: 10px; font-weight: 600; white-space: nowrap; }
+.tbl .pos { width: 40px; font-weight: 700; position: relative; }
+.tbl tr[class^="z-"] .pos::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 3px 3px 0; }
+.tbl tr.z-ucl .pos::before, .zk.z-ucl { background: var(--ucl); }
+.tbl tr.z-uel .pos::before, .zk.z-uel { background: var(--uel); }
+.tbl tr.z-uecl .pos::before, .zk.z-uecl { background: var(--uecl); }
+.tbl tr.z-rel .pos::before, .zk.z-rel { background: var(--rel); }
+.tbl .pts { font-weight: 800; font-size: 15px; }
+.tbl .pos-gd { color: var(--win); }
+.tbl .neg-gd { color: var(--rel); }
+.tbl tbody tr:hover { background: var(--surface-2); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 12px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.zk { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; align-items: start; }
+.day + .day { border-top: 1px solid var(--line); }
+.day-label { padding: 12px 16px 4px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.match { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 9px 16px; font-size: 14px; }
+.match .side { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--muted); font-weight: 500; }
+.match .home { justify-content: flex-end; text-align: right; }
+.match .side.win { color: var(--fg); font-weight: 700; }
+.match .badge, .match .crest { width: 28px; height: 28px; }
+.score { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 10px; background: var(--surface-2); font: 700 15px var(--mono); font-variant-numeric: tabular-nums; }
+.score i { font-style: normal; color: var(--muted); font-weight: 500; }
+
+.rail.scores { grid-auto-columns: minmax(200px, 220px); }
+.score-card { scroll-snap-align: start; display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); text-align: left; min-width: 0; }
+.score-card:hover { border-color: color-mix(in srgb, var(--fg) 20%, transparent); }
+.sc-top { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.sc-top [class^="dot-"] { width: 7px; height: 7px; border-radius: 50%; }
+.dot-laliga { background: var(--laliga); }
+.dot-valioliiga { background: var(--pl); }
+.sc-top .ft { margin-left: auto; font: 500 10.5px var(--mono); letter-spacing: 0.02em; }
+.sc-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; font-size: 14px; color: var(--muted); }
+.sc-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-row b { font: 700 16px var(--mono); }
+.sc-row.win { color: var(--fg); font-weight: 700; }
+
+@media (max-width: 640px) {
+  .tbl .opt { display: none; }
+  .tbl { font-size: 13.5px; }
+  .match { padding-inline: 12px; gap: 8px; font-size: 13.5px; }
+  /* Tulokset puhelimella: logo nimen yläpuolella, nimet keskitetty */
+  .match { align-items: start; padding-block: 12px; }
+  .match .side { flex-direction: column; justify-content: flex-start; gap: 6px; text-align: center; line-height: 1.2; }
+  .match .home { flex-direction: column-reverse; justify-content: flex-end; }
+  .match .score { margin-top: 2px; }
+  .match .badge, .match .crest { width: 30px; height: 30px; }
+  .match .badge { font-size: 9px; }
+}
+
+/* ================================================================
+   MOBIILI: toimii 320 px (iPhone SE) → suuret puhelimet, Android,
+   lovi- ja reikäkamerapuhelimet, vaakatila ja taitettavat.
+   ================================================================ */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: hidden; overscroll-behavior-y: none; }
+a, button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+h1, h2, h3 { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+.story-body table { display: block; max-width: 100%; overflow-x: auto; }
+.story-body iframe, .story-body video { max-width: 100%; }
+
+/* Hover-efektit vain hiirelle: kosketusnäytöllä ne jäisivät "jumiin" napautuksen jälkeen */
+@media (hover: none) {
+  .card:hover { transform: none; box-shadow: none; }
+  .card:hover .art img, .hero:hover .art img { transform: none; }
+  .card:hover h3, .hero:hover h1 { text-decoration: none; }
+  .club:hover .club-ring { transform: none; }
+  .card:active, .mini:active, .score-card:active, .hero:active { transform: scale(.985); transition: transform .12s; }
+  .club:active .club-ring, .bottomnav button:active, .seg button:active { transform: scale(.94); }
+}
+
+/* Puhelimet */
+@media (max-width: 640px) {
+  body { font-size: 15.5px; }
+  main { padding-top: 14px; }
+
+  /* Yläpalkki: sarjavalitsin venyy jäljellä olevaan tilaan eikä koskaan työnnä sivua leveämmäksi */
+  .appbar-in { gap: 10px; }
+  .seg { flex: 1; min-width: 0; max-width: 300px; }
+  .seg button { flex: 1; min-width: 0; padding: 8px 6px; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Vaakarivit ulottuvat reunasta reunaan ja napsahtavat korttiin */
+  .rail { margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); scroll-padding-inline: 16px; }
+  .clubs { scroll-padding-inline: 16px; }
+  .clubs { gap: 12px; padding-top: 14px; }
+  .club { width: 58px; }
+  .club-ring { width: 54px; height: 54px; }
+  .rail { grid-auto-columns: 82%; }
+  .rail.scores { grid-auto-columns: 64%; }
+
+  /* Pääuutinen: otsikko mahtuu, pitkät suomen sanat tavuttuvat */
+  .hero { min-height: 0; aspect-ratio: 4 / 5; max-height: 72svh; }
+  .hero h1 { font-size: clamp(21px, 6.4vw, 30px); line-height: 1.12; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .hero .meta .src { display: none; }
+  .hero-txt { gap: 10px; }
+
+  .sec-head h2 { font-size: 18px; }
+  .page-head h2 { font-size: 22px; }
+  .card h3 { font-size: 17.5px; }
+  .card-body { padding: 14px 14px 12px; }
+  .grid { gap: 12px; }
+  .grid .card:first-child.wide h3 { font-size: 19px; }
+
+  /* Artikkeli */
+  .story-top { min-height: 58svh; }
+  .story-top h1 { font-size: clamp(23px, 7vw, 34px); line-height: 1.1; }
+  .story-top .wrap { padding-block: 64px 24px; }
+  .back { top: calc(12px + env(safe-area-inset-top, 0px)); padding: 10px 14px; }
+  .story { padding-block: 24px 32px; gap: 18px; }
+  .story-body { font-size: 18px; line-height: 1.7; }
+  .story-body > p:first-child { font-size: 18.5px; }
+  .source { font-size: 13.5px; flex-wrap: wrap; }
+
+  /* Taulukot ja tulokset */
+  .panel-head { padding: 12px 14px; }
+  .tbl td { padding: 9px 4px; }
+  .tbl th { padding: 9px 4px; }
+  .tbl .pos { width: 30px; }
+  .tbl .tm { gap: 8px; white-space: normal; line-height: 1.2; }
+  .badge { width: 24px; height: 24px; font-size: 8px; }
+  .match { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding-inline: 12px; }
+  .score { padding: 5px 8px; font-size: 14px; }
+
+  .foot-in { flex-direction: column; align-items: flex-start; }
+}
+
+/* Pienimmät puhelimet (iPhone SE 1. sukupolvi, pienet Androidit) */
+@media (max-width: 360px) {
+  .logo-mark { width: 28px; height: 28px; }
+  .seg button { font-size: 12px; padding: 7px 4px; }
+  .clubs { gap: 8px; }
+  .club { width: 52px; }
+  .club-ring { width: 50px; height: 50px; }
+  .club span { font-size: 10.5px; }
+  .rail { grid-auto-columns: 88%; }
+  .rail.scores { grid-auto-columns: 74%; }
+  .hero { aspect-ratio: 3 / 4; }
+  .tbl { font-size: 12.5px; }
+  .tbl .badge { display: none; }
+  .bottomnav { width: calc(100% - 16px); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); padding: 6px; }
+  .bottomnav button { padding: 6px 4px; font-size: 10.5px; }
+}
+
+/* Vaakatila puhelimella: matala näyttö */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero { aspect-ratio: auto; min-height: 0; height: 86svh; max-height: none; }
+  .hero p { display: none; }
+  .story-top { min-height: 92svh; }
+  .bottomnav { padding: 4px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .bottomnav button { grid-auto-flow: column; gap: 6px; align-items: center; padding: 6px 12px; }
+  .bottomnav button svg { width: 18px; height: 18px; }
+}
+
+/* Taitettavat ja tabletit pystyssä: kaksi korttisaraketta, isompi pääuutinen */
+@media (min-width: 641px) and (max-width: 960px) {
+  .hero { min-height: 440px; }
+  .rail { grid-auto-columns: minmax(280px, 42%); }
+}
+
+/* Joukkueiden logot */
+.crest { flex: none; width: 26px; height: 26px; object-fit: contain; }
+@media (max-width: 640px) { .crest { width: 24px; height: 24px; } }
+@media (max-width: 360px) { .tbl .crest { display: none; } .match .badge, .match .crest { width: 26px; height: 26px; } }
+
+/* ---------- Asenna sovellus -kortti ---------- */
+.install { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: min(calc(100% - 24px), 460px); display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center;
+  padding: 12px 12px 12px 14px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 20px 50px -18px rgba(0,0,0,.55); animation: install-in .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes install-in { from { transform: translate(-50%, 24px); opacity: 0; } }
+.install-icon { width: 48px; height: 48px; border-radius: 12px; }
+.install-txt { display: grid; gap: 2px; min-width: 0; font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+.install-txt strong { color: var(--fg); font-size: 15px; }
+.install-steps { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.install-steps b { color: var(--fg); }
+.ib { display: inline-flex; align-items: center; gap: 4px; vertical-align: -3px; }
+.install-actions { display: flex; align-items: center; gap: 4px; align-self: start; }
+.install-btn { padding: 9px 14px; border-radius: 999px; background: var(--fg); color: var(--bg); font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+.install-done { padding: 9px 10px; border-radius: 999px; font-weight: 600; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.install-done:hover { color: var(--fg); background: var(--surface-2); }
+.install-actions { flex-wrap: wrap; justify-content: flex-end; }
+.install-x { width: 32px; height: 32px; border-radius: 50%; color: var(--muted); font-size: 14px; }
+.install-x:hover { background: var(--surface-2); }
+/* Puhelimella kortti alapalkin yläpuolelle */
+@media (max-width: 1120px) { .install { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 520px) { .install { grid-template-columns: auto 1fr; align-items: start; } .install-actions { grid-column: 1 / -1; justify-content: flex-end; align-self: auto; } .install-x { position: absolute; top: 8px; right: 8px; } .install-txt { padding-right: 28px; } }
+/* Asennettuna sovelluksena: tila yläreunaan iPhonen tilapalkille */
+@media (display-mode: standalone) { .install { display: none; } }
+
+/* ---------- Kielivalitsin ---------- */
+.lang { position: relative; flex: none; }
+.lang-btn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--fg); font-weight: 700; font-size: 13px; letter-spacing: .03em; }
+.lang-btn svg { color: var(--muted); }
+.lang-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; list-style: none; margin: 0; padding: 6px; min-width: 180px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 18px 40px -14px rgba(0,0,0,.5); }
+.lang-menu button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 14.5px; font-weight: 500; text-align: left; }
+.lang-menu button b { font-size: 11px; letter-spacing: .06em; color: var(--muted); width: 22px; }
+.lang-menu button i { margin-left: auto; font-style: normal; color: var(--pl); font-weight: 700; }
+.lang-menu button:hover, .lang-menu button.on { background: var(--surface-2); }
+.lang-note { margin: 0; padding-top: 12px; font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) {
+  .lang-btn { height: 36px; padding: 0 10px; gap: 4px; }
+  .lang-btn svg { width: 15px; height: 15px; }
+}
+@media (max-width: 360px) { .lang-btn svg { display: none; } .lang-btn { padding: 0 9px; } }
+
+/* Sarjavalitsin: lyhyt nimi puhelimella */
+.seg .short { display: none; }
+@media (max-width: 640px) { .seg .full { display: none; } .seg .short { display: inline; } }
+
+/* ---------- Alapalkki ---------- */
+.foot-in { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px 24px; padding-block: 28px 34px; }
+.foot-brand { display: grid; gap: 6px; }
+.foot-brand > span { font-size: 13px; color: var(--muted); }
+.foot-links { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; font-weight: 600; }
+.foot-links a { color: var(--muted); }
+.foot-links a:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+.foot-copy { grid-column: 1 / -1; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 640px) { .foot-in { grid-template-columns: 1fr; } }
+
+/* ---------- Tietosuoja / Tietoa ---------- */
+.legal-back { margin-left: auto; font-weight: 600; font-size: 14px; color: var(--muted); }
+.legal-back:hover { color: var(--fg); }
+.legal { max-width: 720px; padding-block: 36px 56px; display: grid; gap: 22px; }
+.legal h1 { font: 700 clamp(28px, 5vw, 40px)/1.1 var(--display); letter-spacing: -0.03em; margin: 0; }
+.legal-intro { font-size: 18px; line-height: 1.6; margin: 0; }
+.legal section { display: grid; gap: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+.legal h2 { font: 700 17px/1.3 var(--display); letter-spacing: -0.015em; margin: 0; }
+.legal p { margin: 0; color: var(--muted); line-height: 1.65; max-width: 68ch; }
+.legal a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pl); }
+.legal-date { font-size: 13px; }
+@media (max-width: 1120px) { .foot-in { padding-bottom: 110px; } }
+
+/* ---------- Suosikit ---------- */
+.favs { gap: 28px; }
+.fav-hint { margin: 0; color: var(--muted); max-width: 60ch; }
+.heart { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--muted); transition: color .2s, transform .2s, background .2s; }
+.heart:hover { background: var(--surface-2); color: var(--fg); }
+.heart.on { color: #ff3d6e; }
+.heart.on svg { animation: pop .35s cubic-bezier(.2,.9,.3,1.4); }
+@keyframes pop { 40% { transform: scale(1.3); } }
+.team-pick ul { list-style: none; margin: 0; padding: 4px 6px 6px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.team-pick li { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px; border-radius: 12px; font-weight: 600; font-size: 14.5px; min-width: 0; }
+.team-pick li span:not(.badge) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-pick li:hover { background: var(--surface-2); }
+.team-pick .panel-head { border-bottom: 1px solid var(--line); }
+.favs .panel .day:first-child { border-top: 0; }
+.tbl tr.fav td { background: color-mix(in srgb, #ff3d6e 9%, transparent); }
+.tbl tr.fav .tm::after { content: "♥"; color: #ff3d6e; font-size: 12px; }
+
+/* Ilmoituskortti ja kytkin */
+.notify { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 16px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
+.notify.is-on { border-color: color-mix(in srgb, var(--pl) 45%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--pl) 10%, var(--surface)), var(--surface) 60%); }
+.notify-ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); }
+.notify.is-on .notify-ico { background: linear-gradient(135deg, var(--laliga), var(--pl)); color: #fff; }
+.notify-txt { display: grid; gap: 3px; min-width: 0; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.notify-txt strong { color: var(--fg); font-size: 15px; }
+.notify-err { color: var(--rel); }
+.switch { width: 52px; height: 32px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); position: relative; transition: background .2s; flex: none; }
+.switch i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); transition: transform .22s cubic-bezier(.3,.7,.3,1.2); }
+.switch.on { background: var(--win); border-color: transparent; }
+.switch.on i { transform: translateX(20px); }
+.switch:disabled { opacity: .6; }
+
+/* Alapalkissa viisi kohtaa */
+@media (max-width: 1120px) {
+  .bottomnav { width: min(calc(100% - 16px), 480px); }
+  .bottomnav button { padding: 6px 4px; font-size: 10.5px; min-width: 0; }
+  .bottomnav button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+}
+@media (max-width: 360px) { .bottomnav button span { font-size: 9.5px; } }
+
+/* ---------- Tiiviimmät välit sivujen yläosassa ---------- */
+.page-head { padding-top: 0; }
+main > .page-head { margin-bottom: -22px; }          /* otsikko → sisältö noin 18 px */
+.favs > .page-head { margin-bottom: -10px; }
+@media (max-width: 640px) { main > .page-head { margin-bottom: -18px; } .favs > .page-head { margin-bottom: -12px; } }
+.legal { padding-top: 24px; }
+@media (min-width: 641px) and (max-width: 1120px) { .bottomnav button { font-size: 12.5px; padding: 8px 10px; } .bottomnav { width: auto; } }

@@ -1,0 +1,85 @@
+import { XMLParser } from "fast-xml-parser";
+import { SOURCES, type Source, type SourceId } from "./sources";
+
+export type Article = {
+  id: string;
+  title: string;
+  link: string;
+  author: string;
+  date: string; // ISO
+  type: string; // Tulokset, Uutiset, Siirtouutiset...
+  tags: string[];
+  image: string | null;
+  excerpt: string;
+  source: SourceId;
+  sourceName: string;
+  league: string;
+};
+
+const TYPES = ["Tulokset", "Uutiset", "Siirtouutiset", "Pääuutiset", "Valmentajat"];
+const IGNORE = ["Uncategorized", "Oletus", "UCL"];
+
+export function decode(s: string) {
+  return s
+    .replace(/&#8230;/g, "…")
+    .replace(/&#822[01];/g, "”")
+    .replace(/&#821[67];/g, "’")
+    .replace(/&#821[12];/g, "–")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, '"');
+}
+
+const toArray = <T,>(x: T | T[] | undefined): T[] => (!x ? [] : Array.isArray(x) ? x : [x]);
+
+async function readFeed(src: Source): Promise<Article[]> {
+  let xml: string;
+  try {
+    const res = await fetch(src.feed, {
+      next: { revalidate: 600 }, // päivittyy 10 min välein
+      headers: { "User-Agent": "Futista/1.0" },
+    });
+    if (!res.ok) return [];
+    xml = await res.text();
+  } catch {
+    return [];
+  }
+  const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: "__cdata" });
+  const items = toArray(parser.parse(xml)?.rss?.channel?.item);
+
+  return items.map((it: any): Article => {
+    const desc: string = it.description?.__cdata ?? it.description ?? "";
+    const img = desc.match(/src="([^"]+)"/)?.[1] ?? null;
+    const text = decode(desc.replace(/<[^>]+>/g, " ").replace(/\[(…|&#8230;)\]/g, ""))
+      .replace(/\s+/g, " ")
+      .trim();
+    const excerpt = (text.match(/[^.!?]+[.!?]+/g) ?? [text]).slice(0, 2).join(" ").trim();
+    const cats = toArray(it.category).map((c: any) => decode(String(c?.__cdata ?? c)));
+    return {
+      id: String(it.guid?.["#text"] ?? it.guid ?? it.link),
+      title: decode(String(it.title)),
+      link: String(it.link),
+      author: decode(String(it["dc:creator"]?.__cdata ?? it["dc:creator"] ?? "")),
+      date: new Date(it.pubDate).toISOString(),
+      type: cats.find((c) => TYPES.includes(c)) ?? "Uutiset",
+      tags: cats.filter((c) => !TYPES.includes(c) && !IGNORE.includes(c)),
+      image: img,
+      excerpt,
+      source: src.id,
+      sourceName: src.name,
+      league: src.league,
+    };
+  });
+}
+
+export async function getArticles(): Promise<Article[]> {
+  const all = (await Promise.all(SOURCES.map(readFeed))).flat();
+  return all.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function timeAgo(iso: string) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (diff < 60) return `${Math.max(1, Math.round(diff))} min`;
+  if (diff < 1440) return `${Math.round(diff / 60)} t`;
+  return new Date(iso).toLocaleDateString("fi-FI", { day: "numeric", month: "numeric" });
+}

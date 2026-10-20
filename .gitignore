@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+.vercel/
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
+# ilmoitusten salaiset avaimet: ei koskaan GitHubiin
+futista-avaimet.txt

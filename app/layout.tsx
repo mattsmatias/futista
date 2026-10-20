@@ -1,0 +1,48 @@
+import "./globals.css";
+import type { Metadata, Viewport } from "next";
+import InstallApp from "./InstallApp";
+import { I18nProvider } from "@/lib/i18n";
+import { FavoritesProvider } from "@/lib/favorites";
+import { Unbounded, Onest, Source_Serif_4, JetBrains_Mono } from "next/font/google";
+
+const display = Unbounded({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--f-display", display: "swap" });
+const ui = Onest({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--f-ui", display: "swap" });
+const read = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600"], variable: "--f-read", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["500"], variable: "--f-mono", display: "swap" });
+
+export const metadata: Metadata = {
+  title: "Futista – jalkapallouutiset suomeksi",
+  description: "Tuoreimmat La Liga- ja Valioliiga-uutiset, tulokset ja siirrot suomeksi.",
+  appleWebApp: { capable: true, title: "Futista", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/icons/favicon-32.png", sizes: "32x32" }, { url: "/icons/icon-192.png", sizes: "192x192" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+// Koko näytön käyttö lovipuhelimissa + selainpalkin väri teeman mukaan
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f3f4f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#07090d" },
+  ],
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="fi" className={`${display.variable} ${ui.variable} ${read.variable} ${mono.variable}`}>
+      <body>
+        <I18nProvider>
+          <FavoritesProvider>
+            {children}
+            <InstallApp />
+          </FavoritesProvider>
+        </I18nProvider>
+      </body>
+    </html>
+  );
+}
