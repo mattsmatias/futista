@@ -31,7 +31,8 @@ const kOf = (j) => { const m = (j?.matches || []).find((x) => (x.homeName || "")
     setInterval(() => poll("cdn", `${U}/api/live`), 2000),
     setInterval(async () => { try { const txt = await p.evaluate(() => document.body.innerText); const m = txt.match(/Testiseura Kotka[\s\S]{0,40}?(\d+)\s*[–-]\s*(\d+)/); seen.dom.push({ t: Date.now(), k: m ? +m[1] : null }); } catch {} }, 2000),
   ];
-  while (Date.now() < end) await new Promise((r) => setTimeout(r, 5000));
+  // välitallennus 30 s välein (havainnot säilyvät, vaikka ajo keskeytyisi)
+  while (Date.now() < end) { await new Promise((r) => setTimeout(r, 30000)); try { fs.writeFileSync("latency-partial.json", JSON.stringify({ seen })); } catch {} }
   timers.forEach(clearInterval);
   const log = await (await fetch(`${SRC}/__log`)).json();
   fs.writeFileSync("latency-raw.json", JSON.stringify({ log, seen }, null, 1));
