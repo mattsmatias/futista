@@ -14,7 +14,7 @@ export default function SubBar() {
           <a href="/" className="subback" onClick={back} aria-label={t("back")}>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
           </a>
-          <a href="/" className="logo"><i className="logo-mark" /><span>Futista</span></a>
+          <a href="/" className="logo"><span>Futista</span></a>
           <span className="grow" />
           <LangSwitch />
         </div>

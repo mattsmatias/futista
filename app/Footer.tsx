@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="foot">
       <div className="wrap foot-in">
         <div className="foot-brand">
-          <a href="/" className="logo"><i className="logo-mark" />Futista</a>
+          <a href="/" className="logo">Futista</a>
           <span>{t("tagline")}</span>
         </div>
         <nav className="foot-links" aria-label={t("footerNav")}>

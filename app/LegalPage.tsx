@@ -28,7 +28,7 @@ export default function LegalPage({ kind }: { kind: "privacy" | "about" }) {
     <>
       <header className="appbar">
         <div className="wrap appbar-in">
-          <a href="/" className="logo"><i className="logo-mark" /><span>Futista</span></a>
+          <a href="/" className="logo"><span>Futista</span></a>
           <a href="/" className="legal-back">{t("back")}</a>
           <LangSwitch />
         </div>

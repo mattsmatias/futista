@@ -91,9 +91,9 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
 
   return (
     <>
-      <header className="appbar">
+      <header className="appbar has-seg">
         <div className="wrap appbar-in">
-          <a href="/" className="logo"><i className="logo-mark" /><span>Futista</span></a>
+          <a href="/" className="logo"><span>Futista</span></a>
           <TypeNav type={type} setType={setType} className="typenav top" />
           <div className="seg" role="tablist" aria-label="Sarja">
             <button className={league === "all" ? "on" : ""} onClick={() => { setLeague("all"); setClub(null); }}>{t("all")}</button>
@@ -107,7 +107,7 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
           <LangSwitch />
         </div>
       </header>
-      <div className="appbar-space" />
+      <div className="appbar-space tall" />
 
       {view === "news" && <div className="wrap clubs" role="list" aria-label="Seurat">
         <button className={`club club-all${!club ? " on" : ""}`} style={{ ["--c1" as any]: "#ff5a3c", ["--c2" as any]: "#8b5cf6" }} onClick={() => setClub(null)}>
