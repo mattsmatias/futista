@@ -51,7 +51,9 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
   const i = useI18n();
   const { t } = i;
 
-  const clubs = league === "all" ? SOURCES.flatMap((s) => s.clubs.slice(0, 3)) : SOURCES.find((s) => s.id === league)!.clubs;
+  const clubs = league === "all"
+    ? SOURCES.filter((s) => s.id !== "ucl").flatMap((s) => s.clubs.slice(0, 3))
+    : SOURCES.find((s) => s.id === league)!.clubs;
   const list = useMemo(
     () =>
       articles
@@ -84,8 +86,8 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
             <button className={league === "all" ? "on" : ""} onClick={() => { setLeague("all"); setClub(null); }}>{t("all")}</button>
             {SOURCES.map((s) => (
               <button key={s.id} className={league === s.id ? `on on-${s.id}` : ""} onClick={() => { setLeague(s.id); setClub(null); }}>
-                <span className="full">{i.league(s.id, s.league)}</span>
-                <span className="short">{s.id === "valioliiga" ? t("lgs_valioliiga") : i.league(s.id, s.league)}</span>
+                <span className={s.id === "ucl" ? "full long" : "full"}>{i.league(s.id, s.league)}</span>
+                <span className={s.id === "ucl" ? "short alt" : "short"}>{s.id === "laliga" ? i.league(s.id, s.league) : t(`lgs_${s.id}` as Key)}</span>
               </button>
             ))}
           </div>

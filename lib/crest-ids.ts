@@ -37,7 +37,7 @@ const IDS: Record<string, number> = {
   "manchester united": 66, "man utd": 66, "man united": 66,
   newcastle: 67, "newcastle united": 67,
   sunderland: 71,
-  tottenham: 73,
+  tottenham: 73, "tottenham hotspur": 73,
   wolves: 76, wolverhampton: 76,
   burnley: 328,
   leeds: 341, "leeds united": 341,
@@ -48,7 +48,39 @@ const IDS: Record<string, number> = {
   brentford: 402,
   "west ham": 563,
   bournemouth: 1044,
+  // Mestarien liiga (muut sarjat)
+  "bayern munchen": 5, bayern: 5, "bayern munich": 5,
+  "borussia dortmund": 4, dortmund: 4,
+  "bayer leverkusen": 3, "bayer 04 leverkusen": 3, leverkusen: 3,
+  stuttgart: 10,
+  "eintracht frankfurt": 19,
+  "rb leipzig": 721, leipzig: 721,
+  "paris saint germain": 524, psg: 524, "paris sg": 524,
+  "olympique marseille": 516, "olympique de marseille": 516, marseille: 516,
+  monaco: 548,
+  lille: 521,
+  "olympique lyonnais": 523, lyon: 523,
+  inter: 108, internazionale: 108, "internazionale milano": 108, "inter milan": 108,
+  milan: 98,
+  juventus: 109,
+  napoli: 113,
+  atalanta: 102,
+  roma: 100,
+  lazio: 110,
+  bologna: 103,
+  fiorentina: 99,
+  benfica: 1903,
+  porto: 503,
+  sporting: 498, "sporting lisbon": 498,
+  "psv eindhoven": 674, psv: 674,
+  ajax: 678,
+  feyenoord: 675,
+  galatasaray: 610,
 };
+
+// Etu- ja jälkiliitteet, jotka eivät kuulu seuran tunnistenimeen (esim. "AS Roma", "Liverpool FC", "Real Betis Balompie")
+const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "balompie", "ss", "bc", "us", "acf", "1907", "1909", "1913"]);
+const strip = (n: string) => n.split(" ").filter((w) => !FILLER.has(w)).join(" ");
 
 // Seurat, joita ei löydy football-data.orgin julkisesta palvelusta: logo TheSportsDB:stä
 const URLS: Record<string, string> = {
@@ -63,7 +95,7 @@ const URLS: Record<string, string> = {
 
 export function staticCrest(name: string): string | undefined {
   const n = norm(name);
-  if (URLS[n]) return URLS[n];
-  const id = IDS[n];
+  if (URLS[n] ?? URLS[strip(n)]) return URLS[n] ?? URLS[strip(n)];
+  const id = IDS[n] ?? IDS[strip(n)];
   return id ? `https://crests.football-data.org/${id}.png` : undefined;
 }

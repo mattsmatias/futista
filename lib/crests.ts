@@ -4,7 +4,7 @@
 
 import { staticCrest } from "./crest-ids";
 
-const COMPETITIONS = ["PL", "PD"]; // Valioliiga, La Liga
+const COMPETITIONS = ["PL", "PD", "CL"]; // Valioliiga, La Liga, Mestarien liiga
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();

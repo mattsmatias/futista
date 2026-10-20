@@ -18,6 +18,8 @@ const D = {
   lg_laliga: ["La Liga", "La Liga", "La Liga"],
   lg_valioliiga: ["Valioliiga", "Premier League", "Premier League"],
   lgs_valioliiga: ["Valioliiga", "Premier", "Premier"],
+  lg_ucl: ["Mestarien liiga", "Champions League", "Champions League"],
+  lgs_ucl: ["Mestarit", "CL", "CL"],
   type_Pääuutiset: ["Pääuutiset", "Toppnyheter", "Top stories"],
   type_Valmentajat: ["Valmentajat", "Tränare", "Managers"],
   source: ["Lähde", "Källa", "Source"],
@@ -43,6 +45,8 @@ const D = {
   zone_uel: ["Eurooppa-liiga", "Europa League", "Europa League"],
   zone_uecl: ["Konferenssiliiga", "Conference League", "Conference League"],
   zone_rel: ["Putoaminen", "Nedflyttning", "Relegation"],
+  zone_r16: ["Suoraan 16 parhaan joukkoon", "Direkt till åttondelsfinal", "Straight to round of 16"],
+  zone_po: ["Pudotuspelikarsinta", "Utslagsplayoff", "Knockout play-offs"],
   tagline: ["La Liga ja Valioliiga suomeksi", "Fotbollsnyheter: La Liga och Premier League", "Football news: La Liga and Premier League"],
   about: ["Tietoa ja lähteet", "Om och källor", "About and sources"],
   privacy: ["Tietosuoja", "Integritet", "Privacy"],
@@ -166,7 +170,7 @@ export function useI18n() {
     setLang,
     t,
     league: (source: string, fallback: string) =>
-      source === "laliga" || source === "valioliiga" ? t(`lg_${source}` as Key) : fallback,
+      source === "laliga" || source === "valioliiga" || source === "ucl" ? t(`lg_${source}` as Key) : fallback,
     type: (ty: string) =>
       ty === "Tulokset" ? t("results") : ty === "Siirtouutiset" ? t("transfers")
         : ty === "Pääuutiset" ? t("type_Pääuutiset") : ty === "Valmentajat" ? t("type_Valmentajat") : ty,

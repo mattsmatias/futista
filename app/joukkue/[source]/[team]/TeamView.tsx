@@ -22,7 +22,7 @@ export default function TeamView({ s, team, news }: { s: LeagueStats; team: Team
   const next = fixtures[0];
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
-  const style = { ["--c1" as any]: club?.c1 ?? `var(--${s.source === "laliga" ? "laliga" : "pl"})`, ["--c2" as any]: club?.c2 ?? "var(--surface-2)" };
+  const style = { ["--c1" as any]: club?.c1 ?? ({ laliga: "var(--laliga)", valioliiga: "var(--pl)", ucl: "var(--cl)" } as Record<string, string>)[s.source], ["--c2" as any]: club?.c2 ?? "var(--surface-2)" };
 
   return (
     <>

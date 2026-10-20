@@ -117,8 +117,8 @@ export async function getFullArticle(parts: string[]): Promise<FullArticle | nul
     html: body.replace(/<(h2|h3|p)>\s*<\/\1>/g, ""),
     source: url,
     sourceName: src.name,
-    league: src.league,
-    sourceId: src.id,
+    league: feed?.league ?? src.league,
+    sourceId: feed?.source ?? src.id, // Mestarien liigan jutut näkyvät omalla sarjamerkillään
     tags: feed?.tags ?? [],
     type: feed?.type ?? "Uutiset",
   };

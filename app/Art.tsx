@@ -25,7 +25,7 @@ const PITCH = (
 export function GenArt({ seed, tags, source }: { seed: string; tags: string[]; source: string }) {
   const club = allClubs.find((c) => tags.includes(c.tag));
   const h = hash(seed);
-  const base = source === "laliga" ? ["#ff5a3c", "#3b0d06"] : ["#8b5cf6", "#14062e"];
+  const base = source === "laliga" ? ["#ff5a3c", "#3b0d06"] : source === "ucl" ? ["#3b6cff", "#06103a"] : ["#8b5cf6", "#14062e"];
   const c1 = club?.c1 ?? base[0];
   const c2 = club?.c2 ?? base[1];
   const x = 20 + (h % 60);
@@ -38,7 +38,7 @@ export function GenArt({ seed, tags, source }: { seed: string; tags: string[]; s
       }}
     >
       {PITCH}
-      <b>{club?.short ?? (source === "laliga" ? "LIGA" : "PL")}</b>
+      <b>{club?.short ?? (source === "laliga" ? "LIGA" : source === "ucl" ? "UCL" : "PL")}</b>
     </div>
   );
 }

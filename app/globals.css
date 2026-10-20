@@ -3,7 +3,7 @@
 :root {
   --bg: #f3f4f7; --surface: #ffffff; --surface-2: #eceef3; --fg: #0b0e14; --muted: #5d6676;
   --line: rgba(11,14,20,.09); --glass: rgba(255,255,255,.72); --shadow: 0 10px 30px -12px rgba(11,14,20,.18);
-  --laliga: #f0472b; --pl: #7c3aed; --win: #0ea56b; --gold: #c27c0e;
+  --laliga: #f0472b; --pl: #7c3aed; --win: #0ea56b; --gold: #c27c0e; --cl: #2f5bea;
   --display: var(--f-display, "Unbounded"), "Arial Black", system-ui, sans-serif;
   --ui: var(--f-ui, "Onest"), system-ui, -apple-system, "Segoe UI", sans-serif;
   --read: var(--f-read, "Source Serif 4"), Georgia, serif;
@@ -14,13 +14,13 @@
   :root:not([data-theme="light"]) {
     --bg: #07090d; --surface: #11151c; --surface-2: #1a1f28; --fg: #f2f5f9; --muted: #8b95a7;
     --line: rgba(255,255,255,.08); --glass: rgba(10,13,18,.68); --shadow: 0 16px 40px -16px rgba(0,0,0,.7);
-    --laliga: #ff5a3c; --pl: #a17cff; --win: #34d399; --gold: #f2b544; color-scheme: dark;
+    --laliga: #ff5a3c; --pl: #a17cff; --win: #34d399; --gold: #f2b544; --cl: #6f8fff; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #07090d; --surface: #11151c; --surface-2: #1a1f28; --fg: #f2f5f9; --muted: #8b95a7;
   --line: rgba(255,255,255,.08); --glass: rgba(10,13,18,.68); --shadow: 0 16px 40px -16px rgba(0,0,0,.7);
-  --laliga: #ff5a3c; --pl: #a17cff; --win: #34d399; --gold: #f2b544; color-scheme: dark;
+  --laliga: #ff5a3c; --pl: #a17cff; --win: #34d399; --gold: #f2b544; --cl: #6f8fff; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -614,3 +614,18 @@ a.match:hover { background: var(--surface-2); }
   .mh-team .crest, .mh-team .badge { width: 52px !important; height: 52px !important; padding: 6px; border-radius: 16px; }
   .subtabs.sticky { width: 100%; } .subtabs.sticky button { flex: 1; padding-inline: 8px; }
 }
+
+/* ===== Mestarien liiga ===== */
+.seg button.on-ucl { color: var(--cl); }
+.chip-ucl { background: color-mix(in srgb, var(--cl) 16%, transparent); color: var(--cl); }
+.hero .chip-ucl, .story-top .chip-ucl { background: var(--cl); color: #fff; }
+.bar-ucl, .dot-ucl { background: var(--cl); }
+.mh-ucl { --accent: var(--cl); }
+.tbl tr.z-r16 .pos::before, .zk.z-r16 { background: var(--win); }
+.tbl tr.z-po .pos::before, .zk.z-po { background: var(--uel); }
+@media (min-width: 641px) and (max-width: 1360px) { .seg .full.long { display: none; } .seg .short.alt { display: inline; } }
+@media (max-width: 640px) {
+  .seg { max-width: none; }
+  .seg button { padding: 7px 5px; font-size: 12px; }
+}
+@media (max-width: 380px) { .seg button { font-size: 11px; padding: 7px 3px; } }

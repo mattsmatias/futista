@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import { SOURCES, type Source, type SourceId } from "./sources";
+import { SOURCES, siteName, type Source, type SourceId } from "./sources";
 
 export type Article = {
   id: string;
@@ -32,10 +32,13 @@ export function decode(s: string) {
 
 const toArray = <T,>(x: T | T[] | undefined): T[] => (!x ? [] : Array.isArray(x) ? x : [x]);
 
-async function readFeed(src: Source): Promise<Article[]> {
+const UCL = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim() === "mestarien liiga";
+const ucl = SOURCES.find((s) => s.id === "ucl")!;
+
+async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
   let xml: string;
   try {
-    const res = await fetch(src.feed, {
+    const res = await fetch(feedUrl, {
       next: { revalidate: 600 }, // päivittyy 10 min välein
       headers: { "User-Agent": "Futista/1.0" },
     });
@@ -55,6 +58,8 @@ async function readFeed(src: Source): Promise<Article[]> {
       .trim();
     const excerpt = (text.match(/[^.!?]+[.!?]+/g) ?? [text]).slice(0, 2).join(" ").trim();
     const cats = toArray(it.category).map((c: any) => decode(String(c?.__cdata ?? c)));
+    // Mestarien liigan jutut omaan sarjaansa, vaikka ne tulisivat La Ligan tai Valioliigan syötteestä
+    const s = cats.some(UCL) ? ucl : src;
     return {
       id: String(it.guid?.["#text"] ?? it.guid ?? it.link),
       title: decode(String(it.title)),
@@ -62,19 +67,27 @@ async function readFeed(src: Source): Promise<Article[]> {
       author: decode(String(it["dc:creator"]?.__cdata ?? it["dc:creator"] ?? "")),
       date: new Date(it.pubDate).toISOString(),
       type: cats.find((c) => TYPES.includes(c)) ?? "Uutiset",
-      tags: cats.filter((c) => !TYPES.includes(c) && !IGNORE.includes(c)),
+      tags: cats.filter((c) => !TYPES.includes(c) && !IGNORE.includes(c) && !UCL(c)),
       image: img,
       excerpt,
-      source: src.id,
-      sourceName: src.name,
-      league: src.league,
+      source: s.id,
+      sourceName: siteName(String(it.link)),
+      league: s.league,
     };
   });
 }
 
 export async function getArticles(): Promise<Article[]> {
-  const all = (await Promise.all(SOURCES.map(readFeed))).flat();
-  return all.sort((a, b) => b.date.localeCompare(a.date));
+  const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, f))))).flat();
+  // sama juttu voi tulla kahdesta syötteestä
+  const seen = new Set<string>();
+  const unique = all.filter((a) => {
+    const k = a.link.replace(/\/$/, "");
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return unique.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export function timeAgo(iso: string) {

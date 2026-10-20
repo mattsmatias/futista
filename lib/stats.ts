@@ -96,7 +96,7 @@ function parseResults(doc: any): Result[] {
     const td = [...tr.querySelectorAll("td")];
     if (td.length < 3) continue;
     const date = td[0].textContent.trim().match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    const score = td[td.length - 1].textContent.trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);
+    const score = td[td.length - 1].textContent.trim().match(/^(\d+)\s*[-–:]\s*(\d+)(?:\s*(?:rp|ja|jatk)\.?)?$/i);
     if (!date || !score) continue;
     const parts = leaves(td[1]);
     let i = parts.findIndex((p) => /^[–-]$/.test(p));
@@ -118,9 +118,12 @@ export async function getStats(): Promise<LeagueStats[]> {
   const withCrest = (t: Team): Team => ({ ...t, crest: crest(t.name) });
   const stats = await Promise.all(
     SOURCES.map(async (s) => {
-      const [t, r, f] = await Promise.all([
-        getHtml(`${s.base}sarjataulukko/`), getHtml(`${s.base}tulokset/`), getHtml(`${s.base}otteluohjelma/`),
-      ]);
+      const p = s.pages ?? { table: `${s.base}sarjataulukko/`, results: `${s.base}tulokset/`, fixtures: `${s.base}otteluohjelma/` };
+      // sama sivu haetaan vain kerran (Mestarien liigassa kaikki on yhdellä sivulla)
+      const urls = [...new Set([p.table, p.results, p.fixtures])];
+      const pages = await Promise.all(urls.map(getHtml));
+      const page = (u: string) => pages[urls.indexOf(u)];
+      const [t, r, f] = [page(p.table), page(p.results), page(p.fixtures)];
       return {
         source: s.id,
         league: s.league,
