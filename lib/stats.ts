@@ -16,8 +16,10 @@ const UA = { "User-Agent": "Futista/1.0" };
 async function getHtml(url: string) {
   try {
     const res = await fetch(url, { next: { revalidate: 120 }, headers: UA }); // 2 min välein
+    if (!res.ok) console.error("lähdesivu", url, res.status);
     return res.ok ? await res.text() : null;
-  } catch {
+  } catch (e) {
+    console.error("lähdesivu", url, (e as Error)?.message);
     return null;
   }
 }
@@ -166,7 +168,23 @@ export async function getStatsWith(extra: string[] = []): Promise<LeagueStats[]>
 
 /** Uutissarjojen tilastot (etusivu, ilmoitukset). Muut sarjat haetaan getLeague-funktiolla tarvittaessa.
  *  Käsitelty tulos tallennetaan kahdeksi minuutiksi, jotta jokainen sivu ei jäsennä lähdesivuja uudelleen. */
-export const getStats = unstable_cache(computeStats, ["stats-v2"], { revalidate: 120 });
+const cachedStats = unstable_cache(async () => {
+  const s = await computeStats();
+  // tyhjää tulosta ei tallenneta välimuistiin (lähdesivu ei hetkeen vastannut)
+  if (!s.some((x) => x.table.length || x.results.length)) throw new Error("tyhjät tilastot");
+  return s;
+}, ["stats-v3"], { revalidate: 120 });
+let lastGood: LeagueStats[] | null = null;
+
+export async function getStats(): Promise<LeagueStats[]> {
+  try {
+    lastGood = await cachedStats();
+    return lastGood;
+  } catch (e) {
+    console.error("tilastot", (e as Error)?.message);
+    return lastGood ?? [];
+  }
+}
 
 async function computeStats(): Promise<LeagueStats[]> {
   const crest = await crestLookup();

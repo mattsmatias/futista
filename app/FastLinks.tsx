@@ -29,7 +29,8 @@ export default function FastLinks() {
     const prefetch = (href: string | null) => {
       if (!href || done.has(href)) return;
       done.add(href);
-      try { router.prefetch(href); } catch {}
+      // vain sivun runko latausnäkymään asti (ei koko sivua), jotta palvelinta ei kuormiteta
+      try { (router.prefetch as any)(href, { kind: "auto" }); } catch {}
     };
     const onIntent = (e: Event) => prefetch(internal(e.target as Element));
 
