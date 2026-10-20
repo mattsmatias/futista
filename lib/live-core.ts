@@ -94,16 +94,22 @@ export function matchState(
     live.find((l) => l.source === m.source && near(l, 3) &&
       ((same(m.home.name, l.home) && partly(m.away.name, l.away)) || (partly(m.home.name, l.home) && same(m.away.name, l.away))));
   if (hit) {
-    const sc = { hs: hit.hs, as: hit.as };
+    // käynnissä olevan ottelun tilanne; jos rajapinta ei vielä kerro sitä, ottelu on alkanut 0–0
+    const sc = { hs: hit.hs ?? 0, as: hit.as ?? 0 };
     switch (hit.status) {
       case "IN_PLAY": case "EXTRA_TIME": case "PENALTY_SHOOTOUT": return { kind: "live", ...sc };
       case "PAUSED": return { kind: "ht", ...sc };
       case "FINISHED": case "AWARDED": return { kind: "ft", ...sc };
       case "SUSPENDED": return { kind: "suspended", ...sc };
+      case "TIMED": case "SCHEDULED":
+        // rajapinnan tila voi päivittyä viiveellä: alkamisajan jälkeen ottelu on käynnissä
+        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return { kind: "live", hs: hit.hs ?? 0, as: hit.as ?? 0 };
+        break;
       case "POSTPONED": return { kind: "postponed" };
       case "CANCELLED": return { kind: "cancelled" };
     }
   }
   if (now === null || kick === null || now < kick) return { kind: "upcoming" };
-  return now < kick + LIVE_MIN * 60_000 ? { kind: "live" } : { kind: "ft" };
+  // ilman rajapinnan tietoa: alkanut → LIVE (0–0, kunnes tilanne päivittyy), ~2 h myöhemmin → Päättynyt
+  return now < kick + LIVE_MIN * 60_000 ? { kind: "live", hs: 0, as: 0 } : { kind: "ft" };
 }
