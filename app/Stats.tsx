@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { LeagueStats, Result, Team } from "@/lib/stats";
 import { SOURCES, clubByName } from "@/lib/sources";
 import { useI18n, type Key } from "@/lib/i18n";
@@ -6,7 +7,14 @@ import { useFavorites } from "@/lib/favorites";
 
 
 export function Badge({ t }: { t: Team }) {
-  if (t.crest) return <img className="crest" src={t.crest} alt="" width={26} height={26} loading="lazy" decoding="async" />;
+  const [failed, setFailed] = useState(0); // 0 = alkuperäinen, 1 = .svg-yritys, 2 = värimerkki
+  if (t.crest && failed < 2) {
+    const src = failed === 1 ? t.crest.replace(/\.png$/, ".svg") : t.crest;
+    return (
+      <img className="crest" src={src} alt="" width={26} height={26} loading="lazy" decoding="async"
+        onError={() => setFailed(failed === 0 && /\.png$/.test(t.crest!) ? 1 : 2)} />
+    );
+  }
   const c = clubByName(t.name);
   return (
     <span className="badge" style={c ? { background: `linear-gradient(135deg, ${c.c1}, ${c.c2})`, color: "#fff" } : undefined}>

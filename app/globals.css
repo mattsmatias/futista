@@ -506,3 +506,8 @@ main > .page-head { margin-bottom: -22px; }          /* otsikko → sisältö no
 }
 .sc-top { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; row-gap: 3px; }
 .sc-top .ft { grid-column: 1 / -1; margin-left: 0; }
+
+/* Jutun kuvat: aina siisti leveä kuva, ei venyviä kuvakkeita */
+.story-body figure { margin: 1.4em 0; }
+.story-body img { display: block; width: 100%; height: auto; max-height: min(70vh, 560px); object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2); }
+.story-body svg, .story-body iframe { display: none; }

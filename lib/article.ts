@@ -21,6 +21,39 @@ export type FullArticle = {
   type: string;
 };
 
+const BAD_IMG = /placeholder|\/emoji\/|\/icons?\/|wp-smiley|gravatar|avatar|spinner|loader|1x1|blank\.gif|pixel\.gif|\.svg(\?|$)|^data:/i;
+
+/** Lähdesivujen kuvat kuntoon ennen tekstin poimintaa:
+ *  - viivästetysti ladattavat kuvat (data-src) oikeaan osoitteeseen
+ *  - paikkamerkit, kuvakkeet, hymiöt ja pikkukuvat pois (ne venyisivät koko leveydelle)
+ *  - "Lue myös" -osiot pois (niiden linkit eivät toimisi täällä) */
+function cleanImages(doc: any) {
+  for (const img of [...doc.querySelectorAll("img")]) {
+    const lazy =
+      img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-original") ||
+      (img.getAttribute("data-srcset") || img.getAttribute("srcset") || "").split(",").pop()?.trim().split(" ")[0] || "";
+    const src = img.getAttribute("src") || "";
+    if ((!src || BAD_IMG.test(src)) && lazy && !BAD_IMG.test(lazy)) img.setAttribute("src", lazy);
+    const final = img.getAttribute("src") || "";
+    const w = parseInt(img.getAttribute("width") || "0", 10);
+    const h = parseInt(img.getAttribute("height") || "0", 10);
+    if (!final || BAD_IMG.test(final) || (w && w < 200) || (h && h < 120)) {
+      const fig = img.closest("figure");
+      (fig && fig.querySelectorAll("img").length === 1 ? fig : img).remove();
+    }
+  }
+  for (const el of [...doc.querySelectorAll("h2,h3,h4,p,strong")]) {
+    if (/^\s*lue (myös|lisää)/i.test(el.textContent || "")) {
+      const next = el.nextElementSibling;
+      if (next && /^(UL|OL|DIV)$/.test(next.tagName)) next.remove();
+      (el.tagName === "STRONG" && el.parentElement?.tagName === "P" ? el.parentElement : el).remove();
+    }
+  }
+}
+
+const baseName = (u: string | null | undefined) =>
+  (u || "").split("?")[0].split("/").pop()?.replace(/-\d+x\d+(?=\.\w+$)/, "") || "";
+
 export async function getFullArticle(parts: string[]): Promise<FullArticle | null> {
   const [site, ...rest] = parts;
   const src = sourceById(site);
@@ -40,6 +73,7 @@ export async function getFullArticle(parts: string[]): Promise<FullArticle | nul
   const { document } = parseHTML(html);
   const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute("content") ?? null;
   const published = document.querySelector('meta[property="article:published_time"]')?.getAttribute("content") ?? null;
+  cleanImages(document);
   const parsed = new Readability(document as any).parse();
   if (!parsed?.content) return null;
 
@@ -67,6 +101,12 @@ export async function getFullArticle(parts: string[]): Promise<FullArticle | nul
     },
   });
 
+  const feed0 = (await getArticles()).find((a) => a.link.replace(/\/$/, "") === url.replace(/\/$/, ""));
+  const hero = baseName(feed0?.image ?? ogImage);
+  const body = hero
+    ? clean.replace(/<figure>\s*<img[^>]*>(?:\s*<figcaption>[\s\S]*?<\/figcaption>)?\s*<\/figure>|<img[^>]*>/g, (tag) =>
+        baseName(tag.match(/src="([^"]+)"/)?.[1]) === hero ? "" : tag)
+    : clean;
   const feed = (await getArticles()).find((a) => a.link.replace(/\/$/, "") === url.replace(/\/$/, ""));
 
   return {
@@ -74,7 +114,7 @@ export async function getFullArticle(parts: string[]): Promise<FullArticle | nul
     author: feed?.author ?? parsed.byline ?? "",
     date: feed?.date ?? published,
     image: feed?.image ?? ogImage,
-    html: clean,
+    html: body.replace(/<(h2|h3|p)>\s*<\/\1>/g, ""),
     source: url,
     sourceName: src.name,
     league: src.league,

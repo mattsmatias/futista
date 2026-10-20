@@ -2,6 +2,8 @@
 // Tarvitsee ympäristömuuttujan FOOTBALL_DATA_KEY (ilmainen avain: https://www.football-data.org/client/register).
 // Ilman avainta palautetaan tyhjä, jolloin sivu näyttää seuran värimerkin.
 
+import { staticCrest } from "./crest-ids";
+
 const COMPETITIONS = ["PL", "PD"]; // Valioliiga, La Liga
 
 const norm = (s: string) =>
@@ -72,10 +74,10 @@ function match(name: string, teams: ApiTeam[]): string | undefined {
 /** Palauttaa funktion, joka antaa joukkueen nimelle logon osoitteen (tai undefined). */
 export async function crestLookup(): Promise<(name: string) => string | undefined> {
   const teams = await loadTeams();
-  if (!teams.length) return () => undefined;
   const memo = new Map<string, string | undefined>();
+  // 1) rajapinnan logo (jos avain on), 2) kiinteä tunnistelista, 3) ei logoa → värimerkki
   return (name) => {
-    if (!memo.has(name)) memo.set(name, match(name, teams));
+    if (!memo.has(name)) memo.set(name, (teams.length ? match(name, teams) : undefined) ?? staticCrest(name));
     return memo.get(name);
   };
 }
