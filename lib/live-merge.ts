@@ -1,23 +1,58 @@
 // Live-tilan yhdistäminen kahdesta lähteestä (puhdas logiikka, testataan tests/-kansiossa).
 //
-// LÄHTEIDEN ETUSIJA KENTITTÄIN
-//  tila (status):
-//    - edennein tila voittaa: tuleva < käynnissä < päättynyt. Näin viiveellä päivittyvä lähde ei palauta
-//      päättynyttä ottelua käynnissä olevaksi.
-//    - kun molemmat sanovat "käynnissä", käytetään ESPN:ää (reaaliaikainen kello, mitattu viive pienempi)
-//    - kun molemmat sanovat "päättynyt", käytetään football-dataa (virallinen lopputulos)
-//    - Siirretty / Peruttu football-datasta voittaa, jos ESPN ei kerro ottelun alkaneen
-//  tilanne (hs/as): samasta lähteestä kuin valittu tila. Uudempi tilannekuva saa pienentää tulosta
-//    (VAR:n hylkäämä maali); vanhempi tilannekuva hylätään jo selaimessa asOf-aikaleiman perusteella.
-//  peliminuutti, jatkoaika-/pilkkuvaihe ja pilkkujen tulos: vain ESPN (football-datan ilmaisversio ei kerro)
-//  ottelun tunnistus: sama sarja, alkamisaika ±3 h ja molemmat joukkueet tunnistettu; jos useampi
-//    football-datan ottelu sopii yhtä hyvin, osumaa ei hyväksytä (ei arvata samankaltaisen nimen perusteella).
+// AIKALEIMAT (jokaisella lähdetilannekuvalla erikseen)
+//  fetchedAt        milloin Futista sai lähteeltä onnistuneen vastauksen (palvelimen kello)
+//  sourceUpdatedAt  milloin lähde itse ilmoittaa päivittäneensä ottelun tiedot
+//                   - football-data: match.lastUpdated (lähteen ilmoittama; ei todista sisällön tuoreutta,
+//                     kertoo vain milloin lähde on viimeksi muuttanut tietuetta)
+//                   - ESPN: ei vertailukelpoista päivitysaikaa → null
+//  Välimuistin tarjoiluhetki ei korvaa kumpaakaan: arvot kulkevat sellaisinaan välimuistin läpi.
+//
+// TODISTEAIKA (evidenceAt) = sourceUpdatedAt, jos tunnetaan, muuten fetchedAt.
+//  ESPN:n tilannekuvan sisällön oletetaan olevan hakuhetken mukainen, koska ESPN on reaaliaikainen
+//  tulospalvelu; tämä on oletus, ei todennettu tieto (ks. docs/aikaleimat.md).
+//
+// YHDISTÄMINEN (sama ottelu molemmissa lähteissä)
+//  - sama tilaluokka:
+//      käynnissä / puoliaika → ESPN:n tila, tilanne ja kello (reaaliaikainen lähde)
+//      päättynyt → tulos football-datasta (ensisijainen tuloslähde); jos ESPN:n tulos eroaa → conflict
+//      tuleva / siirretty / peruttu / keskeytetty → football-data (aloitusaika ja tila)
+//  - eri tilaluokka: uudempi todiste voittaa
+//      football-data voittaa vain, jos sen sourceUpdatedAt on ESPN:n hakuhetkeä uudempi;
+//      muuten ESPN (reaaliaikainen). Poikkeus: ESPN:n "tuleva" ei kumoa football-datan alkanutta,
+//      päättynyttä, siirrettyä tai peruttua tilaa (ESPN ei aina tiedä siirroista).
+//      Jos valittu tila on taaksepäin toisen lähteen tilaan nähden (esim. käynnissä vs. päättynyt),
+//      ottelu merkitään ristiriitaiseksi (conflict) – näytetään valittu tila ilman keksittyä varmuutta.
+//  - peliminuutti, jatkoaika-/pilkkuvaihe ja pilkkujen tulos: vain ESPN
+//  - ottelun tunnistus: sama sarja, alkamisaika ±3 h ja molemmat joukkueet tunnistettu; jos useampi
+//    football-datan ottelu sopii yhtä hyvin, osumaa ei hyväksytä.
+//
+// SELAIN (acceptMatch): ottelukohtainen hyväksyntä; myöhemmin saapunut mutta sisällöltään vanhempi
+// tieto ei korvaa uudempaa, eikä tila palaa taaksepäin (esim. päättynyt → käynnissä) ilman
+// tiukasti uudempaa todistetta. VAR voi pienentää tulosta, ja lopputulosta voidaan korjata.
 import type { LiveMatch, LiveStatus } from "./live-core";
 
-const rank = (s: LiveStatus): number =>
-  s === "FINISHED" || s === "AWARDED" ? 3
-    : s === "IN_PLAY" || s === "PAUSED" || s === "EXTRA_TIME" || s === "PENALTY_SHOOTOUT" || s === "SUSPENDED" ? 2
-      : s === "POSTPONED" || s === "CANCELLED" ? 1 : 0;
+export type Cls = "pre" | "live" | "susp" | "ft" | "post" | "canc";
+
+export const cls = (s: LiveStatus): Cls =>
+  s === "FINISHED" || s === "AWARDED" ? "ft"
+    : s === "IN_PLAY" || s === "PAUSED" || s === "EXTRA_TIME" || s === "PENALTY_SHOOTOUT" ? "live"
+      : s === "SUSPENDED" ? "susp" : s === "POSTPONED" ? "post" : s === "CANCELLED" ? "canc" : "pre";
+
+/** Etenemisjärjestys taaksepäin siirtymien tunnistamiseen. Keskeytetty on käynnissä olevan tasolla
+ *  (voi jatkua), siirretty/peruttu ovat erillisiä "sivupolkuja", eivät eteenpäin eivätkä taaksepäin. */
+const order: Record<Cls, number> = { pre: 0, post: 0, canc: 0, live: 1, susp: 1, ft: 2 };
+
+/** Onko siirtymä a → b taaksepäin (korjaus): päättynyt → käynnissä/tuleva, käynnissä → tuleva */
+export const isRegression = (a: LiveStatus, b: LiveStatus) => {
+  const ca = cls(a), cb = cls(b);
+  if (ca === cb) return false;
+  if (cb === "post" || cb === "canc") return false; // siirto/peruutus on aina sallittu tieto
+  return order[cb] < order[ca];
+};
+
+export const evidenceAt = (m: Pick<LiveMatch, "sourceUpdatedAt" | "fetchedAt">): number | null =>
+  m.sourceUpdatedAt ?? m.fetchedAt ?? null;
 
 /** Kuinka hyvin kaksi sanalistaa vastaavat toisiaan: 0 = ei, muuten yhteisten selvien sanojen määrä */
 function overlap(a: string[], b: string[]): number {
@@ -41,30 +76,68 @@ export function findMatch(fd: LiveMatch[], e: LiveMatch, windowMs = 3 * 3600_000
   return tie ? -1 : best;
 }
 
+const fromEspn = (m: LiveMatch, e: LiveMatch, conflict: boolean): LiveMatch => ({
+  ...m,
+  status: e.status, hs: e.hs, as: e.as, min: e.min, phase: e.phase,
+  pens: e.pens ?? null, aet: e.aet,
+  fetchedAt: e.fetchedAt ?? null, sourceUpdatedAt: null,
+  src: "fd+espn", statusSrc: "espn", conflict: conflict || undefined,
+});
+
 /** Yhdistää football-datan ja ESPN:n tilannekuvat. Kumpikaan lista ei muutu. */
 export function mergeLive(fdList: LiveMatch[], espn: LiveMatch[]): LiveMatch[] {
-  const out: LiveMatch[] = fdList.map((m) => ({ ...m, src: "fd" as const }));
+  const out: LiveMatch[] = fdList.map((m) => ({ ...m, src: "fd" as const, statusSrc: "fd" as const }));
   const used = new Set<number>();
   for (const e of espn) {
-    const i = findMatch(out, e);
+    const i = findMatch(fdList, e);
     if (i < 0 || used.has(i)) {
-      // vain ESPN:ssä oleva käynnissä oleva tai päättynyt ottelu lisätään (esim. lähde ei vielä listaa sitä)
-      if (i < 0 && rank(e.status) >= 2) out.push({ ...e, src: "espn" });
+      // vain ESPN:ssä oleva käynnissä oleva, keskeytetty tai päättynyt ottelu lisätään
+      const c = cls(e.status);
+      if (i < 0 && (c === "live" || c === "susp" || c === "ft")) out.push({ ...e, src: "espn", statusSrc: "espn", sourceUpdatedAt: null });
       continue;
     }
     used.add(i);
+    const f = fdList[i];
     const m = out[i];
-    const rf = rank(m.status), re = rank(e.status);
-    if (re > rf || (re === rf && re === 2)) {
-      // ESPN on edempänä tai molemmat käynnissä: ESPN:n tila ja tilanne
-      out[i] = { ...m, status: e.status, hs: e.hs, as: e.as, min: e.min, phase: e.phase, pens: e.pens ?? m.pens ?? null, aet: e.aet ?? m.aet, src: "fd+espn" };
-    } else if (re === rf && re === 3) {
-      // molemmat päättyneet: virallinen tulos football-datasta, puuttuvat kentät ESPN:stä
-      out[i] = { ...m, hs: m.hs ?? e.hs, as: m.as ?? e.as, pens: m.pens ?? e.pens ?? null, aet: m.aet ?? e.aet, src: "fd+espn" };
+    const cf = cls(f.status), ce = cls(e.status);
+    if (cf === ce) {
+      if (cf === "live") out[i] = fromEspn(m, e, false);
+      else if (cf === "ft") {
+        const differs = e.hs !== null && e.as !== null && f.hs !== null && f.as !== null && (e.hs !== f.hs || e.as !== f.as);
+        out[i] = {
+          ...m, hs: f.hs ?? e.hs, as: f.as ?? e.as, pens: f.pens ?? e.pens ?? null, aet: f.aet ?? e.aet,
+          src: "fd+espn", conflict: differs || undefined,
+        };
+      } else out[i] = { ...m, src: "fd+espn" };
+      continue;
     }
-    // muuten football-data on edempänä (esim. siirretty) → pidetään sen tila
+    // eri tilaluokka
+    if (ce === "pre") { out[i] = { ...m, src: "fd+espn" }; continue; } // ESPN:n "tuleva" ei kumoa mitään
+    const fdNewer = f.sourceUpdatedAt != null && e.fetchedAt != null && f.sourceUpdatedAt > e.fetchedAt;
+    if (fdNewer) out[i] = { ...m, src: "fd+espn", conflict: isRegression(e.status, f.status) || undefined };
+    else out[i] = fromEspn(m, e, isRegression(f.status, e.status));
   }
   return out;
+}
+
+/** Selain: ottelukohtainen hyväksyntä. Palauttaa näytettävän tilannekuvan. */
+export function acceptMatch(prev: LiveMatch | undefined, next: LiveMatch): LiveMatch {
+  if (!prev) return next;
+  const pe = evidenceAt(prev), ne = evidenceAt(next);
+  if (ne === null) return pe === null ? next : prev;   // uudella ei todistetta → pidetään tunnettu
+  if (pe !== null && ne < pe) return prev;              // sisällöltään vanhempi → hylätään
+  if (isRegression(prev.status, next.status) && pe !== null && ne <= pe) return prev; // taaksepäin vain tiukasti uudemmalla
+  return next;
+}
+
+/** Ottelun pysyvä tunniste (football-datan id, muuten ESPN:n id, viimeisenä joukkueet ja aloitusaika) */
+export const matchKey = (m: LiveMatch) =>
+  m.id ?? `${m.source}:${m.home.join("-")}:${m.away.join("-")}:${m.kickoff}`;
+
+/** Selain: yhdistää uuden vastauksen otteluittain edelliseen. Uudesta vastauksesta puuttuvat ottelut poistuvat. */
+export function acceptList(prev: LiveMatch[], next: LiveMatch[]): LiveMatch[] {
+  const byKey = new Map(prev.map((m) => [matchKey(m), m]));
+  return next.map((m) => acceptMatch(byKey.get(matchKey(m)), m));
 }
 
 /** Selain: hyväksytäänkö uusi vastaus (vanhempi tilannekuva ei saa korvata uudempaa) */

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createGuard, retryAfterMs, SourceError, type Fetched } from "../lib/guard";
-import { mergeLive, findMatch, isNewer } from "../lib/live-merge";
+import { mergeLive, findMatch, isNewer, acceptMatch, acceptList, isRegression } from "../lib/live-merge";
 import { matchState, fmtClock, helsinkiParts, helsinkiEpoch, knownFixture, words, type LiveMatch } from "../lib/live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "../lib/score";
 import { parseStatus, parseScore, toGame, toLive, isSeniorMen, parseSummary } from "../lib/espn-parse";
@@ -82,14 +82,15 @@ test("1e: minuuttiraja ja matalan prioriteetin osaraja", async () => {
 });
 
 // ---------- 2. Kahden lähteen ristiriitainen tulos ----------
-test("2a: football-data päättynyt 2–1, ESPN vielä käynnissä 2–0 → päättynyt 2–1 (edennein tila voittaa)", () => {
+test("2a: football-data päättynyt (päivitetty ESPN-havainnon jälkeen) vs. ESPN vielä käynnissä → päättynyt (eteenpäin, ei ristiriitaa)", () => {
+  const T = Date.UTC(2026, 9, 25, 20, 55);
   const out = mergeLive(
-    [lm({ home: "Barcelona", away: "Real Madrid", status: "FINISHED", hs: 2, as: 1 })],
-    [lm({ home: "Barcelona", away: "Real Madrid", status: "IN_PLAY", hs: 2, as: 0, min: "88'" })],
+    [lm({ home: "Barcelona", away: "Real Madrid", status: "FINISHED", hs: 2, as: 1, sourceUpdatedAt: T + 60_000, fetchedAt: T + 70_000 })],
+    [lm({ home: "Barcelona", away: "Real Madrid", status: "IN_PLAY", hs: 2, as: 0, min: "88'", fetchedAt: T })],
   );
   assert.equal(out.length, 1);
   assert.equal(out[0].status, "FINISHED");
-  assert.deepEqual([out[0].hs, out[0].as], [2, 1]);
+  assert.deepEqual([out[0].hs, out[0].as, out[0].statusSrc, out[0].conflict], [2, 1, "fd", undefined]);
 });
 
 test("2b: molemmat käynnissä, eri tilanne → ESPN (reaaliaikaisempi) ja sen minuutti", () => {
@@ -100,12 +101,12 @@ test("2b: molemmat käynnissä, eri tilanne → ESPN (reaaliaikaisempi) ja sen m
   assert.deepEqual([out[0].hs, out[0].as, out[0].min, out[0].src], [2, 0, "67'", "fd+espn"]);
 });
 
-test("2c: molemmat päättyneet, eri tulos → virallinen tulos football-datasta", () => {
+test("2c: molemmat päättyneet, eri tulos → ensisijaisen tuloslähteen (football-data) tulos, merkitään ristiriidaksi", () => {
   const out = mergeLive(
     [lm({ home: "Barcelona", away: "Real Madrid", status: "FINISHED", hs: 3, as: 1 })],
     [lm({ home: "Barcelona", away: "Real Madrid", status: "FINISHED", hs: 3, as: 2 })],
   );
-  assert.deepEqual([out[0].hs, out[0].as], [3, 1]);
+  assert.deepEqual([out[0].hs, out[0].as, out[0].conflict], [3, 1, true]);
 });
 
 test("2d: epäselvä osuma hylätään (ei arvata samankaltaisen nimen perusteella)", () => {
@@ -139,6 +140,100 @@ test("4: VAR-hylätty maali pienentää tulosta, kun uudempi tilannekuva sanoo n
   const after = matchState(fixture, mergeLive([], [lm({ home: "Barcelona", away: "Real Madrid", status: "IN_PLAY", hs: 1, as: 0, min: "72'" })]), Date.UTC(2026, 9, 25, 20, 12));
   assert.deepEqual([before.hs, before.as], [2, 0]);
   assert.deepEqual([after.hs, after.as, after.min], [1, 0, "72'"]);
+});
+
+// ---------- Ottelutilojen yhdistäminen: ristiriitatestit (korjauskierros 2) ----------
+const K = Date.UTC(2026, 9, 25, 19, 0); // aloitus 22:00 Suomen aikaa
+const min = (n: number) => n * 60_000;
+const bar = (o: Partial<LiveMatch>) => lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, id: "fd:1", ...o });
+
+test("M1: vanha päättynyt tieto vs. tuore käynnissä oleva tieto → käynnissä (tuoreempi), ristiriita merkitään", () => {
+  // football-datan tietue päivitetty 20:30 (virheellisesti päättynyt), ESPN haettu 20:50 ja sanoo käynnissä
+  const out = mergeLive(
+    [bar({ status: "FINISHED", hs: 1, as: 0, sourceUpdatedAt: K + min(90), fetchedAt: K + min(111) })],
+    [lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, status: "IN_PLAY", hs: 1, as: 1, min: "78'", fetchedAt: K + min(110) })],
+  );
+  assert.deepEqual([out[0].status, out[0].hs, out[0].as, out[0].min, out[0].statusSrc, out[0].conflict], ["IN_PLAY", 1, 1, "78'", "espn", true]);
+  // selain: aiemmin näytetty "päättynyt" (todiste 20:30) korvautuu tuoreemmalla käynnissä-tiedolla (todiste 20:50)
+  const prev = bar({ status: "FINISHED", hs: 1, as: 0, sourceUpdatedAt: K + min(90) });
+  assert.equal(acceptMatch(prev, out[0]).status, "IN_PLAY");
+  // tila näytetään epävarmana
+  const st = matchState({ source: "laliga", date: "2026-10-25", time: "22:00", home: { name: "Barcelona" }, away: { name: "Real Madrid" } }, out, K + min(111));
+  assert.deepEqual([st.kind, st.uncertain], ["live", true]);
+});
+
+test("M2: virheellisesti päättyneeksi merkitty ottelu korjataan käynnissä olevaksi (lähteen korjaus)", () => {
+  const wrong = bar({ status: "FINISHED", hs: 2, as: 0, sourceUpdatedAt: K + min(70), fetchedAt: K + min(71), statusSrc: "fd" });
+  const fixed = bar({ status: "IN_PLAY", hs: 2, as: 0, sourceUpdatedAt: K + min(72), fetchedAt: K + min(73), statusSrc: "fd" });
+  assert.equal(isRegression("FINISHED", "IN_PLAY"), true);
+  assert.equal(acceptMatch(wrong, fixed).status, "IN_PLAY", "tiukasti uudempi lähdetieto saa korjata");
+  // sama todisteaika ei riitä palauttamaan tilaa taaksepäin
+  const same = bar({ status: "IN_PLAY", hs: 2, as: 0, sourceUpdatedAt: K + min(70), fetchedAt: K + min(75) });
+  assert.equal(acceptMatch(wrong, same).status, "FINISHED");
+});
+
+test("M3: keskeytetty ottelu jatkuu", () => {
+  const susp = bar({ status: "SUSPENDED", hs: 1, as: 0, sourceUpdatedAt: K + min(60) });
+  const resumed = bar({ status: "IN_PLAY", hs: 1, as: 0, min: "62'", fetchedAt: K + min(85), sourceUpdatedAt: null, statusSrc: "espn" });
+  assert.equal(isRegression("SUSPENDED", "IN_PLAY"), false);
+  assert.equal(acceptMatch(susp, resumed).status, "IN_PLAY");
+  // palvelin: football-data vielä keskeytetty (päivitetty ennen ESPN-havaintoa), ESPN käynnissä → käynnissä, ei ristiriitaa
+  const out = mergeLive([susp], [lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, status: "IN_PLAY", hs: 1, as: 0, min: "62'", fetchedAt: K + min(85) })]);
+  assert.deepEqual([out[0].status, out[0].conflict], ["IN_PLAY", undefined]);
+  // ja jatkunut ottelu päättyy normaalisti
+  assert.equal(acceptMatch(resumed, bar({ status: "FINISHED", hs: 2, as: 0, sourceUpdatedAt: K + min(140) })).status, "FINISHED");
+});
+
+test("M4: siirretty ottelu saa uuden aloitusajan", () => {
+  const post = bar({ status: "POSTPONED", hs: null, as: null, sourceUpdatedAt: K - min(600) });
+  const NEW = K + 3 * 86400_000;
+  const resched = bar({ status: "TIMED", kickoff: NEW, hs: null, as: null, sourceUpdatedAt: K + min(10) });
+  const got = acceptMatch(post, resched);
+  assert.deepEqual([got.status, got.kickoff], ["TIMED", NEW]);
+  // ESPN:n "tuleva" uudella päivällä ei yhdisty vanhan päivän siirrettyyn otteluun eikä kumoa sitä
+  const out = mergeLive([post], [lm({ home: "Barcelona", away: "Real Madrid", kickoff: NEW, status: "SCHEDULED", fetchedAt: K })]);
+  assert.deepEqual([out.length, out[0].status], [1, "POSTPONED"]);
+  // ESPN:n "tuleva" samalla ajalla ei myöskään kumoa siirtoa
+  const out2 = mergeLive([post], [lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, status: "SCHEDULED", fetchedAt: K })]);
+  assert.equal(out2[0].status, "POSTPONED");
+});
+
+test("M5: myöhemmin saapuva vastaus sisältää vanhempaa lähdedataa → ei korvaa uudempaa", () => {
+  const newer = bar({ status: "FINISHED", hs: 2, as: 1, sourceUpdatedAt: K + min(115), fetchedAt: K + min(116) });
+  // haettu myöhemmin (fetchedAt suurempi), mutta lähteen tietue on vanhempi (esim. toinen välimuistikopio)
+  const lateOld = bar({ status: "IN_PLAY", hs: 2, as: 0, sourceUpdatedAt: K + min(80), fetchedAt: K + min(130) });
+  assert.equal(acceptMatch(newer, lateOld), newer);
+  // listatasolla sama: muut ottelut päivittyvät, tämä ei
+  const other = lm({ home: "Sevilla", away: "Betis", kickoff: K, id: "fd:2", status: "IN_PLAY", hs: 0, as: 0, fetchedAt: K + min(100) });
+  const res = acceptList([newer, other], [lateOld, { ...other, hs: 1, fetchedAt: K + min(130) }]);
+  assert.deepEqual([res[0].status, res[0].hs, res[1].hs], ["FINISHED", 2, 1]);
+  // kokonaan vanhempi vastaus (tarkistushetki) hylätään
+  assert.equal(isNewer(K + min(116), K + min(100)), false);
+});
+
+test("M6: VAR pienentää tulosta (uudempi havainto saa laskea maalimäärää)", () => {
+  const before = lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, id: "espn:9", status: "IN_PLAY", hs: 2, as: 0, min: "70'", fetchedAt: K + min(75) });
+  const after = { ...before, hs: 1, min: "72'", fetchedAt: K + min(77) };
+  assert.deepEqual([acceptMatch(before, after).hs, acceptMatch(before, after).min], [1, "72'"]);
+  // vanhempi havainto ei palauta hylättyä maalia
+  assert.equal(acceptMatch(after, before).hs, 1);
+});
+
+test("M7: lopputulosta korjataan ottelun päättymisen jälkeen", () => {
+  const ft = bar({ status: "FINISHED", hs: 2, as: 1, sourceUpdatedAt: K + min(115) });
+  const corrected = bar({ status: "FINISHED", hs: 3, as: 0, sourceUpdatedAt: K + min(400) }); // esim. AWARDED-päätös / korjaus
+  assert.deepEqual([acceptMatch(ft, corrected).hs, acceptMatch(ft, corrected).as], [3, 0]);
+  // palvelin: ensisijainen tuloslähde korjasi, ESPN näyttää vielä vanhaa → korjattu tulos, ristiriita merkitään
+  const out = mergeLive([corrected], [lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, status: "FINISHED", hs: 2, as: 1, fetchedAt: K + min(401) })]);
+  assert.deepEqual([out[0].hs, out[0].as, out[0].conflict], [3, 0, true]);
+  // vanhempi kopio alkuperäisestä tuloksesta ei kumoa korjausta
+  assert.equal(acceptMatch(corrected, ft).hs, 3);
+});
+
+test("M8: aikaleimaton tieto ei korvaa tunnettua, eikä tila palaa taaksepäin ilman todistetta", () => {
+  const known = bar({ status: "IN_PLAY", hs: 1, as: 0, fetchedAt: K + min(30) });
+  const unknown = bar({ status: "FINISHED", hs: 1, as: 0, fetchedAt: null, sourceUpdatedAt: null });
+  assert.equal(acceptMatch(known, unknown), known);
 });
 
 // ---------- 5. Ottelun siirtyminen toiselle päivälle ----------

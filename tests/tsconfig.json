@@ -8,7 +8,12 @@
     "skipLibCheck": true,
     "outDir": "../.test-build",
     "rootDir": "..",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "files": ["data.test.ts"]
+  "files": [
+    "data.test.ts",
+    "quota.test.ts"
+  ]
 }

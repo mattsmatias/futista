@@ -28,7 +28,8 @@ export default async function ArticlePage({ params }: Props) {
   if (!a) notFound();
 
   const all = await getArticles();
-  // NEWS_FULLTEXT=0: näytetään vain otsikko, lyhyt ote ja linkki alkuperäiseen (käyttöoikeutta ei ole varmistettu)
+  // NEWS_FULLTEXT=0: artikkelin teksti korvataan lyhyellä otteella ja linkillä alkuperäiseen. Tämä vähentää
+  // uudelleenjulkaisun määrää, mutta ei ratkaise käyttöoikeutta: otsikot, otteet ja kuvat näkyvät edelleen (docs/oikeudet.md)
   const excerptOnly = process.env.NEWS_FULLTEXT === "0";
   const excerpt = all.find((x) => x.link === a.source)?.excerpt ?? "";
   const more = all

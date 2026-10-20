@@ -83,7 +83,7 @@ export function toGame(e: any, slug?: string, compName?: string): Game | null {
 }
 
 /** ESPN-tapahtuma → live-tilannekuva (sama muoto kuin football-datasta) */
-export function toLive(e: any, source: string): LiveMatch | null {
+export function toLive(e: any, source: string, fetchedAt: number | null = null): LiveMatch | null {
   const g = toGame(e);
   if (!g) return null;
   const status: LiveStatus =
@@ -99,6 +99,8 @@ export function toLive(e: any, source: string): LiveMatch | null {
     homeName: h.team?.shortDisplayName || h.team?.displayName, awayName: a.team?.shortDisplayName || a.team?.displayName,
     homeCrest: h.team?.logo ?? h.team?.logos?.[0]?.href, awayCrest: a.team?.logo ?? a.team?.logos?.[0]?.href,
     src: "espn",
+    id: e.id ? `espn:${e.id}` : undefined,
+    fetchedAt, sourceUpdatedAt: null, // ESPN ei ilmoita vertailukelpoista päivitysaikaa
   };
 }
 

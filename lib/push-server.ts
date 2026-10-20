@@ -3,6 +3,7 @@
 //   NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (esim. mailto:sinä@esimerkki.fi)
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 import webpush from "web-push";
+import { supabaseHeaders } from "./supabase-rest";
 
 export type StoredSub = { endpoint: string; p256dh: string; auth: string; teams: string[]; lang: string };
 
@@ -16,7 +17,7 @@ function db(path: string, init: RequestInit = {}) {
   return fetch(url, {
     ...init,
     cache: "no-store",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers || {}) },
+    headers: { ...supabaseHeaders(key), "Content-Type": "application/json", ...(init.headers || {}) },
   });
 }
 

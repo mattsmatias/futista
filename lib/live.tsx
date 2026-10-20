@@ -1,19 +1,20 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { matchState, isOn, helsinkiParts, bestTeam, knownFixture, type LiveMatch, type MatchState } from "./live-core";
-import { isNewer } from "./live-merge";
+import { isNewer, acceptList } from "./live-merge";
 import type { Fixture, LeagueStats, Team } from "./stats";
 import { useI18n } from "./i18n";
 
 type Meta = {
-  asOf: number | null;        // näytettävän tilannekuvan ikä (lähteen hakuhetki, ei selaimen hakuhetki)
+  checkedAt: number | null;   // milloin Futista sai näytettävän tiedon lähteeltä (palvelimen hakuhetki,
+                              // ei selaimen hakuhetki eikä välimuistin tarjoiluhetki); null = ei tiedossa
   lastOkAt: number | null;    // milloin selain viimeksi sai kelvollisen vastauksen
   failing: boolean;           // viimeisin haku epäonnistui (näytetään edellinen kelvollinen tieto)
   loading: boolean;           // ensimmäistä vastausta ei ole vielä tullut
-  sources: Record<string, { state: string; at: number | null }> | null;
+  sources: Record<string, { state: string; fetchedAt: number | null }> | null;
 };
 type Ctx = { live: LiveMatch[]; now: number | null; enabled: boolean; meta: Meta };
-const EMPTY_META: Meta = { asOf: null, lastOkAt: null, failing: false, loading: true, sources: null };
+const EMPTY_META: Meta = { checkedAt: null, lastOkAt: null, failing: false, loading: true, sources: null };
 const LiveCtx = createContext<Ctx>({ live: [], now: null, enabled: true, meta: EMPTY_META });
 
 const FAST = 60_000;     // kun ottelu on käynnissä tai alkamassa
@@ -25,7 +26,9 @@ const busy = (live: LiveMatch[], now: number) =>
   live.some((m) => isOn(m.status) || (Math.abs(m.kickoff - now) < 20 * 60_000 && m.status !== "FINISHED" && m.status !== "POSTPONED" && m.status !== "CANCELLED"));
 
 /** Hakee otteluiden tilan: tiheästi vain kun jotain on käynnissä, ei ollenkaan piilotetussa välilehdessä.
- *  Virheen jälkeen odotus pitenee (1, 2, 4… min, enintään 10 min). Vanhempi tilannekuva ei korvaa uudempaa. */
+ *  Virheen jälkeen odotus pitenee (1, 2, 4… min, enintään 10 min).
+ *  Vanhempi vastaus (esim. välimuistista) ei korvaa uudempaa, ja ottelut hyväksytään yksitellen
+ *  (lib/live-merge.ts acceptMatch): sisällöltään vanhempi tieto ei korvaa uudempaa. */
 export function LiveProvider({ children }: { children: React.ReactNode }) {
   const [live, setLive] = useState<LiveMatch[]>([]);
   const [now, setNow] = useState<number | null>(null);
@@ -34,7 +37,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    let asOf: number | null = null;
+    let checkedAt: number | null = null;
     let fails = 0;
     let current: LiveMatch[] = [];
     const schedule = (ms: number) => { if (timer) clearTimeout(timer); timer = setTimeout(load, ms); };
@@ -49,14 +52,16 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const d = await r.json();
         if (!r.ok || d.error) throw new Error("live " + r.status);
         if (stop) return;
-        if (isNewer(asOf, d.asOf)) {
-          asOf = d.asOf;
-          current = d.matches ?? [];
+        // vastaus, jonka tarkistushetki on vanhempi kuin näytetyn, hylätään kokonaan (ei nuorenneta tietoa)
+        const stale = checkedAt !== null && !isNewer(checkedAt, d.checkedAt);
+        if (!stale) {
+          if (typeof d.checkedAt === "number") checkedAt = d.checkedAt;
+          current = acceptList(current, d.matches ?? []);
           setLive(current);
         }
         setEnabled(d.enabled !== false);
         fails = 0;
-        setMeta({ asOf, lastOkAt: Date.now(), failing: false, loading: false, sources: d.sources ?? null });
+        setMeta({ checkedAt, lastOkAt: Date.now(), failing: false, loading: false, sources: d.sources ?? null });
         schedule(busy(current, Date.now()) ? FAST : SLOW);
       } catch {
         if (stop) return;
@@ -112,6 +117,7 @@ export function useDataEnabled() { const c: Ctx = useContext(LiveCtx); return c.
 export function StatusPill({ s }: { s: MatchState }) {
   const { t } = useI18n();
   if (s.kind === "upcoming") return null;
+  if (s.uncertain) return <span title={t("conflictHint")} aria-label={t("conflictHint")}><StatusPill s={{ ...s, uncertain: false }} /><span className="st-q" aria-hidden="true">?</span></span>;
   if (s.kind === "live") {
     if (s.inferred) return <span className="st st-ht" title={t("inferredHint")}>{t("started")}</span>;
     if (s.phase === "pens") return <span className="st st-live"><i />{t("penalties")}{s.pens && <b className="st-min">{s.pens[0]}–{s.pens[1]}</b>}</span>;
@@ -128,18 +134,24 @@ export function StatusPill({ s }: { s: MatchState }) {
 
 const hm = (ms: number) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
 
-/** Live-tietojen päivitysrivi: milloin tilanne on viimeksi päivittynyt lähteessä, ja varoitus vanhasta tiedosta */
-export function LiveFreshness({ always }: { always?: boolean }) {
+/** Live-tietojen tarkistusrivi: milloin Futista viimeksi sai tiedon lähteeltä ("Tarkistettu klo"), ja varoitus,
+ *  jos päivitys epäonnistuu. Lähteen omaa päivitysaikaa ei tässä tunneta kaikille otteluille, joten
+ *  "Tilanne päivitetty" -ilmaisua ei käytetä. */
+export function LiveFreshness({ always, srcUpdatedAt }: { always?: boolean; srcUpdatedAt?: number }) {
   const { t } = useI18n();
   const { meta, now } = useContext(LiveCtx);
+  // "Tilanne päivitetty" vain, kun lähteen päivitysaika todella tunnetaan (ottelusivu, football-datan tila)
+  const src = srcUpdatedAt ? <> · {t("sourceUpdated")} {hm(srcUpdatedAt)}</> : null;
   if (meta.loading) return always ? <p className="fresh-line">{t("liveLoading")}</p> : null;
-  if (meta.asOf === null) return <p className="fresh-line warn" role="status">{t("liveDown")}</p>;
-  const age = now !== null ? now - meta.asOf : 0;
+  if (meta.lastOkAt === null) return <p className="fresh-line warn" role="status">{t("liveDown")}</p>;
+  if (meta.checkedAt === null)
+    return meta.failing || always ? <p className={`fresh-line${meta.failing ? " warn" : ""}`} role="status">{meta.failing ? t("liveStaleUnknown") : t("liveTimeUnknown")}{src}</p> : null;
+  const age = now !== null ? now - meta.checkedAt : 0;
   const old = meta.failing || age > 5 * 60_000;
   if (!old && !always) return null;
   return (
     <p className={`fresh-line${old ? " warn" : ""}`} role="status">
-      {old ? t("liveStale") : t("liveUpdated")} {hm(meta.asOf)}
+      {old ? t("liveStale") : t("liveUpdated")} {hm(meta.checkedAt)}{src}
     </p>
   );
 }

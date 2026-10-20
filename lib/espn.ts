@@ -208,11 +208,20 @@ export async function getIntl(): Promise<{ games: Game[]; at: number | null; fai
 }
 
 // ---- Live-kello sarjojen otteluille ----
-const board = (slug: string) =>
-  unstable_cache(async (): Promise<{ at: number; events: any[] }> => {
-    const j = await getJson(`${BASE}${slug}/scoreboard`, 8000);
+// Viivemittausta varten (vain esikatselu, ei koskaan tuotanto): LIVE_TEST_SOURCE korvaa La Ligan ESPN-syötteen
+// hallitulla testilähteellä (*.vercel.run). Testilähde käyttää omaa välimuistiavaintaan, jotta testidata ei
+// koskaan sekoitu oikeaan dataan.
+const TEST_SOURCE = (() => {
+  const u = process.env.LIVE_TEST_SOURCE;
+  return process.env.VERCEL_ENV === "preview" && u && /^https:\/\/[a-z0-9-]+\.vercel\.run$/.test(u) ? u : null;
+})();
+const board = (slug: string) => {
+  const test = TEST_SOURCE && slug === LEAGUE.laliga ? TEST_SOURCE : null;
+  return unstable_cache(async (): Promise<{ at: number; events: any[] }> => {
+    const j = await getJson(test ? `${test}/scoreboard` : `${BASE}${slug}/scoreboard`, 8000);
     return { at: Date.now(), events: j?.events ?? [] };
-  }, ["espn-board-v2", slug], { revalidate: 30 })();
+  }, [test ? "espn-board-test" : "espn-board-v2", slug], { revalidate: 30 })();
+};
 
 /** Päivän ottelut ESPN:stä kaikista seuratuista sarjoista: tila, tilanne, peliminuutti, jatkoaika ja pilkut.
  *  at = vanhimman käytetyn vastauksen hakuhetki (ei pyyntöhetki), ok = kaikki sarjat saatiin. */
@@ -224,7 +233,7 @@ export async function getEspnLive(): Promise<{ matches: LiveMatch[]; at: number 
     const b = await board(slug).catch(() => null);
     if (!b) { ok = false; return; }
     at = at === null ? b.at : Math.min(at, b.at);
-    for (const e of b.events) { const m = toLive(e, source); if (m) out.push(m); }
+    for (const e of b.events) { const m = toLive(e, source, b.at); if (m) out.push(m); }
   }));
   return { matches: out, at, ok };
 }

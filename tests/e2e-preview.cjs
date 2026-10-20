@@ -15,7 +15,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const { c, p } = await ctx(1280);
       const get = async (path) => p.evaluate(async (u) => { const r = await fetch(u); let j = null; try { j = await r.json(); } catch {} return { s: r.status, j, cc: r.headers.get('cache-control') }; }, path);
       const live = await get('/api/live');
-      rec('API /api/live: uusi muoto (asOf, sources)', live.s === 200 && 'asOf' in (live.j || {}) && live.j.sources, { status: live.s, asOf: live.j?.asOf, sources: live.j?.sources, n: live.j?.matches?.length, cc: live.cc });
+      rec('API /api/live: muoto (checkedAt, sources.fetchedAt, ei asOf-arvausta)', live.s === 200 && 'checkedAt' in (live.j || {}) && !('asOf' in (live.j || {})) && live.j.sources && 'fetchedAt' in (live.j.sources.espn || {}), { status: live.s, checkedAt: live.j?.checkedAt, sources: live.j?.sources, n: live.j?.matches?.length, cc: live.cc });
       const intl = await get('/api/intl');
       rec('API /api/intl: virhe ja aikaleima erotettu', intl.s === 200 && 'error' in intl.j && 'at' in intl.j, { error: intl.j?.error, at: intl.j?.at, n: intl.j?.games?.length, partial: intl.j?.partial });
       const h2h = await get('/api/h2h/999999999?l=laliga');
@@ -97,10 +97,10 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
     {
       const { c, p } = await ctx(390);
       const real = await (await fetch(U + '/api/live', { headers: { cookie: '' } }).catch(() => null))?.text?.();
-      await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, matches: [], asOf: Date.now() - 12 * 60_000, sources: {}, error: false } }));
+      await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, matches: [], checkedAt: Date.now() - 12 * 60_000, sources: {}, error: false } }));
       await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' }); await sl(1500);
       const t = await p.evaluate(() => document.querySelector('.fresh-line')?.innerText || '');
-      rec('vanha live-tilannekuva (12 min) → näytetään aikaleima ja varoitus, ei "tuore"', /Päivitys ei onnistu|klo/.test(t), t);
+      rec('vanha live-tieto (12 min) → varoitus ja tarkistusaika, ei "Tilanne päivitetty"', /Päivitys ei onnistu.*tarkistettiin klo/.test(t) && !/Tilanne päivitetty/.test(t), t);
       await c.close();
     }
     // simuloitu ottelu: puuttuva tulos, vanha vastaus uuden jälkeen, VAR
@@ -114,8 +114,9 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const kick = hel(date, fx.time);
       let step = 0;
       const now = Date.now();
-      const snap = (asOf, hs, as, status = 'IN_PLAY', min) => ({ enabled: true, asOf, sources: {}, error: false, matches: [{ source: fx.href.split('/')[2], kickoff: kick, status, home: fx.home.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(Boolean), away: fx.away.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(Boolean), hs, as, min }] });
-      const seq = [snap(now - 20_000, null, null, 'IN_PLAY', undefined), snap(now - 10_000, 2, 0, 'IN_PLAY', "45'+2'"), snap(now - 60_000, 3, 0, 'IN_PLAY', "30'"), snap(now, 1, 0, 'IN_PLAY', "47'")];
+      const snap = (asOf, hs, as, status = 'IN_PLAY', min) => ({ enabled: true, checkedAt: asOf, sources: {}, error: false, matches: [{ id: 'espn:test', fetchedAt: asOf, sourceUpdatedAt: null, statusSrc: 'espn', source: fx.href.split('/')[2], kickoff: kick, status, home: fx.home.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(Boolean), away: fx.away.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(Boolean), hs, as, min }] });
+      const conflictSnap = (t) => { const x = snap(t, 1, 0, 'IN_PLAY', "50'"); x.matches[0].conflict = true; return x; };
+      const seq = [snap(now - 20_000, null, null, 'IN_PLAY', undefined), snap(now - 10_000, 2, 0, 'IN_PLAY', "45'+2'"), snap(now - 60_000, 3, 0, 'IN_PLAY', "30'"), snap(now, 1, 0, 'IN_PLAY', "47'"), conflictSnap(now + 1000)];
       await p.route('**/api/live', (r) => r.fulfill({ json: seq[Math.min(step, seq.length - 1)] }));
       await p.goto(U + fx.href, { waitUntil: 'networkidle' }); await sl(1200);
       const read = () => p.evaluate(() => ({ mid: document.querySelector('.mh-mid')?.innerText.replace(/\n/g, ' ') }));
@@ -126,9 +127,14 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       rec('lisäaika 45+2 näkyy muodossa 45+2\' (myös kun lähde antaa 45\'+2\')', /2\s*–\s*0/.test(s1.mid) && /45\+2'/.test(s1.mid), s1);
       rec('vanhempi vastaus (3–0, 30\') ei korvaa uudempaa (2–0, 45+2\')', /2\s*–\s*0/.test(s2.mid) && /45\+2'/.test(s2.mid), s2);
       rec('VAR: uudempi tilannekuva pienentää tulosta 2–0 → 1–0', /1\s*–\s*0/.test(s3.mid) && /47'/.test(s3.mid), s3);
+      const fl = await p.evaluate(() => document.querySelector('.fresh-line')?.textContent || '');
+      rec('ottelusivu: "Tarkistettu klo" (ESPN-tila, lähteen päivitysaikaa ei tunneta → ei "Tilanne päivitetty")', /Tarkistettu klo \d\d[.:]\d\d/.test(fl) && !/Tilanne päivitetty/.test(fl), fl);
+      await next();
+      const q = await p.evaluate(() => { const e = document.querySelector('.mh-mid .st-q'); return { q: !!e, title: e?.parentElement?.getAttribute('title') || '' }; });
+      rec('ristiriitainen tila näytetään epävarmana (?-merkki ja selitys)', q.q && /eroavat/.test(q.title), q);
       // ilman rajapinnan tietoa: ei keksittyä minuuttia
       await p.unroute('**/api/live');
-      await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, asOf: Date.now(), sources: {}, error: false, matches: [] } }));
+      await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, checkedAt: Date.now(), sources: {}, error: false, matches: [] } }));
       await c.close();
     }
     // ---------- puuttuvat kuvat ----------
@@ -151,7 +157,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const href = await p.evaluate(() => [...document.querySelectorAll('a.match')].map((a) => a.getAttribute('href')).find((h) => h.startsWith('/ottelu/e/')));
       await p.goto(U + href, { waitUntil: 'networkidle' }); await sl(500);
       const r = await p.evaluate(() => ({ hero: document.querySelector('.match-hero')?.innerText.replace(/\n/g, ' | '), facts: [...document.querySelectorAll('.facts div')].map((d) => d.innerText.replace(/\n/g, ': ')), note: document.querySelector('.panel .muted.pad')?.innerText, src: document.querySelector('.panel-src')?.innerText, docW: document.documentElement.scrollWidth }));
-      rec('perustason ottelusivu (maaottelu): kilpailu, kausi, aika, tila, päivitysaika', !!href && r.facts.some((f) => /kilpailu/i.test(f)) && r.facts.some((f) => /kausi/i.test(f)) && r.facts.some((f) => /alkamisaika/i.test(f)) && /päivitetty/i.test(r.src || '') && r.docW <= 390 && errs.length === 0, { href, facts: r.facts, src: r.src, docW: r.docW, errs });
+      rec('perustason ottelusivu (maaottelu): kilpailu, kausi, aika, tila, tarkistusaika', !!href && r.facts.some((f) => /kilpailu/i.test(f)) && r.facts.some((f) => /kausi/i.test(f)) && r.facts.some((f) => /alkamisaika/i.test(f)) && /tarkistettu/i.test(r.src || '') && r.docW <= 390 && errs.length === 0, { href, facts: r.facts, src: r.src, docW: r.docW, errs });
       // pelattu maaottelu: tulos ja puoliaika
       const played = await p.evaluate(async () => { const r = await fetch('/maajoukkue/458'); return null; });
       await p.goto(U + '/ottelu/e/401861138', { waitUntil: 'networkidle' });

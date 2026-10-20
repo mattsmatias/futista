@@ -164,7 +164,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
           </div>
         </section>
 
-        {!result && st.kind !== "upcoming" && <LiveFreshness always />}
+        {!result && st.kind !== "upcoming" && <LiveFreshness always srcUpdatedAt={st.srcUpdatedAt} />}
         <div className="subtabs sticky" role="tablist">
           {tabs.map((x) => (
             <button key={x.id} role="tab" aria-selected={tab === x.id} className={tab === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>

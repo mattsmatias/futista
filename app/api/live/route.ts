@@ -6,12 +6,14 @@ import { getEspnLive, espnOn } from "@/lib/espn";
 import { SOURCES } from "@/lib/sources";
 import { fdMeta, hasFd } from "@/lib/fd";
 
-// Päivän otteluiden tila kahdesta lähteestä (etusijat: lib/live-merge.ts):
-//  - football-data.org: virallinen tila ja tulos (ilmaisversiossa viivettä), välimuisti 45 s
+// Päivän otteluiden tila kahdesta lähteestä (etusijat ja aikaleimat: lib/live-merge.ts):
+//  - football-data.org: ensisijainen tuloslähde (ilmaisversiossa viivettä), välimuisti 45 s
 //  - ESPN: reaaliaikaisempi tila, tilanne, peliminuutti, jatkoaika ja pilkut, välimuisti 30 s
 // Vastauksessa:
-//  asOf    = live-tilan lähdevastauksen hakuhetki (ei pyyntöhetki) → selain ei näytä vanhaa tietoa tuoreena
-//  sources = kummankin lähteen tila (ok / error / off) ja hakuhetki
+//  matches[].fetchedAt / sourceUpdatedAt = ottelun näytettävän tilan haku- ja lähteen päivityshetki
+//  checkedAt = milloin Futista viimeksi sai live-tilan lähteeltä onnistuneen vastauksen (ei pyyntö- eikä
+//              välimuistin tarjoiluhetki); null, jos hetki ei ole tiedossa
+//  sources   = kummankin lähteen tila (ok / partial / error / off) ja hakuhetki (fetchedAt)
 // Kaikki kävijät jakavat saman vastauksen (CDN 30 s), joten lähteitä ei kuormiteta kävijämäärän mukaan.
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -19,7 +21,7 @@ export const maxDuration = 30;
 const COMP: Record<string, string> = Object.fromEntries(SOURCES.map((s) => [s.fd, s.id]));
 const day = (offset: number) => new Date(Date.now() + offset * 86400_000).toISOString().slice(0, 10);
 
-function fromFd(data: any): LiveMatch[] {
+function fromFd(data: any, fetchedAt: number | null): LiveMatch[] {
   const t = (x: any) => [...new Set([...words(x?.name ?? ""), ...words(x?.shortName ?? ""), ...words(x?.tla ?? "")])];
   return (data?.matches ?? [])
     .filter((m: any) => COMP[m.competition?.code])
@@ -40,6 +42,9 @@ function fromFd(data: any): LiveMatch[] {
         awayName: m.awayTeam?.shortName || m.awayTeam?.name,
         homeCrest: m.homeTeam?.crest,
         awayCrest: m.awayTeam?.crest,
+        id: m.id != null ? `fd:${m.id}` : undefined,
+        fetchedAt,
+        sourceUpdatedAt: m.lastUpdated && Number.isFinite(Date.parse(m.lastUpdated)) ? Date.parse(m.lastUpdated) : null,
       };
     });
 }
@@ -50,20 +55,20 @@ export async function GET() {
     fdOn ? fdMeta<any>(`/matches?competitions=${Object.keys(COMP).join(",")}&dateFrom=${day(-1)}&dateTo=${day(1)}`, 45) : Promise.resolve(null),
     getEspnLive().catch(() => ({ matches: [] as LiveMatch[], at: null as number | null, ok: false })),
   ]);
-  const fdMatches = fdRes ? fromFd(fdRes.data) : [];
+  // football-datan hakuhetki; vanhoissa välimuistimerkinnöissä sitä ei ole → null (ei arvata)
+  const fdAt = fdRes ? fdRes.at : null;
+  const fdMatches = fdRes ? fromFd(fdRes.data, fdAt) : [];
   const matches = mergeLive(fdMatches, espn.matches);
-  // käynnissä olevien otteluiden tila tulee ESPN:stä, kun se vastaa; muuten football-datasta
-  // football-datan hakuaika; ennen tätä versiota tallennetuissa välimuistimerkinnöissä aikaa ei ole → arvioidaan
-  // yläkanttiin välimuistin iän mukaan (siirtymävaihe, kestää enintään yhden välimuistijakson)
-  const fdAt = fdRes ? fdRes.at ?? Date.now() - 45_000 : null;
-  const asOf = espn.ok && espn.at !== null ? espn.at : espn.at !== null && fdAt !== null ? Math.min(espn.at, fdAt) : (fdAt ?? espn.at ?? null);
+  // tarkistushetki: vanhin käytetyistä tunnetuista hakuhetkistä (ei koskaan uudempi kuin mikään käytetty tieto)
+  const known = [espn.at, fdRes ? fdAt : null].filter((x): x is number => typeof x === "number");
+  const checkedAt = known.length ? Math.min(...known) : null;
   const sources = {
-    fd: { state: !fdOn ? "off" : fdRes ? "ok" : "error", at: fdAt },
-    espn: { state: !espnOn() ? "off" : espn.at === null ? "error" : espn.ok ? "ok" : "partial", at: espn.at },
+    fd: { state: !fdOn ? "off" : fdRes ? "ok" : "error", fetchedAt: fdAt },
+    espn: { state: !espnOn() ? "off" : espn.at === null ? "error" : espn.ok ? "ok" : "partial", fetchedAt: espn.at },
   };
-  const error = asOf === null && (fdOn || espnOn()); // käytössä olevat lähteet eivät vastanneet
+  const error = !fdRes && espn.at === null && (fdOn || espnOn()); // käytössä olevat lähteet eivät vastanneet
   return NextResponse.json(
-    { enabled: fdOn, matches, asOf, sources, error },
+    { enabled: fdOn, matches, checkedAt, sources, error },
     { headers: { "Cache-Control": error ? "public, s-maxage=20" : "public, s-maxage=30, stale-while-revalidate=30" } },
   );
 }

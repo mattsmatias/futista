@@ -880,6 +880,7 @@ div.match { cursor: default; }
 .intl .subtabs { margin-top: 2px; }
 .nc-team[href] { color: inherit; }
 .st-min { font: 800 1em/1 var(--mono); letter-spacing: 0; margin-left: 2px; padding-left: 6px; border-left: 1px solid rgba(255,255,255,.45); text-transform: none; }
+.st-q { display: inline-block; margin-left: 4px; font-weight: 800; color: var(--muted, #888); cursor: help; }
 .foot-credits { display: block; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .foot-credits a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 

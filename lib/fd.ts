@@ -3,18 +3,35 @@
 //  - onnistuneet vastaukset tallennetaan jaettuun välimuistiin (Vercel Data Cache, unstable_cache):
 //    kaikki kävijät ja kaikki palvelininstanssit käyttävät samaa vastausta
 //  - samanaikaiset saman polun haut yhdistetään (lib/guard.ts)
-//  - jokainen palvelininstanssi tekee enintään 6 hakua minuutissa, joista enintään 2 matalan
-//    prioriteetin hakuja (yksittäiset pelaajat, keskinäiset ottelut, joukkueet)
-//  - 429: tauko Retry-After / X-RequestCounter-Reset mukaan; 401/403: 6 h tauko; 5xx/aikakatkaisu: 15 s
+//  - YHTEINEN kiintiö kaikille instansseille ja ympäristöille, joilla on sama avain (lib/quota.ts, Supabase):
+//    enintään 8 hakua / liukuva 60 s, joista enintään 3 matalan prioriteetin hakuja (yksittäiset pelaajat,
+//    keskinäiset ottelut, joukkueet). Varaus on atominen tietokantafunktiossa.
+//  - 429 / X-Requests-Available-Minute: 0: yhteinen tauko Retry-After / X-RequestCounter-Reset mukaan;
+//    401/403: 6 h yhteinen tauko; 5xx/aikakatkaisu: 15 s (instanssikohtainen)
+//  - Vercelissä yhteinen kiintiö on pakollinen: jos sitä ei voi varmistaa, lähteestä ei haeta
+//    (välimuistidata tai hallittu virhe). Paikallisessa kehityksessä ilman Supabasea: 6 hakua/min.
 //  - ympäristömuuttuja FD_OFF=1 katkaisee kaikki haut heti
 import https from "node:https";
 import { unstable_cache } from "next/cache";
 import { createGuard, SourceError, type Fetched, type Priority } from "./guard";
+import { fdQuotaStore, type QuotaStore } from "./quota";
 
 const BASE = "https://api.football-data.org/v4";
 const TIMEOUT_MS = 10_000;
 
-const guard = createGuard({ perMin: 6, lowPerMin: 2 });
+let store: { key: string; s: QuotaStore | null } | null = null;
+function sharedStore(): QuotaStore | null {
+  const key = process.env.FOOTBALL_DATA_KEY ?? "";
+  if (!store || store.key !== key) store = { key, s: key ? fdQuotaStore(key) : null };
+  return store.s;
+}
+
+const guard = createGuard({
+  perMin: 6,
+  lowPerMin: 2,
+  shared: sharedStore,
+  requireShared: !!process.env.VERCEL || process.env.FD_QUOTA_REQUIRED === "1",
+});
 
 function get(path: string, key: string): Promise<Fetched> {
   return new Promise((resolve, reject) => {
@@ -28,6 +45,7 @@ function get(path: string, key: string): Promise<Fetched> {
         headers: {
           "retry-after": res.headers["retry-after"] as string | undefined,
           "x-requestcounter-reset": res.headers["x-requestcounter-reset"] as string | undefined,
+          "x-requests-available-minute": res.headers["x-requests-available-minute"] as string | undefined,
         },
       }));
     });
@@ -74,7 +92,8 @@ export async function fd<T = any>(path: string, ttl: number): Promise<T | null> 
 export const hasFd = () => !!process.env.FOOTBALL_DATA_KEY && process.env.FD_OFF !== "1";
 export const fdState = () => guard.state();
 
-/** Onko football-data viime aikoina antanut virheen tai tauon (tämän palvelininstanssin näkökulmasta) */
+/** Onko football-data viime aikoina antanut virheen tai tauon (tämän palvelininstanssin näkökulmasta;
+ *  yhteinen tauko näkyy tässä, kun instanssi on kerran kysynyt kiintiötä) */
 export const fdFailingRecently = (ms = 10 * 60_000) => {
   const st = guard.state();
   return Date.now() < st.blockedUntil || (!!st.lastError && Date.now() - st.lastError.at < ms);

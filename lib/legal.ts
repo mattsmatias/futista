@@ -17,8 +17,9 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Laitteellesi tallennettavat tiedot",
         p: [
-          "Sivu tallentaa selaimesi omaan muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
+          "Sivu tallentaa selaimesi pysyvään muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
           "Nämä tiedot pysyvät laitteellasi, eikä niitä lähetetä meille. Voit poistaa ne tyhjentämällä selaimen sivustotiedot.",
+          "Lisäksi sivu tallentaa selaimen välilehtikohtaiseen muistiin (sessionStorage) käyttöliittymän tilan, jotta palatessasi edelliselle sivulle näkymä on ennallaan: sivun vierityskohdan sekä valitut suodattimet ja välilehdet (esim. sarja, uutisten tyyppi tai kilpailu). Tiedot eivät sisällä henkilötietoja, eikä niitä lähetetä meille. Selain poistaa ne, kun suljet välilehden.",
           "Kun lisäät Futistan kotivalikkoon, sivu tallentaa laitteellesi myös kopion viimeksi avatuista sivuista, jotta ne näkyvät ilman verkkoyhteyttä.",
         ],
       },
@@ -65,6 +66,7 @@ export const PRIVACY: Record<Lang, Doc> = {
         p: [
           "Sidan sparar endast inställningar i din webbläsares minne (localStorage) så att sidan fungerar som du har valt: ditt språkval, dina favoritlag och om du har lagt till Futista på hemskärmen eller stängt installationsrutan.",
           "Uppgifterna stannar på din enhet och skickas inte till oss. Du kan ta bort dem genom att rensa webbplatsdata i webbläsaren.",
+          "Dessutom sparar sidan gränssnittets läge i webbläsarens flikspecifika minne (sessionStorage) så att vyn är oförändrad när du går tillbaka: sidans rullningsposition samt valda filter och flikar (t.ex. serie, nyhetstyp eller turnering). Uppgifterna innehåller inga personuppgifter och skickas inte till oss. Webbläsaren tar bort dem när du stänger fliken.",
           "När du lägger till Futista på hemskärmen sparar sidan också en kopia av de senast öppnade sidorna så att de visas utan nätanslutning.",
         ],
       },
@@ -111,6 +113,7 @@ export const PRIVACY: Record<Lang, Doc> = {
         p: [
           "The site stores only settings in your browser's own storage (localStorage) so the site works the way you chose: your language, your favourite teams and whether you have added Futista to your home screen or closed the install prompt.",
           "This stays on your device and is never sent to us. You can remove it by clearing the site data in your browser.",
+          "The site also keeps interface state in your browser's per-tab storage (sessionStorage) so the view is unchanged when you go back: the scroll position and the filters and tabs you chose (e.g. league, news type or competition). It contains no personal data and is never sent to us. The browser removes it when you close the tab.",
           "When you add Futista to your home screen, it also keeps a copy of recently opened pages on your device so they show without a connection.",
         ],
       },

@@ -1,5 +1,6 @@
 // Ottelun tila (LIVE / Puoliaika / Päättynyt / Keskeytetty / Siirretty / Peruttu) – käytetään selaimessa.
-// 1) /api/live yhdistää ESPN:n (reaaliaikainen kello) ja football-data.orgin (virallinen, viiveellä) tiedot
+// 1) /api/live yhdistää ESPN:n (reaaliaikainen kello) ja football-data.orgin (ensisijainen tuloslähde,
+//    ilmaisversiossa viiveellä) tiedot (säännöt: lib/live-merge.ts)
 // 2) ilman rajapinnan tietoa tila päätellään alkamisajasta, ja se merkitään päätellyksi (inferred):
 //    näytetään "Alkanut" / "Odottaa tulosta" eikä keksittyä tulosta tai minuuttia
 
@@ -23,7 +24,12 @@ export type LiveMatch = {
   phase?: "et" | "pens";            // jatkoaika / rangaistuspotkukilpailu käynnissä
   pens?: [number, number] | null;   // rangaistuspotkukilpailun tulos (ei sisälly hs/as-lukuihin)
   aet?: boolean;                    // päättyi jatkoajan jälkeen
-  src?: "fd" | "espn" | "fd+espn";  // mistä tila on peräisin
+  src?: "fd" | "espn" | "fd+espn";  // mitkä lähteet ottelusta löytyivät
+  id?: string;                      // pysyvä tunniste: "fd:<id>" tai "espn:<id>"
+  fetchedAt?: number | null;        // milloin Futista sai tilan lähteeltä (onnistunut vastaus)
+  sourceUpdatedAt?: number | null;  // lähteen ilmoittama päivityshetki (vain football-data: lastUpdated)
+  statusSrc?: "fd" | "espn";        // kummasta lähteestä näytettävä tila on
+  conflict?: boolean;               // lähteet ovat ristiriidassa, tilaa ei voi varmistaa
 };
 
 export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled";
@@ -31,6 +37,8 @@ export type MatchState = {
   kind: Kind; hs?: number | null; as?: number | null; min?: string;
   phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
   inferred?: boolean; // tila päätelty alkamisajasta (ei rajapinnan tietoa)
+  uncertain?: boolean; // lähteet ristiriidassa (lib/live-merge.ts conflict)
+  srcUpdatedAt?: number; // lähteen ilmoittama päivityshetki (vain jos tunnetaan; football-data lastUpdated)
 };
 
 /** ESPN:n kello ("45'+2'", "67'") → "45+2'" / "67'" */
@@ -118,19 +126,23 @@ export function matchState(
     // tilanne vain, jos rajapinta kertoo sen (puuttuva tulos ei ole 0–0)
     const sc = { hs: hit.hs ?? null, as: hit.as ?? null };
     const extra = { phase: hit.phase, pens: hit.pens ?? null, aet: hit.aet };
+    // lähteet ristiriidassa → tila näytetään epävarmana (ei keksittyä varmuutta)
+    // lähteen oma päivitysaika vain, kun näytettävä tila on siitä lähteestä ja lähde ilmoittaa sen
+    const srcAt = hit.statusSrc !== "espn" && typeof hit.sourceUpdatedAt === "number" ? hit.sourceUpdatedAt : undefined;
+    const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
     switch (hit.status) {
-      case "IN_PLAY": return { kind: "live", ...sc, min: fmtClock(hit.min), ...extra };
-      case "EXTRA_TIME": return { kind: "live", ...sc, min: fmtClock(hit.min), ...extra, phase: "et" };
-      case "PENALTY_SHOOTOUT": return { kind: "live", ...sc, ...extra, phase: "pens" };
-      case "PAUSED": return { kind: "ht", ...sc, ...extra };
-      case "FINISHED": case "AWARDED": return { kind: "ft", ...sc, pens: extra.pens, aet: extra.aet };
-      case "SUSPENDED": return { kind: "suspended", ...sc };
+      case "IN_PLAY": return r({ kind: "live", ...sc, min: fmtClock(hit.min), ...extra });
+      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: fmtClock(hit.min), ...extra, phase: "et" });
+      case "PENALTY_SHOOTOUT": return r({ kind: "live", ...sc, ...extra, phase: "pens" });
+      case "PAUSED": return r({ kind: "ht", ...sc, ...extra });
+      case "FINISHED": case "AWARDED": return r({ kind: "ft", ...sc, pens: extra.pens, aet: extra.aet });
+      case "SUSPENDED": return r({ kind: "suspended", ...sc });
       case "TIMED": case "SCHEDULED":
         // rajapinnan tila voi päivittyä viiveellä: alkamisajan jälkeen ottelu on todennäköisesti alkanut
-        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return { kind: "live", ...sc, inferred: true };
+        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return r({ kind: "live", ...sc, inferred: true });
         break;
-      case "POSTPONED": return { kind: "postponed" };
-      case "CANCELLED": return { kind: "cancelled" };
+      case "POSTPONED": return r({ kind: "postponed" });
+      case "CANCELLED": return r({ kind: "cancelled" });
     }
   }
   if (now === null || kick === null || now < kick) return { kind: "upcoming" };
