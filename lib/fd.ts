@@ -27,7 +27,7 @@ async function load(path: string) {
     if (r.status === 200) return JSON.parse(r.body);
     // minuuttiraja täynnä: odotetaan, kunnes laskuri nollautuu (enintään 20 s)
     if (r.status === 429 && attempt < 2) { await new Promise((ok) => setTimeout(ok, Math.min(12, Math.max(2, r.reset)) * 1000)); continue; }
-    throw new Error(`football-data ${r.status}`);
+    throw new Error(`football-data ${r.status}: ${r.body.slice(0, 160)}`);
   }
 }
 
@@ -38,7 +38,8 @@ export async function fd<T = any>(path: string, ttl: number): Promise<T | null> 
   if (process.env.NEXT_PHASE === "phase-production-build") return null;
   try {
     return await unstable_cache(() => load(path), ["fd-v1", path], { revalidate: ttl })();
-  } catch {
+  } catch (e) {
+    console.error("football-data", path, (e as Error)?.message);
     return null;
   }
 }
