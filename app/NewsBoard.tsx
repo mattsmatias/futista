@@ -10,6 +10,19 @@ import { useI18n, LangSwitch, type Key } from "@/lib/i18n";
 import Footer from "./Footer";
 import { Card, Meta } from "./Cards";
 import Favorites from "./Favorites";
+import { staticCrest } from "@/lib/crest-ids";
+
+/** Seuran logo pikavalintaan; jos kuva ei lataudu, näytetään lyhenne seuran väreissä */
+function ClubLogo({ tag, short }: { tag: string; short: string }) {
+  const src = staticCrest(tag);
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <div className="club-badge">{short}</div>;
+  return (
+    <div className="club-badge logo">
+      <img src={src} alt="" width={40} height={40} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+    </div>
+  );
+}
 
 const Icon = {
   home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg>,
@@ -102,7 +115,7 @@ export default function NewsBoard({ articles, stats }: { articles: Article[]; st
         </button>
         {clubs.map((c) => (
           <button key={c.tag} className={`club${club === c.tag ? " on" : ""}`} style={{ ["--c1" as any]: c.c1, ["--c2" as any]: c.c2 }} onClick={() => setClub(club === c.tag ? null : c.tag)}>
-            <div className="club-ring"><div className="club-badge">{c.short}</div></div><span>{c.name}</span>
+            <div className="club-ring"><ClubLogo tag={c.tag} short={c.short} /></div><span>{c.name}</span>
           </button>
         ))}
       </div>}
