@@ -91,6 +91,25 @@ const URLS: Record<string, string> = {
   "racing santander": "https://r2.thesportsdb.com/images/media/team/badge/97kkiq1536575158.png/small",
   "racing de santander": "https://r2.thesportsdb.com/images/media/team/badge/97kkiq1536575158.png/small",
   racing: "https://r2.thesportsdb.com/images/media/team/badge/97kkiq1536575158.png/small",
+  // Mestarien liiga
+  "shakhtar donetsk": "https://r2.thesportsdb.com/images/media/team/badge/sqrxsr1421791799.png/small",
+  "shakhtar": "https://r2.thesportsdb.com/images/media/team/badge/sqrxsr1421791799.png/small",
+  "fenerbahce": "https://r2.thesportsdb.com/images/media/team/badge/twxxvs1448199691.png/small",
+  "como": "https://r2.thesportsdb.com/images/media/team/badge/02x81t1627405841.png/small",
+  "brugge": "https://r2.thesportsdb.com/images/media/team/badge/mz8y0q1771129880.png/small",
+  "club brugge": "https://r2.thesportsdb.com/images/media/team/badge/mz8y0q1771129880.png/small",
+  "lens": "https://r2.thesportsdb.com/images/media/team/badge/3pxoum1598797195.png/small",
+  "aek": "https://r2.thesportsdb.com/images/media/team/badge/4nogst1602773624.png/small",
+  "aek athens": "https://r2.thesportsdb.com/images/media/team/badge/4nogst1602773624.png/small",
+  "sabah masazir": "https://r2.thesportsdb.com/images/media/team/badge/o2ttq41614284640.png/small",
+  "sabah": "https://r2.thesportsdb.com/images/media/team/badge/o2ttq41614284640.png/small",
+  "bodo glimt": "https://r2.thesportsdb.com/images/media/team/badge/uqpwwx1449165943.png/small",
+  "viking": "https://r2.thesportsdb.com/images/media/team/badge/9mzq961590148192.png/small",
+  "slavia praha": "https://r2.thesportsdb.com/images/media/team/badge/l7kl4n1759252139.png/small",
+  "slavia prague": "https://r2.thesportsdb.com/images/media/team/badge/l7kl4n1759252139.png/small",
+  "lask linz": "https://r2.thesportsdb.com/images/media/team/badge/oox26l1683556395.png/small",
+  "lask": "https://r2.thesportsdb.com/images/media/team/badge/oox26l1683556395.png/small",
+  "slovan bratislava": "https://r2.thesportsdb.com/images/media/team/badge/uzkg701781199823.png/small",
 };
 
 export function staticCrest(name: string): string | undefined {
