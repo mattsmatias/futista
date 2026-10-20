@@ -662,7 +662,7 @@ a.match:hover { background: var(--surface-2); }
 .story-top.has-img { display: block; min-height: 0; overflow: hidden; background: #07090d; padding-top: calc(68px + env(safe-area-inset-top, 0px)); }
 .story-top.has-img::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(7,9,13,.15) 0%, rgba(7,9,13,.55) 60%, #07090d 100%); }
 .story-bg { position: absolute; inset: -60px; z-index: -2; background: center / cover no-repeat; filter: blur(40px) saturate(1.15) brightness(.55); }
-.story-figure { margin: 0 auto; max-width: 1080px; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+.story-figure { margin: 0 auto; max-width: 900px; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
 .story-figure img { display: block; width: 100%; height: auto; border-radius: var(--r-md); box-shadow: 0 30px 70px -25px rgba(0,0,0,.75); background: #11151c; }
 .story-top.has-img .wrap { padding-block: 26px 34px; }
 @media (max-width: 640px) {
