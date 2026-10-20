@@ -4,7 +4,7 @@
 import { unstable_cache } from "next/cache";
 import { getJson } from "./http";
 import { words, sameTeam, helsinkiParts } from "./live-core";
-import type { LeagueStats } from "./stats";
+import type { LeagueStats, Team } from "./stats";
 import { matchHref } from "./routes";
 import type { Kind } from "./live-core";
 
@@ -136,8 +136,33 @@ export async function getTeamGames(source: string, name: string, stats: LeagueSt
       const k = known.find((x) => words(x.name).length && words(x.name).every((y) => w.includes(y)));
       return k ? { ...t, name: k.name } : t;
     };
+    const teamsIn = (st: LeagueStats) => {
+      const m = new Map<string, Team>();
+      for (const t of [...st.table.map((r) => r.team), ...st.results.flatMap((r) => [r.home, r.away]), ...st.fixtures.flatMap((r) => [r.home, r.away])]) m.set(t.name, t);
+      return [...m.values()];
+    };
+    const resolve = (list: Team[], t: GameTeam) => {
+      const w = t.w ?? words(t.name);
+      const exact = list.filter((x) => { const xw = words(x.name); return xw.length && xw.every((y) => w.includes(y)); });
+      if (exact.length === 1) return exact[0];
+      const part = list.filter((x) => sameTeam(x.name, w));
+      return part.length === 1 ? part[0] : undefined;
+    };
     for (const g of games) {
-      if (g.slug === LEAGUE[source] || g.slug === "uefa.champions") link(g, name, stats);
+      const linked = g.slug === LEAGUE[source] || g.slug === "uefa.champions";
+      if (linked) link(g, name, stats);
+      if (!g.href && linked) {
+        // ottelu puuttuu lähteen listoilta (esim. kaukana tulevaisuudessa tai juuri käynnissä): linkki ottelusivulle joukkueiden perusteella
+        const st = stats.find((x) => x.source === (g.slug === "uefa.champions" ? "ucl" : source));
+        if (st) {
+          const list = teamsIn(st);
+          const h = resolve(list, g.home), a = resolve(list, g.away);
+          if (h && a && h.name !== a.name) {
+            g.href = matchHref(st.source, g.date, h.name, a.name);
+            g.home = { ...g.home, name: h.name }; g.away = { ...g.away, name: a.name };
+          }
+        }
+      }
       if (!g.href) { g.home = ours(g.home); g.away = ours(g.away); }
       delete g.home.w; delete g.away.w;
     }
