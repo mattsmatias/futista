@@ -109,7 +109,7 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
       <div className="s-dialog" role="dialog" aria-modal="true" aria-label={t("search")} onKeyDown={trap}>
         <div className="s-bar">
           <span className="s-ico">{Icon.search}</span>
-          <input ref={input} type="search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey}
+          <input ref={input} autoFocus type="search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey}
             placeholder={t("searchPh")} aria-label={t("searchPh")} role="combobox" aria-expanded={flat.length > 0}
             aria-controls={listId} aria-activedescendant={flat.length ? optId(active) : undefined} autoComplete="off" spellCheck={false} />
           <button type="button" className="icon-btn" onClick={close} aria-label={t("close")}>{Icon.close}</button>
