@@ -17,18 +17,21 @@ export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | 
   championship: { mark: "CH", country: "en" },
 };
 
-/** Kilpailun oma tunnus football-datan kuvapalvelusta (sama palvelu kuin seuralogoissa; ei uutta tietolähdettä).
- *  Osoitteet tarkistettu 21.10.2026 (kaikki 200 image/png). Huom. Eredivisien kuva on ED.png, vaikka sarjakoodi on DED. */
-export const COMP_EMBLEM: Record<SourceId, string> = {
-  ucl: "https://crests.football-data.org/CL.png",
-  laliga: "https://crests.football-data.org/PD.png",
-  valioliiga: "https://crests.football-data.org/PL.png",
-  bundesliga: "https://crests.football-data.org/BL1.png",
-  seriea: "https://crests.football-data.org/SA.png",
-  ligue1: "https://crests.football-data.org/FL1.png",
-  eredivisie: "https://crests.football-data.org/ED.png",
-  primeira: "https://crests.football-data.org/PPL.png",
-  championship: "https://crests.football-data.org/ELC.png",
+/** Kilpailun oma logo. Lähteet ovat jo käytössä olevia tietolähteitä (ESPN ja football-data), ei uusia.
+ *  Valinta 21.10.2026: ESPN:n logot ovat pääosin uudempia (esim. La Ligan nykyinen LALIGA-logo, päivitetty 7/2025)
+ *  ja niistä on erillinen versio tummalle pohjalle. Championshipin uudempi logo on football-datalla (12/2024).
+ *  Kaikki osoitteet tarkistettu (200 image/png). */
+const espn = (n: number) => ({ light: `https://a.espncdn.com/i/leaguelogos/soccer/500/${n}.png`, dark: `https://a.espncdn.com/i/leaguelogos/soccer/500-dark/${n}.png` });
+export const COMP_EMBLEM: Record<SourceId, { light: string; dark?: string }> = {
+  ucl: espn(2),
+  laliga: espn(15),
+  valioliiga: espn(23),
+  bundesliga: espn(10),
+  seriea: espn(12),
+  ligue1: espn(9),
+  eredivisie: espn(11),
+  primeira: espn(14),
+  championship: { light: "https://crests.football-data.org/ELC.png" },
 };
 
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));

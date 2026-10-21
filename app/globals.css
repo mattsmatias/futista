@@ -1246,7 +1246,16 @@ div.match { cursor: default; }
 /* Yksityiskohtasivut (ottelu, joukkue, maa, pelaaja): sama lukuleveys kuin listasivuilla työpöydällä */
 @media (min-width: 901px) { .wrap.entity { max-width: 980px; } }
 
-/* Sarjojen omat logot: vaalea laatta molemmissa teemoissa, logo mahtuu kokonaan */
-.cmark.cmark-logo { min-width: 0; width: 30px; height: 30px; padding: 4px; border-radius: 8px; background: #fff; box-shadow: inset 0 0 0 1px rgba(15, 20, 30, .08); }
+/* Sarjojen omat logot. Logo ilman tummaa versiota näytetään tummassa teemassa vaalealla laatalla. */
+.cmark.cmark-logo { min-width: 0; width: 30px; height: 30px; padding: 2px; border-radius: 8px; background: transparent; }
 .cmark.cmark-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.ehead .cmark.cmark-logo { width: 44px; height: 44px; padding: 6px; border-radius: 10px; }
+.cmark.cmark-logo .cl-dark { display: none; }
+.ehead .cmark.cmark-logo { width: 44px; height: 44px; padding: 3px; border-radius: 10px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cmark.has-dark .cl-light { display: none; }
+  :root:not([data-theme="light"]) .cmark.has-dark .cl-dark { display: block; }
+  :root:not([data-theme="light"]) .cmark.cmark-logo:not(.has-dark) { background: #fff; padding: 4px; }
+}
+:root[data-theme="dark"] .cmark.has-dark .cl-light { display: none; }
+:root[data-theme="dark"] .cmark.has-dark .cl-dark { display: block; }
+:root[data-theme="dark"] .cmark.cmark-logo:not(.has-dark) { background: #fff; padding: 4px; }
