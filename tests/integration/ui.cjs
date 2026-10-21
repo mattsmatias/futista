@@ -35,7 +35,7 @@ const MIN = 60_000;
     });
     // aika etenee 5 s paloina: muuten pyynnön aikakatkaisuajastin laukeaisi ennen kuin (simuloitu) vastaus ehtii perille
     const adv = async (ms) => { for (let d = 0; d < ms; d += 5000) { const c = Math.min(5000, ms - d); fake += c; await page.clock.runFor(c); await page.waitForTimeout(25); } await page.waitForTimeout(200); };
-    const fresh = async () => (await page.locator(".fresh-line").first().textContent().catch(() => "")) || "";
+    const fresh = async () => (await page.evaluate(() => document.querySelector(".fresh-line")?.textContent ?? "").catch(() => "")) || "";
     await page.goto(APP + MATCH, { waitUntil: "networkidle" });
     await adv(1000);
     ok("live: ottelusivu, aloitusaika ohitettu ilman lähteen vahvistusta → 'tilaa ei vahvistettu'", (await page.locator("body").innerText()).includes("Aloitusaika ohitettu – tilaa ei vahvistettu"));
