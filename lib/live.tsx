@@ -91,7 +91,14 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     setNow(Date.now());
     // ensimmäinen haku heti; aiemmin haettu tieto näytetään sillä välin
     if (Date.now() - s.lastAttempt > RESUME_MIN) load(); else schedule(RESUME_MIN - (Date.now() - s.lastAttempt));
-    const b = setInterval(() => setNow(Date.now()), 10_000); // peliminuutti juoksee
+    // peliminuutti vaihtuu sekunnilleen oikeaan aikaan: käynnissä olevien otteluiden aikana näkymä päivittyy
+    // joka sekunti, muuten 30 s välein
+    let ticks = 0;
+    const b = setInterval(() => {
+      ticks++;
+      const anyLive = s.current.some((m) => m.status === "IN_PLAY" || m.status === "EXTRA_TIME");
+      if (!document.hidden && (anyLive || ticks % 30 === 0)) setNow(Date.now());
+    }, 1000);
     const vis = () => {
       if (document.hidden) return;
       setNow(Date.now());
