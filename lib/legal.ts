@@ -41,7 +41,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Ulkopuoliset sisällöt",
         p: [
-          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com), joukkueiden logot football-data.orgin, TheSportsDB:n ja ESPN:n palvelimilta, pelaajakuvat TheSportsDB:n palvelimilta ja maiden liput flagcdn.comista. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi ja selaimen perustiedot kyseisille palvelimille.",
+          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com), joukkueiden logot football-data.orgin, TheSportsDB:n ja ESPN:n palvelimilta, pelaajakuvat Wikimedia Commonsin ja TheSportsDB:n palvelimilta ja maiden liput flagcdn.comista. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi ja selaimen perustiedot kyseisille palvelimille.",
           "Ottelu- ja tilastotiedot Futistan palvelin hakee itse (football-data.org, ESPN, TheSportsDB). Näihin hakuihin ei liitetä sinun tietojasi.",
           "Fontit toimitetaan Futistan omalta palvelimelta, joten niitä ladattaessa tietoja ei välity Googlelle.",
         ],
@@ -90,7 +90,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Externt innehåll",
         p: [
-          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com), lagens logotyper från football-data.orgs, TheSportsDB:s och ESPN:s servrar, spelarbilder från TheSportsDB och landsflaggor från flagcdn.com. När bilderna laddas skickar din webbläsare din IP-adress och grundläggande webbläsarinformation till dessa servrar.",
+          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com), lagens logotyper från football-data.orgs, TheSportsDB:s och ESPN:s servrar, spelarbilder från Wikimedia Commons och TheSportsDB och landsflaggor från flagcdn.com. När bilderna laddas skickar din webbläsare din IP-adress och grundläggande webbläsarinformation till dessa servrar.",
           "Match- och statistikuppgifter hämtas av Futistas egen server (football-data.org, ESPN, TheSportsDB). Inga uppgifter om dig skickas med dessa förfrågningar.",
           "Typsnitten levereras från Futistas egen server, så inga uppgifter skickas till Google när de laddas.",
         ],
@@ -139,7 +139,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "External content",
         p: [
-          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com), team logos from football-data.org, TheSportsDB and ESPN, player photos from TheSportsDB and country flags from flagcdn.com. When these images load, your browser sends your IP address and basic browser details to those servers.",
+          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com), team logos from football-data.org, TheSportsDB and ESPN, player photos from Wikimedia Commons and TheSportsDB and country flags from flagcdn.com. When these images load, your browser sends your IP address and basic browser details to those servers.",
           "Match and statistics data is fetched by Futista's own server (football-data.org, ESPN, TheSportsDB). None of your data is included in those requests.",
           "Fonts are served from Futista's own server, so nothing is sent to Google when they load.",
         ],
@@ -166,7 +166,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Uutiset (otsikot, otteet, tekstit ja kuvat) sekä La Ligan, Valioliigan ja Mestarien liigan sarjataulukot, tulokset ja otteluohjelmat: [LaLiiga.com](https://www.laliiga.com) ja [Valioliiga.com](https://www.valioliiga.com). Jokaisen jutun lopussa on linkki alkuperäiseen artikkeliin.",
           "Muiden sarjojen tiedot, maalipörssit, kokoonpanot, pelaajasivut, aiemmat kohtaamiset ja ensisijaiset lopputulokset: [football-data.org](https://www.football-data.org) (ilmaisversio, jossa tulokset päivittyvät viiveellä).",
           "Otteluiden live-tila ja peliminuutti, joukkueiden kaikkien kilpailujen ottelut, maaottelut, cup- ja Eurooppa-otteluiden perustiedot sekä Turkin Süper Ligin taulukko, ottelut ja maalipörssi: ESPN:n tulospalvelun julkinen rajapinta.",
-          "Pelaajakuvat ja osa logoista: [TheSportsDB](https://www.thesportsdb.com). Maiden liput: [Flagpedia](https://flagpedia.net).",
+          "Pelaajakuvat: [Wikimedia Commons](https://commons.wikimedia.org) (avoimet lisenssit, kuvien tekijät ja lisenssit näkyvät kunkin kuvan sivulla Commonsissa) ja [TheSportsDB](https://www.thesportsdb.com). Osa logoista: TheSportsDB. Maiden liput: [Flagpedia](https://flagpedia.net).",
         ],
       },
       {
@@ -196,7 +196,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "Nyheter (rubriker, utdrag, texter och bilder) samt tabeller, resultat och spelscheman för La Liga, Premier League och Champions League: [LaLiiga.com](https://www.laliiga.com) och [Valioliiga.com](https://www.valioliiga.com). Varje artikel avslutas med en länk till originalet.",
           "Andra ligor, skytteligor, trupper, spelarsidor, tidigare möten och primära slutresultat: [football-data.org](https://www.football-data.org) (gratisversion där resultaten uppdateras med fördröjning).",
           "Matchstatus och matchminut, lagens matcher i alla turneringar, landskamper, grunduppgifter om cup- och Europamatcher samt Turkiets Süper Lig (tabell, matcher och skytteliga): ESPN:s öppna resultatgränssnitt.",
-          "Spelarbilder och vissa logotyper: [TheSportsDB](https://www.thesportsdb.com). Flaggor: [Flagpedia](https://flagpedia.net).",
+          "Spelarbilder: [Wikimedia Commons](https://commons.wikimedia.org) (öppna licenser, upphovsperson och licens anges på respektive bilds sida på Commons) och [TheSportsDB](https://www.thesportsdb.com). Vissa logotyper: TheSportsDB. Flaggor: [Flagpedia](https://flagpedia.net).",
         ],
       },
       { h: "Källangivelse är inte tillstånd", p: ["Att källorna anges och att det finns en länk till originalet betyder inte att rätten att använda innehållet har avtalats. Upphovsrätten till texter och bilder tillhör källorna och deras bildbyråer. Klubbarnas namn och logotyper är klubbarnas varumärken."] },
@@ -221,7 +221,7 @@ export const ABOUT: Record<Lang, Doc> = {
           "News (headlines, excerpts, texts and images) and La Liga, Premier League and Champions League standings, results and fixtures: [LaLiiga.com](https://www.laliiga.com) and [Valioliiga.com](https://www.valioliiga.com). Every story ends with a link to the original article.",
           "Other leagues, top scorers, squads, player pages, previous meetings and primary final scores: [football-data.org](https://www.football-data.org) (free tier, results update with a delay).",
           "Live match status and minute, teams' matches in all competitions, internationals, basic cup and European match details and Turkey's Süper Lig (table, matches and top scorers): ESPN's public scores API.",
-          "Player photos and some logos: [TheSportsDB](https://www.thesportsdb.com). Flags: [Flagpedia](https://flagpedia.net).",
+          "Player photos: [Wikimedia Commons](https://commons.wikimedia.org) (open licences; author and licence are shown on each image's Commons page) and [TheSportsDB](https://www.thesportsdb.com). Some logos: TheSportsDB. Flags: [Flagpedia](https://flagpedia.net).",
         ],
       },
       { h: "Crediting a source is not a licence", p: ["Naming the sources and linking to the original does not mean that the right to use the content has been agreed. Copyright in texts and images belongs to the sources and their photo agencies. Club names and logos are the clubs' trademarks."] },

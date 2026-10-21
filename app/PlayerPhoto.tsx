@@ -1,5 +1,5 @@
 "use client";
-// Pelaajan kuva: nimikirjaimet näkyvät heti, kuva liukuu tilalle kun se on ladattu.
+// Pelaajan kuva: neutraali pelaajasiluetti näkyy heti, kuva liukuu tilalle kun se on ladattu.
 // Kuvat haetaan vasta näkyviin tullessa ja enintään kaksi kerrallaan, jotta kuvapalvelua ei kuormiteta.
 import { useEffect, useRef, useState } from "react";
 
@@ -46,10 +46,9 @@ export default function PlayerPhoto({ name, team = "", size = 36, initial, class
     io.observe(el);
     return () => { alive = false; io.disconnect(); };
   }, [name, team, url, initial]);
-  const ini = name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
     <span ref={ref} className={`pphoto ${className}`} style={{ width: size, height: size }}>
-      <span className="pp-ini" style={{ fontSize: Math.max(10, size * 0.36) }}>{ini}</span>
+      <svg className="pp-sil" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="4.2" /><path d="M3.8 22c.9-4.6 4.1-7.2 8.2-7.2s7.3 2.6 8.2 7.2z" /></svg>
       {url && <img src={url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className={shown ? "on" : ""} onLoad={() => setShown(true)} onError={() => setUrl(null)} />}
     </span>
   );

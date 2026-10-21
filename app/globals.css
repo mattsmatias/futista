@@ -823,7 +823,7 @@ a { -webkit-tap-highlight-color: transparent; }
 
 /* Pelaajien kuvat */
 .pphoto { position: relative; flex: none; display: inline-grid; place-items: center; border-radius: 50%; overflow: hidden; background: linear-gradient(160deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 60%, var(--line))); }
-.pp-ini { font-weight: 800; color: var(--muted); letter-spacing: -0.02em; }
+.pp-sil { width: 78%; height: 78%; margin-top: 22%; fill: color-mix(in srgb, var(--muted) 55%, transparent); }
 .pphoto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 12%; opacity: 0; transition: opacity .35s ease; }
 .pphoto img.on { opacity: 1; }
 .sq-row { grid-template-columns: auto 1fr auto; }

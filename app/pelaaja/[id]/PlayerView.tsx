@@ -29,14 +29,13 @@ export default function PlayerView({ p }: { p: PlayerData }) {
   const age = ageOf(p.dateOfBirth);
   const pos = p.position && POS.includes(p.position) ? t(`pos1_${p.position}` as Key) : p.position;
   const born = p.dateOfBirth ? new Date(p.dateOfBirth + "T12:00:00").toLocaleDateString(i.lang === "en" ? "en-GB" : i.lang === "sv" ? "sv-SE" : "fi-FI", { day: "numeric", month: "numeric", year: "numeric" }) : null;
-  const initials = p.name.split(" ").map((w) => w[0]).slice(0, 2).join("");
 
   return (
     <>
       <main className="wrap entity">
         <header className="ehead player-head">
           <div className={`pl-avatar sm${p.photo ? " has-photo" : ""}`}>
-            {p.photo ? <PlayerPhoto name={p.name} initial={p.photo} size={56} /> : <span>{initials}</span>}
+            <PlayerPhoto name={p.name} team={p.club?.name ?? ""} initial={p.photo ?? undefined} size={56} />
           </div>
           <div className="ehead-txt">
             <h1>{p.name}</h1>

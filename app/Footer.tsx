@@ -20,7 +20,7 @@ export default function Footer() {
           {" · "}<a href="https://www.valioliiga.com" target="_blank" rel="noopener">Valioliiga.com</a>
           {" · "}<a href="https://www.football-data.org" target="_blank" rel="noopener">{t("fdCredit")}</a>
           {" · "}ESPN
-          {" · "}<a href="https://www.thesportsdb.com" target="_blank" rel="noopener">TheSportsDB</a>
+          {" · "}<a href="https://www.thesportsdb.com" target="_blank" rel="noopener">TheSportsDB</a>{" · "}<a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
           {" · "}<a href="https://flagpedia.net" target="_blank" rel="noopener">Flagpedia</a>
         </small>
         <small className="foot-copy">© {new Date().getFullYear()} Futista · {t("rights")} · <a href="/tietoa">{t("notLicence")}</a></small>
