@@ -9,6 +9,7 @@ import Footer from "../../Footer";
 import { NewsItem } from "../../ui/News";
 import SafeImg from "../../SafeImg";
 import StoryActions from "../../ui/StoryActions";
+import { MarkRead } from "@/lib/read-news";
 import { T, LeagueName, TypeName, LocalDate } from "@/lib/i18n";
 
 export const revalidate = 3600;
@@ -51,6 +52,7 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <>
       <Progress />
+      <MarkRead path={"/uutiset/" + params.path.join("/")} />
       {/* otsikko ja ingressi ensin, sitten maltillisen kokoinen kuva */}
       <header className="wrap story-head">
         <div className="chips">

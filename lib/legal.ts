@@ -17,7 +17,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Laitteellesi tallennettavat tiedot",
         p: [
-          "Sivu tallentaa selaimesi pysyvään muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
+          "Sivu tallentaa selaimesi pysyvään muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi, lukemiesi uutisten osoitteet (\"Luettu\"-merkkiä varten, enintään 300 viimeisintä) sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
           "Nämä tiedot pysyvät laitteellasi, eikä niitä lähetetä meille. Voit poistaa ne tyhjentämällä selaimen sivustotiedot.",
           "Uutisten \"Piditkö tästä uutisesta?\" -kysymys: kun vastaat, palvelimelle tallentuu vain kyseisen jutun yhteissumma (montako vastasi kyllä ja montako ei). Siihen ei liitetä nimeäsi, laitettasi, IP-osoitettasi eikä muuta tunnistetta. Oma vastauksesi muistetaan vain omalla laitteellasi (localStorage), jotta voit vaihtaa tai perua sen.",
           "Jakopainikkeet (WhatsApp, Facebook, X, Telegram, sähköposti) ovat tavallisia linkkejä: sivulle ei ladata näiden palvelujen skriptejä, eikä niille välity mitään ennen kuin painat painiketta. Painaessasi avautuu valitsemasi palvelu, joka käsittelee tietoja omien käytäntöjensä mukaisesti.",
@@ -66,7 +66,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Uppgifter som sparas på din enhet",
         p: [
-          "Sidan sparar endast inställningar i din webbläsares minne (localStorage) så att sidan fungerar som du har valt: ditt språkval, dina favoritlag och om du har lagt till Futista på hemskärmen eller stängt installationsrutan.",
+          "Sidan sparar endast inställningar i din webbläsares minne (localStorage) så att sidan fungerar som du har valt: ditt språkval, dina favoritlag, adresserna till nyheter du läst (för märket \"Läst\", högst de 300 senaste) och om du har lagt till Futista på hemskärmen eller stängt installationsrutan.",
           "Uppgifterna stannar på din enhet och skickas inte till oss. Du kan ta bort dem genom att rensa webbplatsdata i webbläsaren.",
           "Frågan \"Gillade du den här nyheten?\": när du svarar sparas endast artikelns totalsumma på servern (hur många svarade ja och nej). Den kopplas inte till ditt namn, din enhet, din IP-adress eller någon annan identifierare. Ditt eget svar sparas bara på din enhet (localStorage) så att du kan ändra eller ångra det.",
           "Delningsknapparna (WhatsApp, Facebook, X, Telegram, e-post) är vanliga länkar: inga skript från dessa tjänster laddas på sidan och inget skickas till dem förrän du trycker på knappen. Då öppnas tjänsten du valt, som behandlar uppgifter enligt sina egna rutiner.",
@@ -115,7 +115,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "What is stored on your device",
         p: [
-          "The site stores only settings in your browser's own storage (localStorage) so the site works the way you chose: your language, your favourite teams and whether you have added Futista to your home screen or closed the install prompt.",
+          "The site stores only settings in your browser's own storage (localStorage) so the site works the way you chose: your language, your favourite teams, the addresses of stories you have read (for the \"Read\" mark, at most the latest 300) and whether you have added Futista to your home screen or closed the install prompt.",
           "This stays on your device and is never sent to us. You can remove it by clearing the site data in your browser.",
           "The \"Did you like this story?\" question: when you answer, the server stores only that story's totals (how many answered yes and no). They are not linked to your name, device, IP address or any other identifier. Your own answer is remembered only on your device (localStorage) so you can change or undo it.",
           "The share buttons (WhatsApp, Facebook, X, Telegram, email) are plain links: no scripts from these services are loaded on the page and nothing is sent to them until you tap a button. Tapping opens the service you chose, which handles data under its own policies.",

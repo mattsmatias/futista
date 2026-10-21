@@ -214,6 +214,10 @@ const MIN = 60_000;
     await page.goto(APP + "/sarjat/eiole", { waitUntil: "networkidle" });
     ok("kilpailusivu: tuntematon sarja → 404", /ei löytynyt/i.test(await page.locator("h1").first().innerText()));
     ok("tulospalvelu: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
+    // luetut uutiset: merkintä tallentuu laitteelle (uutislista on simuloidussa ympäristössä tyhjä → testataan muisti)
+    await page.goto(APP + "/uutiset/laliga/2026/10/21/testijuttu", { waitUntil: "domcontentloaded" }).catch(() => {});
+    const luetut = await page.evaluate(() => localStorage.getItem("futista-luetut"));
+    ok("luetut: jutun avaaminen ei kaada sivua (juttua ei ole → 404, ei merkintää)", luetut === null || !luetut.includes("testijuttu"), String(luetut));
     // Süper Lig: koko sarja ESPN:stä (simuloitu)
     let sl = await fetch(`${APP}/api/league/superlig`); let slj = await sl.json();
     ok("Süper Lig: taulukko, tulos ja tuleva ottelu ESPN:stä", sl.status === 200 && slj.stats?.table?.length === 3 && slj.stats.results.length === 1 && slj.stats.fixtures.length === 1 && slj.stats.table[0].team.id === undefined, `${sl.status} ${slj.stats?.table?.length}/${slj.stats?.results?.length}/${slj.stats?.fixtures?.length}`);

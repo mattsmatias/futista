@@ -156,6 +156,7 @@ const D = {
   finnishTime: ["Suomen aikaa", "finsk tid", "Finnish time"],
   basicMatchNote: ["Tälle ottelulle on saatavilla vain perustiedot. Kokoonpanoja, maalintekijöitä ja muita tapahtumia ei näytetä.", "För den här matchen finns bara grunduppgifter. Laguppställningar, målskyttar och andra händelser visas inte.", "Only basic information is available for this match. Line-ups, scorers and other events are not shown."],
   readAtSource: ["Lue koko juttu:", "Läs hela artikeln:", "Read the full story:"],
+  readMark: ["Luettu", "Läst", "Read"],
   likeQ: ["Piditkö tästä uutisesta?", "Gillade du den här nyheten?", "Did you like this story?"],
   likeYes: ["Kyllä", "Ja", "Yes"],
   likeNo: ["En", "Nej", "No"],

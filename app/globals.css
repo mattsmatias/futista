@@ -1296,3 +1296,8 @@ div.match { cursor: default; }
 .bar-superlig, .dot-superlig { background: var(--lg-superlig); } .chip-superlig { background: color-mix(in srgb, var(--lg-superlig) 16%, transparent); color: var(--lg-superlig); } .mh-superlig { --accent: var(--lg-superlig); } .lpick button.on-superlig { color: var(--lg-superlig); }
 .cm-superlig { background: var(--c-superlig); }
 .tbl tr.z-uclq .pos::before, .zk.z-uclq { background: var(--uclq); }
+
+/* Luetut uutiset: merkki tekstinä ja kuvakkeena (ei pelkkä väri), otsikko hieman himmeämpi */
+.nm-read { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px 1px 5px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-weight: 650; }
+.nitem.is-read h3, .nlead.is-read h2 { color: color-mix(in srgb, var(--fg) 68%, var(--bg)); }
+.nitem.is-read .art, .nlead.is-read .art { opacity: .8; }
