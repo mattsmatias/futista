@@ -193,7 +193,8 @@ const MIN = 60_000;
     ok("haku: joukkue löytyy", opts.some((o) => o.includes("Testiseura Kotka")), opts.join(" | "));
     await page.keyboard.press("Escape"); await page.waitForTimeout(200);
     ok("  Escape sulkee ja palauttaa kohdistuksen hakupainikkeeseen", (await page.locator("[role=dialog]").count()) === 0 && await page.evaluate(() => document.activeElement?.classList.contains("search-btn")));
-    await page.locator(".search-btn").click(); await page.keyboard.type("qqqzz"); await page.waitForTimeout(1200);
+    await page.locator(".search-btn").click(); await page.keyboard.type("qqqzz");
+    await page.locator("[role=dialog]", { hasText: "Ei hakutuloksia" }).waitFor({ timeout: 8000 }).catch(() => {});
     ok("  osumaton haku → ohjeellinen teksti", /Ei hakutuloksia/i.test(await page.locator("[role=dialog]").innerText()));
     await page.keyboard.press("Escape");
     // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan
