@@ -21,7 +21,7 @@ function load(name: string, team: string): Promise<string | null> {
       try {
         const r = await fetch(`/api/photo?n=${encodeURIComponent(name)}&t=${encodeURIComponent(team)}`);
         if (r.ok) { const d = await r.json(); cache.set(key, d.url ?? null); resolve(d.url ?? null); }
-        else resolve(null); // hetkellinen virhe: yritetään seuraavalla käynnillä
+        else { await r.text().catch(() => ""); resolve(null); } // hetkellinen virhe: yritetään seuraavalla käynnillä
       } catch { resolve(null); }
     });
     pump();
