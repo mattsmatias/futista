@@ -58,7 +58,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { favs, ready } = useFavorites();
   useBackgroundPrefetch(favs, ready);
   // sivu avautui puhelimen muistista → palvelimen tuore versio heti perään (tulokset, taulukot)
-  useEffect(() => { askServedFromCache().then((yes) => { if (yes) router.refresh(); }).catch(() => {}); }, [path, router]);
+  useEffect(() => { if (navigator.onLine === false) return; askServedFromCache().then((yes) => { if (yes && navigator.onLine !== false) router.refresh(); }).catch(() => {}); }, [path, router]);
 
   const openSearch = useCallback(() => { trigger.current = document.activeElement as HTMLElement | null; setSearchOpen(true); }, []);
   const closeSearch = useCallback(() => { setSearchOpen(false); setTimeout(() => trigger.current?.focus?.(), 0); }, []);
