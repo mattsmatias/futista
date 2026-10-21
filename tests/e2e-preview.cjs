@@ -173,7 +173,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const { c, p } = await ctx(390);
       await c.addInitScript(() => { window.__perm = 0; try { const o = Notification.requestPermission.bind(Notification); Notification.requestPermission = (...a) => { window.__perm++; return o(...a); }; } catch {} });
       const st = await p.evaluate(async () => { const r = await fetch('/api/push/status'); return { s: r.status, j: await r.json() }; });
-      await p.goto(U + '/?nakyma=suosikit', { waitUntil: 'networkidle' }); await sl(1500);
+      await p.goto(U + '/?nakyma=suosikit', { waitUntil: 'domcontentloaded' }); await p.waitForSelector('.notify', { timeout: 20000 }).catch(() => {}); await sl(1500);
       const card = await p.evaluate(() => document.querySelector('.notify')?.innerText || '');
       const btn = p.locator('.notify button'); if (await btn.count()) await btn.first().click().catch(() => {});
       await sl(500);
