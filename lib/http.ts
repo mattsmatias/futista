@@ -18,3 +18,24 @@ export function getJson(url: string, timeout = 10000): Promise<any> {
     req.on("error", reject);
   });
 }
+
+/** Kevyt fetch-korvike Noden http(s)-moduulilla. Nextin paikkaama fetch keskeyttää no-store-haut staattisen
+ *  sivun uudelleenluonnissa ("Dynamic server usage"), joten palvelinpuolen RPC-kutsut (kiintiö) tehdään tällä. */
+export function nodeFetch(url: string, init: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal } = {}):
+  Promise<{ ok: boolean; status: number; text: () => Promise<string> }> {
+  return new Promise((resolve, reject) => {
+    const req = (url.startsWith("http://") ? http : https).request(url, { method: init.method ?? "GET", headers: init.headers }, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (c) => (body += c));
+      res.on("end", () => resolve({ ok: (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300, status: res.statusCode ?? 0, text: async () => body }));
+    });
+    req.on("error", reject);
+    if (init.signal) {
+      if (init.signal.aborted) req.destroy(new Error("aborted"));
+      else init.signal.addEventListener("abort", () => req.destroy(new Error("aborted")), { once: true });
+    }
+    if (init.body) req.write(init.body);
+    req.end();
+  });
+}

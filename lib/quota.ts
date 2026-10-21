@@ -3,6 +3,7 @@
 // funktiossa lukon alla, joten rinnakkaiset varaukset eri instansseista eivät voi ylittää rajaa.
 // Häiriössä (ei yhteyttä, aikakatkaisu, migraatio ajamatta) EI haeta lähteestä: kutsuja saa
 // virheen ja käyttää välimuistidataa tai näyttää hallitun virheen ("fail closed").
+import { nodeFetch } from "./http";
 import { createHash } from "node:crypto";
 import type { Priority } from "./guard";
 import { supabaseHeaders, supabaseServer } from "./supabase-rest";
@@ -31,7 +32,7 @@ export function supabaseQuotaStore(
   bucket: string,
   lim: QuotaLimits = FD_LIMITS,
   timeoutMs = 3000,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch = nodeFetch as unknown as typeof fetch,
 ): QuotaStore {
   async function rpc(fn: string, body: unknown): Promise<any> {
     const ctl = new AbortController();
@@ -39,7 +40,6 @@ export function supabaseQuotaStore(
     try {
       const res = await fetchImpl(`${conn.url}/rest/v1/rpc/${fn}`, {
         method: "POST",
-        cache: "no-store",
         signal: ctl.signal,
         headers: { ...supabaseHeaders(conn.key), "Content-Type": "application/json" },
         body: JSON.stringify(body),
