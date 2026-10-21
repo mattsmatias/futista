@@ -295,7 +295,7 @@ const D = {
   searchNations: ["Maajoukkueet", "Landslag", "National teams"],
   searchPlayers: ["Pelaajat", "Spelare", "Players"],
   searchNone: ["Ei hakutuloksia.", "Inga sökträffar.", "No results."],
-  searchHint: ["Kokeile joukkueen nimeä (esim. Barcelona tai Barça), sarjaa (esim. Bundesliga) tai maata (esim. Suomi) tai pelaajan nimeä (esim. Lewandowski).", "Prova ett lagnamn (t.ex. Barcelona eller Barça), en serie (t.ex. Bundesliga) eller ett land (t.ex. Finland) eller en spelare (t.ex. Lewandowski).", "Try a team (e.g. Barcelona or Barça), a competition (e.g. Bundesliga) a country (e.g. Finland) or a player (e.g. Lewandowski)."],
+  searchHint: ["Kokeile joukkueen nimeä (esim. Barcelona tai Barça), sarjaa (esim. Bundesliga) tai maata (esim. Suomi) tai pelaajan nimeä (esim. Mbappé).", "Prova ett lagnamn (t.ex. Barcelona eller Barça), en serie (t.ex. Bundesliga) eller ett land (t.ex. Finland) eller en spelare (t.ex. Mbappé).", "Try a team (e.g. Barcelona or Barça), a competition (e.g. Bundesliga) a country (e.g. Finland) or a player (e.g. Mbappé)."],
   searchPartial: ["Osa sarjoista puuttuu hakemistosta juuri nyt.", "Vissa serier saknas i sökindexet just nu.", "Some competitions are missing from the index right now."],
   searchMin: ["Kirjoita vähintään kaksi merkkiä.", "Skriv minst två tecken.", "Type at least two characters."],
   searchFailed: ["Hakemiston lataus epäonnistui.", "Sökindexet kunde inte laddas.", "The search index failed to load."],
