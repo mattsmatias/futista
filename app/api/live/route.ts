@@ -70,6 +70,10 @@ export async function GET() {
   const error = !fdRes && espn.at === null && (fdOn || espnOn()); // käytössä olevat lähteet eivät vastanneet
   return NextResponse.json(
     { enabled: fdOn, matches, checkedAt, sources, error },
-    { headers: { "Cache-Control": error ? "public, s-maxage=20" : "public, s-maxage=10, stale-while-revalidate=10" } },
+    { headers: {
+      "Cache-Control": error ? "public, s-maxage=20" : "public, s-maxage=10, stale-while-revalidate=10",
+      // Vercelin CDN: kaikki kävijät jakavat saman vastauksen (ei funktiokutsua jokaisesta hausta)
+      "CDN-Cache-Control": error ? "max-age=20" : "max-age=10, stale-while-revalidate=10",
+    } },
   );
 }

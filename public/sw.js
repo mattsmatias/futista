@@ -1,6 +1,8 @@
-// Futistan service worker (versio 4).
-// - Sivut (HTML-navigoinnit) haetaan aina ensin verkosta. Verkkovirheessä näytetään tallennettu versio,
-//   ja jos sitäkään ei ole, offline-sivu (/offline.html), jossa on linkit tallennettuihin sivuihin.
+// Futistan service worker (versio 5).
+// - Sivut (HTML-navigoinnit): jos laitteella on alle vuorokauden vanha tallennettu versio JA kaikki sen
+//   tarvitsemat tiedostot (/_next/static) ovat tallessa, se näytetään heti ja uusi versio haetaan taustalla
+//   seuraavaa avausta varten (sivu hakee tuoreet tulokset itse heti avauduttuaan). Muuten verkko ensin.
+//   Verkkovirheessä näytetään tallennettu versio, ja jos sitäkään ei ole, offline-sivu (/offline.html).
 // - Tallennetaan VAIN onnistuneet (200) samasta osoitteesta tulevat täydet HTML-sivut. EI tallenneta:
 //   /api/-vastauksia (live, ilmoitukset, cron), Next.js:n osittaisia reittivastauksia (RSC), virheitä,
 //   no-store/private-vastauksia eikä evästeitä asettavia vastauksia.
@@ -8,7 +10,7 @@
 // - Vanhat välimuistiversiot poistetaan aktivoinnissa.
 // - Kieliversiot eivät sekoitu: palvelin tuottaa saman HTML:n kaikille, kieli valitaan selaimessa.
 // - Lähteiden kuvia (toiset palvelimet) ei tallenneta; selain käyttää omaa HTTP-välimuistiaan.
-const VERSION = "v4";
+const VERSION = "v5";
 const STATIC = `futista-static-${VERSION}`;
 const PAGES = `futista-pages-${VERSION}`;
 const OFFLINE = "/offline.html";
@@ -16,6 +18,7 @@ const PRECACHE = [OFFLINE, "/icons/icon-192.png", "/icons/icon-512.png"];
 const MAX_PAGES = 30;
 const MAX_STATIC = 200;
 const MAX_AGE_MS = 3 * 86400_000;
+const INSTANT_MS = 86400_000; // näin tuoreen tallennetun sivun saa näyttää heti
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(STATIC).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -52,6 +55,19 @@ async function savePage(req, res) {
   const body = await res.clone().blob();
   const headers = new Headers(res.headers);
   headers.set("X-SW-Cached-At", String(Date.now()));
+  // sivun tarvitsemat versioidut tiedostot: sivu näytetään heti vain, jos ne kaikki ovat tallessa
+  const html = await body.text();
+  const assets = [...new Set(html.match(/\/_next\/static\/[^"'\\\s)]+\.(?:js|css)/g) || [])];
+  headers.set("X-SW-Assets", JSON.stringify(assets));
+  // versioidut tiedostot talteen etukäteen (eivät muutu), jotta sivun voi seuraavalla kerralla näyttää heti
+  const st = await caches.open(STATIC);
+  await Promise.all(assets.map(async (a) => {
+    const u = new URL(a, location.origin).href;
+    if (await st.match(u)) return;
+    const r = await fetch(u).catch(() => null);
+    if (r && r.ok && r.type === "basic") await st.put(u, r);
+  }));
+  await trim(STATIC, MAX_STATIC);
   const c = await caches.open(PAGES);
   await c.put(req.url, new Response(body, { status: 200, headers }));
   await trim(PAGES, MAX_PAGES);
@@ -64,6 +80,21 @@ async function cachedPage(url) {
   const at = Number(hit.headers.get("X-SW-Cached-At") || 0);
   if (Date.now() - at > MAX_AGE_MS) { await c.delete(url); return null; }
   return hit;
+}
+
+/** Tallennettu sivu, jonka saa näyttää heti: alle vuorokauden vanha ja kaikki sen tiedostot tallessa */
+async function instantPage(url) {
+  try {
+    const hit = await cachedPage(url);
+    if (!hit) return null;
+    const at = Number(hit.headers.get("X-SW-Cached-At") || 0);
+    if (Date.now() - at > INSTANT_MS) return null;
+    const assets = JSON.parse(hit.headers.get("X-SW-Assets") || "null");
+    if (!Array.isArray(assets) || !assets.length) return null;
+    const st = await caches.open(STATIC);
+    for (const a of assets) if (!(await st.match(new URL(a, location.origin).href))) return null;
+    return hit;
+  } catch { return null; }
 }
 
 self.addEventListener("fetch", (e) => {
@@ -88,13 +119,15 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Sivut: verkko ensin, tallennettu versio varalla, sitten offline-sivu
+  // Sivut: tuore tallennettu versio heti (päivitys taustalla), muuten verkko ensin; varalla tallennettu / offline
   if (req.mode === "navigate") {
-    e.respondWith(
-      fetch(req)
-        .then((res) => { if (cacheable(res)) e.waitUntil(savePage(req, res)); return res; })
-        .catch(async () => (await cachedPage(req.url)) || (await caches.match(OFFLINE)) || Response.error())
-    );
+    const network = () => fetch(req).then((res) => { if (cacheable(res)) e.waitUntil(savePage(req, res)); return res; });
+    e.respondWith((async () => {
+      const hit = await instantPage(req.url);
+      if (hit) { e.waitUntil(network().catch(() => {})); return hit; }
+      try { return await network(); }
+      catch { return (await cachedPage(req.url)) || (await caches.match(OFFLINE)) || Response.error(); }
+    })());
   }
 });
 

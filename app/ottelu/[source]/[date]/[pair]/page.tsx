@@ -7,6 +7,8 @@ import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
 
 export const revalidate = 120;
+// sivu tehdään ensimmäisellä avauksella ja pidetään välimuistissa (ISR) → seuraavat avaukset heti
+export function generateStaticParams() { return []; }
 export const maxDuration = 60;
 
 type Props = { params: { source: string; date: string; pair: string } };

@@ -11,6 +11,8 @@ import { hasFd, fdFailingRecently } from "@/lib/fd";
 import TeamView from "./TeamView";
 
 export const revalidate = 120;
+// sivu tehdään ensimmäisellä avauksella ja pidetään välimuistissa (ISR) → seuraavat avaukset heti
+export function generateStaticParams() { return []; }
 export const maxDuration = 60;
 
 type Props = { params: { source: string; team: string } };

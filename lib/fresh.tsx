@@ -6,11 +6,13 @@ import type { LeagueStats } from "./stats";
 import type { Article } from "./feed";
 
 /** Kutsuu `fn` heti näkyviin tultaessa ja sen jälkeen `ms` välein, kun sivu on näkyvissä */
-export function useVisibleInterval(fn: () => void, ms: number) {
+export function useVisibleInterval(fn: () => void, ms: number, immediate = false) {
   const ref = useRef(fn);
   ref.current = fn;
   useEffect(() => {
     let last = Date.now();
+    // heti avattaessa (esim. kotivalikon sovellus näyttää tallennetun sivun → tuoreet tiedot perään)
+    if (immediate && !document.hidden) ref.current();
     const tick = () => { if (!document.hidden) { last = Date.now(); ref.current(); } };
     const id = setInterval(tick, ms);
     // palattaessa sovellukseen päivitetään heti, jos edellisestä on kulunut hetki
@@ -18,7 +20,7 @@ export function useVisibleInterval(fn: () => void, ms: number) {
     document.addEventListener("visibilitychange", vis);
     window.addEventListener("focus", vis);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", vis); window.removeEventListener("focus", vis); };
-  }, [ms]);
+  }, [ms, immediate]);
 }
 
 /** Tulokset ja sarjataulukot: aloitetaan palvelimen tiedoista ja päivitetään minuutin välein */
@@ -29,7 +31,7 @@ export function useFreshStats(initial: LeagueStats[]) {
       const d = await (await fetch("/api/stats")).json();
       if (Array.isArray(d.stats) && d.stats.some((s: LeagueStats) => s.table.length || s.results.length)) setStats(d.stats);
     } catch {}
-  }, 60_000);
+  }, 60_000, true);
   return stats;
 }
 
@@ -48,7 +50,7 @@ export function useFreshArticles(initial: Article[]) {
         return d.articles;
       });
     } catch {}
-  }, 120_000);
+  }, 120_000, true);
   return { articles, fresh };
 }
 
