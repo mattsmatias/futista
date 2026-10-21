@@ -1311,3 +1311,5 @@ main.storypage { display: block; padding-top: 0; }
 
 .s-row .s-fav-only { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 10px 12px; }
 .s-row .s-fav-only .s-name { margin: 0; align-self: center; }
+/* Lähde- ja tarkistusrivit paneelien alla pois näkyvistä (lähteet kerrotaan Tietoa-sivulla) */
+.panel-src { display: none !important; }
