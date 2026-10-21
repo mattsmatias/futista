@@ -6,7 +6,7 @@ import { getJson } from "./http";
 import { words, sameTeam, helsinkiParts, type LiveMatch } from "./live-core";
 import type { LeagueStats, Team } from "./stats";
 import { matchHref } from "./routes";
-import { toGame, toLive, isSeniorMen, isSeniorMenNational, parseSummary, type Game, type GameTeam, type EspnMatch } from "./espn-parse";
+import { toGame, toLive, isSeniorMen, isSeniorMenNational, parseSummary, periodStartFrom, periodBase, type Game, type GameTeam, type EspnMatch } from "./espn-parse";
 export type { Game, GameTeam, EspnMatch } from "./espn-parse";
 
 // Testejä varten osoitteen voi korvata (ESPN_BASE_URL), mutta EI koskaan tuotannossa.
@@ -258,8 +258,28 @@ const board = (slug: string) => {
   return unstable_cache(async (): Promise<{ at: number; events: any[] }> => {
     const j = await getJson(test ? `${test}/scoreboard` : `${BASE}${slug}/scoreboard`, 8000);
     return { at: Date.now(), events: j?.events ?? [] };
-  }, [test ? "espn-board-test" : "espn-board-v2", slug], { revalidate: 30 })();
+  }, [test ? "espn-board-test" : "espn-board-v2", slug], { revalidate: 15 })();
 };
+
+const periodStart = (slug: string, id: string, period: number) =>
+  unstable_cache(async (): Promise<number> => {
+    const j = await getJson(`${BASE}${slug}/summary?event=${id}`, 6000);
+    const t = periodStartFrom(j, period);
+    if (t === null) throw new Error("no period start"); // ei tallenneta: yritetään seuraavalla kerralla uudelleen
+    return t;
+  }, ["espn-pstart-v1", id, String(period)], { revalidate: 3600 })();
+
+/** Käynnissä oleville otteluille jakson todellinen alkuhetki → minuutti lasketaan selaimessa ilman viivettä */
+async function addPeriodStarts(list: LiveMatch[], slugOf: (source: string) => string | undefined) {
+  await Promise.all(list.map(async (m) => {
+    const base = m.period ? periodBase(m.period) : null;
+    const id = m.id?.startsWith("espn:") ? m.id.slice(5) : null;
+    const slug = slugOf(m.source);
+    if (base === null || !id || !slug || !m.period) return;
+    const t = await periodStart(slug, id, m.period).catch(() => null);
+    if (t !== null) { m.periodStart = t; m.periodBase = base; }
+  }));
+}
 
 /** Päivän ottelut ESPN:stä kaikista seuratuista sarjoista: tila, tilanne, peliminuutti, jatkoaika ja pilkut.
  *  at = vanhimman käytetyn vastauksen hakuhetki (ei pyyntöhetki), ok = kaikki sarjat saatiin. */
@@ -273,6 +293,7 @@ export async function getEspnLive(): Promise<{ matches: LiveMatch[]; at: number 
     at = at === null ? b.at : Math.min(at, b.at);
     for (const e of b.events) { const m = toLive(e, source, b.at); if (m) out.push(m); }
   }));
+  await addPeriodStarts(out, (src) => (LEAGUE as Record<string, string>)[src]);
   return { matches: out, at, ok };
 }
 

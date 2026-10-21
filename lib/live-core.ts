@@ -21,6 +21,9 @@ export type LiveMatch = {
   awayName?: string;
   homeCrest?: string;
   awayCrest?: string;
+  period?: number;      // ESPN:n jakso (1–4) käynnissä olevalle ottelulle
+  periodStart?: number; // jakson (puoliajan / jatkoajan puoliskon) todellinen alkuhetki ESPN:n tapahtumista (ms)
+  periodBase?: number;  // jakson alun pelikello sekunteina: 0 / 2700 / 5400 / 6300
   min?: string;        // peliminuutti, esim. "67'", "45+2'", "90+4'" (vain ESPN:n kellosta, ei koskaan arvioitu)
   phase?: "et" | "pens";            // jatkoaika / rangaistuspotkukilpailu käynnissä
   pens?: [number, number] | null;   // rangaistuspotkukilpailun tulos (ei sisälly hs/as-lukuihin)
@@ -72,6 +75,26 @@ export function tickClock(min: string | undefined, fetchedAt: number | null | un
   if (m[2] !== undefined) return `${base}+${Math.min(Number(m[2]) + step, 15)}'`;
   const end = base <= 45 ? 45 : base <= 90 ? 90 : base <= 105 ? 105 : 120;
   return `${Math.min(base + step, end)}'`;
+}
+
+/** Peliminuutti suoraan jakson todellisesta alkuhetkestä (ESPN:n tapahtumien kellonaika): ei viivettä.
+ *  Jakson jälkeen lisäaika muodossa 45+2' / 90+3'. Jos laskettu ja lähteen ilmoittama minuutti eroavat
+ *  selvästi (esim. kello väärin), käytetään lähteen minuuttia (tickClock). */
+export function liveClock(m: { min?: string; periodStart?: number; periodBase?: number; fetchedAt?: number | null }, now: number | null): string | undefined {
+  const src = fmtClock(m.min);
+  const fallback = tickClock(src, m.fetchedAt, now);
+  if (now === null || typeof m.periodStart !== "number" || typeof m.periodBase !== "number") return fallback;
+  const sec = m.periodBase + (now - m.periodStart) / 1000;
+  if (sec < m.periodBase - 5) return fallback;
+  const minute = Math.floor(sec / 60) + 1;
+  const len = m.periodBase >= 5400 ? 15 : 45;
+  const end = m.periodBase / 60 + len;
+  const sm = src?.match(/^(\d+)(?:\+(\d+))?'$/);
+  const reported = sm ? Number(sm[1]) + Number(sm[2] ?? 0) : null;
+  // lähde voi olla hieman jäljessä (välimuisti), mutta ei edellä eikä paljon jäljessä
+  if (reported !== null && (minute < reported - 1 || minute > reported + 12)) return fallback;
+  if (minute - end > 20) return fallback;
+  return minute > end ? `${end}+${minute - end}'` : `${Math.max(minute, m.periodBase / 60 + 1)}'`;
 }
 
 const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "de", "la", "cd", "ud", "sd", "sad", "fk", "bk", "if", "balompie", "1907", "1909", "1913", "and", "hove", "albion", "calcio", "futbol"]);
@@ -153,8 +176,8 @@ export function matchState(
     const srcAt = hit.statusSrc !== "espn" && typeof hit.sourceUpdatedAt === "number" ? hit.sourceUpdatedAt : undefined;
     const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true, uncertainWhat: hit.conflictKind } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
     switch (hit.status) {
-      case "IN_PLAY": return r({ kind: "live", ...sc, min: tickClock(fmtClock(hit.min), hit.fetchedAt, now), ...extra });
-      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: tickClock(fmtClock(hit.min), hit.fetchedAt, now), ...extra, phase: "et" });
+      case "IN_PLAY": return r({ kind: "live", ...sc, min: liveClock(hit, now), ...extra });
+      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: liveClock(hit, now), ...extra, phase: "et" });
       case "PENALTY_SHOOTOUT": return r({ kind: "live", ...sc, ...extra, phase: "pens" });
       case "PAUSED": return r({ kind: "ht", ...sc, ...extra });
       case "FINISHED": case "AWARDED": return r({ kind: "ft", ...sc, pens: extra.pens, aet: extra.aet });

@@ -113,7 +113,8 @@ export function toLive(e: any, source: string, fetchedAt: number | null = null):
     src: "espn",
     id: e.id ? `espn:${e.id}` : undefined,
     fetchedAt, sourceUpdatedAt: null, // ESPN ei ilmoita vertailukelpoista päivitysaikaa
-  };
+    ...(status === "IN_PLAY" || status === "EXTRA_TIME" ? { period: Number(e.competitions?.[0]?.status?.period ?? e.status?.period ?? 0) || undefined } : {}),
+  } as LiveMatch;
 }
 
 export type EspnMatch = {
@@ -143,3 +144,17 @@ export function parseSummary(d: any, id: string): EspnMatch | null {
     venue: d?.gameInfo?.venue?.fullName || null,
   };
 }
+
+/** Jakson todellinen alkuhetki ottelun tapahtumista (keyEvents: "Kickoff", "Start 2nd Half", jatkoajan aloitukset).
+ *  Palauttaa null, jos tietoa ei ole – silloin minuuttia ei lasketa tästä. */
+export function periodStartFrom(j: any, period: number): number | null {
+  const evs: any[] = j?.keyEvents ?? [];
+  const ts = evs
+    .filter((x) => Number(x?.period?.number) === period && /^(kick ?off|start)/i.test(String(x?.type?.text ?? "")))
+    .map((x) => Date.parse(x?.wallclock))
+    .filter((t) => Number.isFinite(t));
+  return ts.length ? Math.min(...ts) : null;
+}
+
+/** Jakson alun pelikello sekunteina (1. puoliaika 0, 2. 45 min, jatkoaika 90 ja 105 min) */
+export const periodBase = (period: number): number | null => ({ 1: 0, 2: 2700, 3: 5400, 4: 6300 } as Record<number, number>)[period] ?? null;

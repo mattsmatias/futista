@@ -5,9 +5,9 @@ import assert from "node:assert/strict";
 import { createGuard, retryAfterMs, SourceError, type Fetched } from "../lib/guard";
 import { mergeLive, findMatch, isNewer, acceptMatch, acceptList, isRegression } from "../lib/live-merge";
 import { matchState, fmtClock, helsinkiParts, helsinkiEpoch, knownFixture, words, type LiveMatch } from "../lib/live-core";
-import { tickClock } from "../lib/live-core";
+import { tickClock, liveClock } from "../lib/live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "../lib/score";
-import { parseStatus, parseScore, toGame, toLive, isSeniorMen, parseSummary } from "../lib/espn-parse";
+import { parseStatus, parseScore, toGame, toLive, isSeniorMen, parseSummary, periodStartFrom, periodBase } from "../lib/espn-parse";
 import { fillFromLastGood } from "../lib/stats-merge";
 
 // ---------- apurit ----------
@@ -409,4 +409,28 @@ test("peliminuutti juoksee lähteen kellosta päivitysten välillä, ei yli jaks
   const f = { source: "ucl", date: "2026-10-21", time: "19:45", home: { name: "Como" }, away: { name: "Manchester United" } };
   const st = matchState(f, [lm({ source: "ucl", home: "Como", away: "Manchester United", kickoff: Date.UTC(2026, 9, 21, 16, 45), status: "IN_PLAY", hs: 3, as: 0, min: "64'", fetchedAt: T })], T + 4 * M);
   assert.equal(st.min, "68'");
+});
+
+test("peliminuutti jakson todellisesta alusta (ESPN:n tapahtumat): ei viivettä, lisäaika oikein", () => {
+  // oikea rakenne: Como–Manchester United 21.10.2026 (2. puoliaika alkoi 17:49:08Z, maali 76' = 18:19:14Z)
+  const j = { keyEvents: [
+    { type: { text: "Kickoff" }, period: { number: 1 }, wallclock: "2026-10-21T16:46:51Z" },
+    { type: { text: "Halftime" }, period: { number: 1 }, wallclock: "2026-10-21T17:33:03Z" },
+    { type: { text: "Substitution" }, period: { number: 2 }, wallclock: "2026-10-21T17:48:47Z" },
+    { type: { text: "Start 2nd Half" }, period: { number: 2 }, wallclock: "2026-10-21T17:49:08Z" },
+  ] };
+  const s2 = periodStartFrom(j, 2)!;
+  assert.equal(s2, Date.parse("2026-10-21T17:49:08Z"));
+  assert.equal(periodStartFrom(j, 1), Date.parse("2026-10-21T16:46:51Z"));
+  assert.equal(periodStartFrom({ keyEvents: [] }, 2), null);
+  assert.equal(periodBase(2), 2700);
+  const m = { min: "76'", periodStart: s2, periodBase: 2700, fetchedAt: Date.parse("2026-10-21T18:19:20Z") };
+  assert.equal(liveClock(m, Date.parse("2026-10-21T18:19:14Z")), "76'");          // maalin hetki: sama kuin ESPN
+  assert.equal(liveClock(m, Date.parse("2026-10-21T18:22:30Z")), "79'");          // juoksee heti, ei odota päivitystä
+  assert.equal(liveClock({ ...m, min: "90'+2'" }, Date.parse("2026-10-21T18:36:30Z")), "90+3'"); // lisäaika
+  const h1 = { min: "44'", periodStart: Date.parse("2026-10-21T16:46:51Z"), periodBase: 0, fetchedAt: null };
+  assert.equal(liveClock(h1, Date.parse("2026-10-21T17:33:00Z")), "45+2'");
+  // ristiriita (esim. väärä kellonaika) → lähteen minuutti
+  assert.equal(liveClock({ ...m, min: "60'" }, Date.parse("2026-10-21T18:22:30Z")), "63'"); // lähteen kello + kulunut aika
+  assert.equal(liveClock({ min: "64'", fetchedAt: null }, Date.now()), "64'");
 });

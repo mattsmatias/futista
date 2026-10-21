@@ -51,7 +51,7 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
           <span className={`mrow-tm${hw ? " win" : ""}${highlight?.(home) ? " fav" : ""}`}><Badge t={home} size={20} /><span className="nm">{name(home)}</span></span>
           <span className={`mrow-tm${aw ? " win" : ""}${highlight?.(away) ? " fav" : ""}`}><Badge t={away} size={20} /><span className="nm">{name(away)}</span></span>
         </span>
-        <span className={`mrow-sc${isLive ? " live" : ""}`} aria-hidden="true">
+        <span className={`mrow-sc${isLive ? " sc-live" : ""}`} aria-hidden="true">
           <span className={hw ? "win" : ""}>{score ? <Num v={s.hs} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[0]})</small>}</span>
           <span className={aw ? "win" : ""}>{score ? <Num v={s.as} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[1]})</small>}</span>
         </span>

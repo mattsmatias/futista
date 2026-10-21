@@ -1081,7 +1081,7 @@ div.match { cursor: default; }
 .mrow-sc { display: grid; gap: 5px; justify-items: end; font: 700 15px/1.25 var(--mono); font-variant-numeric: tabular-nums; min-width: 2.2ch; }
 .mrow-sc > span { display: inline-flex; gap: 4px; align-items: baseline; min-height: 20px; color: var(--muted); }
 .mrow-sc > span.win { color: var(--fg); }
-.mrow-sc.live > span { color: var(--live); }
+.mrow-sc.sc-live > span { color: var(--live); }
 .mrow-sc small { font-size: 11px; font-weight: 600; color: var(--muted); }
 .mrow-sc b { font-weight: inherit; display: inline-block; min-width: 1.2ch; text-align: right; }
 .mrow-sc .nil { visibility: hidden; }

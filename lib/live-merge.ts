@@ -78,7 +78,7 @@ export function findMatch(fd: LiveMatch[], e: LiveMatch, windowMs = 3 * 3600_000
 
 const fromEspn = (m: LiveMatch, e: LiveMatch, conflict: boolean): LiveMatch => ({
   ...m,
-  status: e.status, hs: e.hs, as: e.as, min: e.min, phase: e.phase,
+  status: e.status, hs: e.hs, as: e.as, min: e.min, phase: e.phase, period: e.period, periodStart: e.periodStart, periodBase: e.periodBase,
   pens: e.pens ?? null, aet: e.aet,
   fetchedAt: e.fetchedAt ?? null, sourceUpdatedAt: null,
   src: "fd+espn", statusSrc: "espn", conflict: conflict || undefined, conflictKind: conflict ? "status" : undefined,

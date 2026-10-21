@@ -1,11 +1,11 @@
 // Live-tiedon tuoreusvaroitus (puhdas logiikka, testataan tests/-kansiossa).
 // Erotellaan:
-//  - normaali tarkistusväli (FAST 60 s / SLOW 300 s): ei itsessään varoitusta
+//  - normaali tarkistusväli (FAST 20 s / SLOW 300 s): ei itsessään varoitusta
 //  - tiedon vanheneminen: palvelimen ja CDN:n välimuistit lisäävät enintään ~150 s (Data Cache 30–45 s,
 //    CDN 30 s + swr 30 s, verkkoviive), ja selaimen ajastimet voivat viivästyä → raja = väli + 150 s + 120 s
 //  - oikeasti epäonnistunut haku (failing) ja verkkoyhteyden puute (offline): varoitus heti
 //  - kun välilehti palaa näkyviin, tieto tarkistetaan ensin (pending) eikä varoitusta näytetä sitä ennen
-export const FAST = 60_000;
+export const FAST = 20_000;
 export const SLOW = 300_000;
 const SERVER_CACHE_MAX = 150_000;
 const GRACE = 120_000;

@@ -69,6 +69,6 @@ export async function GET() {
   const error = !fdRes && espn.at === null && (fdOn || espnOn()); // käytössä olevat lähteet eivät vastanneet
   return NextResponse.json(
     { enabled: fdOn, matches, checkedAt, sources, error },
-    { headers: { "Cache-Control": error ? "public, s-maxage=20" : "public, s-maxage=30, stale-while-revalidate=30" } },
+    { headers: { "Cache-Control": error ? "public, s-maxage=20" : "public, s-maxage=10, stale-while-revalidate=10" } },
   );
 }
