@@ -1263,3 +1263,7 @@ div.match { cursor: default; }
 /* Suomen maajoukkueen tunnus (Palloliiton SUOMI-kilpi, käyttäjän toimittama tiedosto) */
 .fin-crest { width: auto; height: 22px; vertical-align: -5px; }
 .nation-crest { width: auto; height: 48px; flex: none; }
+
+/* Maajoukkueet: pallomerkki kilpailun värisellä laatalla */
+.cmark.cmark-ball { min-width: 0; width: 30px; height: 30px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+.cmark.cmark-ball svg, .dir-list a .cmark.cmark-ball svg, .cgroup .cmark.cmark-ball svg { display: block; flex: none; width: 22px; height: 22px; margin: 0; color: inherit; }
