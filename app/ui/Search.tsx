@@ -9,7 +9,8 @@ import { search, type SearchComp, type SearchIndex, type SearchNation, type Sear
 import { SOURCES } from "@/lib/sources";
 import { COMP_META, COMP_ORDER } from "@/lib/comps";
 import { country } from "@/lib/flags";
-import { HeartButton } from "@/lib/favorites";
+import { HeartButton, useFavorites } from "@/lib/favorites";
+import { norm } from "@/lib/teams";
 import { Badge } from "../Stats";
 import { CompMark } from "./CompMark";
 import { Icon } from "./Icons";
@@ -31,6 +32,7 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const listId = useId();
+  const { favs } = useFavorites();
 
   useEffect(() => {
     if (!open) return;
@@ -115,6 +117,24 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
         <div className="s-body" id={listId} role="listbox" aria-label={t("search")}>
           {state === "failed" && <p className="muted pad" role="alert">{t("searchFailed")}</p>}
           {state === "loading" && q.trim().length >= 2 && <p className="muted pad">{t("loading")}</p>}
+          {q.trim().length < 2 && favs.length > 0 && (
+            // tyhjällä haulla näkyvät nykyiset suosikit: sydämestä voi poistaa, kirjoittamalla lisätä uusia
+            <section className="s-group" aria-label={t("followedTeams")}>
+              <h3>{t("followedTeams")}</h3>
+              <ul role="presentation">
+                {favs.map((f) => {
+                  const hit = index?.teams.find((x) => (f.id !== undefined && x.id === f.id) || norm(x.name) === norm(f.n));
+                  return (
+                    <li key={f.n + (f.id ?? "")} role="presentation" className="s-row">
+                      {hit ? <a href={hit.href} onClick={(e) => { e.preventDefault(); go(hit.href); }}><Badge t={{ name: hit.name, code: hit.code, crest: hit.crest }} size={24} /><span className="s-name">{hit.name}</span></a>
+                        : <span className="s-fav-only"><Badge t={{ name: f.n, code: f.n.slice(0, 3).toUpperCase() }} size={24} /><span className="s-name">{f.n}</span></span>}
+                      <HeartButton team={{ name: f.n, id: f.id }} label={t("favToggle")} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
           {q.trim().length < 2 && <p className="muted pad">{t("searchMin")} {t("searchHint")}</p>}
           {group("searchTeams", res.teams, (x) => (
             <><Badge t={{ name: x.name, code: x.code, crest: x.crest }} size={24} /><span className="s-name">{x.name}</span>
