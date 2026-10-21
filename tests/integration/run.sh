@@ -18,6 +18,7 @@ end $$;
 grant usage on schema public to service_role;
 SQL
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_fd_quota.sql
+psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_news_reactions.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)

@@ -122,3 +122,26 @@ test("uutisotteet: tekniset linkkitekstit ja syötteen allekirjoitukset poistuva
   assert.equal(cleanText("Mourinho kommentoi. Lue lisää »"), "Mourinho kommentoi.");
   assert.equal(cleanText("Normaali teksti, jossa linkki mainitaan."), "Normaali teksti, jossa linkki mainitaan.");
 });
+
+import { articleKey, isVote, applyVote, createLimiter } from "../lib/reactions-core";
+
+test("reaktiot: jutun tunniste hyväksytään vain sivuston polkumuodossa", () => {
+  assert.equal(articleKey("laliiga/2026/10/21/tv-tuottaja-selitti"), "laliiga/2026/10/21/tv-tuottaja-selitti");
+  assert.equal(articleKey("/uutiset/valioliiga/2026/10/20/otsikko/"), "valioliiga/2026/10/20/otsikko");
+  for (const bad of ["", "../etc/passwd", "a b", "<script>", "x".repeat(301), 5, null, "a/../b"]) assert.equal(articleKey(bad), null, String(bad));
+  assert.ok(isVote(1) && isVote(0) && isVote(-1) && !isVote(2) && !isVote("1"));
+});
+
+test("reaktiot: äänen vaihto ja peruminen päivittävät summat oikein, ei alle nollan", () => {
+  let c = { up: 0, down: 0 };
+  c = applyVote(c, 0, 1); assert.deepEqual(c, { up: 1, down: 0 });
+  c = applyVote(c, 1, -1); assert.deepEqual(c, { up: 0, down: 1 });
+  c = applyVote(c, -1, 0); assert.deepEqual(c, { up: 0, down: 0 });
+  assert.deepEqual(applyVote({ up: 0, down: 0 }, 1, 0), { up: 0, down: 0 });
+});
+
+test("reaktiot: pyyntörajoitin päästää enintään N / min samasta osoitteesta", () => {
+  let t = 0; const lim = createLimiter(3, () => t);
+  assert.deepEqual([lim("a"), lim("a"), lim("a"), lim("a"), lim("b")], [true, true, true, false, true]);
+  t = 61_000; assert.equal(lim("a"), true);
+});

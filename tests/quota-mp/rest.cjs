@@ -13,6 +13,30 @@ http.createServer(async (req, res) => {
   const auth = req.headers.authorization || "";
   if (/^Bearer sb_/.test(auth)) { res.writeHead(401); res.end('{"message":"Invalid JWT"}'); return; }
   if (!req.headers.apikey) { res.writeHead(401); res.end("{}"); return; }
+  // uutisten reaktiot: taulun luku (GET) ja news_react-funktio (POST)
+  const g = req.method === "GET" && req.url.match(/^\/rest\/v1\/news_reactions\?select=up,down&article=eq\.(.+)$/);
+  if (g) {
+    const client = await pool.connect();
+    try {
+      await client.query("set role service_role");
+      const r = await client.query("select up, down from public.news_reactions where article = $1", [decodeURIComponent(g[1])]);
+      res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(r.rows));
+    } catch (e) { res.writeHead(404); res.end(JSON.stringify({ message: String(e.message) })); }
+    finally { await client.query("reset role").catch(() => {}); client.release(); }
+    return;
+  }
+  if (req.method === "POST" && req.url === "/rest/v1/rpc/news_react") {
+    let body = ""; for await (const c of req) body += c;
+    const a = JSON.parse(body);
+    const client = await pool.connect();
+    try {
+      await client.query("set role service_role");
+      const r = await client.query("select public.news_react($1,$2::smallint,$3::smallint) as v", [a.p_article, a.p_prev, a.p_next]);
+      res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(r.rows[0].v));
+    } catch (e) { res.writeHead(400); res.end(JSON.stringify({ message: String(e.message) })); }
+    finally { await client.query("reset role").catch(() => {}); client.release(); }
+    return;
+  }
   const m = req.url.match(/^\/rest\/v1\/rpc\/(fd_quota_acquire|fd_quota_block)$/);
   if (!m || req.method !== "POST") { res.writeHead(404); res.end("{}"); return; }
   let body = ""; for await (const c of req) body += c;

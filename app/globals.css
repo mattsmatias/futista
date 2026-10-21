@@ -1267,3 +1267,26 @@ div.match { cursor: default; }
 /* Maajoukkueet: pallomerkki kilpailun värisellä laatalla */
 .cmark.cmark-ball { min-width: 0; width: 30px; height: 30px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
 .cmark.cmark-ball svg, .dir-list a .cmark.cmark-ball svg, .cgroup .cmark.cmark-ball svg { display: block; flex: none; width: 22px; height: 22px; margin: 0; color: inherit; }
+
+/* Jutun loppu: reaktio ja jakaminen */
+.story-actions { display: grid; gap: 18px; margin-top: 4px; }
+.react-box, .share-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; display: grid; gap: 12px; }
+.react-q { margin: 0; font: 700 17px/1.3 var(--ui); letter-spacing: -0.01em; }
+.react-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.react-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 650 15px/1 var(--ui); cursor: pointer; }
+.react-btn:hover { background: var(--surface-2); }
+.react-btn.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.react-btn:disabled { opacity: .7; cursor: default; }
+.react-n { font-variant-numeric: tabular-nums; font-weight: 700; padding-left: 8px; border-left: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+.react-note { margin: 0; min-height: 1.3em; font-size: 14px; }
+.share-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.share-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font: 650 14.5px/1 var(--ui); text-decoration: none; color: #fff; border: 0; cursor: pointer; }
+.share-btn:hover { filter: brightness(1.08); }
+.sh-whatsapp { background: #1f8f4e; }
+.sh-facebook { background: #1b5fd1; }
+.sh-x { background: #14171a; }
+.sh-telegram { background: #1d84c9; }
+.sh-native, .sh-email, .sh-copy { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sh-x { background: #2b3038; } }
+:root[data-theme="dark"] .sh-x { background: #2b3038; }
+.react-note:empty { min-height: 0; margin-top: -12px; }

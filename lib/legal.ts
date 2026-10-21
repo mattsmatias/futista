@@ -19,6 +19,8 @@ export const PRIVACY: Record<Lang, Doc> = {
         p: [
           "Sivu tallentaa selaimesi pysyvään muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
           "Nämä tiedot pysyvät laitteellasi, eikä niitä lähetetä meille. Voit poistaa ne tyhjentämällä selaimen sivustotiedot.",
+          "Uutisten \"Piditkö tästä uutisesta?\" -kysymys: kun vastaat, palvelimelle tallentuu vain kyseisen jutun yhteissumma (montako vastasi kyllä ja montako ei). Siihen ei liitetä nimeäsi, laitettasi, IP-osoitettasi eikä muuta tunnistetta. Oma vastauksesi muistetaan vain omalla laitteellasi (localStorage), jotta voit vaihtaa tai perua sen.",
+          "Jakopainikkeet (WhatsApp, Facebook, X, Telegram, sähköposti) ovat tavallisia linkkejä: sivulle ei ladata näiden palvelujen skriptejä, eikä niille välity mitään ennen kuin painat painiketta. Painaessasi avautuu valitsemasi palvelu, joka käsittelee tietoja omien käytäntöjensä mukaisesti.",
           "Lisäksi sivu tallentaa selaimen välilehtikohtaiseen muistiin (sessionStorage) käyttöliittymän tilan, jotta palatessasi edelliselle sivulle näkymä on ennallaan: sivun vierityskohdan sekä valitut suodattimet ja välilehdet (esim. sarja, uutisten tyyppi tai kilpailu). Tiedot eivät sisällä henkilötietoja, eikä niitä lähetetä meille. Selain poistaa ne, kun suljet välilehden.",
           "Sivu tallentaa selaimen välimuistiin (service worker) myös kopion enintään 30 viimeksi avatusta sivusta enintään 3 vuorokaudeksi, jotta ne näkyvät ilman verkkoyhteyttä. Kopiot eivät sisällä ilmoitusten tai muiden palvelinkutsujen tietoja.",
         ],
@@ -66,6 +68,8 @@ export const PRIVACY: Record<Lang, Doc> = {
         p: [
           "Sidan sparar endast inställningar i din webbläsares minne (localStorage) så att sidan fungerar som du har valt: ditt språkval, dina favoritlag och om du har lagt till Futista på hemskärmen eller stängt installationsrutan.",
           "Uppgifterna stannar på din enhet och skickas inte till oss. Du kan ta bort dem genom att rensa webbplatsdata i webbläsaren.",
+          "Frågan \"Gillade du den här nyheten?\": när du svarar sparas endast artikelns totalsumma på servern (hur många svarade ja och nej). Den kopplas inte till ditt namn, din enhet, din IP-adress eller någon annan identifierare. Ditt eget svar sparas bara på din enhet (localStorage) så att du kan ändra eller ångra det.",
+          "Delningsknapparna (WhatsApp, Facebook, X, Telegram, e-post) är vanliga länkar: inga skript från dessa tjänster laddas på sidan och inget skickas till dem förrän du trycker på knappen. Då öppnas tjänsten du valt, som behandlar uppgifter enligt sina egna rutiner.",
           "Dessutom sparar sidan gränssnittets läge i webbläsarens flikspecifika minne (sessionStorage) så att vyn är oförändrad när du går tillbaka: sidans rullningsposition samt valda filter och flikar (t.ex. serie, nyhetstyp eller turnering). Uppgifterna innehåller inga personuppgifter och skickas inte till oss. Webbläsaren tar bort dem när du stänger fliken.",
           "Sidan sparar också en kopia av högst 30 senast öppnade sidor i webbläsarens cache (service worker) i högst 3 dygn så att de visas utan nätanslutning. Kopiorna innehåller inga uppgifter om aviseringar eller andra serveranrop.",
         ],
@@ -113,6 +117,8 @@ export const PRIVACY: Record<Lang, Doc> = {
         p: [
           "The site stores only settings in your browser's own storage (localStorage) so the site works the way you chose: your language, your favourite teams and whether you have added Futista to your home screen or closed the install prompt.",
           "This stays on your device and is never sent to us. You can remove it by clearing the site data in your browser.",
+          "The \"Did you like this story?\" question: when you answer, the server stores only that story's totals (how many answered yes and no). They are not linked to your name, device, IP address or any other identifier. Your own answer is remembered only on your device (localStorage) so you can change or undo it.",
+          "The share buttons (WhatsApp, Facebook, X, Telegram, email) are plain links: no scripts from these services are loaded on the page and nothing is sent to them until you tap a button. Tapping opens the service you chose, which handles data under its own policies.",
           "The site also keeps interface state in your browser's per-tab storage (sessionStorage) so the view is unchanged when you go back: the scroll position and the filters and tabs you chose (e.g. league, news type or competition). It contains no personal data and is never sent to us. The browser removes it when you close the tab.",
           "The site also keeps a copy of up to 30 recently opened pages in the browser cache (service worker) for up to 3 days so they show without a connection. The copies contain no notification data or other server calls.",
         ],

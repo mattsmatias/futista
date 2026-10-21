@@ -8,6 +8,7 @@ import Progress from "../../Progress";
 import Footer from "../../Footer";
 import { NewsItem } from "../../ui/News";
 import SafeImg from "../../SafeImg";
+import StoryActions from "../../ui/StoryActions";
 import { T, LeagueName, TypeName, LocalDate } from "@/lib/i18n";
 
 export const revalidate = 3600;
@@ -75,6 +76,7 @@ export default async function ArticlePage({ params }: Props) {
           : <div className="story-body" dangerouslySetInnerHTML={{ __html: a.html }} />}
         <div className="source"><T k="source" />: <a href={a.source} target="_blank" rel="noopener">{a.sourceName}</a></div>
         {a.tags.length > 0 && <div className="tags">{a.tags.map((t) => <span key={t}>{t}</span>)}</div>}
+        <StoryActions article={params.path.join("/")} title={a.title} />
       </article>
 
       {more.length > 0 && (

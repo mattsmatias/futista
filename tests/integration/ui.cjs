@@ -214,6 +214,15 @@ const MIN = 60_000;
     await page.goto(APP + "/sarjat/eiole", { waitUntil: "networkidle" });
     ok("kilpailusivu: tuntematon sarja → 404", /ei löytynyt/i.test(await page.locator("h1").first().innerText()));
     ok("tulospalvelu: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
+    // uutisten reaktiot (Supabase-emulaattori + migraatio)
+    let rr = await fetch(`${APP}/api/reactions?a=testi/2026/10/21/juttu`); let rj = await rr.json();
+    ok("reaktiot: haku palauttaa summat (käytössä)", rr.status === 200 && rj.enabled === true && rj.up === 0 && rj.down === 0, JSON.stringify(rj));
+    rr = await fetch(`${APP}/api/reactions?a=../x`);
+    ok("reaktiot: virheellinen tunniste → 400", rr.status === 400);
+    rr = await fetch(`${APP}/api/reactions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ a: "ei/ole/syotteessa", prev: 0, next: 1 }) });
+    ok("reaktiot: syötteeseen kuulumaton juttu → 404 (ei mielivaltaisia rivejä)", rr.status === 404);
+    rr = await fetch(`${APP}/api/reactions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ a: "x/y", prev: 0, next: 5 }) });
+    ok("reaktiot: virheellinen ääni → 400", rr.status === 400);
     await ctx.close();
   }
 
