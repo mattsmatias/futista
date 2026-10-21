@@ -7,7 +7,7 @@ import { teamHref } from "@/lib/routes";
 // uutissivut, koska niiden canonical osoittaa alkuperäiseen lähteeseen.
 export const revalidate = 3600;
 
-const BASE = "https://futista.fi";
+const BASE = "https://www.futista.fi";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();

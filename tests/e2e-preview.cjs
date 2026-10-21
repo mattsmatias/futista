@@ -27,7 +27,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const ph = await get('/api/photo?n=' + encodeURIComponent('<script>x</script>'));
       rec('API /api/photo: roskasyöte hylätään', ph.s === 400, { status: ph.s });
       const rob = await p.evaluate(async () => (await fetch('/robots.txt')).text());
-      rec('robots.txt: sitemap ja rajaukset', /Sitemap: https:\/\/futista\.fi\/sitemap\.xml/.test(rob) && /Disallow: \/ottelu\//.test(rob), rob.replace(/\n/g, ' '));
+      rec('robots.txt: sitemap ja rajaukset', /Sitemap: https:\/\/www\.futista\.fi\/sitemap\.xml/.test(rob) && /Disallow: \/ottelu\//.test(rob), rob.replace(/\n/g, ' '));
       const sm = await p.evaluate(async () => (await fetch('/sitemap.xml')).text());
       const urls = (sm.match(/<loc>/g) || []).length;
       rec('sitemap.xml: joukkuesivut mukana, ei ottelu-/uutissivuja', urls > 20 && !/\/ottelu\//.test(sm) && !/\/uutiset\//.test(sm), { urls });
@@ -38,7 +38,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const { c, p } = await ctx(1280);
       await p.goto(U + '/joukkue/laliga/barcelona', { waitUntil: 'networkidle' });
       const m = await p.evaluate(() => ({ can: document.querySelector('link[rel=canonical]')?.href, desc: document.querySelector('meta[name=description]')?.content, og: document.querySelector('meta[property="og:title"]')?.content }));
-      rec('canonical osoittaa futista.fi:hin + kuvaus', m.can === 'https://futista.fi/joukkue/laliga/barcelona' && !!m.desc, m);
+      rec('canonical osoittaa www.futista.fi:hin + kuvaus', m.can === 'https://www.futista.fi/joukkue/laliga/barcelona' && !!m.desc, m);
       await c.close();
     }
     // ---------- mobiili + työpöytä: joukkuesivu ----------

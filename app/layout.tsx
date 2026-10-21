@@ -15,8 +15,8 @@ const read = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600"], variab
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["500"], variable: "--f-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  // futista.fi on ensisijainen osoite: canonical-osoitteet ja jakamisen esikatselut osoittavat sinne
-  metadataBase: new URL("https://futista.fi"),
+  // www.futista.fi on ensisijainen osoite (Vercel ohjaa futista.fi → www): canonical-osoitteet ja jakamisen esikatselut osoittavat sinne
+  metadataBase: new URL("https://www.futista.fi"),
   alternates: { canonical: "./" },
   openGraph: { siteName: "Futista", locale: "fi_FI", type: "website" },
   title: "Futista – jalkapallouutiset suomeksi",

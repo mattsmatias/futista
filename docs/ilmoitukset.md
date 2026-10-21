@@ -25,7 +25,7 @@ Jos ilmoitukset ovat jo tuotannossa käytössä vanhalla koodilla, ne pysähtyv�
 2. **Salaisuudet Vaultiin** – SQL Editorissa (ÄLÄ tallenna tätä tiedostoon):
    ```
    select vault.create_secret('<sama arvo kuin Vercelin CRON_SECRET>', 'futista_cron_secret');
-   select vault.create_secret('https://futista.fi/api/push/check', 'futista_check_url');
+   select vault.create_secret('https://www.futista.fi/api/push/check', 'futista_check_url');
    ```
    Jos nimet ovat jo olemassa: `select vault.update_secret(id, '<uusi arvo>') from vault.secrets where name = '...';`
 3. **Ajastus** – aja `supabase/push-cron.sql`. Se poistaa vanhat samannimiset ajastukset (myös aiemman
@@ -38,7 +38,7 @@ Jos ilmoitukset ovat jo tuotannossa käytössä vanhalla koodilla, ne pysähtyv�
    Esikatseluun EI `PUSH_ENABLED`-arvoa, jottei esikatselu lähetä oikeille tilaajille.
 
 ## Tarkistus (ei lähetä mitään oikeille käyttäjille)
-1. `https://futista.fi/api/push/status` → `{"ready":true}`.
+1. `https://www.futista.fi/api/push/status` → `{"ready":true}`.
 2. SQL: `select jobname, schedule, active from cron.job where jobname like 'futista-%';` → kaksi riviä.
 3. 10–20 min päästä: `select status_code, created from net._http_response order by created desc limit 3;` → 200.
    (401 = CRON_SECRET ei täsmää Vaultin kanssa; 503 = Vercelistä puuttuu muuttuja, vastaus kertoo nimen.)

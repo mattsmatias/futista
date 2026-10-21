@@ -3,7 +3,7 @@
 --
 -- Vaihe A (kerran, SQL Editorissa – EI versionhallintaan): tallenna salaisuudet Supabase Vaultiin
 --   select vault.create_secret('<sama arvo kuin Vercelin CRON_SECRET>', 'futista_cron_secret');
---   select vault.create_secret('https://futista.fi/api/push/check', 'futista_check_url');
+--   select vault.create_secret('https://www.futista.fi/api/push/check', 'futista_check_url');
 -- Vaihe B: aja tämä tiedosto.
 
 create extension if not exists pg_cron;
