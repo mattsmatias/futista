@@ -1,9 +1,11 @@
 // Yksinkertainen JSON-haku Noden https-moduulilla (ohittaa Nextin fetch-välimuistin, jota ei tässä haluta).
 import https from "node:https";
+import http from "node:http";
 
 export function getJson(url: string, timeout = 10000): Promise<any> {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { "User-Agent": "Futista/1.0" }, timeout }, (res) => {
+    // http:// vain paikallisille testilähteille (ESPN_BASE_URL, ei koskaan tuotannossa)
+    const req = (url.startsWith("http://") ? http : https).get(url, { headers: { "User-Agent": "Futista/1.0" }, timeout }, (res) => {
       let body = "";
       res.setEncoding("utf8");
       res.on("data", (c) => (body += c));

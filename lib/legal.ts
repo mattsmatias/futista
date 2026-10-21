@@ -8,7 +8,7 @@ export type Doc = { title: string; intro: string; sections: Section[] };
 export const PRIVACY: Record<Lang, Doc> = {
   fi: {
     title: "Tietosuoja",
-    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä, analytiikkaa, mainosseurantaa eikä evästeitä.",
+    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta (ks. Palvelin ja lokitiedot).",
     sections: [
       {
         h: "Rekisterinpitäjä ja yhteystiedot",
@@ -20,7 +20,7 @@ export const PRIVACY: Record<Lang, Doc> = {
           "Sivu tallentaa selaimesi pysyvään muistiin (localStorage) vain asetuksia, jotta sivu toimii niin kuin olet valinnut: valitsemasi kielen, suosikkijoukkueesi sekä tiedon siitä, oletko lisännyt Futistan kotivalikkoon tai sulkenut asennusilmoituksen.",
           "Nämä tiedot pysyvät laitteellasi, eikä niitä lähetetä meille. Voit poistaa ne tyhjentämällä selaimen sivustotiedot.",
           "Lisäksi sivu tallentaa selaimen välilehtikohtaiseen muistiin (sessionStorage) käyttöliittymän tilan, jotta palatessasi edelliselle sivulle näkymä on ennallaan: sivun vierityskohdan sekä valitut suodattimet ja välilehdet (esim. sarja, uutisten tyyppi tai kilpailu). Tiedot eivät sisällä henkilötietoja, eikä niitä lähetetä meille. Selain poistaa ne, kun suljet välilehden.",
-          "Kun lisäät Futistan kotivalikkoon, sivu tallentaa laitteellesi myös kopion viimeksi avatuista sivuista, jotta ne näkyvät ilman verkkoyhteyttä.",
+          "Sivu tallentaa selaimen välimuistiin (service worker) myös kopion enintään 30 viimeksi avatusta sivusta enintään 3 vuorokaudeksi, jotta ne näkyvät ilman verkkoyhteyttä. Kopiot eivät sisällä ilmoitusten tai muiden palvelinkutsujen tietoja.",
         ],
       },
       {
@@ -33,7 +33,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Palvelin ja lokitiedot",
         p: [
-          "Sivusto toimii [Vercelin](https://vercel.com/legal/privacy-policy) palvelimilla. Kuten kaikki verkkopalvelimet, Vercel käsittelee teknisesti IP-osoitteesi ja selaimesi tiedot sivun toimittamiseksi ja tietoturvan vuoksi, ja säilyttää lokit lyhyen ajan omien käytäntöjensä mukaisesti.",
+          "Sivuston liikenne kulkee [Cloudflaren](https://www.cloudflare.com/privacypolicy/) verkon kautta, ja sivusto toimii [Vercelin](https://vercel.com/legal/privacy-policy) palvelimilla. Cloudflaren vastaukset pyytävät selainta raportoimaan verkkovirheistä Cloudflarelle (Network Error Logging). Kuten kaikki verkkopalvelut, Cloudflare ja Vercel käsittelevät teknisesti IP-osoitteesi ja selaimesi tiedot sivun toimittamiseksi ja tietoturvan vuoksi, ja säilyttävät lokit omien käytäntöjensä mukaisesti.",
         ],
       },
       {
@@ -55,7 +55,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   sv: {
     title: "Integritet",
-    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering, ingen analys, ingen annonsspårning och inga kakor.",
+    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering och ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel (se Server och loggar).",
     sections: [
       {
         h: "Personuppgiftsansvarig och kontakt",
@@ -67,7 +67,7 @@ export const PRIVACY: Record<Lang, Doc> = {
           "Sidan sparar endast inställningar i din webbläsares minne (localStorage) så att sidan fungerar som du har valt: ditt språkval, dina favoritlag och om du har lagt till Futista på hemskärmen eller stängt installationsrutan.",
           "Uppgifterna stannar på din enhet och skickas inte till oss. Du kan ta bort dem genom att rensa webbplatsdata i webbläsaren.",
           "Dessutom sparar sidan gränssnittets läge i webbläsarens flikspecifika minne (sessionStorage) så att vyn är oförändrad när du går tillbaka: sidans rullningsposition samt valda filter och flikar (t.ex. serie, nyhetstyp eller turnering). Uppgifterna innehåller inga personuppgifter och skickas inte till oss. Webbläsaren tar bort dem när du stänger fliken.",
-          "När du lägger till Futista på hemskärmen sparar sidan också en kopia av de senast öppnade sidorna så att de visas utan nätanslutning.",
+          "Sidan sparar också en kopia av högst 30 senast öppnade sidor i webbläsarens cache (service worker) i högst 3 dygn så att de visas utan nätanslutning. Kopiorna innehåller inga uppgifter om aviseringar eller andra serveranrop.",
         ],
       },
       {
@@ -80,7 +80,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Server och loggar",
         p: [
-          "Webbplatsen körs på [Vercels](https://vercel.com/legal/privacy-policy) servrar. Som alla webbservrar behandlar Vercel tekniskt din IP-adress och webbläsarinformation för att leverera sidan och av säkerhetsskäl, och sparar loggar en kort tid enligt sina egna rutiner.",
+          "Trafiken går via [Cloudflares](https://www.cloudflare.com/privacypolicy/) nät och webbplatsen körs på [Vercels](https://vercel.com/legal/privacy-policy) servrar. Cloudflares svar ber webbläsaren rapportera nätverksfel till Cloudflare (Network Error Logging). Som alla webbtjänster behandlar Cloudflare och Vercel tekniskt din IP-adress och webbläsarinformation för att leverera sidan och av säkerhetsskäl, och sparar loggar enligt sina egna rutiner.",
         ],
       },
       {
@@ -102,7 +102,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   en: {
     title: "Privacy",
-    intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up, no analytics, no ad tracking and no cookies.",
+    intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up and no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel (see Server and logs).",
     sections: [
       {
         h: "Controller and contact",
@@ -114,7 +114,7 @@ export const PRIVACY: Record<Lang, Doc> = {
           "The site stores only settings in your browser's own storage (localStorage) so the site works the way you chose: your language, your favourite teams and whether you have added Futista to your home screen or closed the install prompt.",
           "This stays on your device and is never sent to us. You can remove it by clearing the site data in your browser.",
           "The site also keeps interface state in your browser's per-tab storage (sessionStorage) so the view is unchanged when you go back: the scroll position and the filters and tabs you chose (e.g. league, news type or competition). It contains no personal data and is never sent to us. The browser removes it when you close the tab.",
-          "When you add Futista to your home screen, it also keeps a copy of recently opened pages on your device so they show without a connection.",
+          "The site also keeps a copy of up to 30 recently opened pages in the browser cache (service worker) for up to 3 days so they show without a connection. The copies contain no notification data or other server calls.",
         ],
       },
       {
@@ -127,7 +127,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Hosting and server logs",
         p: [
-          "The site runs on [Vercel](https://vercel.com/legal/privacy-policy) servers. Like any web server, Vercel technically processes your IP address and browser details to deliver the page and for security, and keeps logs for a short time under its own policies.",
+          "Traffic passes through [Cloudflare's](https://www.cloudflare.com/privacypolicy/) network and the site runs on [Vercel](https://vercel.com/legal/privacy-policy) servers. Cloudflare's responses ask the browser to report network errors to Cloudflare (Network Error Logging). Like any web service, Cloudflare and Vercel technically process your IP address and browser details to deliver the page and for security, and keep logs under their own policies.",
         ],
       },
       {
@@ -152,52 +152,81 @@ export const PRIVACY: Record<Lang, Doc> = {
 export const ABOUT: Record<Lang, Doc> = {
   fi: {
     title: "Tietoa ja lähteet",
-    intro: "Futista kokoaa La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan suurimpien sarjojen tulokset, otteluohjelmat ja sarjataulukot yhteen paikkaan modernissa muodossa.",
+    intro: "Futista kokoaa La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan sarjojen ja miesten A-maajoukkueiden tulokset, otteluohjelmat ja sarjataulukot yhteen paikkaan.",
     sections: [
       {
-        h: "Uutislähteet",
+        h: "Lähteet",
         p: [
-          "Uutiset, uutiskuvat, tulokset ja sarjataulukot ovat peräisin sivustoilta [LaLiiga.com](https://www.laliiga.com) ja [Valioliiga.com](https://www.valioliiga.com), ja ne julkaistaan lähteiden luvalla. Jokaisen jutun lopussa on linkki alkuperäiseen artikkeliin.",
-          "Tekijänoikeudet teksteihin ja kuviin kuuluvat lähteille ja niiden kuvatoimistoille.",
+          "Uutiset (otsikot, otteet, tekstit ja kuvat) sekä La Ligan, Valioliigan ja Mestarien liigan sarjataulukot, tulokset ja otteluohjelmat: [LaLiiga.com](https://www.laliiga.com) ja [Valioliiga.com](https://www.valioliiga.com). Jokaisen jutun lopussa on linkki alkuperäiseen artikkeliin.",
+          "Muiden sarjojen tiedot, maalipörssit, kokoonpanot, pelaajasivut, aiemmat kohtaamiset ja ensisijaiset lopputulokset: [football-data.org](https://www.football-data.org) (ilmaisversio, jossa tulokset päivittyvät viiveellä).",
+          "Otteluiden live-tila ja peliminuutti, joukkueiden kaikkien kilpailujen ottelut, maaottelut sekä cup- ja Eurooppa-otteluiden perustiedot: ESPN:n tulospalvelun julkinen rajapinta.",
+          "Pelaajakuvat ja osa logoista: [TheSportsDB](https://www.thesportsdb.com). Maiden liput: [Flagpedia](https://flagpedia.net).",
         ],
       },
-      { h: "Muut sarjat, pelaajat ja LIVE", p: ["Bundesligan, Serie A:n, Ligue 1:n, Eredivisien, Liga Portugalin ja Championshipin tiedot, maalipörssit, joukkueiden pelaajat, pelaajasivut, ottelutilat (LIVE) ja aiemmat kohtaamiset tulevat palvelusta [football-data.org](https://www.football-data.org)."] },
-      { h: "Joukkueiden logot", p: ["Logot tulevat palveluista [football-data.org](https://www.football-data.org) ja [TheSportsDB](https://www.thesportsdb.com). Seurojen nimet ja logot ovat seurojen omia tavaramerkkejä."] },
-      { h: "Päivittyminen", p: ["Uutiset päivittyvät automaattisesti noin 10 minuutin välein, tulokset ja sarjataulukot noin 15 minuutin välein."] },
+      {
+        h: "Lähdemerkintä ei ole käyttölupa",
+        p: [
+          "Lähteiden nimeäminen ja linkki alkuperäiseen eivät tarkoita, että sisällön käyttöoikeudesta olisi sovittu. Tekijänoikeudet teksteihin ja kuviin kuuluvat lähteille ja niiden kuvatoimistoille. Seurojen nimet ja logot ovat seurojen tavaramerkkejä.",
+        ],
+      },
+      {
+        h: "Päivittyminen",
+        p: [
+          "Futistan palvelin hakee uutissyötteet enintään 3 minuutin ja La Ligan, Valioliigan ja Mestarien liigan taulukot ja tulokset enintään 2 minuutin välein. Muiden sarjojen taulukot ja tulokset päivittyvät 15 minuutin ja maalipörssit tunnin välein.",
+          "Otteluiden tilaa haetaan lähteistä 30–45 sekunnin välein. Avoin sivu tarkistaa tilan minuutin välein, kun ottelu on käynnissä tai alkamassa, muuten 5 minuutin välein. Välimuistien vuoksi muutos näkyy sivulla tyypillisesti 1–2 minuutissa (mitattu 33–82 sekuntia). Lähteiden omat viiveet tulevat tämän päälle, eikä Futista ole reaaliaikainen palvelu.",
+        ],
+      },
+      { h: "Kielet", p: ["Käyttöliittymä on suomeksi, ruotsiksi ja englanniksi. Uutistekstit ovat suomeksi, ja joukkueiden nimet ja osa lähteiden tiedoista näytetään lähteen kielellä."] },
       { h: "Riippumattomuus", p: ["Futista on riippumaton fanisivusto, eikä se ole La Ligan, Premier Leaguen tai minkään seuran virallinen palvelu."] },
     ],
   },
   sv: {
     title: "Om och källor",
-    intro: "Futista samlar nyheter från La Liga, Premier League och Champions League samt resultat, spelscheman och tabeller från Europas största ligor på ett ställe i modern form.",
+    intro: "Futista samlar nyheter från La Liga, Premier League och Champions League samt resultat, spelscheman och tabeller från europeiska ligor och herrarnas A-landslag på ett ställe.",
     sections: [
       {
-        h: "Nyhetskällor",
+        h: "Källor",
         p: [
-          "Nyheter, nyhetsbilder, resultat och tabeller kommer från [LaLiiga.com](https://www.laliiga.com) och [Valioliiga.com](https://www.valioliiga.com) och publiceras med källornas tillstånd. Varje artikel avslutas med en länk till originalet.",
-          "Upphovsrätten till texter och bilder tillhör källorna och deras bildbyråer.",
+          "Nyheter (rubriker, utdrag, texter och bilder) samt tabeller, resultat och spelscheman för La Liga, Premier League och Champions League: [LaLiiga.com](https://www.laliiga.com) och [Valioliiga.com](https://www.valioliiga.com). Varje artikel avslutas med en länk till originalet.",
+          "Andra ligor, skytteligor, trupper, spelarsidor, tidigare möten och primära slutresultat: [football-data.org](https://www.football-data.org) (gratisversion där resultaten uppdateras med fördröjning).",
+          "Matchstatus och matchminut, lagens matcher i alla turneringar, landskamper samt grunduppgifter om cup- och Europamatcher: ESPN:s öppna resultatgränssnitt.",
+          "Spelarbilder och vissa logotyper: [TheSportsDB](https://www.thesportsdb.com). Flaggor: [Flagpedia](https://flagpedia.net).",
         ],
       },
-      { h: "Andra ligor, spelare och LIVE", p: ["Uppgifter om Bundesliga, Serie A, Ligue 1, Eredivisie, Liga Portugal och Championship, skytteligor, spelartrupper, spelarsidor, matchstatus (LIVE) och tidigare möten kommer från [football-data.org](https://www.football-data.org)."] },
-      { h: "Lagens logotyper", p: ["Logotyperna kommer från [football-data.org](https://www.football-data.org) och [TheSportsDB](https://www.thesportsdb.com). Klubbarnas namn och logotyper är klubbarnas egna varumärken."] },
-      { h: "Uppdatering", p: ["Nyheterna uppdateras automatiskt ungefär var tionde minut, resultat och tabeller ungefär var femtonde minut."] },
+      { h: "Källangivelse är inte tillstånd", p: ["Att källorna anges och att det finns en länk till originalet betyder inte att rätten att använda innehållet har avtalats. Upphovsrätten till texter och bilder tillhör källorna och deras bildbyråer. Klubbarnas namn och logotyper är klubbarnas varumärken."] },
+      {
+        h: "Uppdatering",
+        p: [
+          "Futistas server hämtar nyhetsflöden högst var tredje minut och tabeller och resultat för La Liga, Premier League och Champions League högst varannan minut. Övriga ligors tabeller och resultat uppdateras var femtonde minut och skytteligor varje timme.",
+          "Matchstatus hämtas från källorna var 30–45 sekund. En öppen sida kontrollerar statusen varje minut när en match pågår eller ska börja, annars var femte minut. På grund av cacher syns en ändring vanligtvis inom 1–2 minuter (uppmätt 33–82 sekunder). Källornas egna fördröjningar tillkommer, och Futista är ingen realtidstjänst.",
+        ],
+      },
+      { h: "Språk", p: ["Gränssnittet finns på finska, svenska och engelska. Nyhetstexterna är på finska, och lagnamn och vissa uppgifter visas på källans språk."] },
       { h: "Oberoende", p: ["Futista är en oberoende fansajt och inte en officiell tjänst från La Liga, Premier League eller någon klubb."] },
     ],
   },
   en: {
     title: "About and sources",
-    intro: "Futista brings La Liga, Premier League and Champions League news together with results, fixtures and standings from Europe's biggest leagues in one modern place.",
+    intro: "Futista brings together La Liga, Premier League and Champions League news with results, fixtures and standings from European leagues and men's senior national teams.",
     sections: [
       {
-        h: "News sources",
+        h: "Sources",
         p: [
-          "News, news images, results and standings come from [LaLiiga.com](https://www.laliiga.com) and [Valioliiga.com](https://www.valioliiga.com) and are published with the sources' permission. Every story ends with a link to the original article.",
-          "Copyright in the texts and images belongs to the sources and their photo agencies.",
+          "News (headlines, excerpts, texts and images) and La Liga, Premier League and Champions League standings, results and fixtures: [LaLiiga.com](https://www.laliiga.com) and [Valioliiga.com](https://www.valioliiga.com). Every story ends with a link to the original article.",
+          "Other leagues, top scorers, squads, player pages, previous meetings and primary final scores: [football-data.org](https://www.football-data.org) (free tier, results update with a delay).",
+          "Live match status and minute, teams' matches in all competitions, internationals and basic cup and European match details: ESPN's public scores API.",
+          "Player photos and some logos: [TheSportsDB](https://www.thesportsdb.com). Flags: [Flagpedia](https://flagpedia.net).",
         ],
       },
-      { h: "Other leagues, players and LIVE", p: ["Data for the Bundesliga, Serie A, Ligue 1, Eredivisie, Liga Portugal and Championship, top scorers, squads, player pages, match status (LIVE) and previous meetings come from [football-data.org](https://www.football-data.org)."] },
-      { h: "Team logos", p: ["Logos come from [football-data.org](https://www.football-data.org) and [TheSportsDB](https://www.thesportsdb.com). Club names and logos are the clubs' own trademarks."] },
-      { h: "Updates", p: ["News updates automatically about every 10 minutes, results and standings about every 15 minutes."] },
+      { h: "Crediting a source is not a licence", p: ["Naming the sources and linking to the original does not mean that the right to use the content has been agreed. Copyright in texts and images belongs to the sources and their photo agencies. Club names and logos are the clubs' trademarks."] },
+      {
+        h: "Updates",
+        p: [
+          "Futista's server fetches news feeds at most every 3 minutes and La Liga, Premier League and Champions League standings and results at most every 2 minutes. Other leagues' standings and results update every 15 minutes and top scorers every hour.",
+          "Match status is fetched from the sources every 30–45 seconds. An open page checks it every minute while a match is on or about to start, otherwise every 5 minutes. Because of caching, a change typically shows within 1–2 minutes (measured 33–82 seconds). The sources' own delays come on top, and Futista is not a real-time service.",
+        ],
+      },
+      { h: "Languages", p: ["The interface is available in Finnish, Swedish and English. News texts are in Finnish, and team names and some data are shown in the source's language."] },
       { h: "Independence", p: ["Futista is an independent fan site and is not an official service of La Liga, the Premier League or any club."] },
     ],
   },

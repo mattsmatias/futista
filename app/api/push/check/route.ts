@@ -3,35 +3,34 @@ import { getArticles } from "@/lib/feed";
 import { getStats } from "@/lib/stats";
 import { toLocal } from "@/lib/links";
 import { storyIsAbout, playedIn } from "@/lib/teams";
-import { pushConfigured, allSubscriptions, alreadySent, anythingSentEver, markSent, sendPush, deleteSubscription, type Payload, type StoredSub } from "@/lib/push-server";
+import { pushMissing, sendPush, supabasePushStore } from "@/lib/push-server";
+import { runPushCheck, type PushItem, type Lang } from "@/lib/push-run";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Ajastettu tarkistus (Supabase kutsuu 10 min välein):
+// Ajastettu tarkistus (Supabasen ajastus kutsuu 10 min välein, docs/ilmoitukset.md):
 // etsii uudet jutut ja lopputulokset ja lähettää ilmoituksen niille, joiden suosikki on mukana.
+// Lopputulokset vain La Ligasta, Valioliigasta ja Mestarien liigasta (getStats).
 
-const T = {
+const T: Record<Lang, { ft: string; news: string }> = {
   fi: { ft: "Lopputulos", news: "Uusi juttu" },
   sv: { ft: "Slutresultat", news: "Ny artikel" },
   en: { ft: "Full time", news: "New story" },
-} as const;
-
-type Item = { key: string; teamsMatch: (team: string) => boolean; payload: (lang: keyof typeof T, team: string) => Payload };
+};
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!pushConfigured()) return NextResponse.json({ error: "not configured" }, { status: 503 });
+  const missing = pushMissing();
+  if (missing.length) return NextResponse.json({ error: "not configured", missing }, { status: 503 });
 
   const [articles, stats] = await Promise.all([getArticles(), getStats()]);
   const now = Date.now();
-  const items: Item[] = [];
-
-  // Uudet jutut viimeisen 6 tunnin ajalta
+  const items: PushItem[] = [];
   for (const a of articles) {
     if (now - new Date(a.date).getTime() > 6 * 3600_000) continue;
     items.push({
@@ -40,7 +39,6 @@ export async function GET(req: Request) {
       payload: (lang, team) => ({ title: `${team} · ${T[lang].news}`, body: a.title, url: toLocal(a.link), tag: `a:${a.id}` }),
     });
   }
-  // Lopputulokset viimeisen 3 päivän ajalta
   for (const s of stats) {
     for (const r of s.results) {
       if (now - new Date(r.date + "T23:59:00").getTime() > 3 * 86400_000) continue;
@@ -52,38 +50,11 @@ export async function GET(req: Request) {
       });
     }
   }
-
-  // Ensimmäisellä ajokerralla vain merkitään nykyiset asiat nähdyiksi, ettei tule vanhoja ilmoituksia
-  if (!(await anythingSentEver())) {
-    await markSent(items.map((i) => i.key));
-    return NextResponse.json({ ok: true, firstRun: true, marked: items.length });
+  try {
+    const r = await runPushCheck(items, supabasePushStore, sendPush);
+    return NextResponse.json({ ok: true, ...r });
+  } catch (e) {
+    // varaus tai tilausten luku epäonnistui → ei lähetetty mitään (ei kaksoislähetyksiä)
+    return NextResponse.json({ error: "store unavailable" }, { status: 503 });
   }
-
-  const sent = await alreadySent(items.map((i) => i.key));
-  const fresh = items.filter((i) => !sent.has(i.key));
-  if (!fresh.length) return NextResponse.json({ ok: true, new: 0 });
-
-  const subs = await allSubscriptions();
-  const dead = new Set<string>();
-  let delivered = 0;
-
-  await Promise.all(
-    subs.map(async (sub: StoredSub) => {
-      const lang = (["fi", "sv", "en"].includes(sub.lang) ? sub.lang : "fi") as keyof typeof T;
-      // korkeintaan 5 ilmoitusta kerralla per puhelin
-      const mine = fresh
-        .map((item) => ({ item, team: sub.teams.find((t) => item.teamsMatch(t)) }))
-        .filter((x): x is { item: Item; team: string } => !!x.team)
-        .slice(0, 5);
-      for (const { item, team } of mine) {
-        const ok = await sendPush(sub, item.payload(lang, team));
-        if (!ok) { dead.add(sub.endpoint); break; }
-        delivered++;
-      }
-    })
-  );
-
-  await Promise.all([...dead].map(deleteSubscription));
-  await markSent(fresh.map((i) => i.key));
-  return NextResponse.json({ ok: true, new: fresh.length, delivered, removed: dead.size });
 }

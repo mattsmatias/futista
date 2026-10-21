@@ -4,7 +4,8 @@
 //  cdn:    /api/live 2 s välein (sama osoite kuin kävijöillä; CDN-välimuisti s-maxage 30)
 //  browser: oikea Chromium-sivu (LiveProvider omalla tahdillaan); kirjataan sivun saamat /api/live-vastaukset ja DOM
 const { chromium } = require("playwright");
-const U = process.env.PREVIEW, TOKEN = process.env.SHARE, SRC = process.env.SRC, DUR = Number(process.env.DURATION_MS || 900_000);
+const { resolveTarget } = require("../target.cjs");
+const U = resolveTarget(process.env.PREVIEW).origin, TOKEN = process.env.SHARE, SRC = process.env.SRC, DUR = Number(process.env.DURATION_MS || 900_000);
 const fs = require("node:fs");
 const seen = { server: [], cdn: [], browser: [], dom: [] };
 const kOf = (j) => { const m = (j?.matches || []).find((x) => (x.homeName || "").startsWith("Testiseura") || (x.home || []).includes("testiseura")); return m ? m.hs : null; };
@@ -21,7 +22,7 @@ const kOf = (j) => { const m = (j?.matches || []).find((x) => (x.homeName || "")
   await p.goto(`${U}/?nakyma=tulokset`, { waitUntil: "networkidle" });
   const poll = async (name, url) => {
     try {
-      const r = await fetch(url, { headers: { cookie } }); const j = await r.json();
+      const r = await fetch(url, { headers: { cookie, "x-futista-test": "1" } }); const j = await r.json();
       seen[name].push({ t: Date.now(), k: kOf(j), checkedAt: j.checkedAt, cache: r.headers.get("x-vercel-cache"), age: r.headers.get("age") });
     } catch (e) { seen[name].push({ t: Date.now(), err: String(e.message).slice(0, 60) }); }
   };

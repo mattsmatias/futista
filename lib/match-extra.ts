@@ -1,5 +1,5 @@
 // Ottelusivun lisätiedot football-data.orgista: puoliaika, erotuomari, kierros ja aiemmat kohtaamiset.
-import { fd } from "./fd";
+import { fd, fdTry } from "./fd";
 import { SOURCES } from "./sources";
 import { helsinkiParts, words, sameTeam } from "./live-core";
 import { matchHref } from "./routes";
@@ -45,16 +45,21 @@ export async function getMatchExtra(source: string, date: string, home: Team, aw
 }
 
 /** Kuuluuko ottelutunniste sarjan kauden otteluihin (estää mielivaltaiset tunnisteet, jotka kuluttaisivat kiintiötä) */
-export async function isKnownMatch(source: string, apiId: number): Promise<boolean> {
+/** Onko ottelu tämän kauden tunnettu ottelu. null = ei voida tarkistaa (lähde ei vastaa). */
+export async function isKnownMatch(source: string, apiId: number): Promise<boolean | null> {
   const code = SOURCES.find((s) => s.id === source)?.fd;
   if (!code) return false;
-  const season = await fd<any>(`/competitions/${code}/matches`, 3600);
-  return (season?.matches ?? []).some((x: any) => x.id === apiId);
+  const season = await fdTry<any>(`/competitions/${code}/matches`, 3600);
+  if (season.status !== "ok") return null;
+  return (season.data?.matches ?? []).some((x: any) => x.id === apiId);
 }
 
 /** Aiemmat kohtaamiset (haetaan vasta, kun H2H-välilehti avataan) */
-export async function getMeetings(stats: LeagueStats[], apiId: number): Promise<Meeting[]> {
-  const h2h = await fd<any>(`/matches/${apiId}/head2head?limit=12`, 86400);
+/** null = lähde ei vastannut (eri asia kuin "ei aiempia kohtaamisia" = []) */
+export async function getMeetings(stats: LeagueStats[], apiId: number): Promise<Meeting[] | null> {
+  const r = await fdTry<any>(`/matches/${apiId}/head2head?limit=12`, 86400);
+  if (r.status !== "ok") return null;
+  const h2h = r.data;
   const meetings: Meeting[] = (h2h?.matches ?? [])
     .filter((x: any) => x.id !== apiId && (x.status === "FINISHED" || x.status === "AWARDED"))
     .map((x: any) => ({ x, sc: fdScore(x.score) }))

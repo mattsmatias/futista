@@ -10,7 +10,7 @@ export type Scorer = {
   team: Team; goals: number | null; assists: number | null; penalties: number | null; played: number | null;
 };
 // puuttuva tilasto on null (näytetään "–"), ei nolla
-export type LeagueScorers = { source: string; list: Scorer[]; season?: string | null; updated?: number | null };
+export type LeagueScorers = { source: string; list: Scorer[]; season?: string | null; updated?: number | null; stale?: boolean };
 
 export async function getScorers(id: string): Promise<LeagueScorers | null> {
   const s = SOURCES.find((x) => x.id === id);

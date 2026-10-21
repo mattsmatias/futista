@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getLeague } from "@/lib/stats";
+import { SOURCES } from "@/lib/sources";
 import { getArticles } from "@/lib/feed";
 import { findTeam } from "@/lib/routes";
 import { storyIsAbout } from "@/lib/teams";
@@ -15,14 +16,17 @@ export const maxDuration = 60;
 type Props = { params: { source: string; team: string } };
 
 async function load(p: Props["params"]) {
+  if (!SOURCES.some((x) => x.id === p.source)) return null; // tuntematon sarja: varmasti 404
   const s = await getLeague(p.source);
-  if (!s) return null;
-  const team = findTeam(s, decodeURIComponent(p.team));
-  return team ? { s, team } : null;
+  const team = s ? findTeam(s, decodeURIComponent(p.team)) : undefined;
+  if (team) return { s: s!, team };
+  // joukkuetta ei löydy, koska lähde ei vastannut → hallittu virhe (error.tsx), ei "ei löytynyt"
+  if (!s || !s.table.length || s.failed?.length) throw new Error("league source unavailable");
+  return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const d = await load(params);
+  const d = await load(params).catch(() => null);
   if (!d) return { title: "Futista" };
   const title = `${d.team.name} – ottelut, tulokset ja uutiset – Futista`;
   const description = `${d.team.name}: kaikki ottelut, tulokset, kokoonpano, sarjataulukko (${d.s.league}) ja uusimmat uutiset suomeksi.`;

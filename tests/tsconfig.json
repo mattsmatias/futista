@@ -13,7 +13,9 @@
     ]
   },
   "files": [
+    "next-fetch.d.ts",
     "data.test.ts",
-    "quota.test.ts"
+    "quota.test.ts",
+    "fixes.test.ts"
   ]
 }

@@ -1,7 +1,8 @@
 // Ottelun tila (LIVE / Puoliaika / Päättynyt / Keskeytetty / Siirretty / Peruttu) – käytetään selaimessa.
 // 1) /api/live yhdistää ESPN:n (reaaliaikainen kello) ja football-data.orgin (ensisijainen tuloslähde,
 //    ilmaisversiossa viiveellä) tiedot (säännöt: lib/live-merge.ts)
-// 2) ilman rajapinnan tietoa tila päätellään alkamisajasta, ja se merkitään päätellyksi (inferred):
+// 2) ilman rajapinnan vahvistusta aloitusajan jälkeen tila on "unconfirmed": näytetään
+//    "Aloitusaika ohitettu – tilaa ei vahvistettu" (ei väitetä alkaneeksi tai päättyneeksi):
 //    näytetään "Alkanut" / "Odottaa tulosta" eikä keksittyä tulosta tai minuuttia
 
 export type LiveStatus =
@@ -30,14 +31,19 @@ export type LiveMatch = {
   sourceUpdatedAt?: number | null;  // lähteen ilmoittama päivityshetki (vain football-data: lastUpdated)
   statusSrc?: "fd" | "espn";        // kummasta lähteestä näytettävä tila on
   conflict?: boolean;               // lähteet ovat ristiriidassa, tilaa ei voi varmistaa
+  conflictKind?: "status" | "score"; // mikä tieto on epävarma: tila (esim. käynnissä vs. päättynyt) vai tulos
 };
 
-export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled";
+// "unconfirmed" = aloitusaika on ohitettu, mutta lähde ei ole vahvistanut tilaa (ei väitetä ottelun alkaneen
+// tai päättyneen, eikä keksitä tulosta tai minuuttia)
+export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled" | "unconfirmed";
 export type MatchState = {
   kind: Kind; hs?: number | null; as?: number | null; min?: string;
   phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
   inferred?: boolean; // tila päätelty alkamisajasta (ei rajapinnan tietoa)
+  late?: boolean;      // unconfirmed: tavanomainen ottelun kesto on jo kulunut
   uncertain?: boolean; // lähteet ristiriidassa (lib/live-merge.ts conflict)
+  uncertainWhat?: "status" | "score";
   srcUpdatedAt?: number; // lähteen ilmoittama päivityshetki (vain jos tunnetaan; football-data lastUpdated)
 };
 
@@ -129,7 +135,7 @@ export function matchState(
     // lähteet ristiriidassa → tila näytetään epävarmana (ei keksittyä varmuutta)
     // lähteen oma päivitysaika vain, kun näytettävä tila on siitä lähteestä ja lähde ilmoittaa sen
     const srcAt = hit.statusSrc !== "espn" && typeof hit.sourceUpdatedAt === "number" ? hit.sourceUpdatedAt : undefined;
-    const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
+    const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true, uncertainWhat: hit.conflictKind } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
     switch (hit.status) {
       case "IN_PLAY": return r({ kind: "live", ...sc, min: fmtClock(hit.min), ...extra });
       case "EXTRA_TIME": return r({ kind: "live", ...sc, min: fmtClock(hit.min), ...extra, phase: "et" });
@@ -139,7 +145,7 @@ export function matchState(
       case "SUSPENDED": return r({ kind: "suspended", ...sc });
       case "TIMED": case "SCHEDULED":
         // rajapinnan tila voi päivittyä viiveellä: alkamisajan jälkeen ottelu on todennäköisesti alkanut
-        if (now !== null && kick !== null && now >= kick && now < kick + LIVE_MIN * 60_000) return r({ kind: "live", ...sc, inferred: true });
+        if (now !== null && kick !== null && now >= kick) return r({ kind: "unconfirmed", inferred: true, ...(now >= kick + LIVE_MIN * 60_000 ? { late: true } : {}) });
         break;
       case "POSTPONED": return r({ kind: "postponed" });
       case "CANCELLED": return r({ kind: "cancelled" });
@@ -147,7 +153,7 @@ export function matchState(
   }
   if (now === null || kick === null || now < kick) return { kind: "upcoming" };
   // ilman rajapinnan tietoa: alkanut (tilannetta ja minuuttia ei tiedetä), ~2 h myöhemmin odottaa tulosta
-  return now < kick + LIVE_MIN * 60_000 ? { kind: "live", inferred: true } : { kind: "ft", inferred: true };
+  return now < kick + LIVE_MIN * 60_000 ? { kind: "unconfirmed", inferred: true } : { kind: "unconfirmed", inferred: true, late: true };
 }
 
 /** Onko live-ottelu jo lähteen listoilla (sama ottelu ±2 vrk, esim. siirretty ottelu) → ei lisätä kaksoiskappaletta */

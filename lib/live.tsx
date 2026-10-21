@@ -1,7 +1,8 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { matchState, isOn, helsinkiParts, bestTeam, knownFixture, type LiveMatch, type MatchState } from "./live-core";
 import { isNewer, acceptList } from "./live-merge";
+import { FAST, SLOW, freshness } from "./live-fresh";
 import type { Fixture, LeagueStats, Team } from "./stats";
 import { useI18n } from "./i18n";
 
@@ -11,21 +12,25 @@ type Meta = {
   lastOkAt: number | null;    // milloin selain viimeksi sai kelvollisen vastauksen
   failing: boolean;           // viimeisin haku epäonnistui (näytetään edellinen kelvollinen tieto)
   loading: boolean;           // ensimmäistä vastausta ei ole vielä tullut
+  pending: boolean;           // tarkistus käynnissä (esim. välilehti palasi näkyviin)
+  busy: boolean;              // jokin ottelu käynnissä tai alkamassa → tiheämpi tarkistus
+  offline: boolean;           // selaimella ei verkkoyhteyttä
   sources: Record<string, { state: string; fetchedAt: number | null }> | null;
 };
-type Ctx = { live: LiveMatch[]; now: number | null; enabled: boolean; meta: Meta };
-const EMPTY_META: Meta = { checkedAt: null, lastOkAt: null, failing: false, loading: true, sources: null };
-const LiveCtx = createContext<Ctx>({ live: [], now: null, enabled: true, meta: EMPTY_META });
+type Ctx = { live: LiveMatch[]; now: number | null; enabled: boolean; meta: Meta; subscribe: () => () => void };
+const EMPTY_META: Meta = { checkedAt: null, lastOkAt: null, failing: false, loading: true, pending: false, busy: false, offline: false, sources: null };
+const LiveCtx = createContext<Ctx>({ live: [], now: null, enabled: true, meta: EMPTY_META, subscribe: () => () => {} });
 
-const FAST = 60_000;     // kun ottelu on käynnissä tai alkamassa
-const SLOW = 300_000;    // kun mitään ei ole käynnissä
 const MAX_BACKOFF = 600_000;
+const RESUME_MIN = 20_000; // näkyviin palattaessa ei tarkisteta uudelleen, jos edellisestä yrityksestä on alle 20 s
 
 /** Onko jokin ottelu käynnissä tai alkamassa 20 min sisällä → tiheä päivitys */
-const busy = (live: LiveMatch[], now: number) =>
+const busyNow = (live: LiveMatch[], now: number) =>
   live.some((m) => isOn(m.status) || (Math.abs(m.kickoff - now) < 20 * 60_000 && m.status !== "FINISHED" && m.status !== "POSTPONED" && m.status !== "CANCELLED"));
 
-/** Hakee otteluiden tilan: tiheästi vain kun jotain on käynnissä, ei ollenkaan piilotetussa välilehdessä.
+/** Yksi yhteinen live-haku koko sovellukselle. Hakee VAIN, kun jokin näkymä käyttää live-tietoa (tilaus):
+ *  Tietoa-, Tietosuoja- ja uutissivut eivät hae. Tiheästi vain kun jotain on käynnissä, ei ollenkaan
+ *  piilotetussa välilehdessä; näkyviin palattaessa tarkistetaan kerran hallitusti.
  *  Virheen jälkeen odotus pitenee (1, 2, 4… min, enintään 10 min).
  *  Vanhempi vastaus (esim. välimuistista) ei korvaa uudempaa, ja ottelut hyväksytään yksitellen
  *  (lib/live-merge.ts acceptMatch): sisällöltään vanhempi tieto ei korvaa uudempaa. */
@@ -34,16 +39,26 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
   const [now, setNow] = useState<number | null>(null);
   const [enabled, setEnabled] = useState(true);
   const [meta, setMeta] = useState<Meta>(EMPTY_META);
+  const [subs, setSubs] = useState(0);
+  const subscribe = useCallback(() => { setSubs((n) => n + 1); return () => setSubs((n) => n - 1); }, []);
+  const active = subs > 0;
+  // tila säilyy tilausten välillä (esim. sivulta toiselle siirryttäessä), haku vain aktiivisena
+  const st = useRef({ checkedAt: null as number | null, fails: 0, current: [] as LiveMatch[], lastAttempt: 0, inflight: false });
   useEffect(() => {
+    if (!active) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    let checkedAt: number | null = null;
-    let fails = 0;
-    let current: LiveMatch[] = [];
+    const s = st.current;
     const schedule = (ms: number) => { if (timer) clearTimeout(timer); timer = setTimeout(load, ms); };
     async function load() {
-      if (stop) return;
+      if (stop || s.inflight) return;
       if (document.hidden) return; // jatkuu, kun välilehti tulee näkyviin
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        setMeta((m) => ({ ...m, offline: true, loading: false }));
+        return; // jatkuu online-tapahtumasta
+      }
+      s.inflight = true; s.lastAttempt = Date.now();
+      setMeta((m) => ({ ...m, pending: true, offline: false }));
       try {
         const ctl = new AbortController();
         const to = setTimeout(() => ctl.abort(), 15_000);
@@ -53,45 +68,70 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         if (!r.ok || d.error) throw new Error("live " + r.status);
         if (stop) return;
         // vastaus, jonka tarkistushetki on vanhempi kuin näytetyn, hylätään kokonaan (ei nuorenneta tietoa)
-        const stale = checkedAt !== null && !isNewer(checkedAt, d.checkedAt);
+        const stale = s.checkedAt !== null && !isNewer(s.checkedAt, d.checkedAt);
         if (!stale) {
-          if (typeof d.checkedAt === "number") checkedAt = d.checkedAt;
-          current = acceptList(current, d.matches ?? []);
-          setLive(current);
+          if (typeof d.checkedAt === "number") s.checkedAt = d.checkedAt;
+          s.current = acceptList(s.current, d.matches ?? []);
+          setLive(s.current);
         }
         setEnabled(d.enabled !== false);
-        fails = 0;
-        setMeta({ checkedAt, lastOkAt: Date.now(), failing: false, loading: false, sources: d.sources ?? null });
-        schedule(busy(current, Date.now()) ? FAST : SLOW);
+        s.fails = 0;
+        const b = busyNow(s.current, Date.now());
+        setMeta({ checkedAt: s.checkedAt, lastOkAt: Date.now(), failing: false, loading: false, pending: false, busy: b, offline: false, sources: d.sources ?? null });
+        schedule(b ? FAST : SLOW);
       } catch {
         if (stop) return;
-        fails++;
+        s.fails++;
         // hetkellinen virhe: pidetään edellinen kelvollinen tieto ja kerrotaan siitä
-        setMeta((m) => ({ ...m, failing: true, loading: false }));
-        schedule(Math.min(MAX_BACKOFF, FAST * 2 ** (fails - 1)));
+        setMeta((m) => ({ ...m, failing: true, loading: false, pending: false }));
+        schedule(Math.min(MAX_BACKOFF, FAST * 2 ** (s.fails - 1)));
+      } finally {
+        s.inflight = false;
+        setNow(Date.now());
       }
     }
     setNow(Date.now());
-    load();
+    // ensimmäinen haku heti; aiemmin haettu tieto näytetään sillä välin
+    if (Date.now() - s.lastAttempt > RESUME_MIN) load(); else schedule(RESUME_MIN - (Date.now() - s.lastAttempt));
     const b = setInterval(() => setNow(Date.now()), 30_000);
-    const vis = () => { if (!document.hidden) { setNow(Date.now()); load(); } };
+    const vis = () => {
+      if (document.hidden) return;
+      setNow(Date.now());
+      if (Date.now() - s.lastAttempt > RESUME_MIN) load();
+    };
+    const online = () => { setMeta((m) => ({ ...m, offline: false })); load(); };
+    const offline = () => setMeta((m) => ({ ...m, offline: true }));
     document.addEventListener("visibilitychange", vis);
-    return () => { stop = true; if (timer) clearTimeout(timer); clearInterval(b); document.removeEventListener("visibilitychange", vis); };
-  }, []);
-  return <LiveCtx.Provider value={{ live, now, enabled, meta }}>{children}</LiveCtx.Provider>;
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
+    return () => {
+      stop = true; if (timer) clearTimeout(timer); clearInterval(b);
+      document.removeEventListener("visibilitychange", vis);
+      window.removeEventListener("online", online); window.removeEventListener("offline", offline);
+    };
+  }, [active]);
+  return <LiveCtx.Provider value={{ live, now, enabled, meta, subscribe }}>{children}</LiveCtx.Provider>;
+}
+
+/** Näkymä, joka näyttää live-tietoa, tilaa yhteisen haun (ilman tilaajia haku on pysähdyksissä) */
+function useLive(): Ctx {
+  const c = useContext(LiveCtx);
+  const { subscribe } = c;
+  useEffect(() => subscribe(), [subscribe]);
+  return c;
 }
 
 /** Live-tietojen tila (päivitysaika, virhe, lataus) */
-export function useLiveMeta() { return useContext(LiveCtx).meta; }
+export function useLiveMeta() { return useLive().meta; }
 
 export function useMatchState(m: Parameters<typeof matchState>[0]): MatchState {
-  const { live, now } = useContext(LiveCtx);
+  const { live, now } = useLive();
   return matchState(m, live, now);
 }
 
 /** Käynnissä olevat ottelut, joita lähteen otteluohjelmassa ei (enää) ole – näytetään LIVE-listoissa */
 export function useLiveExtras(stats: LeagueStats[]): (Fixture & { s: string; league: string })[] {
-  const { live, now } = useContext(LiveCtx);
+  const { live, now } = useLive();
   const out: (Fixture & { s: string; league: string })[] = [];
   // käynnissä olevat + juuri päättyneet (kunnes lähde päivittää tuloksen)
   const recent = (x: LiveMatch) => (x.status === "FINISHED" || x.status === "AWARDED") && now !== null && now - x.kickoff < 4 * 3600_000;
@@ -110,21 +150,26 @@ export function useLiveExtras(stats: LeagueStats[]): (Fixture & { s: string; lea
 }
 
 /** Onko football-data käytössä (muut sarjat, maalipörssi, pelaajat) */
-export function useDataEnabled() { const c: Ctx = useContext(LiveCtx); return c.enabled; }
+export function useDataEnabled() { return useLive().enabled; }
 
 /** Pieni tilamerkki: LIVE 67', Puoliaika, Jatkoaika, Rangaistuspotkut, Päättynyt (ja./rp.), Keskeytetty, Siirretty, Peruttu.
- *  Päätelty tila (ei rajapinnan tietoa) näytetään muodossa "Alkanut" / "Odottaa tulosta". */
-export function StatusPill({ s }: { s: MatchState }) {
+ *  Vahvistamaton tila: "Aloitusaika ohitettu – tilaa ei vahvistettu".
+ *  Ristiriitainen tila: "?"-merkki. explain = avattava selitys (kosketus ja näppäimistö); listoissa (linkin sisällä)
+ *  merkillä on saavutettava nimi ja selitys on ottelusivulla. */
+export function StatusPill({ s, explain }: { s: MatchState; explain?: boolean }) {
   const { t } = useI18n();
   if (s.kind === "upcoming") return null;
-  if (s.uncertain) return <span title={t("conflictHint")} aria-label={t("conflictHint")}><StatusPill s={{ ...s, uncertain: false }} /><span className="st-q" aria-hidden="true">?</span></span>;
+  if (s.uncertain) {
+    const base = <StatusPill s={{ ...s, uncertain: false }} />;
+    if (explain) return <span className="st-wrap">{base}<ConflictInfo what={s.uncertainWhat} /></span>;
+    return <span className="st-wrap">{base}<span className="st-q" role="img" aria-label={t("conflictHint")} title={t("conflictHint")}>?</span></span>;
+  }
+  if (s.kind === "unconfirmed") return <span className="st st-unc" title={t("inferredHint")}>{s.late ? t("awaitingResult") : t("started")}</span>;
   if (s.kind === "live") {
-    if (s.inferred) return <span className="st st-ht" title={t("inferredHint")}>{t("started")}</span>;
     if (s.phase === "pens") return <span className="st st-live"><i />{t("penalties")}{s.pens && <b className="st-min">{s.pens[0]}–{s.pens[1]}</b>}</span>;
     return <span className="st st-live"><i />{s.phase === "et" ? t("extraTime") : t("live")}{s.min && <b className="st-min">{s.min}</b>}</span>;
   }
   if (s.kind === "ft") {
-    if (s.inferred) return <span className="st" title={t("inferredHint")}>{t("awaitingResult")}</span>;
     const extra = s.pens ? ` · ${t("pensShort")} ${s.pens[0]}–${s.pens[1]}` : s.aet ? ` · ${t("aetShort")}` : "";
     return <span className="st st-ft">{t("statusFt")}{extra}</span>;
   }
@@ -132,26 +177,58 @@ export function StatusPill({ s }: { s: MatchState }) {
   return <span className={`st st-${s.kind}`}>{s.kind === "ht" && <i />}{label}</span>;
 }
 
+/** Ristiriidan selitys: painike (saavutettava nimi) avaa ja sulkee selityksen; toimii kosketuksella ja näppäimistöllä */
+function ConflictInfo({ what }: { what?: "status" | "score" }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const pop = useRef<HTMLSpanElement>(null);
+  // pidä selitys näytön sisällä (painike voi olla lähellä reunaa kapealla näytöllä)
+  useLayoutEffect(() => {
+    const el = pop.current;
+    if (!open || !el) return;
+    el.style.setProperty("--shift", "0px");
+    const r = el.getBoundingClientRect(), m = 8, w = document.documentElement.clientWidth;
+    const shift = r.right > w - m ? w - m - r.right : r.left < m ? m - r.left : 0;
+    el.style.setProperty("--shift", `${Math.round(shift)}px`);
+  }, [open]);
+  return (
+    <span className="conflict">
+      <button type="button" className="st-q st-qbtn" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
+        <span aria-hidden="true">?</span><span className="sr-only">{t("conflictOpen")}</span>
+      </button>
+      {open && (
+        <span id={id} ref={pop} className="conflict-pop" role="note">
+          <b>{t("conflictHint")}</b>
+          <span>{what === "score" ? t("conflictScore") : what === "status" ? t("conflictStatus") : t("conflictGeneric")}</span>
+          <span className="muted">{t("conflictNote")}</span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 const hm = (ms: number) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
 
 /** Live-tietojen tarkistusrivi: milloin Futista viimeksi sai tiedon lähteeltä ("Tarkistettu klo"), ja varoitus,
- *  jos päivitys epäonnistuu. Lähteen omaa päivitysaikaa ei tässä tunneta kaikille otteluille, joten
- *  "Tilanne päivitetty" -ilmaisua ei käytetä. */
+ *  jos päivitys oikeasti epäonnistuu, tieto on vanhentunut odotettua enemmän tai verkkoyhteys puuttuu
+ *  (rajat: lib/live-fresh.ts). "Tilanne päivitetty" vain, kun lähteen päivitysaika todella tunnetaan. */
 export function LiveFreshness({ always, srcUpdatedAt }: { always?: boolean; srcUpdatedAt?: number }) {
   const { t } = useI18n();
-  const { meta, now } = useContext(LiveCtx);
-  // "Tilanne päivitetty" vain, kun lähteen päivitysaika todella tunnetaan (ottelusivu, football-datan tila)
+  const { meta, now } = useLive();
   const src = srcUpdatedAt ? <> · {t("sourceUpdated")} {hm(srcUpdatedAt)}</> : null;
+  if (meta.offline) return <p className="fresh-line warn" role="status">{t("offlineLive")}{meta.checkedAt !== null ? ` ${t("liveLastChecked")} ${hm(meta.checkedAt)}` : ""}</p>;
   if (meta.loading) return always ? <p className="fresh-line">{t("liveLoading")}</p> : null;
   if (meta.lastOkAt === null) return <p className="fresh-line warn" role="status">{t("liveDown")}</p>;
+  const f = freshness({ now: now ?? Date.now(), checkedAt: meta.checkedAt, lastOkAt: meta.lastOkAt, failing: meta.failing, pending: meta.pending, busy: meta.busy, offline: meta.offline });
+  const warn = f === "failing" || f === "stale";
   if (meta.checkedAt === null)
-    return meta.failing || always ? <p className={`fresh-line${meta.failing ? " warn" : ""}`} role="status">{meta.failing ? t("liveStaleUnknown") : t("liveTimeUnknown")}{src}</p> : null;
-  const age = now !== null ? now - meta.checkedAt : 0;
-  const old = meta.failing || age > 5 * 60_000;
-  if (!old && !always) return null;
+    return warn || always ? <p className={`fresh-line${warn ? " warn" : ""}`} role="status">{warn ? t("liveStaleUnknown") : t("liveTimeUnknown")}{src}</p> : null;
+  if (!warn && !always) return null;
   return (
-    <p className={`fresh-line${old ? " warn" : ""}`} role="status">
-      {old ? t("liveStale") : t("liveUpdated")} {hm(meta.checkedAt)}{src}
+    <p className={`fresh-line${warn ? " warn" : ""}`} role="status">
+      {f === "failing" ? t("liveStale") : f === "stale" ? t("liveOld") : t("liveUpdated")} {hm(meta.checkedAt)}{src}
     </p>
   );
 }

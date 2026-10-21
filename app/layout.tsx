@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import InstallApp from "./InstallApp";
+import OfflineBanner from "./OfflineBanner";
 import { I18nProvider } from "@/lib/i18n";
 import { FavoritesProvider } from "@/lib/favorites";
 import { LiveProvider } from "@/lib/live";
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <I18nProvider>
           <FavoritesProvider>
             <LiveProvider>{children}</LiveProvider>
+            <OfflineBanner />
             <InstallApp />
             <FastLinks />
             <ScrollMemory />

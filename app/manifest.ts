@@ -3,11 +3,11 @@ import type { MetadataRoute } from "next";
 // Tekee sivusta asennettavan sovelluksen (kotivalikko / työpöytä)
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Futista – La Liga ja Valioliiga",
+    name: "Futista – jalkapallo suomeksi",
     short_name: "Futista",
-    description: "La Liga- ja Valioliiga-uutiset, tulokset ja sarjataulukot suomeksi.",
+    description: "La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan sarjojen ja maajoukkueiden tulokset, otteluohjelmat ja sarjataulukot suomeksi.",
     lang: "fi",
-    start_url: "/?lahde=sovellus",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
@@ -27,6 +27,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { name: "Tulokset", url: "/?nakyma=tulokset", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Sarjataulukot", url: "/?nakyma=taulukko", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Suosikit", url: "/?nakyma=suosikit", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Maajoukkueet", url: "/maajoukkueet", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }

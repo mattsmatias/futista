@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { fd } from "@/lib/fd";
+import { fd, fdTry } from "@/lib/fd";
 import { getStatsWith, type LeagueStats, type Team } from "@/lib/stats";
 import { SOURCES } from "@/lib/sources";
 import { helsinkiParts } from "@/lib/live-core";
@@ -24,13 +24,21 @@ function ours(stats: LeagueStats[], source: string | undefined, id: number): Tea
   }
 }
 
+/** Tilapäinen häiriö (lähde ei vastaa, kiintiötauko, migraatio puuttuu): näytetään virhesivu (error.tsx),
+ *  jossa on uudelleenyritys. Virhettä ei tallenneta välimuistiin, joten seuraava pyyntö yrittää uudelleen. */
+class PlayerUnavailable extends Error {}
+
 async function load(id: string): Promise<PlayerData | null> {
-  if (!/^\d+$/.test(id)) return null;
-  const [p, pm] = await Promise.all([
-    fd<any>(`/persons/${id}`, 86400),
+  // 404 vain, kun pelaajan puuttuminen on varmistettu: virheellinen tunniste tai lähteen 404
+  if (!/^\d{1,9}$/.test(id)) return null;
+  const [pr, pm] = await Promise.all([
+    fdTry<any>(`/persons/${id}`, 86400),
     fd<any>(`/persons/${id}/matches?limit=12`, 1800),
   ]);
-  if (!p?.name) return null;
+  if (pr.status === "notfound") return null;
+  if (pr.status !== "ok") throw new PlayerUnavailable(pr.status === "off" ? "off" : pr.reason);
+  const p = pr.data;
+  if (!p?.name) throw new PlayerUnavailable("empty");
   const matches: any[] = pm?.matches ?? [];
   // uutissarjat + ne muut sarjat, joissa pelaaja on pelannut (nimiä ja linkkejä varten)
   const comps = [...new Set(matches.map((m) => SOURCES.find((s) => s.fd === m.competition?.code)?.id).filter(Boolean))] as string[];

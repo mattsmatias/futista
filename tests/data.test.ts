@@ -12,7 +12,7 @@ import { fillFromLastGood } from "../lib/stats-merge";
 // ---------- apurit ----------
 const clock = (start = 1_800_000_000_000) => { let t = start; return { now: () => t, add: (ms: number) => { t += ms; } }; };
 const ok = (body: unknown): Fetched => ({ status: 200, body: JSON.stringify(body), headers: {} });
-const lm = (o: Partial<LiveMatch> & { home: string; away: string }): LiveMatch => ({
+const lm = (o: Omit<Partial<LiveMatch>, "home" | "away"> & { home: string; away: string }): LiveMatch => ({
   source: "laliga", kickoff: Date.UTC(2026, 9, 25, 19, 0), status: "IN_PLAY", hs: null, as: null,
   ...o, home: words(o.home), away: words(o.away),
 } as LiveMatch);
@@ -106,7 +106,7 @@ test("2c: molemmat päättyneet, eri tulos → ensisijaisen tuloslähteen (footb
     [lm({ home: "Barcelona", away: "Real Madrid", status: "FINISHED", hs: 3, as: 1 })],
     [lm({ home: "Barcelona", away: "Real Madrid", status: "FINISHED", hs: 3, as: 2 })],
   );
-  assert.deepEqual([out[0].hs, out[0].as, out[0].conflict], [3, 1, true]);
+  assert.deepEqual([out[0].hs, out[0].as, out[0].conflict, out[0].conflictKind], [3, 1, true, "score"]);
 });
 
 test("2d: epäselvä osuma hylätään (ei arvata samankaltaisen nimen perusteella)", () => {
@@ -145,7 +145,7 @@ test("4: VAR-hylätty maali pienentää tulosta, kun uudempi tilannekuva sanoo n
 // ---------- Ottelutilojen yhdistäminen: ristiriitatestit (korjauskierros 2) ----------
 const K = Date.UTC(2026, 9, 25, 19, 0); // aloitus 22:00 Suomen aikaa
 const min = (n: number) => n * 60_000;
-const bar = (o: Partial<LiveMatch>) => lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, id: "fd:1", ...o });
+const bar = (o: Omit<Partial<LiveMatch>, "home" | "away">) => lm({ home: "Barcelona", away: "Real Madrid", kickoff: K, id: "fd:1", ...o });
 
 test("M1: vanha päättynyt tieto vs. tuore käynnissä oleva tieto → käynnissä (tuoreempi), ristiriita merkitään", () => {
   // football-datan tietue päivitetty 20:30 (virheellisesti päättynyt), ESPN haettu 20:50 ja sanoo käynnissä
@@ -159,7 +159,7 @@ test("M1: vanha päättynyt tieto vs. tuore käynnissä oleva tieto → käynnis
   assert.equal(acceptMatch(prev, out[0]).status, "IN_PLAY");
   // tila näytetään epävarmana
   const st = matchState({ source: "laliga", date: "2026-10-25", time: "22:00", home: { name: "Barcelona" }, away: { name: "Real Madrid" } }, out, K + min(111));
-  assert.deepEqual([st.kind, st.uncertain], ["live", true]);
+  assert.deepEqual([st.kind, st.uncertain, st.uncertainWhat], ["live", true, "status"]);
 });
 
 test("M2: virheellisesti päättyneeksi merkitty ottelu korjataan käynnissä olevaksi (lähteen korjaus)", () => {
@@ -296,12 +296,16 @@ test("7a: puuttuva tulos ei ole 0–0", () => {
   const g = toGame(espnEvent({ status: "STATUS_SCHEDULED", state: "pre" }))!;
   assert.deepEqual([g.hs, g.as], [null, null]);
 });
-test("7b: ilman rajapinnan tietoa ei keksitä minuuttia eikä tulosta", () => {
+test("7b: ilman lähteen vahvistusta ei väitetä alkaneeksi tai päättyneeksi eikä keksitä minuuttia tai tulosta", () => {
   const f = { source: "laliga", date: "2026-10-25", time: "22:00", home: { name: "Barcelona" }, away: { name: "Real Madrid" } };
-  const live = matchState(f, [], Date.UTC(2026, 9, 25, 20, 30)); // alkanut 30 min sitten (klo 22 = 20 UTC)
-  assert.deepEqual(live, { kind: "live", inferred: true });
+  const live = matchState(f, [], Date.UTC(2026, 9, 25, 20, 30)); // aloitusaika ohitettu 30 min sitten (klo 22 = 20 UTC)
+  assert.deepEqual(live, { kind: "unconfirmed", inferred: true });
   const later = matchState(f, [], Date.UTC(2026, 9, 25, 23, 0));
-  assert.deepEqual(later, { kind: "ft", inferred: true });
+  assert.deepEqual(later, { kind: "unconfirmed", inferred: true, late: true });
+  // lähde sanoo yhä "tuleva", vaikka aloitusaika on ohi → ei väitetä alkaneeksi
+  const timed = matchState(f, [lm({ home: "Barcelona", away: "Real Madrid", status: "TIMED", hs: null, as: null })], Date.UTC(2026, 9, 25, 20, 10));
+  assert.equal(timed.kind, "unconfirmed");
+  assert.equal(timed.hs, undefined);
   assert.equal(fmtClock("HT"), undefined);
   assert.equal(fmtClock("0'"), undefined);
   assert.equal(fmtClock(""), undefined);

@@ -1,14 +1,16 @@
-// Ajo: node tests/e2e-preview.cjs <Vercelin _vercel_share-tunniste>  (vaatii playwright-paketin ja Chromiumin)
-// Esikatselun selaintestit. Tulokset: PASS/FAIL rivit.
+// Ajo: FUTISTA_TEST_URL=<esikatselu> node tests/e2e-preview.cjs <Vercelin _vercel_share-tunniste>
+// (vaatii playwright-paketin ja Chromiumin). Esikatselun selaintestit. Tulokset: PASS/FAIL rivit.
+// Tuotantoon kohdistuva ajo estetään (tests/target.cjs).
 const { chromium } = require('playwright');
-const U = 'https://futista-git-korjaus-luotettavuus-asunyt.vercel.app';
-const SHARE = U + '/?_vercel_share=' + process.argv[2];
+const { resolveTarget, markTestTraffic } = require('./target.cjs');
+const U = resolveTarget(process.env.FUTISTA_TEST_URL || 'https://futista-git-korjaus-luotettavuus-asunyt.vercel.app').origin;
+const SHARE = U + '/?_vercel_share=' + (process.argv[2] || '');
 const out = [];
 const rec = (name, ok, info) => { out.push(`${ok ? 'PASS' : 'FAIL'} | ${name} | ${typeof info === 'string' ? info : JSON.stringify(info)}`); };
 const sl = (ms) => new Promise((r) => setTimeout(r, ms));
 (async () => {
   const b = await chromium.launch();
-  const ctx = async (w, h = 850) => { const c = await b.newContext({ viewport: { width: w, height: h }, locale: 'fi-FI', timezoneId: 'Europe/Helsinki' }); const p = await c.newPage(); await p.goto(SHARE, { waitUntil: 'domcontentloaded' }); return { c, p }; };
+  const ctx = async (w, h = 850, opts = {}) => { const c = await b.newContext({ viewport: { width: w, height: h }, locale: 'fi-FI', timezoneId: 'Europe/Helsinki', ...opts }); await markTestTraffic(c, U); const p = await c.newPage(); await p.goto(SHARE, { waitUntil: 'domcontentloaded' }); return { c, p }; };
   try {
     // ---------- API ja versio ----------
     {
@@ -91,7 +93,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       await p.route('**/api/live', (r) => r.fulfill({ status: 500, body: '{}' }));
       await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' }); await sl(1500);
       const t = await p.evaluate(() => document.querySelector('.fresh-line')?.innerText || '');
-      rec('live-lähde ei vastaa (500) → "tietolähde ei vastaa" -viesti', /ei vastaa/.test(t), t);
+      rec('live-lähde ei vastaa (500) → "Päivitys ei onnistu" -varoitus', /Päivitys ei onnistu|ei vastaa/.test(t), t);
       await c.close();
     }
     {
@@ -100,7 +102,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, matches: [], checkedAt: Date.now() - 12 * 60_000, sources: {}, error: false } }));
       await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' }); await sl(1500);
       const t = await p.evaluate(() => document.querySelector('.fresh-line')?.innerText || '');
-      rec('vanha live-tieto (12 min) → varoitus ja tarkistusaika, ei "Tilanne päivitetty"', /Päivitys ei onnistu.*tarkistettiin klo/.test(t) && !/Tilanne päivitetty/.test(t), t);
+      rec('vanha live-tieto (12 min, haku onnistuu) → "voi olla vanhentunut" + tarkistusaika, ei "Tilanne päivitetty"', /Tieto voi olla vanhentunut.*tarkistettu viimeksi klo/.test(t) && !/Tilanne päivitetty/.test(t), t);
       await c.close();
     }
     // simuloitu ottelu: puuttuva tulos, vanha vastaus uuden jälkeen, VAR
@@ -130,11 +132,44 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const fl = await p.evaluate(() => document.querySelector('.fresh-line')?.textContent || '');
       rec('ottelusivu: "Tarkistettu klo" (ESPN-tila, lähteen päivitysaikaa ei tunneta → ei "Tilanne päivitetty")', /Tarkistettu klo \d\d[.:]\d\d/.test(fl) && !/Tilanne päivitetty/.test(fl), fl);
       await next();
-      const q = await p.evaluate(() => { const e = document.querySelector('.mh-mid .st-q'); return { q: !!e, title: e?.parentElement?.getAttribute('title') || '' }; });
-      rec('ristiriitainen tila näytetään epävarmana (?-merkki ja selitys)', q.q && /eroavat/.test(q.title), q);
+      const qb = p.locator('.mh-mid .st-qbtn').first();
+      await qb.focus(); await p.keyboard.press('Enter'); await sl(200);
+      const q = await p.evaluate(() => { const b = document.querySelector('.mh-mid .st-qbtn'); const pop = b && document.getElementById(b.getAttribute('aria-controls')); return { btn: !!b, name: b?.innerText || '', expanded: b?.getAttribute('aria-expanded'), pop: pop?.innerText || '' }; });
+      rec('ristiriitainen tila: ?-painike, saavutettava nimi, avautuu näppäimistöllä ja kertoo epävarmuuden', q.btn && /eroavat/.test(q.name) && q.expanded === 'true' && /ei todista tiedon tuoreutta/.test(q.pop), q);
       // ilman rajapinnan tietoa: ei keksittyä minuuttia
       await p.unroute('**/api/live');
       await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, checkedAt: Date.now(), sources: {}, error: false, matches: [] } }));
+      await c.close();
+    }
+    // ---------- korjauskierros 3: virhetilat, maajoukkuereitti, ilmoitukset, PWA, tietoa ----------
+    {
+      const { c, p } = await ctx(390);
+      const h1 = async (path) => { const r = await p.goto(U + path, { waitUntil: 'networkidle' }); await p.waitForSelector('h1', { timeout: 15000 }).catch(() => {}); return { s: r.status(), h: (await p.locator('h1').first().textContent().catch(() => '')) || '' }; };
+      let r = await h1('/pelaaja/abc'); rec('pelaaja: virheellinen tunniste → "Pelaajaa ei löytynyt"', r.h === 'Pelaajaa ei löytynyt', r);
+      rec('  404-sivulla toimiva paluulinkki', await p.locator('a[href="/"]', { hasText: 'Palaa etusivulle' }).count() > 0, '');
+      r = await h1('/maajoukkue/83'); rec('maajoukkue: seurajoukkueen tunniste (83) → 404 "Maajoukkuetta ei löytynyt"', r.s === 404 && r.h === 'Maajoukkuetta ei löytynyt', r);
+      r = await h1('/maajoukkue/458'); rec('maajoukkue: Suomi (458) näytetään', r.s === 200 && /Suomi/.test(r.h), r);
+      r = await h1('/eiolemassa'); rec('tuntematon sivu → 404 "Sivua ei löytynyt"', r.s === 404 && r.h === 'Sivua ei löytynyt', r);
+      await p.goto(U + '/tietoa', { waitUntil: 'networkidle' });
+      const ab = await p.locator('body').innerText();
+      rec('tietoa: ESPN ja rajoitus mainittu, "Lähdemerkintä ei ole käyttölupa", ei "lähteiden luvalla"', /ESPN/.test(ab) && /Lähdemerkintä ei ole käyttölupa/.test(ab) && !/lähteiden luvalla/i.test(ab), '');
+      const man = await p.evaluate(async () => (await fetch('/manifest.webmanifest')).json());
+      rec('manifest: nimi, kuvaus ja Maajoukkueet-pikakuvake', /Futista/.test(man.name) && !!man.description && (man.shortcuts || []).some((x) => x.url === '/maajoukkueet'), { name: man.name, shortcuts: (man.shortcuts || []).map((x) => x.url) });
+      await p.evaluate(() => navigator.serviceWorker.ready); await sl(800);
+      const keys = await p.evaluate(() => caches.keys());
+      rec('service worker v4: vain nykyiset välimuistit', keys.every((k) => /^futista-(static|pages)-v4$/.test(k)), keys);
+      await c.close();
+    }
+    {
+      const { c, p } = await ctx(390);
+      await c.addInitScript(() => { window.__perm = 0; try { const o = Notification.requestPermission.bind(Notification); Notification.requestPermission = (...a) => { window.__perm++; return o(...a); }; } catch {} });
+      const st = await p.evaluate(async () => { const r = await fetch('/api/push/status'); return { s: r.status, j: await r.json() }; });
+      await p.goto(U + '/?nakyma=suosikit', { waitUntil: 'networkidle' }); await sl(1500);
+      const card = await p.evaluate(() => document.querySelector('.notify')?.innerText || '');
+      const btn = p.locator('.notify button'); if (await btn.count()) await btn.first().click().catch(() => {});
+      await sl(500);
+      const perm = await p.evaluate(() => window.__perm);
+      rec('ilmoitukset: palvelin ei valmis → "eivät ole vielä käytössä", lupaa ei kysytä', st.j.ready === false && /eivät ole vielä käytössä/.test(card) && perm === 0, { status: st, card, permissionRequests: perm });
       await c.close();
     }
     // ---------- puuttuvat kuvat ----------
@@ -201,8 +236,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     // ---------- vähennetty liike ----------
     {
-      const c = await b.newContext({ viewport: { width: 390, height: 850 }, locale: 'fi-FI', reducedMotion: 'reduce' });
-      const p = await c.newPage(); await p.goto(SHARE, { waitUntil: 'domcontentloaded' });
+      const { c, p } = await ctx(390, 850, { reducedMotion: 'reduce' });
       await p.goto(U + '/joukkue/laliga/barcelona', { waitUntil: 'networkidle' });
       const an = await p.evaluate(() => getComputedStyle(document.querySelector('.tab-pane')).animationName);
       rec('vähennetty liike: välilehtianimaatio pois', an === 'none', an);

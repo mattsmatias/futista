@@ -9,14 +9,18 @@
 //  - 429 / X-Requests-Available-Minute: 0: yhteinen tauko Retry-After / X-RequestCounter-Reset mukaan;
 //    401/403: 6 h yhteinen tauko; 5xx/aikakatkaisu: 15 s (instanssikohtainen)
 //  - Vercelissä yhteinen kiintiö on pakollinen: jos sitä ei voi varmistaa, lähteestä ei haeta
-//    (välimuistidata tai hallittu virhe). Paikallisessa kehityksessä ilman Supabasea: 6 hakua/min.
+//    (välimuistidata tai hallittu virhe). Paikallisessa kehityksessä ilman Supabasea: 6 hakua/min
+//    (enintään 2 matalan prioriteetin) ja 429-tauko tämän prosessin sisällä. Tämä EI suojaa usean
+//    prosessin tai palvelimen yhteiskäyttöä – siihen tarvitaan yhteinen kiintiö (docs/kiintio.md).
 //  - ympäristömuuttuja FD_OFF=1 katkaisee kaikki haut heti
 import https from "node:https";
+import http from "node:http";
 import { unstable_cache } from "next/cache";
 import { createGuard, SourceError, type Fetched, type Priority } from "./guard";
 import { fdQuotaStore, type QuotaStore } from "./quota";
 
-const BASE = "https://api.football-data.org/v4";
+// Testejä varten osoitteen voi korvata (FD_BASE_URL), mutta EI koskaan tuotannossa.
+const BASE = (process.env.VERCEL_ENV !== "production" && process.env.FD_BASE_URL) || "https://api.football-data.org/v4";
 const TIMEOUT_MS = 10_000;
 
 let store: { key: string; s: QuotaStore | null } | null = null;
@@ -35,7 +39,7 @@ const guard = createGuard({
 
 function get(path: string, key: string): Promise<Fetched> {
   return new Promise((resolve, reject) => {
-    const req = https.get(BASE + path, { headers: { "X-Auth-Token": key }, timeout: TIMEOUT_MS }, (res) => {
+    const req = (BASE.startsWith("http://") ? http : https).get(BASE + path, { headers: { "X-Auth-Token": key }, timeout: TIMEOUT_MS }, (res) => {
       let body = "";
       res.setEncoding("utf8");
       res.on("data", (c) => (body += c));
@@ -66,22 +70,36 @@ async function load(path: string): Promise<{ at: number; data: any }> {
 
 export type FdResult<T> = { data: T; at: number | null } | null;
 
-/** Hakee polun ja hakuhetken; välimuistissa `ttl` sekuntia. null, jos avainta ei ole tai haku ei onnistu. */
-export async function fdMeta<T = any>(path: string, ttl: number): Promise<FdResult<T>> {
-  if (!hasFd()) return null;
+/** Haun lopputulos eriteltynä: löytyi / lähde vahvisti, ettei kohdetta ole (404) / ei käytössä / tilapäinen häiriö.
+ *  Häiriöitä (tauko, kiintiö, aikakatkaisu, 5xx, migraatio puuttuu) ei tallenneta välimuistiin. */
+export type FdOutcome<T> =
+  | { status: "ok"; data: T; at: number | null }
+  | { status: "notfound" }
+  | { status: "off" }
+  | { status: "unavailable"; reason: string };
+
+export async function fdTry<T = any>(path: string, ttl: number): Promise<FdOutcome<T>> {
+  if (!hasFd()) return { status: "off" };
   // ei hakuja julkaisun rakennusvaiheessa: sivut täydentyvät käyttöön
-  if (process.env.NEXT_PHASE === "phase-production-build") return null;
+  if (process.env.NEXT_PHASE === "phase-production-build") return { status: "unavailable", reason: "build" };
   try {
     // sama välimuistiavain kuin aiemmin: julkaisu ei tyhjennä välimuistia eikä aiheuta hakuryöppyä.
     // Vanhat merkinnät ovat pelkkää dataa (ei hakuaikaa) → aika tuntematon (null) kunnes merkintä uusiutuu.
     const r: any = await unstable_cache(() => load(path), ["fd-v1", path], { revalidate: ttl })();
     const wrapped = r && typeof r === "object" && typeof r.at === "number" && "data" in r && Object.keys(r).length === 2;
-    return wrapped ? { data: r.data as T, at: r.at } : { data: r as T, at: null };
+    return wrapped ? { status: "ok", data: r.data as T, at: r.at } : { status: "ok", data: r as T, at: null };
   } catch (e) {
     const err = e as SourceError;
+    if (err?.kind === "http" && err.status === 404) return { status: "notfound" };
     if (err?.kind !== "paused" && err?.kind !== "limit") console.error("football-data", path, err?.message ?? "");
-    return null;
+    return { status: "unavailable", reason: err?.kind ?? "error" };
   }
+}
+
+/** Hakee polun ja hakuhetken; välimuistissa `ttl` sekuntia. null, jos avainta ei ole tai haku ei onnistu. */
+export async function fdMeta<T = any>(path: string, ttl: number): Promise<FdResult<T>> {
+  const r = await fdTry<T>(path, ttl);
+  return r.status === "ok" ? { data: r.data, at: r.at } : null;
 }
 
 /** Hakee polun (ilman aikaleimaa). */

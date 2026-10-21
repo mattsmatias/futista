@@ -81,7 +81,7 @@ const fromEspn = (m: LiveMatch, e: LiveMatch, conflict: boolean): LiveMatch => (
   status: e.status, hs: e.hs, as: e.as, min: e.min, phase: e.phase,
   pens: e.pens ?? null, aet: e.aet,
   fetchedAt: e.fetchedAt ?? null, sourceUpdatedAt: null,
-  src: "fd+espn", statusSrc: "espn", conflict: conflict || undefined,
+  src: "fd+espn", statusSrc: "espn", conflict: conflict || undefined, conflictKind: conflict ? "status" : undefined,
 });
 
 /** Yhdistää football-datan ja ESPN:n tilannekuvat. Kumpikaan lista ei muutu. */
@@ -106,7 +106,7 @@ export function mergeLive(fdList: LiveMatch[], espn: LiveMatch[]): LiveMatch[] {
         const differs = e.hs !== null && e.as !== null && f.hs !== null && f.as !== null && (e.hs !== f.hs || e.as !== f.as);
         out[i] = {
           ...m, hs: f.hs ?? e.hs, as: f.as ?? e.as, pens: f.pens ?? e.pens ?? null, aet: f.aet ?? e.aet,
-          src: "fd+espn", conflict: differs || undefined,
+          src: "fd+espn", conflict: differs || undefined, conflictKind: differs ? "score" : undefined,
         };
       } else out[i] = { ...m, src: "fd+espn" };
       continue;
@@ -114,7 +114,7 @@ export function mergeLive(fdList: LiveMatch[], espn: LiveMatch[]): LiveMatch[] {
     // eri tilaluokka
     if (ce === "pre") { out[i] = { ...m, src: "fd+espn" }; continue; } // ESPN:n "tuleva" ei kumoa mitään
     const fdNewer = f.sourceUpdatedAt != null && e.fetchedAt != null && f.sourceUpdatedAt > e.fetchedAt;
-    if (fdNewer) out[i] = { ...m, src: "fd+espn", conflict: isRegression(e.status, f.status) || undefined };
+    if (fdNewer) { const c = isRegression(e.status, f.status); out[i] = { ...m, src: "fd+espn", conflict: c || undefined, conflictKind: c ? "status" : undefined }; }
     else out[i] = fromEspn(m, e, isRegression(f.status, e.status));
   }
   return out;

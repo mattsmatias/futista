@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { pushConfigured, saveSubscription } from "@/lib/push-server";
+import { pushReady, saveSubscription } from "@/lib/push-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Tallentaa tai päivittää ilmoitustilauksen (selain + suosikkijoukkueet + kieli)
 export async function POST(req: Request) {
-  if (!pushConfigured()) return NextResponse.json({ error: "not configured" }, { status: 503 });
+  if (!(await pushReady())) return NextResponse.json({ error: "not available" }, { status: 503 });
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }); }
 

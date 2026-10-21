@@ -1,57 +1,47 @@
 "use client";
 // Muiden sarjojen tiedot ja maalipörssit haetaan selaimeen vasta, kun niitä katsotaan.
-import { useEffect, useState } from "react";
+// Epäonnistunut haku näkyy virheenä + "Yritä uudelleen"; aiempi kelvollinen tieto säilyy ja merkitään
+// vanhentuneeksi. Saman sarjan rinnakkaiset haut yhdistetään, ja uudelleenyrityksillä on vähimmäisväli.
+import { useCallback, useEffect, useState } from "react";
 import type { LeagueStats } from "./stats";
 import type { LeagueScorers } from "./scorers";
+import { createLoader } from "./loader";
+export { createLoader };
 
-const leagueCache = new Map<string, Promise<LeagueStats | null>>();
-const scorerCache = new Map<string, Promise<LeagueScorers | null>>();
+const leagues = createLoader<LeagueStats>((id) =>
+  fetch(`/api/league/${id}`).then((r) => (r.ok ? r.json() : null)).then((d) => (d?.stats?.table?.length ? d.stats : null)));
+const scorers = createLoader<LeagueScorers>((id) =>
+  fetch(`/api/scorers/${id}`).then((r) => (r.ok ? r.json() : null)).then((d) => d?.scorers ?? null));
 
-const loadLeague = (id: string) => {
-  if (!leagueCache.has(id)) {
-    const p = fetch(`/api/league/${id}`).then((r) => r.json()).then((d) => (d.stats?.table?.length ? d.stats : null)).catch(() => null);
-    leagueCache.set(id, p);
-    p.then((v) => { if (!v) leagueCache.delete(id); }); // epäonnistunut haku yritetään myöhemmin uudelleen
-  }
-  return leagueCache.get(id)!;
-};
-const loadScorers = (id: string) => {
-  if (!scorerCache.has(id)) {
-    const p = fetch(`/api/scorers/${id}`).then((r) => r.json()).then((d) => d.scorers ?? null).catch(() => null);
-    scorerCache.set(id, p);
-    p.then((v) => { if (!v) scorerCache.delete(id); });
-  }
-  return scorerCache.get(id)!;
-};
+type State<T> = { data: T[]; loading: boolean; failed: string[]; retry: () => void };
 
-/** Lataa annetut sarjat; palauttaa ladatut ja tiedon, onko lataus kesken */
-export function useLeagues(ids: string[]): { data: LeagueStats[]; loading: boolean } {
+function useLoaded<T extends { source: string }>(ids: string[], loader: ReturnType<typeof createLoader<T>>, markStale: (v: T) => T): State<T> {
   const key = ids.join(",");
-  const [state, setState] = useState<{ key: string; data: LeagueStats[]; loading: boolean }>({ key: "", data: [], loading: ids.length > 0 });
+  const [nonce, setNonce] = useState(0);
+  const [state, setState] = useState<{ key: string; data: T[]; loading: boolean; failed: string[] }>({ key: "", data: [], loading: ids.length > 0, failed: [] });
   useEffect(() => {
     let alive = true;
-    if (!ids.length) { setState({ key, data: [], loading: false }); return; }
-    setState((s) => ({ key, data: s.key === key ? s.data : [], loading: true }));
-    Promise.all(ids.map(loadLeague)).then((list) => {
-      if (alive) setState({ key, data: list.filter(Boolean) as LeagueStats[], loading: false });
+    if (!ids.length) { setState({ key, data: [], loading: false, failed: [] }); return; }
+    setState((s) => ({ key, data: s.key === key ? s.data : [], loading: true, failed: s.key === key ? s.failed : [] }));
+    Promise.all(ids.map((id) => loader.load(id, nonce > 0))).then((list) => {
+      if (!alive) return;
+      const failed = ids.filter((_, n) => !list[n]);
+      // epäonnistuneelle sarjalle aiempi kelvollinen tieto, merkittynä vanhentuneeksi
+      const data = ids.map((id, n) => list[n] ?? (loader.last(id) ? markStale(loader.last(id)!) : null)).filter(Boolean) as T[];
+      setState({ key, data, loading: false, failed });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return state.key === key ? { data: state.data, loading: state.loading } : { data: [], loading: ids.length > 0 };
+  }, [key, nonce]);
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
+  return state.key === key ? { data: state.data, loading: state.loading, failed: state.failed, retry } : { data: [], loading: ids.length > 0, failed: [], retry };
 }
 
-export function useScorers(ids: string[]): { data: LeagueScorers[]; loading: boolean } {
-  const key = ids.join(",");
-  const [state, setState] = useState<{ key: string; data: LeagueScorers[]; loading: boolean }>({ key: "", data: [], loading: true });
-  useEffect(() => {
-    let alive = true;
-    setState({ key, data: [], loading: true });
-    Promise.all(ids.map(loadScorers)).then((list) => {
-      if (alive) setState({ key, data: list.filter(Boolean) as LeagueScorers[], loading: false });
-    });
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return state.key === key ? state : { data: [], loading: true };
+/** Lataa annetut sarjat: ladatut, onko lataus kesken, epäonnistuneet tunnisteet ja uudelleenyritys */
+export function useLeagues(ids: string[]): State<LeagueStats> {
+  return useLoaded(ids, leagues, (v) => ({ ...v, stale: true }));
+}
+
+export function useScorers(ids: string[]): State<LeagueScorers> {
+  return useLoaded(ids, scorers, (v) => ({ ...v, stale: true }));
 }

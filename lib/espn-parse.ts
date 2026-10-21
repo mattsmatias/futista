@@ -45,6 +45,18 @@ export function parseScore(h: any, a: any, st: Phase): { hs: number | null; as: 
 /** Aikuisten miesten joukkue? (varmistus: nuorten, naisten ja olympiajoukkueet pidetään erillään) */
 export const isSeniorMen = (name: string) => !/\b(U-?\d{2}|under[- ]?\d{2}|women|womens|wnt|olympic|ii|b team|reserves?)\b/i.test(name);
 
+/** Onko ESPN:n joukkue miesten A-maajoukkue (lib/espn.ts getNation) */
+const CLUB_COMPS = /champions|europa|libertadores|sudamericana|club|cwc|super_cup|recopa|leagues_cup/;
+export function isSeniorMenNational(t: { slug?: string; displayName?: string; defaultLeague?: { slug?: string } } | null | undefined): boolean {
+  if (!t) return false;
+  const slug = String(t.slug ?? ""), lg = String(t.defaultLeague?.slug ?? "");
+  if (!/^[a-z]{2,4}$/.test(slug)) return false;
+  if (!/^(fifa|uefa|concacaf|conmebol|caf|afc|ofc)\./.test(lg) || CLUB_COMPS.test(lg)) return false;
+  if (/(^|\.)w(world|euro|cup|gold|nations|friendly)|\.w$|_w$|u\d{2}|olympic|women/i.test(lg)) return false;
+  return isSeniorMen(String(t.displayName ?? ""));
+}
+
+
 export type GameTeam = { name: string; logo?: string; code: string; id?: string; w?: string[] };
 export type Game = {
   id: string; epoch: number; date: string; time: string;

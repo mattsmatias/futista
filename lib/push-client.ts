@@ -8,6 +8,7 @@ const LANG_KEY = "futista-kieli";
 
 export type PushState =
   | "unconfigured"   // palvelua ei ole vielä otettu käyttöön (ei avaimia)
+  | "unavailable"    // palvelin ei voi vastaanottaa tilauksia (asetukset/ajastus kesken) → lupaa ei pyydetä
   | "unsupported"    // selain ei tue ilmoituksia
   | "ios-install"    // iPhone: lisää ensin kotivalikkoon
   | "denied"         // käyttäjä on estänyt ilmoitukset
@@ -30,14 +31,21 @@ async function registration() {
   return (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register("/sw.js"));
 }
 
+/** Voiko palvelin vastaanottaa tilauksia (kysytään ennen kuin selaimen lupaa pyydetään) */
+async function serverReady(): Promise<boolean> {
+  try { const r = await fetch("/api/push/status"); return r.ok && (await r.json()).ready === true; } catch { return false; }
+}
+
 export async function pushState(): Promise<PushState> {
   if (!VAPID) return "unconfigured";
   if (isIOS() && !isStandalone()) return "ios-install";
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return "unsupported";
-  if (Notification.permission === "denied") return "denied";
   const reg = await registration();
   const sub = await reg?.pushManager.getSubscription();
-  return sub ? "on" : "off";
+  if (sub) return "on"; // käytössä oleva tilaus voidaan aina kytkeä pois
+  if (!(await serverReady())) return "unavailable";
+  if (Notification.permission === "denied") return "denied";
+  return "off";
 }
 
 const lang = () => { try { return localStorage.getItem(LANG_KEY) || "fi"; } catch { return "fi"; } };
@@ -49,6 +57,7 @@ async function send(path: string, body: unknown) {
 
 /** Kysyy luvan ja tilaa ilmoitukset. Kutsuttava napin painalluksesta. */
 export async function pushEnable(teams: string[]): Promise<PushState> {
+  if (!(await serverReady())) return "unavailable"; // ei lupapyyntöä, jos palvelu ei voi ottaa tilausta vastaan
   const perm = await Notification.requestPermission();
   if (perm !== "granted") return perm === "denied" ? "denied" : "off";
   const reg = await registration();
@@ -57,7 +66,12 @@ export async function pushEnable(teams: string[]): Promise<PushState> {
   const sub =
     (await reg.pushManager.getSubscription()) ??
     (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyToBytes(VAPID) }));
-  await send("/api/push/subscribe", { subscription: sub.toJSON(), teams, lang: lang() });
+  try {
+    await send("/api/push/subscribe", { subscription: sub.toJSON(), teams, lang: lang() });
+  } catch (e) {
+    await sub.unsubscribe().catch(() => {}); // ei jätetä selaimeen tilausta, jota palvelin ei tunne
+    throw e;
+  }
   return "on";
 }
 

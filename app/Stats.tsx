@@ -36,6 +36,18 @@ export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
 
 const hm = (ms: number) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
 
+/** Latausvirhe: selitys ja uudelleenyritys (painike estää rinnakkaiset yritykset) */
+export function LoadError({ onRetry, stale }: { onRetry: () => void; stale?: boolean }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="panel"><div className="pad load-err" role="alert">
+      <p className="muted">{t("leagueLoadFailed")}{stale ? ` ${t("staleShown")}` : ""}</p>
+      <button className="btn" disabled={busy} onClick={() => { setBusy(true); onRetry(); setTimeout(() => setBusy(false), 3000); }}>{busy ? t("loading") : t("retry")}</button>
+    </div></div>
+  );
+}
+
 /** Lähderivi: lähde, viimeisimmän onnistuneen päivityksen aika ja varoitus vanhentuneesta tiedosta */
 export function SrcLine({ name, updated, stale, maxAgeMin = 30 }: { name: string; updated?: number | null; stale?: boolean; maxAgeMin?: number }) {
   const { t } = useI18n();
@@ -322,7 +334,7 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
           </table>
         </div>
       )}
-      <SrcLine name="football-data.org" updated={data?.updated} maxAgeMin={180} />
+      <SrcLine name="football-data.org" updated={data?.updated} stale={data?.stale} maxAgeMin={180} />
     </div>
   );
 }

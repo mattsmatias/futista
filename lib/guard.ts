@@ -95,7 +95,9 @@ export function createGuard(o: GuardOptions) {
   function admit(p: Priority) {
     const t = now();
     if (t < blockedUntil) throw new SourceError("paused", "paused");
-    if (o.shared) return; // yhteinen kiintiö laskee kaikki haut (myös tämän instanssin)
+    // yhteinen kiintiö laskee kaikki haut (myös tämän instanssin). Jos yhteistä varastoa ei ole
+    // (paikallinen kehitys ilman Supabasea), käytetään paikallista rajaa: ei koskaan rajatonta hakua.
+    if (o.shared?.()) return;
     while (calls.length && t - calls[0].t >= 60_000) calls.shift();
     if (calls.length >= o.perMin) throw new SourceError("limit", "local limit");
     if (p === "low" && calls.filter((c) => c.p === "low").length >= lowPerMin) throw new SourceError("limit", "local low-priority limit");
@@ -136,7 +138,8 @@ export function createGuard(o: GuardOptions) {
         sharedBlock(blockedUntil, "http " + r.status);
       }
       else if (r.status >= 500) blockedUntil = Math.max(blockedUntil, now() + (o.serverErrorPauseMs ?? 15_000));
-      lastError = { kind: "http", at: now(), status: r.status };
+      // 404 on lähteen kelvollinen vastaus ("ei ole"), ei häiriö
+      if (r.status !== 404) lastError = { kind: "http", at: now(), status: r.status };
       throw new SourceError("http", `http ${r.status}: ${r.body.slice(0, 120)}`, r.status);
     })().finally(() => inflight.delete(key));
     inflight.set(key, job);

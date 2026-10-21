@@ -1,0 +1,48 @@
+# Testit ja testiliikenne
+
+Testit eivät kuormita oikeaa football-data.orgia tai ESPN:ää eivätkä lähetä ilmoituksia oikeille käyttäjille.
+
+## Komennot
+| Mitä | Komento | Ympäristö |
+|---|---|---|
+| Yksikkötestit (tyyppitarkistus + node:test) | `npm test` | Node, ei verkkoa |
+| Sovelluksen tyyppitarkistus | `npx tsc --noEmit -p tsconfig.json` | oikeat riippuvuudet (`npm install`) |
+| Tuotantokäännös | `npx next build` | vaatii Google Fonts -yhteyden (next/font) |
+| Kiintiömigraatio versioittain | `PG_URL=postgresql://postgres@host:port/db bash tests/quota-mp/sql-check.sh` | PostgreSQL 15/16/17 |
+| Monen prosessin kiintiö | `PG_URL=... BUILD=.test-build bash tests/quota-mp/run.sh` | PostgreSQL + npm `pg` |
+| Kokonaisketju selaimella | `PG_URL=... CHROME=... NODE_PATH=... bash tests/integration/run.sh` | ks. alla |
+| Esikatselun selaintestit | `FUTISTA_TEST_URL=<esikatselu> node tests/e2e-preview.cjs <share-tunniste>` | esikatselu |
+
+### Kokonaisketju (`tests/integration/`)
+Tuotantokäännös (`next start`) + simuloidut lähteet (`mock-sources.cjs`: football-data ja ESPN, tila
+ohjattavissa) + Supabase-REST-emulaattori (`tests/quota-mp/rest.cjs`) oikeaa PostgreSQL:ää vasten, johon
+kiintiömigraatio ajetaan. `FD_QUOTA_REQUIRED=1`, joten yhteinen kiintiö on pakollinen kuten Vercelissä.
+- `chain.cjs`: pelaaja 404 vs. katko vs. 429-tauko vs. kiintiövaraston katko (fail closed), uudelleenyritys,
+  H2H 503/tyhjä/404, muut sarjat 503 no-store, maajoukkuereitti (seura/naiset/U21/tuntematon/katko), ESPN-ottelu.
+- `ui.cjs`: live-varoitukset hallitulla kellolla (5 min väli + välimuistin ikä + ajastinviive ei varoita,
+  oikea katko varoittaa), ristiriidan selitys näppäimistöllä ja kosketuksella, ei live-hakuja Tietoa/Tietosuoja-
+  sivuilla eikä piilotetussa välilehdessä, offline (oikea verkkokatko `toggle-proxy.cjs`:llä), välimuistin raja,
+  vanhan version siivous, kolme kieltä, leveydet 360/390/1280.
+- `switches.cjs`: `FD_OFF=1` ja `ESPN_OFF=1` → 0 lähdehakua, hallittu virhe, ei välimuistissa olevaa dataa.
+Suljetussa ympäristössä, jossa Google Fonts ei vastaa, käännös tehdään Nextin testitilalla
+`FONTS_MOCK=<tiedosto>` (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`; fonttitiedostot korvataan). Tämä ei ole
+täysi tuotantokäännös – se tehdään Vercelin esikatselussa.
+
+Testiosoitteet `FD_BASE_URL` ja `ESPN_BASE_URL` toimivat vain, kun `VERCEL_ENV` ei ole `production`.
+
+## Tuotantoesto
+`tests/target.cjs` hylkää kohteet `futista.fi`, `www.futista.fi` ja `futista.vercel.app`, ellei sekä
+`FUTISTA_ALLOW_PRODUCTION=1` että komentoriviparametri `--tuotanto` ole annettu (tietoinen erillinen valinta).
+Sallitut: localhost, 127.0.0.1, `futista-*.vercel.app` (esikatselut), `sb-*.vercel.run`.
+Rajoitus: tuotantojulkaisun pysyvää osoitetta (`futista-<tunniste>-asunyt.vercel.app`) ei voi erottaa
+esikatselusta pelkän nimen perusteella – älä käytä sellaista testikohteena.
+
+## Testiliikenteen merkintä
+Testiskriptit lisäävät omiin pyyntöihinsä otsakkeen `X-Futista-Test: 1` (vain saman sivuston pyyntöihin).
+Otsake ei ohita mitään: palvelin käsittelee pyynnön täsmälleen kuten muutkin.
+- Futistalla ei ole omaa analytiikkaa, joten esikatselun testit eivät päädy tuotannon analytiikkaan.
+  Esikatselut (`*.vercel.app`) eivät kulje Futistan Cloudflaren kautta.
+- Cloudflare (futista.fi): suodatusta otsakkeen perusteella EI ole tarkistettu – tähän työhön ei ole pääsyä
+  Futistan Cloudflare-tiliin. Otsake näkyy Cloudflarelle, mutta ilmaistason liikennetilastot eivät
+  tiettävästi suodata pyyntöotsakkeen mukaan. Tuotantoon tehdyt testipyynnöt voivat siis näkyä Cloudflaren
+  liikennemäärissä. Bottien, käyttäjien tai IP-osoitteiden estoa ei ole lisätty.

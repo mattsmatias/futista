@@ -5,7 +5,7 @@ import { toLocal } from "@/lib/links";
 import { SOURCES, isMain } from "@/lib/sources";
 import Art from "./Art";
 import type { LeagueStats } from "@/lib/stats";
-import { Standings, Results, ScoreRail, UpcomingRail, LeaguePicker, Scorers } from "./Stats";
+import { Standings, Results, ScoreRail, UpcomingRail, LeaguePicker, Scorers, LoadError } from "./Stats";
 import { useLeagues, useScorers } from "@/lib/leagues-client";
 import { useFreshStats, useFreshArticles } from "@/lib/fresh";
 import { useDataEnabled } from "@/lib/live";
@@ -156,14 +156,17 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
             <button role="tab" aria-selected={tableTab === "scorers"} className={tableTab === "scorers" ? "on" : ""} onClick={() => setTableTab("scorers")}>{t("scorers")}</button>
           </div>}
           {pickLoading && <p className="muted pad loading">{t("loading")}</p>}
+          {!pickLoading && other && tableTab === "table" && loaded.failed.length > 0 && <LoadError onRetry={loaded.retry} stale={loaded.data.length > 0} />}
+          {!scorers.loading && tableTab === "scorers" && scorers.failed.length > 0 && <LoadError onRetry={scorers.retry} stale={scorers.data.length > 0} />}
           <div className="duo">
             {tableTab === "table"
               ? pickStats.map((s) => <Standings key={s.source} s={s} />)
               : scorerIds.map((id) => {
                   const src = SOURCES.find((x) => x.id === id)!;
+                  const d = scorers.data.find((x) => x.source === id);
                   return scorers.loading
                     ? <div className="panel" key={id}><p className="muted pad loading">{t("loading")}</p></div>
-                    : <Scorers key={id} data={scorers.data.find((x) => x.source === id)} source={id} league={src.league} />;
+                    : d || !scorers.failed.includes(id) ? <Scorers key={id} data={d} source={id} league={src.league} /> : null;
                 })}
           </div>
         </main>
@@ -175,7 +178,10 @@ export default function NewsBoard({ articles: firstArticles, stats: firstStats }
         <main className="wrap">
           <div className="sec-head page-head"><h2>{t("matches")}</h2></div>
           <LeaguePicker value={pick} onChange={setPick} intl />
-          {pick === "intl" ? <IntlBoard /> : pickLoading ? <p className="muted pad loading">{t("loading")}</p> : <Results key={pick} stats={pickStats} />}
+          {pick === "intl" ? <IntlBoard /> : pickLoading ? <p className="muted pad loading">{t("loading")}</p> : <>
+            {other && loaded.failed.length > 0 && <LoadError onRetry={loaded.retry} stale={loaded.data.length > 0} />}
+            {pickStats.length > 0 && <Results key={pick} stats={pickStats} />}
+          </>}
         </main>
       )}
 

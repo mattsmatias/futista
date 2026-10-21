@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createRetryGate } from "@/lib/retry";
 import type { Fixture, LeagueStats, Result, Row, Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
 import { norm } from "@/lib/teams";
@@ -59,7 +60,7 @@ function History({ list, home, away }: { list: Meeting[]; home: Team; away: Team
   return (
     <div className="panel">
       <div className="panel-head"><h3>{t("earlierMeetings")}</h3><span className="muted">{list.length}</span></div>
-      {list.length === 0 ? <p className="muted pad">{t("noMeetings")}</p> : (
+      {list.length === 0 ? <p className="muted pad">{t("noEarlierMeetings")}</p> : (
         <>
           <div className="h2h-sum">
             <div><b>{hw}</b><span>{home.name}</span></div>
@@ -109,18 +110,27 @@ function Info({ e }: { e: MatchExtra }) {
 
 export default function MatchView({ s, result, fixture, extra = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null }) {
   // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
+  //  ok + [] = "ei aiempia kohtaamisia"; error = "tietoja ei saada" + uudelleenyritys (ei koko sivun latausta)
   const [history, setHistory] = useState<Meeting[] | null>(null);
-  const [h2hErr, setH2hErr] = useState(false);
+  const [h2h, setH2h] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const gate = useRef(createRetryGate<void>(3000));
   const i = useI18n();
   const { t } = i;
   const m = (result ?? fixture)!;
   const [tab, setTab] = useState<Tab>("summary");
-  useEffect(() => {
-    if (tab !== "h2h" || history !== null || !extra?.apiId) return;
-    // virhe ≠ "ei aiempia otteluita": virheestä kerrotaan erikseen
-    fetch(`/api/h2h/${extra.apiId}?l=${s.source}`).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
-      .then((d) => setHistory(d.meetings ?? [])).catch(() => setH2hErr(true));
-  }, [tab, history, extra, s.source]);
+  const loadH2h = useCallback(() => {
+    if (!extra?.apiId) return;
+    gate.current.run(async () => {
+      setH2h("loading");
+      try {
+        const r = await fetch(`/api/h2h/${extra.apiId}?l=${s.source}`);
+        if (!r.ok) throw new Error(String(r.status));
+        const d = await r.json();
+        setHistory(d.meetings ?? []); setH2h("ok");
+      } catch { setH2h("error"); }
+    });
+  }, [extra, s.source]);
+  useEffect(() => { if (tab === "h2h" && h2h === "idle") loadH2h(); }, [tab, h2h, loadH2h]);
   const row = (tm: Team): Row | undefined => s.table.find((r) => norm(r.team.name) === norm(tm.name));
   const rh = row(m.home), ra = row(m.away);
   const pair = [norm(m.home.name), norm(m.away.name)];
@@ -135,7 +145,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
     <>
       <SubBar />
       {/* päättynyttä ottelua ei päivitetä live-tahdilla */}
-      <AutoRefresh every={result ? 900_000 : st.kind === "live" || st.kind === "ht" ? 60_000 : 300_000} />
+      <AutoRefresh every={result ? 900_000 : st.kind === "live" || st.kind === "ht" || st.kind === "unconfirmed" ? 60_000 : 300_000} />
       <main className="wrap entity">
         <section className={`match-hero mh-${s.source}`}>
           <div className="mh-meta">
@@ -156,7 +166,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                 ? <span className="mh-status">{t("statusFt")}{result.note === "pens" ? ` · ${t("pensShort")}${result.pens ? ` ${result.pens[0]}–${result.pens[1]}` : ""}` : result.note === "aet" ? ` · ${t("aetShort")}` : ""}</span>
                 : st.kind === "upcoming"
                   ? <span className="mh-status up">{t("statusUpcoming")}</span>
-                  : <StatusPill s={st} />}
+                  : <StatusPill s={st} explain />}
             </div>
             <a className={`mh-team${hw ? " lost" : ""}`} href={teamHref(s.source, m.away.name)}>
               <Badge t={m.away} size={72} /><b>{m.away.name}</b>{ra && <small>{ra.pos}.</small>}
@@ -211,10 +221,14 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                 </div>
               ))}
             </div>
-            {extra?.apiId && h2hErr && <p className="muted pad">{t("sourceDown")}</p>}
-            {extra?.apiId && !h2hErr && (history === null
-              ? <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>
-              : <History list={history} home={m.home} away={m.away} />)}
+            {extra?.apiId && h2h === "error" && (
+              <div className="panel"><div className="pad load-err" role="alert">
+                <p className="muted">{t("h2hUnavailable")}</p>
+                <button className="btn" onClick={loadH2h}>{t("retry")}</button>
+              </div></div>
+            )}
+            {extra?.apiId && (h2h === "loading" || h2h === "idle") && <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>}
+            {extra?.apiId && h2h === "ok" && history && <History list={history} home={m.home} away={m.away} />}
             <div className="duo">
               <TeamResults team={m.home} s={s} />
               <TeamResults team={m.away} s={s} />

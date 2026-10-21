@@ -1,64 +1,75 @@
-# Futista – La Liga ja Valioliiga suomeksi
+# Futista – jalkapallo suomeksi
 
-Next.js-sivu, joka hakee uutiset LaLiiga.comin ja Valioliiga.comin RSS-syötteistä ja näyttää
-ne uudella ulkoasulla. Jokainen juttu aukeaa omalla artikkelisivulla (/uutiset/...), lopussa Lähde-rivi.
-Uusi lähde lisätään tiedostoon lib/sources.ts.
+Next.js 14 (App Router) -sivusto: uutiset LaLiiga.comin ja Valioliiga.comin RSS-syötteistä, sarjataulukot,
+tulokset ja otteluohjelmat, live-tilanteet, joukkue-, ottelu-, pelaaja- ja maajoukkuesivut kolmella kielellä
+(suomi, ruotsi, englanti). Asennettava sovellus (PWA) ja valinnaiset ilmoitukset.
 
-- Syöte päivittyy automaattisesti 10 minuutin välein (ISR, `revalidate = 600`).
-- Sarjataulukot ja tulokset luetaan lähteiden sivuilta /sarjataulukko/ ja /tulokset/ (lib/stats.ts), päivitys 15 min välein.
-- Ei tietokantaa, ei API-avaimia.
-- Lähde mainitaan kerran jokaisessa uutiskortissa ja artikkelin lopussa.
+Tämä tiedosto kuvaa nykyisen toiminnan. Tarkemmat ohjeet:
 
-## Vercel
-1. Pura zip ja lataa kansio GitHubiin (uusi repo).
-2. Vercel → Add New → Project → valitse repo → Deploy. Asetuksia ei tarvitse muuttaa.
+| Aihe | Tiedosto |
+|---|---|
+| football-data.org-kiintiö ja migraatio | docs/kiintio.md |
+| Ilmoitusten käyttöönotto | docs/ilmoitukset.md |
+| Lähteet, käyttöoikeudet ja katkaisimet | docs/oikeudet.md |
+| Supabase-avaimen vaihto | docs/supabase-avain.md |
+| Testit ja testiliikenne | docs/testaus.md |
+| Aikaleimat ja viivemittaus | docs/aikaleimat.md, docs/viivemittaus.md |
 
-## Joukkueiden logot (valinnainen, ilmainen)
-Logot tulevat football-data.orgista. Ilman avainta taulukoissa näkyvät seurojen värimerkit.
-1. Rekisteröidy: https://www.football-data.org/client/register (avain tulee sähköpostiin)
-2. Vercel → projekti → Settings → Environment Variables → lisää
-   FOOTBALL_DATA_KEY = <avaimesi>
-3. Deployments → Redeploy. Logot haetaan kerran vuorokaudessa.
+## Tietolähteet
+- **LaLiiga.com, Valioliiga.com**: uutiset (RSS), La Ligan ja Valioliigan sarjataulukot ja tulokset sivuilta.
+- **football-data.org** (ilmainen avain `FOOTBALL_DATA_KEY`): muut sarjat, maalipörssit, pelaajat, keskinäiset
+  ottelut, logot. Ilmaistaso 10 hakua/min; Futista käyttää yhteistä kiintiötä 8/61 s (docs/kiintio.md).
+- **ESPN** (dokumentoimaton, avoin rajapinta): live-tila ja peliminuutti, joukkueiden kaikki kilpailut, maaottelut.
+  Käyttöoikeus on selvittämättä (docs/oikeudet.md). Katkaisin `ESPN_OFF=1`.
+- **TheSportsDB**: pelaajakuvat. **Flagpedia/flagcdn**: liput.
+Lähdemerkintä ei ole käyttölupa.
 
-## Sovellukseksi kotivalikkoon
-Sivu on asennettava sovellus (PWA): app/manifest.ts, public/sw.js, public/icons/ ja app/InstallApp.tsx.
-- Android, Chrome, Edge, Samsung Internet: sivulle tulee Asenna-nappi.
-- iPhone/iPad (Safari): näytetään ohje Jaa → Lisää Koti-valikkoon.
-- Kortti ei näy, jos Futista on jo kotivalikossa: sovelluksena avattuna, Chromen/Edgen/Samsungin
-  tunnistamana (getInstalledRelatedApps) tai kun asennus tehtiin kortista. iPhonessa "Lisäsin jo" -nappi.
-- Ruksilla suljettu kortti palaa 14 päivän päästä.
+## Päivitysvälit (tarkistettu koodista)
+| Mitä | Lähteestä haetaan enintään | Palvelimen välimuisti | Selain tarkistaa |
+|---|---|---|---|
+| Uutissyötteet | 3 min | sivut 2 min (ISR) | – |
+| La Liga / Valioliiga -tilastot | 2 min | 2 min | – |
+| Muut sarjat | 15 min | CDN 10 min | kun sarja avataan |
+| Maalipörssit | 1 h | CDN 30 min | kun avataan |
+| Live-tila | 30–45 s | CDN 30 s | 1 min (ottelu käynnissä) / 5 min |
+Mitattu viive lähteen muutoksesta selaimeen 33–82 s (docs/viivemittaus.md). Sivusto ei ole reaaliaikainen,
+ja football-datan ilmaistason tulokset ovat viiveellä.
 
-## Tietosuoja ja Tietoa-sivut
-- /tietosuoja ja /tietoa, kolmella kielellä. Tekstit: lib/legal.ts
-- TÄYTÄ sähköpostiosoite tiedostoon lib/site.ts ennen julkaisua (tietosuojaseloste vaatii yhteystiedon).
-- Sivu ei käytä evästeitä eikä analytiikkaa, joten evästebanneria ei tarvita.
-- Fontit tulevat sivun omalta palvelimelta (next/font), ei Googlesta.
+## Virhetilat
+- Lähde ei vastaa, kiintiötauko tai puuttuva migraatio → "Tietoja ei saada juuri nyt" + **Yritä uudelleen**
+  (ei 404). Häiriövastauksia ei tallenneta välimuistiin.
+- 404 vain, kun lähde vahvistaa, ettei kohdetta ole, tai tunniste on virheellinen. Tekstit sivukohtaisia
+  ("Pelaajaa ei löytynyt", neutraali "Sivua ei löytynyt") ja paluulinkki etusivulle.
+- Muiden sarjojen latausvirhe: virhe + uudelleenyritys, aiempi tieto säilyy merkittynä vanhentuneeksi.
+- Live: "Päivitys ei onnistu" vain oikeasta katkosta; normaali 5 min väli ei aiheuta varoitusta.
+  Ilman lähteen vahvistusta: "Aloitusaika ohitettu – tilaa ei vahvistettu" (ei keksittyä tulosta tai minuuttia).
 
-## Suosikkijoukkueet
-Suosikit-välilehdellä joukkueita voi tykätä sydämestä. Suosikit tallentuvat vain käyttäjän omaan selaimeen.
-Välilehdellä näkyvät suosikkien uutiset ja tulokset, ja sarjataulukossa suosikit on korostettu.
+## Katkaisimet (ympäristömuuttujat, vaativat uuden julkaisun)
+- `FD_OFF=1` – ei yhtään hakua football-dataan.
+- `ESPN_OFF=1` – ei yhtään hakua ESPN:ään.
+- `NEWS_FULLTEXT=0` – artikkelisivulla vain otsikko, ote ja linkki; lähdesivua ei haeta. Otsikot, otteet ja
+  kuvat näkyvät edelleen, joten tämä EI ratkaise käyttöoikeuksia.
+Muutos tulee voimaan uudessa julkaisussa (Redeploy), jonka sivut ja CDN-välimuisti ovat tyhjät. Katkaisimet
+tarkistetaan ennen välimuistia, joten aiemmin tallennettua sisältöä ei näytetä katkaisimen ollessa päällä.
 
-## Ilmoitukset puhelimeen (valinnainen)
-Kun palvelu on käytössä, Suosikit-välilehdelle tulee Ilmoitukset-kytkin. Ilmoitus lähtee, kun suosikista
-tulee uusi juttu tai sen ottelu päättyy. iPhonessa vaatii, että Futista on lisätty kotivalikkoon (iOS 16.4+).
-Ilman alla olevia asetuksia kytkintä ei näytetä, ja sivu toimii muuten normaalisti.
+## PWA
+`public/sw.js` (v4): sivut verkko ensin, tallennettu versio varalla (enintään 30 sivua, 3 vrk), sitten
+`public/offline.html`. Rajapintoja, RSC-osia, ilmoituksia, ylläpitoa tai virhevastauksia ei tallenneta.
+Vanhat versiot poistetaan aktivoinnissa. Ilman verkkoa näkyy ilmoitus "näytetään tallennettu versio".
 
-1. Supabase (ilmainen): luo projekti → SQL Editor → aja tiedosto supabase/futista.sql
-   (vaihda siitä ensin VERCEL-OSOITE ja CRON_SECRET).
-2. Vercel → Settings → Environment Variables: lisää arvot erillisestä avaintiedostosta
-   (NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET) sekä Supabasesta
-   SUPABASE_URL ja SUPABASE_SERVICE_ROLE_KEY (Project Settings → API).
-3. Deployments → Redeploy.
-Supabase kutsuu osoitetta /api/push/check 10 minuutin välein. Ensimmäinen ajo vain merkitsee nykyiset
-jutut nähdyiksi, joten vanhoista uutisista ei tule ilmoituksia. Max 5 ilmoitusta kerralla per puhelin.
-Ilmoitustilaus tallentaa palvelimelle selaimen ilmoitusosoitteen, suosikkijoukkueet ja kielen.
+## Tietosuoja
+Futistan oma koodi ei käytä evästeitä eikä analytiikkaa. Liikenne kulkee Cloudflaren ja Vercelin kautta;
+niiden käsittely on kuvattu /tietosuoja-sivulla. Rekisterinpitäjän nimi ja yhteystieto puuttuvat
+(`lib/site.ts`) – omistajan täytettävä ennen julkaisua.
 
 ## Paikallisesti
+```
 npm install
-npm run dev   → http://localhost:3000
+npm run dev          # http://localhost:3000
+npm test             # yksikkötestit (tyyppitarkistus + node:test)
+```
+Paikallisesti ilman Supabasea football-datan raja on 6 hakua/min tässä prosessissa (ei suojaa usean
+prosessin käyttöä). Testit käyttävät simuloituja lähteitä (docs/testaus.md).
 
 ## Muokattavat kohdat
-- Sivun nimi: "Futista" tiedostoissa app/NewsBoard.tsx, app/uutiset/[...path]/page.tsx ja app/layout.tsx
-- Sarjat ja seurasuodattimet: lib/sources.ts
-- Värit ja fontit: app/globals.css, :root-lohko
-- Logo: public/logo.svg (vektori), kuvakkeet public/icons/
+- Sarjat: `lib/sources.ts` · Tekstit: `lib/i18n.tsx`, `lib/legal.ts` · Värit ja fontit: `app/globals.css`

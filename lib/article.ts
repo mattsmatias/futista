@@ -72,14 +72,11 @@ export async function getFullArticle(parts: string[]): Promise<FullArticle | nul
   if (!src || !DATE_SLUG.test(path)) return null;
   const url = `${src.base}${path}/`;
 
-  let html: string;
-  try {
-    const res = await fetch(url, { next: { revalidate: 3600 }, headers: { "User-Agent": "Futista/1.0" } });
-    if (!res.ok) return null;
-    html = await res.text();
-  } catch {
-    return null;
-  }
+  // 404/410 = juttua ei ole (sivu "ei löytynyt"); muut virheet = lähde ei vastaa → virhesivu ja uudelleenyritys
+  const res = await fetch(url, { next: { revalidate: 3600 }, headers: { "User-Agent": "Futista/1.0" } });
+  if (res.status === 404 || res.status === 410) return null;
+  if (!res.ok) throw new Error(`article source http ${res.status}`);
+  const html = await res.text();
 
   const { document } = parseHTML(html);
   const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute("content") ?? null;

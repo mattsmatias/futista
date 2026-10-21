@@ -42,16 +42,18 @@ function NotifyCard() {
     state === "ios-install" ? t("notifIosInstall")
     : state === "unsupported" ? t("notifUnsupported")
     : state === "denied" ? t("notifDenied")
+    : state === "unavailable" ? t("notifUnavailable")
     : on ? (favs.length ? t("notifOn") : t("notifOnNoFavs"))
     : t("notifOff");
 
   return (
-    <div className={`notify${on ? " is-on" : ""}`}>
+    <div className={`notify${on ? " is-on" : ""}${state === "unavailable" ? " is-off" : ""}`}>
       <span className="notify-ico"><Bell on={on} /></span>
       <div className="notify-txt">
         <strong>{t("notifTitle")}</strong>
         <span>{msg}</span>
         {err && <span className="notify-err">{t("notifError")}</span>}
+        {state !== "unavailable" && <span className="notify-scope">{t("notifScope")}</span>}
       </div>
       {(state === "on" || state === "off") && (
         <button className={`switch${on ? " on" : ""}`} role="switch" aria-checked={on} aria-label={t("notifTitle")} disabled={busy} onClick={toggle}>
@@ -162,7 +164,9 @@ export default function Favorites({ articles, stats: mainStats, league }: { arti
           ) : (
             <details className="panel team-pick fold" key={l.id}>
               <summary className="panel-head"><h3><i className={`bar-${l.id}`} />{l.name}</h3><span className="muted">{l.teams.length || (more.loading ? "…" : "")}</span></summary>
-              {l.teams.length ? list : <p className="muted pad">{more.loading ? t("loading") : t("noTable")}</p>}
+              {l.teams.length ? list : more.loading ? <p className="muted pad">{t("loading")}</p>
+                : more.failed.includes(l.id) ? <div className="pad load-err" role="alert"><p className="muted">{t("leagueLoadFailed")}</p><button className="btn" onClick={more.retry}>{t("retry")}</button></div>
+                : <p className="muted pad">{t("noTable")}</p>}
             </details>
           );
         })}

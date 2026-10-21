@@ -1,49 +1,99 @@
-// Futistan service worker.
-// Sivut haetaan aina ensin verkosta, jotta uutiset ovat tuoreita.
-// Jos verkkoa ei ole, näytetään viimeksi tallennettu versio.
-const CACHE = "futista-v3";
-const SHELL = ["/", "/icons/icon-192.png", "/icons/icon-512.png"];
+// Futistan service worker (versio 4).
+// - Sivut (HTML-navigoinnit) haetaan aina ensin verkosta. Verkkovirheessä näytetään tallennettu versio,
+//   ja jos sitäkään ei ole, offline-sivu (/offline.html), jossa on linkit tallennettuihin sivuihin.
+// - Tallennetaan VAIN onnistuneet (200) samasta osoitteesta tulevat täydet HTML-sivut. EI tallenneta:
+//   /api/-vastauksia (live, ilmoitukset, cron), Next.js:n osittaisia reittivastauksia (RSC), virheitä,
+//   no-store/private-vastauksia eikä evästeitä asettavia vastauksia.
+// - Sivuvälimuisti on rajattu: enintään 30 sivua ja 3 vrk; staattiset tiedostot enintään 200.
+// - Vanhat välimuistiversiot poistetaan aktivoinnissa.
+// - Kieliversiot eivät sekoitu: palvelin tuottaa saman HTML:n kaikille, kieli valitaan selaimessa.
+// - Lähteiden kuvia (toiset palvelimet) ei tallenneta; selain käyttää omaa HTTP-välimuistiaan.
+const VERSION = "v4";
+const STATIC = `futista-static-${VERSION}`;
+const PAGES = `futista-pages-${VERSION}`;
+const OFFLINE = "/offline.html";
+const PRECACHE = [OFFLINE, "/icons/icon-192.png", "/icons/icon-512.png"];
+const MAX_PAGES = 30;
+const MAX_STATIC = 200;
+const MAX_AGE_MS = 3 * 86400_000;
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(STATIC).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== STATIC && k !== PAGES).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
+
+/** Poistaa vanhimmat merkinnät, kunnes enintään `max` jäljellä (Cache API palauttaa lisäysjärjestyksessä) */
+async function trim(name, max) {
+  const c = await caches.open(name);
+  const keys = await c.keys();
+  for (let i = 0; i < keys.length - max; i++) await c.delete(keys[i]);
+}
+
+const isRsc = (req, url) => req.headers.get("RSC") === "1" || req.headers.has("Next-Router-State-Tree") || url.searchParams.has("_rsc");
+
+function cacheable(res) {
+  if (!res || res.status !== 200 || res.type !== "basic") return false;
+  const cc = (res.headers.get("Cache-Control") || "").toLowerCase();
+  if (cc.includes("no-store") || cc.includes("private")) return false;
+  if (res.headers.has("Set-Cookie")) return false;
+  const ct = res.headers.get("Content-Type") || "";
+  return ct.includes("text/html");
+}
+
+async function savePage(req, res) {
+  // tallennushetki talteen, jotta vanhat (yli 3 vrk) sivut voidaan hylätä
+  const body = await res.clone().blob();
+  const headers = new Headers(res.headers);
+  headers.set("X-SW-Cached-At", String(Date.now()));
+  const c = await caches.open(PAGES);
+  await c.put(req.url, new Response(body, { status: 200, headers }));
+  await trim(PAGES, MAX_PAGES);
+}
+
+async function cachedPage(url) {
+  const c = await caches.open(PAGES);
+  const hit = await c.match(url);
+  if (!hit) return null;
+  const at = Number(hit.headers.get("X-SW-Cached-At") || 0);
+  if (Date.now() - at > MAX_AGE_MS) { await c.delete(url); return null; }
+  return hit;
+}
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return; // lähteiden kuvat yms. selain hoitaa itse
+  if (url.origin !== location.origin) return;           // lähteiden kuvat yms.: selain hoitaa itse
+  if (url.pathname.startsWith("/api/")) return;         // live, ilmoitukset, cron: ei koskaan välimuistiin
+  if (isRsc(req, url)) return;                          // Next.js:n osittaiset reittivastaukset: ei tallenneta
 
-  // Next.js:n versioidut tiedostot: välimuistista, koska ne eivät muutu
+  // Next.js:n versioidut tiedostot ja kuvakkeet: välimuistista (eivät muutu)
   if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
     e.respondWith(
       caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
+        if (res.ok && res.type === "basic") {
+          const copy = res.clone();
+          caches.open(STATIC).then((c) => c.put(req, copy)).then(() => trim(STATIC, MAX_STATIC));
+        }
         return res;
       }))
     );
     return;
   }
 
-  // Sivut: verkko ensin, välimuisti varalla
+  // Sivut: verkko ensin, tallennettu versio varalla, sitten offline-sivu
   if (req.mode === "navigate") {
     e.respondWith(
       fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((hit) => hit || caches.match("/")))
+        .then((res) => { if (cacheable(res)) e.waitUntil(savePage(req, res)); return res; })
+        .catch(async () => (await cachedPage(req.url)) || (await caches.match(OFFLINE)) || Response.error())
     );
   }
 });
@@ -59,7 +109,7 @@ self.addEventListener("push", (e) => {
       badge: "/icons/badge-96.png",
       tag: d.tag,                 // sama asia ei tule kahdesti
       data: { url: d.url || "/" },
-      lang: "fi",
+      lang: d.lang || "fi",
     })
   );
 });

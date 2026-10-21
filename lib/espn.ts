@@ -6,10 +6,11 @@ import { getJson } from "./http";
 import { words, sameTeam, helsinkiParts, type LiveMatch } from "./live-core";
 import type { LeagueStats, Team } from "./stats";
 import { matchHref } from "./routes";
-import { toGame, toLive, isSeniorMen, parseSummary, type Game, type GameTeam, type EspnMatch } from "./espn-parse";
+import { toGame, toLive, isSeniorMen, isSeniorMenNational, parseSummary, type Game, type GameTeam, type EspnMatch } from "./espn-parse";
 export type { Game, GameTeam, EspnMatch } from "./espn-parse";
 
-const BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
+// Testejä varten osoitteen voi korvata (ESPN_BASE_URL), mutta EI koskaan tuotannossa.
+const BASE = (process.env.VERCEL_ENV !== "production" && process.env.ESPN_BASE_URL) || "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 
 // ESPN:n rajapinta on dokumentoimaton, eikä sen käyttöoikeutta ole varmistettu (ks. raportti).
 // ESPN_OFF=1 katkaisee kaikki ESPN-haut: sivut palaavat sarjakohtaisiin tietoihin ja maaotteluosio kertoo tiedon puuttuvan.
@@ -145,6 +146,43 @@ export async function getGamesById(id: string): Promise<Game[] | null> {
   }
 }
 
+// ---- Maajoukkuesivu: tunnisteen tarkistus ----
+// Miesten A-maajoukkue tunnistetaan ESPN:n joukkuetiedoista, ei nimen tai lipun perusteella:
+//  - slug on pelkkä maakoodi (esim. "fin", "pan"); seuroilla "esp.barcelona", naisilla "bel.w", nuorilla "cze.u21"
+//  - oletuskilpailu on maajoukkueiden kilpailu (FIFA/UEFA/CONCACAF/CONMEBOL/CAF/AFC/OFC), ei seurakilpailu
+//  - nimi ei viittaa naisiin, nuoriin tai olympiajoukkueeseen
+const teamInfo = (id: string) =>
+  unstable_cache(async (): Promise<{ team: any | null }> => {
+    // ESPN palauttaa tuntemattomalle tunnisteelle tyhjän olion: se on "ei löydy", ei häiriö
+    const j = await getJson(`${BASE}all/teams/${id}`, 8000);
+    return { team: j?.team?.id ? { id: String(j.team.id), slug: j.team.slug, displayName: j.team.displayName, abbreviation: j.team.abbreviation, logo: j.team.logos?.[0]?.href, defaultLeague: { slug: j.team.defaultLeague?.slug } } : null };
+  }, ["espn-team-v1", id], { revalidate: 86400 })();
+
+export type NationOutcome =
+  | { status: "ok"; team: GameTeam; games: Game[] }
+  | { status: "notfound" }      // tunniste puuttuu tai ei ole miesten A-maajoukkue (varmistettu)
+  | { status: "unavailable" };  // ESPN ei vastaa / pois käytöstä → hallittu virhe, ei 404
+
+export async function getNation(id: string): Promise<NationOutcome> {
+  if (!/^\d{1,7}$/.test(id)) return { status: "notfound" };
+  if (!espnOn() || process.env.NEXT_PHASE === "phase-production-build") return { status: "unavailable" };
+  let info;
+  try { info = await teamInfo(id); } catch (e) { console.error("espn nation", id, (e as Error)?.message); return { status: "unavailable" }; }
+  if (!info.team || !isSeniorMenNational(info.team)) return { status: "notfound" };
+  let games: Game[] = [];
+  try {
+    games = (await scheduleOf(id)).map((g) => { const c = { ...g, home: { ...g.home }, away: { ...g.away } }; delete c.home.w; delete c.away.w; return c; });
+  } catch (e) {
+    if ((e as Error)?.message !== "empty") { console.error("espn nation games", id, (e as Error)?.message); return { status: "unavailable" }; }
+  }
+  // ottelut, joissa joukkue on toisena osapuolena vain miesten A-maaotteluista (ei naisten/nuorten)
+  games = games.filter((g) => isSeniorMen(g.home.name) && isSeniorMen(g.away.name));
+  const g = games.find((x) => x.home.id === id) ?? games.find((x) => x.away.id === id);
+  const team: GameTeam = g ? (g.home.id === id ? g.home : g.away)
+    : { id, name: info.team.displayName ?? "", code: info.team.abbreviation ?? "", logo: info.team.logo };
+  return { status: "ok", team, games };
+}
+
 // ---- Maaottelut ----
 /** Maajoukkueiden kilpailut, joiden otteluita haetaan */
 export const INTL = ["uefa.nations", "fifa.friendly", "uefa.euroq", "fifa.worldq.uefa", "concacaf.nations.league", "caf.nations_qual"];
@@ -247,12 +285,24 @@ const summary = (id: string) =>
     return { at: Date.now(), m };
   }, ["espn-summary-v1", id], { revalidate: 60 })();
 
-export async function getEspnMatch(id: string): Promise<{ at: number; m: EspnMatch } | null> {
-  if (!espnOn() || !/^\d{5,12}$/.test(id) || process.env.NEXT_PHASE === "phase-production-build") return null;
+export type EspnMatchOutcome = { status: "ok"; at: number; m: EspnMatch } | { status: "notfound" } | { status: "unavailable" };
+
+/** Ottelu ESPN:stä: notfound vain, kun tunniste on virheellinen tai ESPN vastaa 404 / tunnistamaton ottelu. */
+export async function getEspnMatchOutcome(id: string): Promise<EspnMatchOutcome> {
+  if (!/^\d{5,12}$/.test(id)) return { status: "notfound" };
+  if (!espnOn() || process.env.NEXT_PHASE === "phase-production-build") return { status: "unavailable" };
   try {
-    return await summary(id);
+    const r = await summary(id);
+    return { status: "ok", ...r };
   } catch (e) {
-    console.error("espn match", id, (e as Error)?.message);
-    return null;
+    const msg = (e as Error)?.message ?? "";
+    if (/http 404|no match/.test(msg)) return { status: "notfound" };
+    console.error("espn match", id, msg);
+    return { status: "unavailable" };
   }
+}
+
+export async function getEspnMatch(id: string): Promise<{ at: number; m: EspnMatch } | null> {
+  const r = await getEspnMatchOutcome(id);
+  return r.status === "ok" ? { at: r.at, m: r.m } : null;
 }

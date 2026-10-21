@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getFullArticle } from "@/lib/article";
+import { getFullArticle, type FullArticle } from "@/lib/article";
 import { getArticles } from "@/lib/feed";
 import { toLocal } from "@/lib/links";
 import { GenArt } from "../../Art";
@@ -13,8 +13,20 @@ export const revalidate = 3600;
 
 type Props = { params: { path: string[] } };
 
+// NEWS_FULLTEXT=0: artikkelia EI haeta lähdesivulta lainkaan; näytetään vain syötteen tiedot (otsikko,
+// ote, kuva, aika) ja linkki alkuperäiseen. Tämä vähentää uudelleenjulkaisun määrää, mutta ei ratkaise
+// käyttöoikeutta: otsikot, otteet ja kuvat näkyvät edelleen (docs/oikeudet.md).
+const excerptOnly = () => process.env.NEWS_FULLTEXT === "0";
+
+async function load(path: string[]): Promise<FullArticle | null> {
+  if (!excerptOnly()) return getFullArticle(path);
+  const local = "/uutiset/" + path.join("/");
+  const it = (await getArticles()).find((x) => toLocal(x.link).replace(/\/$/, "") === local.replace(/\/$/, ""));
+  return it ? { title: it.title, author: it.author, date: it.date, image: it.image, html: "", source: it.link, sourceName: it.sourceName, league: it.league, sourceId: it.source, tags: it.tags, type: it.type } : null;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const a = await getFullArticle(params.path);
+  const a = await load(params.path).catch(() => null);
   if (!a) return { title: "Juttua ei löytynyt – Futista" };
   return {
     title: `${a.title} – Futista`,
@@ -24,13 +36,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ArticlePage({ params }: Props) {
-  const a = await getFullArticle(params.path);
+  const a = await load(params.path);
   if (!a) notFound();
 
   const all = await getArticles();
-  // NEWS_FULLTEXT=0: artikkelin teksti korvataan lyhyellä otteella ja linkillä alkuperäiseen. Tämä vähentää
-  // uudelleenjulkaisun määrää, mutta ei ratkaise käyttöoikeutta: otsikot, otteet ja kuvat näkyvät edelleen (docs/oikeudet.md)
-  const excerptOnly = process.env.NEWS_FULLTEXT === "0";
+  const excerpt0 = excerptOnly();
   const excerpt = all.find((x) => x.link === a.source)?.excerpt ?? "";
   const more = all
     .filter((x) => x.link !== a.source && x.tags.some((t) => a.tags.includes(t)))
@@ -66,7 +76,7 @@ export default async function ArticlePage({ params }: Props) {
       </header>
 
       <article className="wrap story">
-        {excerptOnly
+        {excerpt0
           ? <div className="story-body">{excerpt && <p>{excerpt}</p>}<p><a className="see-all" href={a.source} target="_blank" rel="noopener"><T k="readAtSource" /> {a.sourceName} →</a></p></div>
           : <div className="story-body" dangerouslySetInnerHTML={{ __html: a.html }} />}
         <div className="source"><T k="source" />: <a href={a.source} target="_blank" rel="noopener">{a.sourceName}</a></div>
