@@ -962,7 +962,7 @@ div.match { cursor: default; }
 .topnav a:hover { color: var(--fg); background: var(--surface-2); }
 .topnav a.on { color: var(--fg); font-weight: 750; }
 .topnav a.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -8px; height: 3px; border-radius: 3px 3px 0 0; background: var(--fg); }
-.search-btn { display: flex; align-items: center; gap: 8px; height: 40px; min-width: 44px; padding: 0 14px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
+.search-btn { display: flex; align-items: center; gap: 8px; height: 44px; min-width: 44px; padding: 0 14px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
 .search-btn svg { width: 18px; height: 18px; flex: none; }
 .search-btn:hover { color: var(--fg); }
 .settings { position: relative; }
@@ -1025,7 +1025,7 @@ div.match { cursor: default; }
 .dp-input { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 44px; height: 44px; }
 .dp-today { margin-left: 4px; }
 .filters { display: flex; gap: 6px; }
-.fbtn { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 650; font-size: 14px; color: var(--muted); }
+.fbtn { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 650; font-size: 14px; color: var(--muted); }
 .fbtn:hover { color: var(--fg); }
 .fbtn.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .fcount { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: var(--surface-2); color: var(--fg); }
@@ -1242,3 +1242,6 @@ div.match { cursor: default; }
 .more .nlist { max-width: 760px; }
 @media (max-width: 640px) { .story-fig img { max-height: 260px; } .story-head { padding-top: 12px; } }
 .sk-hero, .sk-hero.dark { height: 120px; border-radius: var(--r-md) !important; }
+
+/* Yksityiskohtasivut (ottelu, joukkue, maa, pelaaja): sama lukuleveys kuin listasivuilla työpöydällä */
+@media (min-width: 901px) { .wrap.entity { max-width: 980px; } }

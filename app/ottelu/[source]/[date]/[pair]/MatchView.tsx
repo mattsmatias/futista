@@ -21,9 +21,15 @@ function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number
   return (
     <div className="cmp">
       <div className="cmp-top"><b className={aBetter ? "lead" : ""}>{a}</b><span>{label}</span><b className={bBetter ? "lead" : ""}>{b}</b></div>
-      {!noBar && <div className="cmp-bar"><i className="h" style={{ width: `${(a / total) * 100}%` }} /><i className="a" style={{ width: `${(b / total) * 100}%` }} /></div>}
+      {!noBar && (a > 0 || b > 0) && <div className="cmp-bar"><i className="h" style={{ width: `${(a / total) * 100}%` }} /><i className="a" style={{ width: `${(b / total) * 100}%` }} /></div>}
     </div>
   );
+}
+
+/** Montako kunto-ottelua näytetään (enintään 5; se joukkue, jolla otteluita on enemmän) */
+function formN(results: LeagueStats["results"], a: string, b: string) {
+  const c = (x: string) => { const n = norm(x); return Math.min(5, results.filter((r) => norm(r.home.name) === n || norm(r.away.name) === n).length); };
+  return Math.max(c(a), c(b));
 }
 
 function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
@@ -134,7 +140,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
   const liveScore = !result && st.hs != null && st.as != null ? { hs: st.hs, as: st.as } : null;
   const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
 
-  const tabs: { id: Tab; label: Key }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "h2h" }, { id: "table", label: "standing" }];
+  const tabs: { id: Tab; label: Key }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" }];
 
   return (
     <>
@@ -179,7 +185,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
           <>
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             <div className="panel">
-              <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScope")} · {t("last5")}</span></div>
+              <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScopeN").replace("{c}", s.league).replace("{n}", String(formN(s.results, m.home.name, m.away.name)))}</span></div>
               <div className="form-duo">
                 <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
                 <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>

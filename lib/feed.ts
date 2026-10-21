@@ -35,7 +35,7 @@ export function decode(s: string) {
 export function cleanText(s: string): string {
   return s
     .replace(/\(?\s*(avautuu uuteen ikkunaan|ulkoinen linkki|external link|opens in a new (tab|window))\s*\)?/gi, " ")
-    .replace(/\b(The post|Artikkeli) .{0,200}? (appeared first on|ilmestyi ensimmäisenä) [^.]*\.?/gi, " ")
+    .replace(/\b(The post|Artikkeli) .{0,200}? (appeared first on|ilmestyi ensimmäisenä) .*$/gi, " ")
     .replace(/\b(Lue lisää|Jatka lukemista|Read more)\s*(»|→|…)?\s*$/i, " ")
     .replace(/\s+([,.!?])/g, "$1")
     .replace(/\s+/g, " ")

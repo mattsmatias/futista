@@ -9,9 +9,9 @@ import { createLoader } from "./loader";
 export { createLoader };
 
 const leagues = createLoader<LeagueStats>((id) =>
-  fetch(`/api/league/${id}`).then((r) => (r.ok ? r.json() : null)).then((d) => (d?.stats?.table?.length ? d.stats : null)));
+  fetch(`/api/league/${id}`).then((r) => r.json().catch(() => null).then((d) => (r.ok ? d : null))).then((d) => (d?.stats?.table?.length ? d.stats : null)));
 const scorers = createLoader<LeagueScorers>((id) =>
-  fetch(`/api/scorers/${id}`).then((r) => (r.ok ? r.json() : null)).then((d) => d?.scorers ?? null));
+  fetch(`/api/scorers/${id}`).then((r) => r.json().catch(() => null).then((d) => (r.ok ? d : null))).then((d) => d?.scorers ?? null));
 
 type State<T> = { data: T[]; loading: boolean; failed: string[]; retry: () => void };
 

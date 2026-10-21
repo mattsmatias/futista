@@ -31,7 +31,9 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
   const dataOn = useDataEnabled();
   const slimCov = useMemo(() => Object.fromEntries(slim.map((s) => [s.source, coverage(s, today, SLIM)])), [slim, today]);
   // pääsarjan katkaistu lista ei kata valittua päivää → koko kauden tiedot (/api/league; pääsarjoilla ei lähdehakua)
-  const needFull = slim.filter((s) => isMain(s.source) && !covers(slimCov[s.source], date)).map((s) => s.source);
+  // Tyhjä katkaistu lista (lähde ei vastannut palvelimelle) ei käynnistä uutta hakua: palvelin on jo yrittänyt,
+  // ja sarja näytetään "tietoja ei saatavilla" -tilassa.
+  const needFull = slim.filter((s) => isMain(s.source) && !!slimCov[s.source] && !covers(slimCov[s.source], date)).map((s) => s.source);
   const { map, retry } = useLeagueMap([...(dataOn ? FD_IDS : []), ...needFull]);
   const { live, now } = useLiveData();
   const intl = useIntlGames(true);

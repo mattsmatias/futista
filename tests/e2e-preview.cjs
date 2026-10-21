@@ -1,15 +1,16 @@
 // Ajo: FUTISTA_TEST_URL=<esikatselu> node tests/e2e-preview.cjs <Vercelin _vercel_share-tunniste>
 // (vaatii playwright-paketin ja Chromiumin). Esikatselun selaintestit. Tulokset: PASS/FAIL rivit.
 // Tuotantoon kohdistuva ajo estetään (tests/target.cjs).
-const { chromium } = require('playwright');
+let pw; try { pw = require('playwright'); } catch { pw = require('playwright-core'); }
+const { chromium } = pw;
 const { resolveTarget, markTestTraffic } = require('./target.cjs');
 const U = resolveTarget(process.env.FUTISTA_TEST_URL || 'https://futista-git-korjaus-luotettavuus-asunyt.vercel.app').origin;
-const SHARE = U + '/?_vercel_share=' + (process.argv[2] || '');
+const SHARE = U + '/tietoa?_vercel_share=' + (process.argv[2] || '');
 const out = [];
 const rec = (name, ok, info) => { out.push(`${ok ? 'PASS' : 'FAIL'} | ${name} | ${typeof info === 'string' ? info : JSON.stringify(info)}`); };
 const sl = (ms) => new Promise((r) => setTimeout(r, ms));
 (async () => {
-  const b = await chromium.launch();
+  const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
   const ctx = async (w, h = 850, opts = {}) => { const c = await b.newContext({ viewport: { width: w, height: h }, locale: 'fi-FI', timezoneId: 'Europe/Helsinki', ...opts }); await markTestTraffic(c, U); const p = await c.newPage(); await p.goto(SHARE, { waitUntil: 'domcontentloaded' }); return { c, p }; };
   try {
     // ---------- API ja versio ----------
@@ -66,34 +67,71 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       await sl(300);
       await p.evaluate(() => window.scrollTo(0, 700));
       await sl(400);
-      const before = await p.evaluate(() => ({ y: Math.round(scrollY), on: document.querySelector('.comp-filter button.on')?.innerText, tab: document.querySelector('.ent-tabs button.on')?.innerText, firstMatch: document.querySelector('.tab-pane a.match')?.getAttribute('href') }));
+      const before = await p.evaluate(() => ({ y: Math.round(scrollY), on: document.querySelector('.comp-filter button.on')?.innerText, tab: document.querySelector('.ent-tabs button.on')?.innerText, firstMatch: document.querySelector('.tab-pane a.mrow-link')?.getAttribute('href') }));
       // avaa ottelu ja palaa
-      const href = await p.evaluate(() => { const a = [...document.querySelectorAll('.tab-pane a.match')].find((x) => x.getBoundingClientRect().top > 60 && x.getBoundingClientRect().bottom < innerHeight); return a?.getAttribute('href'); });
-      if (href) { await p.evaluate((h) => document.querySelector(`.tab-pane a.match[href="${h}"]`).click(), href); await p.waitForURL((u) => u.pathname.startsWith('/ottelu'), { timeout: 15000 }); await sl(800); await p.goBack(); await sl(4500); }
+      const href = await p.evaluate(() => { const a = [...document.querySelectorAll('.tab-pane a.mrow-link')].find((x) => x.getBoundingClientRect().top > 60 && x.getBoundingClientRect().bottom < innerHeight); return a?.getAttribute('href'); });
+      if (href) { await p.evaluate((h) => document.querySelector(`.tab-pane a.mrow-link[href="${h}"]`).click(), href); await p.waitForURL((u) => u.pathname.startsWith('/ottelu'), { timeout: 15000 }); await sl(800); await p.goBack(); await sl(4500); }
       const after = await p.evaluate(() => ({ y: Math.round(scrollY), h: document.documentElement.scrollHeight, on: document.querySelector('.comp-filter button.on')?.innerText, tab: document.querySelector('.ent-tabs button.on')?.innerText, ss: Object.fromEntries(Object.entries(sessionStorage).filter(([k]) => k.includes('scroll'))) }));
       rec('takaisin ottelusivulta: välilehti, kilpailusuodatin ja vierityskohta säilyvät (joukkuesivu)', !!href && after.on === before.on && after.tab === before.tab && Math.abs(after.y - before.y) < 60, { before, after, opened: href });
       await c.close();
     }
-    // ---------- suodattimet säilyvät (etusivun Ottelut-näkymä) ----------
+    // ---------- tulospalvelu: etusivu, päivä ja vierityskohta palautuvat, suodattimet ----------
+    for (const w of [360, 390, 768, 1280, 1440]) {
+      const { c, p } = await ctx(w);
+      const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+      await p.goto(U + '/', { waitUntil: 'networkidle' }); await sl(800);
+      const r = await p.evaluate(() => ({ docW: document.documentElement.scrollWidth, day: document.querySelector('.dp-label')?.innerText, groups: [...document.querySelectorAll('.cgroup .cg-name')].map((x) => x.innerText), nav: [...document.querySelectorAll(innerWidth > 900 ? '.topnav a' : '.bottomnav a')].map((a) => a.innerText.trim()), small: [...document.querySelectorAll('.bottomnav a, .daypick button, .filters button')].filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect()).filter((b) => b.height < 44).length }));
+      rec(`etusivu ${w}px: Ottelut-näkymä, päivä "Tänään", kilpailuryhmät, navigaatio, ≥44 px painikkeet, ei vaakavieritystä`, r.docW <= w && /^Tänään/.test(r.day || '') && r.nav.join('|') === 'Ottelut|Suosikit|Sarjat|Uutiset' && r.small === 0 && errs.length === 0, { ...r, errs });
+      await c.close();
+    }
     {
-      const { c, p } = await ctx(1280);
-      await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' });
-      await sl(800);
-      await p.locator('.subtabs button', { hasText: 'Pelatut' }).first().click();
-      await sl(300);
-      await p.evaluate(() => window.scrollTo(0, 600)); await sl(400);
-      const before = await p.evaluate(() => ({ y: Math.round(scrollY), sub: document.querySelector('.results')?.previousElementSibling?.querySelector('.on')?.innerText, nav: document.querySelector('.typenav.top .on')?.innerText }));
-      const href = await p.evaluate(() => { const a = [...document.querySelectorAll('.results a.match')].find((x) => x.getBoundingClientRect().top > 60 && x.getBoundingClientRect().bottom < innerHeight); return a?.getAttribute('href'); });
-      if (href) { await p.evaluate((h) => document.querySelector(`.results a.match[href="${h}"]`).click(), href); await p.waitForURL((u) => u.pathname.startsWith('/ottelu'), { timeout: 15000 }); await sl(800); await p.goBack(); await sl(4500); }
-      const after = await p.evaluate(() => ({ y: Math.round(scrollY), sub: document.querySelector('.results')?.previousElementSibling?.querySelector('.on')?.innerText, nav: document.querySelector('.typenav.top .on')?.innerText }));
-      rec('takaisin ottelusivulta: Ottelut-näkymä, Pelatut-välilehti ja vierityskohta säilyvät (etusivu)', !!href && after.sub === before.sub && after.nav === before.nav && Math.abs(after.y - before.y) < 60, { before, after });
+      const { c, p } = await ctx(390);
+      await p.goto(U + '/', { waitUntil: 'networkidle' }); await sl(800);
+      await p.locator('.daypick button[aria-label="Edellinen päivä"]').click(); await sl(1500);
+      const pv = new URL(p.url()).searchParams.get('pv');
+      await p.evaluate(() => window.scrollTo(0, 300)); await sl(400);
+      const before = await p.evaluate(() => ({ y: Math.round(scrollY), pv: new URL(location.href).searchParams.get('pv') }));
+      const href = await p.evaluate(() => { const a = [...document.querySelectorAll('.cgroup a.mrow-link')].find((x) => x.getBoundingClientRect().top > 60 && x.getBoundingClientRect().bottom < innerHeight - 80); return a?.getAttribute('href'); });
+      if (href) { await p.evaluate((h) => document.querySelector(`a.mrow-link[href="${h}"]`).click(), href); await p.waitForURL((u) => u.pathname.startsWith('/ottelu'), { timeout: 15000 }); await sl(800); await p.goBack(); await sl(4500); }
+      const after = await p.evaluate(() => ({ y: Math.round(scrollY), pv: new URL(location.href).searchParams.get('pv'), day: document.querySelector('.dp-label')?.innerText }));
+      rec('takaisin ottelusivulta: valittu päivä ja vierityskohta palautuvat (etusivu)', !!href && !!pv && after.pv === before.pv && Math.abs(after.y - before.y) < 60, { before, after, opened: href });
+      // nopeat päivänvaihdot: viimeisin valinta jää voimaan
+      for (let i = 0; i < 4; i++) await p.locator('.daypick button[aria-label="Seuraava päivä"]').click();
+      await sl(2500);
+      const fin = await p.evaluate(() => ({ pv: new URL(location.href).searchParams.get('pv'), hrefs: [...document.querySelectorAll('.cgroup a.mrow-link')].map((a) => a.getAttribute('href')) }));
+      const want = (() => { const d = new Date(pv + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 4); return d.toISOString().slice(0, 10); })();
+      rec('nopeat päivänvaihdot: osoitteessa ja listassa viimeksi valittu päivä', fin.pv === want && fin.hrefs.every((h) => h.includes(`/${want}/`)), { want, pv: fin.pv, n: fin.hrefs.length, sample: fin.hrefs.slice(0, 2) });
+      await p.goto(U + '/?n=live', { waitUntil: 'networkidle' }); await sl(1000);
+      const lv = await p.evaluate(() => ({ on: document.querySelector('.filters [aria-pressed="true"]')?.innerText, body: document.querySelector('main')?.innerText.slice(0, 300), rows: document.querySelectorAll('.cgroup .mrow').length }));
+      rec('Live-suodatin: osoitteesta, käynnissä olevat tai tyhjä tila + paluu kaikkiin', /Live/.test(lv.on || '') && (/Näytä kaikki päivän ottelut/.test(lv.body) || lv.rows > 0), lv);
+      // haku
+      await p.goto(U + '/', { waitUntil: 'networkidle' });
+      await p.locator('.search-btn').click(); await p.keyboard.type('Barça'); await sl(2500);
+      const opts = await p.locator('[role=option]').allTextContents();
+      await p.keyboard.press('Escape'); await sl(200);
+      const foc = await p.evaluate(() => document.activeElement?.className);
+      rec('haku: "Barça" löytää Barcelonan, Escape sulkee ja palauttaa kohdistuksen', opts.some((o) => /Barcelona/.test(o)) && /search-btn/.test(foc || ''), { opts: opts.slice(0, 4), foc });
+      // vanhat linkit
+      const red = [];
+      for (const [from, to] of [['/?nakyma=taulukko', '/sarjat'], ['/?nakyma=suosikit', '/suosikit'], ['/?nakyma=maajoukkueet', '/maajoukkueet']]) { await p.goto(U + from, { waitUntil: 'domcontentloaded' }); red.push([from, new URL(p.url()).pathname, new URL(p.url()).pathname === to]); }
+      rec('vanhat linkit ohjautuvat uusiin näkymiin', red.every((x) => x[2]), red);
+      await c.close();
+    }
+    // ---------- suosikit: vanha muoto siirtyy, laitekohtaisuus, ei jakoa kilpailuittain ----------
+    {
+      const { c, p } = await ctx(390);
+      await p.evaluate(() => { localStorage.removeItem('futista-suosikit-v2'); localStorage.setItem('futista-suosikit', JSON.stringify(['Barcelona'])); });
+      await p.goto(U + '/joukkue/laliga/barcelona', { waitUntil: 'networkidle' }); await sl(1000);
+      await p.goto(U + '/suosikit', { waitUntil: 'networkidle' }); await sl(1500);
+      const r = await p.evaluate(() => ({ v2: JSON.parse(localStorage.getItem('futista-suosikit-v2') || '[]'), body: document.querySelector('main')?.innerText || '', teams: [...document.querySelectorAll('.team-list li')].map((li) => li.innerText.trim()) }));
+      rec('suosikit: vanha nimilista siirtyy uuteen muotoon (yksi seura, tunniste), "tälle laitteelle"', r.v2.length === 1 && r.v2[0].n === 'Barcelona' && Number.isInteger(r.v2[0].id) && /tälle laitteelle/.test(r.body) && r.teams.length === 1, { v2: r.v2, teams: r.teams });
       await c.close();
     }
     // ---------- virhetilat simuloidulla /api/live:llä ----------
     {
       const { c, p } = await ctx(390);
       await p.route('**/api/live', (r) => r.fulfill({ status: 500, body: '{}' }));
-      await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' }); await sl(1500);
+      await p.goto(U + '/', { waitUntil: 'networkidle' }); await sl(1500);
       const t = await p.evaluate(() => document.querySelector('.fresh-line')?.innerText || '');
       rec('live-lähde ei vastaa (500) → "Päivitys ei onnistu" -varoitus', /Päivitys ei onnistu|ei vastaa/.test(t), t);
       await c.close();
@@ -102,7 +140,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const { c, p } = await ctx(390);
       const real = await (await fetch(U + '/api/live', { headers: { cookie: '' } }).catch(() => null))?.text?.();
       await p.route('**/api/live', (r) => r.fulfill({ json: { enabled: true, matches: [], checkedAt: Date.now() - 12 * 60_000, sources: {}, error: false } }));
-      await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' }); await sl(1500);
+      await p.goto(U + '/', { waitUntil: 'networkidle' }); await sl(1500);
       const t = await p.evaluate(() => document.querySelector('.fresh-line')?.innerText || '');
       rec('vanha live-tieto (12 min, haku onnistuu) → "voi olla vanhentunut" + tarkistusaika, ei "Tilanne päivitetty"', /Tieto voi olla vanhentunut.*tarkistettu viimeksi klo/.test(t) && !/Tilanne päivitetty/.test(t), t);
       await c.close();
@@ -111,8 +149,12 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
     {
       const { c, p } = await ctx(390);
       // haetaan oikea tuleva ottelu ottelusivua varten
-      await p.goto(U + '/?nakyma=tulokset', { waitUntil: 'networkidle' }); await sl(800);
-      const fx = await p.evaluate(() => { const a = [...document.querySelectorAll('.results a.match')].find((x) => x.querySelector('.ko')); return a && { href: a.getAttribute('href'), home: a.querySelector('.home')?.innerText.trim(), away: a.querySelector('.away')?.innerText.trim(), time: a.querySelector('.ko')?.innerText.trim() }; });
+      let fx = null;
+      for (let i = 0; i < 8 && !fx; i++) {
+        const d = new Date(Date.now() + i * 86400_000); const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Helsinki' }).format(d);
+        await p.goto(U + '/?pv=' + day, { waitUntil: 'networkidle' }); await sl(800);
+        fx = await p.evaluate(() => { const r = [...document.querySelectorAll('.cgroup .mrow')].find((x) => x.querySelector('.ms-up') && /^\d\d:\d\d$/.test(x.querySelector('.mrow-st')?.innerText.trim() || '')); if (!r) return null; const nm = [...r.querySelectorAll('.mrow-tm .nm')].map((n) => n.innerText.trim()); return { href: r.querySelector('a.mrow-link').getAttribute('href'), home: nm[0], away: nm[1], time: r.querySelector('.mrow-st').innerText.trim() }; });
+      }
       const date = fx.href.split('/')[3];
       const hel = (d, t) => { const g = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10), +t.slice(0, 2), +t.slice(3, 5)); for (const off of [3, 2]) { const e = g - off * 3600_000; const f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Helsinki', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(e)); if (f === t) return e; } return g - 2 * 3600_000; };
       const kick = hel(date, fx.time);
@@ -173,7 +215,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const { c, p } = await ctx(390);
       await c.addInitScript(() => { window.__perm = 0; try { const o = Notification.requestPermission.bind(Notification); Notification.requestPermission = (...a) => { window.__perm++; return o(...a); }; } catch {} });
       const st = await p.evaluate(async () => { const r = await fetch('/api/push/status'); return { s: r.status, j: await r.json() }; });
-      await p.goto(U + '/?nakyma=suosikit', { waitUntil: 'domcontentloaded' }); await p.waitForSelector('.notify', { timeout: 20000 }).catch(() => {}); await sl(1500);
+      await p.evaluate(() => localStorage.setItem('futista-suosikit', JSON.stringify(['Barcelona']))); await p.goto(U + '/suosikit', { waitUntil: 'domcontentloaded' }); await p.waitForSelector('.notify', { timeout: 20000 }).catch(() => {}); await sl(1500);
       const card = await p.evaluate(() => document.querySelector('.notify')?.innerText || '');
       const btn = p.locator('.notify button'); if (await btn.count()) await btn.first().click().catch(() => {});
       await sl(500);
@@ -187,7 +229,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       await p.route(/(crests\.football-data|espncdn|thesportsdb|laliiga\.com\/wp-content|valioliiga\.com\/wp-content|flagcdn)/, (r) => r.abort());
       const errs = []; p.on('pageerror', (e) => errs.push(e.message));
       await p.goto(U + '/', { waitUntil: 'networkidle' }); await sl(1000);
-      const r = await p.evaluate(() => ({ broken: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0).length, genart: document.querySelectorAll('.art svg').length, badges: document.querySelectorAll('.badge').length }));
+      const r = await p.evaluate(() => ({ broken: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0).length, badges: document.querySelectorAll('.badge').length }));
       await p.goto(U + '/joukkue/laliga/barcelona#squad', { waitUntil: 'domcontentloaded', timeout: 60000 }); await sl(4000);
       const r2 = await p.evaluate(() => ({ broken: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0).length, initials: document.querySelectorAll('.pphoto').length }));
       rec('kuvat estetty: varanäkymät (värimerkit, generoitu kuva, nimikirjaimet), ei rikkinäisiä kuvia', r.broken === 0 && r2.broken === 0 && errs.length === 0, { home: r, squad: r2, errs });
@@ -198,7 +240,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const { c, p } = await ctx(390);
       const errs = []; p.on('pageerror', (e) => errs.push(e.message));
       await p.goto(U + '/maajoukkue/458', { waitUntil: 'networkidle' }); await sl(800);
-      const href = await p.evaluate(() => [...document.querySelectorAll('a.match')].map((a) => a.getAttribute('href')).find((h) => h.startsWith('/ottelu/e/')));
+      const href = await p.evaluate(() => [...document.querySelectorAll('a.mrow-link, a.match')].map((a) => a.getAttribute('href')).find((h) => h.startsWith('/ottelu/e/')));
       await p.goto(U + href, { waitUntil: 'networkidle' }); await sl(500);
       const r = await p.evaluate(() => ({ hero: document.querySelector('.match-hero')?.innerText.replace(/\n/g, ' | '), facts: [...document.querySelectorAll('.facts div')].map((d) => d.innerText.replace(/\n/g, ': ')), note: document.querySelector('.panel .muted.pad')?.innerText, src: document.querySelector('.panel-src')?.innerText, docW: document.documentElement.scrollWidth }));
       rec('perustason ottelusivu (maaottelu): kilpailu, kausi, aika, tila, tarkistusaika', !!href && r.facts.some((f) => /kilpailu/i.test(f)) && r.facts.some((f) => /kausi/i.test(f)) && r.facts.some((f) => /alkamisaika/i.test(f)) && /tarkistettu/i.test(r.src || '') && r.docW <= 390 && errs.length === 0, { href, facts: r.facts, src: r.src, docW: r.docW, errs });
@@ -209,7 +251,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       rec('pelattu maaottelu (Valko-Venäjä–Suomi 6.10.): tulos 1–0, puoliaika 1–0, Päättynyt', /1\s*–\s*0/.test(r3.hero || '') && /Päättynyt/i.test(r3.hero || '') && r3.facts.some((f) => /Puoliaika\s*1–0/i.test(f)), r3);
       // cup-ottelu Aston Villan sivulta
       await p.goto(U + '/joukkue/valioliiga/aston-villa#matches', { waitUntil: 'networkidle' }); await sl(800);
-      const cup = await p.evaluate(() => { const d = [...document.querySelectorAll('.tab-pane .day')].find((x) => /Liigacup|Harjoitus|Super/i.test(x.textContent)); return d?.querySelector('a.match')?.getAttribute('href'); });
+      const cup = await p.evaluate(() => { const d = [...document.querySelectorAll('.tab-pane .day')].find((x) => /Liigacup|Harjoitus|Super/i.test(x.textContent)); return d?.querySelector('a.mrow-link, a.match')?.getAttribute('href'); });
       if (cup) { await p.goto(U + cup, { waitUntil: 'networkidle' }); }
       const r2 = cup ? await p.evaluate(() => ({ title: document.title, facts: [...document.querySelectorAll('.facts div')].map((d) => d.innerText.replace(/\n/g, ': ')) })) : null;
       rec('cup-/harjoitusottelusta linkki perustason ottelusivulle', !!cup && cup.startsWith('/ottelu/e/') && r2.facts.length >= 3, { cup, r2 });

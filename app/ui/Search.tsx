@@ -16,7 +16,7 @@ import { Icon } from "./Icons";
 
 let cache: Promise<SearchIndex | null> | null = null;
 const loadIndex = () => {
-  if (!cache) cache = fetch("/api/haku").then((r) => (r.ok ? r.json() : null)).catch(() => null)
+  if (!cache) cache = fetch("/api/haku").then((r) => r.json().catch(() => null).then((d) => (r.ok ? d : null))).catch(() => null)
     .then((j) => { if (!j) cache = null; return j; }); // epäonnistunut lataus yritetään uudelleen seuraavalla avauksella
   return cache;
 };

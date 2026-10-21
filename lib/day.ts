@@ -45,17 +45,19 @@ export const rowKey = (source: string, date: string, home: string, away: string)
 export function rowsFor(s: Pick<LeagueStats, "source" | "results" | "fixtures">, date: string, knownTimes?: Map<string, string>): DayRow[] {
   const out: DayRow[] = [];
   const seen = new Set<string>();
+  // saman päivän otteluohjelman ajat ensin talteen: tulos ilman kellonaikaa saa ajan jo samalla kerralla
+  const times = knownTimes ?? new Map<string, string>();
+  for (const f of s.fixtures) if (f.date === date) times.set(rowKey(s.source, f.date, f.home.name, f.away.name), f.time);
   for (const r of s.results) {
     if (r.date !== date) continue;
     const key = rowKey(s.source, r.date, r.home.name, r.away.name);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ kind: "result", key, source: s.source, date, time: r.time ?? knownTimes?.get(key) ?? null, home: r.home, away: r.away, r });
+    out.push({ kind: "result", key, source: s.source, date, time: r.time ?? times.get(key) ?? null, home: r.home, away: r.away, r });
   }
   for (const f of s.fixtures) {
     if (f.date !== date) continue;
     const key = rowKey(s.source, f.date, f.home.name, f.away.name);
-    knownTimes?.set(key, f.time);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ kind: "fixture", key, source: s.source, date, time: f.time, home: f.home, away: f.away, f });

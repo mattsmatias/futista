@@ -139,6 +139,84 @@ const MIN = 60_000;
     await ctx.setOffline(false); await net(true); await ctx.close();
   }
 
+  // ---------- Tulospalvelu: etusivu, päivät, suodattimet, haku, suosikit, paluu, vanhat linkit ----------
+  {
+    const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Helsinki" }).format(Date.now());
+    const addD = (d, n) => { const x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+    const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } }); await markTestTraffic(ctx, APP);
+    await ctx.addInitScript(() => { try { if (!localStorage.getItem("futista-suosikit-v2")) localStorage.setItem("futista-suosikit", JSON.stringify(["Testiseura Kotka"])); } catch {} });
+    const page = await ctx.newPage();
+    const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
+    await page.goto(APP + "/", { waitUntil: "networkidle" });
+    const nav = await page.locator(".bottomnav a").allTextContents();
+    ok("etusivu: alanavigaatio Ottelut / Suosikit / Sarjat / Uutiset", nav.join("|") === "Ottelut|Suosikit|Sarjat|Uutiset", nav.join("|"));
+    ok("  aktiivinen kohta merkitty muutenkin kuin värillä (aria-current)", (await page.locator(".bottomnav a[aria-current=page]").textContent()) === "Ottelut");
+    const small = await page.locator(".bottomnav a, .daypick button, .filters button, .appbar button").evaluateAll((els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect()).filter((r) => r.height < 44 || r.width < 44).length);
+    ok("  kosketusalueet vähintään 44 px (navigaatio, päivä, suodattimet, yläpalkki)", small === 0, `${small} liian pientä`);
+    ok("etusivu: päivä 'Tänään'", (await page.locator(".dp-label").first().innerText()).startsWith("Tänään"));
+    const groups = await page.locator(".cgroup .cg-name").allTextContents();
+    ok("etusivu: ottelut ryhmitelty kilpailuittain", groups.length > 0, groups.join(", "));
+    // nopea päivän vaihto: viimeisin valinta jää voimaan (vanha vastaus ei korvaa uutta)
+    for (let i = 0; i < 5; i++) await page.locator(".daypick button[aria-label='Seuraava päivä']").click();
+    await page.waitForTimeout(1500);
+    const pv = new URL(page.url()).searchParams.get("pv");
+    const want = addD(today, 5);
+    const hrefs = await page.locator(".cgroup a[href^='/ottelu/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+    ok("päivät: 5 nopeaa vaihtoa → osoitteessa viimeisin päivä", pv === want, `${pv} / ${want}`);
+    ok("  näkyvät ottelut kuuluvat valittuun päivään", hrefs.every((h) => h.includes(`/${want}/`)), hrefs.slice(0, 3).join(" "));
+    // paluu: päivä ja vierityskohta palautuvat
+    // taaksepäin, kunnes päivällä on otteluita (simuloiduissa sarjoissa ottelupäiviä on joka toinen tai kolmas päivä)
+    for (let i = 0; i < 8; i++) {
+      await page.locator(".daypick button[aria-label='Edellinen päivä']").click(); await page.waitForTimeout(600);
+      if (await page.locator(".cgroup a[href^='/ottelu/']").count()) break;
+    }
+    const day2 = new URL(page.url()).searchParams.get("pv");
+    const link = await page.locator(".cgroup a[href^='/ottelu/']").first().getAttribute("href").catch(() => null);
+    if (link) {
+      await page.evaluate(() => window.scrollTo(0, 120)); await page.waitForTimeout(300);
+      const y0 = await page.evaluate(() => scrollY);
+      await page.evaluate((h) => document.querySelector(`a[href='${h}']`).click(), link); await page.waitForURL(/\/ottelu\//);
+      await page.goBack(); await page.waitForTimeout(1500);
+      ok("paluu: valittu päivä palautuu", new URL(page.url()).searchParams.get("pv") === day2, page.url());
+      ok("  vierityskohta palautuu", Math.abs((await page.evaluate(() => scrollY)) - y0) < 30, `${y0} → ${await page.evaluate(() => scrollY)}`);
+    } else ok("paluu: valitulle päivälle ei otteluita – testi ohitettu (ei hyväksytty)", false, day2);
+    // suodattimet
+    await page.goto(APP + "/?n=live", { waitUntil: "networkidle" });
+    const liveBody = await page.locator("main").innerText();
+    ok("suodatin Live: ei käynnissä → tyhjä tila ja painike kaikkiin otteluihin", liveBody.includes("Kaikki päivän ottelut") || liveBody.includes("Näytä kaikki"), liveBody.slice(0, 120).replace(/\n/g, " "));
+    ok("  suodatin säilyy osoitteessa", new URL(page.url()).searchParams.get("n") === "live");
+    // haku: näppäimistö, Escape palauttaa kohdistuksen
+    await page.goto(APP + "/", { waitUntil: "networkidle" });
+    await page.locator(".search-btn").click();
+    await page.keyboard.type("kotka"); await page.waitForTimeout(800);
+    const opts = await page.locator("[role=option]").allTextContents();
+    ok("haku: joukkue löytyy", opts.some((o) => o.includes("Testiseura Kotka")), opts.join(" | "));
+    await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+    ok("  Escape sulkee ja palauttaa kohdistuksen hakupainikkeeseen", (await page.locator("[role=dialog]").count()) === 0 && await page.evaluate(() => document.activeElement?.classList.contains("search-btn")));
+    await page.locator(".search-btn").click(); await page.keyboard.type("qqqzz"); await page.waitForTimeout(1200);
+    ok("  osumaton haku → ohjeellinen teksti", /Ei hakutuloksia/i.test(await page.locator("[role=dialog]").innerText()));
+    await page.keyboard.press("Escape");
+    // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan
+    await page.goto(APP + "/suosikit", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const v2 = await page.evaluate(() => JSON.parse(localStorage.getItem("futista-suosikit-v2") || "[]"));
+    ok("suosikit: vanha nimilista siirtyi uuteen muotoon tunnisteella", v2.length === 1 && v2[0].n === "Testiseura Kotka" && v2[0].id === 9001, JSON.stringify(v2));
+    const fb = await page.locator("main").innerText();
+    ok("  kerrotaan, että suosikit tallentuvat tälle laitteelle", fb.includes("tälle laitteelle"));
+    ok("  seuratut joukkueet listattu", fb.includes("Testiseura Kotka"));
+    // vanhat linkit
+    for (const [from, to] of [["/?nakyma=taulukko", "/sarjat"], ["/?nakyma=suosikit", "/suosikit"], ["/?nakyma=maajoukkueet", "/maajoukkueet"]]) {
+      await page.goto(APP + from, { waitUntil: "domcontentloaded" });
+      ok(`vanha linkki ${from} → ${to}`, new URL(page.url()).pathname === to, page.url());
+    }
+    await page.goto(APP + "/sarjat/bundesliga", { waitUntil: "networkidle" });
+    const tabs = await page.locator(".etabs [role=tab], .etabs a, .etabs button").allTextContents();
+    ok("kilpailusivu: välilehdet", ["Ottelut", "Taulukko", "Maalipörssi"].every((x) => tabs.some((t) => t.includes(x))), tabs.join("|"));
+    await page.goto(APP + "/sarjat/eiole", { waitUntil: "networkidle" });
+    ok("kilpailusivu: tuntematon sarja → 404", /ei löytynyt/i.test(await page.locator("h1").first().innerText()));
+    ok("tulospalvelu: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
+    await ctx.close();
+  }
+
   // ---------- Kielet ja leveydet ----------
   {
     for (const [lang, nf, err] of [["fi", "Pelaajaa ei löytynyt", "Palaa etusivulle"], ["sv", "Spelaren hittades inte", "Till startsidan"], ["en", "Player not found", "Back to home"]]) {
@@ -155,10 +233,10 @@ const MIN = 60_000;
       ok(`kieli ${lang}: tietoa-sivu: '${lic}', ESPN mainittu, ei 'lähteiden luvalla'`, about.includes(lic) && about.includes("ESPN") && !/lähteiden luvalla/i.test(about));
       await ctx.close();
     }
-    for (const w of [360, 390, 1280]) {
+    for (const w of [360, 390, 768, 1280, 1440]) {
       const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 800 } }); await markTestTraffic(ctx, APP);
       const page = await ctx.newPage(); const over = [];
-      for (const p of ["/", MATCH, "/pelaaja/abc", "/maajoukkue/83", "/tietoa", "/offline.html"]) {
+      for (const p of ["/", "/suosikit", "/sarjat", "/sarjat/bundesliga", "/uutiset", MATCH, "/joukkue/bundesliga/testiseura-kotka", "/pelaaja/abc", "/maajoukkue/83", "/tietoa", "/offline.html"]) {
         await page.goto(APP + p, { waitUntil: "networkidle" });
         const sw = await page.evaluate(() => document.documentElement.scrollWidth);
         if (sw > w) over.push(`${p}:${sw}`);

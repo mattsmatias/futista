@@ -16,6 +16,7 @@
     "next-fetch.d.ts",
     "data.test.ts",
     "quota.test.ts",
-    "fixes.test.ts"
+    "fixes.test.ts",
+    "ui.test.ts"
   ]
 }
