@@ -1,4 +1,6 @@
-// Futistan service worker (versio 5).
+// Futistan service worker (versio 6).
+// - Esihaku: sivu voi pyytää (postMessage "precache") hakemaan enintään 8 sivua taustalla muistiin; alle 20 min
+//   vanhoja ei haeta uudelleen. Haut tehdään yksi kerrallaan.
 // - Sivut (HTML-navigoinnit): jos laitteella on alle vuorokauden vanha tallennettu versio JA kaikki sen
 //   tarvitsemat tiedostot (/_next/static) ovat tallessa, se näytetään heti ja uusi versio haetaan taustalla
 //   seuraavaa avausta varten (sivu hakee tuoreet tulokset itse heti avauduttuaan). Muuten verkko ensin.
@@ -10,7 +12,7 @@
 // - Vanhat välimuistiversiot poistetaan aktivoinnissa.
 // - Kieliversiot eivät sekoitu: palvelin tuottaa saman HTML:n kaikille, kieli valitaan selaimessa.
 // - Lähteiden kuvia (toiset palvelimet) ei tallenneta; selain käyttää omaa HTTP-välimuistiaan.
-const VERSION = "v5";
+const VERSION = "v6";
 const STATIC = `futista-static-${VERSION}`;
 const PAGES = `futista-pages-${VERSION}`;
 const OFFLINE = "/offline.html";
@@ -41,10 +43,15 @@ async function trim(name, max) {
 
 const isRsc = (req, url) => req.headers.get("RSC") === "1" || req.headers.has("Next-Router-State-Tree") || url.searchParams.has("_rsc");
 
+// Julkiset sisältösivut, joille Next.js lähettää pyyntökohtaisen hahmonnuksen vuoksi "private, no-store",
+// vaikka niissä ei ole käyttäjäkohtaista tietoa (ei evästeitä, ei kirjautumista): saa tallentaa
+const PUBLIC_DYNAMIC = /^\/(joukkue|ottelu|pelaaja|maajoukkue|uutiset)\//;
+
 function cacheable(res) {
   if (!res || res.status !== 200 || res.type !== "basic") return false;
   const cc = (res.headers.get("Cache-Control") || "").toLowerCase();
-  if (cc.includes("no-store") || cc.includes("private")) return false;
+  const pub = PUBLIC_DYNAMIC.test(new URL(res.url).pathname);
+  if (!pub && (cc.includes("no-store") || cc.includes("private"))) return false;
   if (res.headers.has("Set-Cookie")) return false;
   const ct = res.headers.get("Content-Type") || "";
   return ct.includes("text/html");
@@ -97,6 +104,37 @@ async function instantPage(url) {
   } catch { return null; }
 }
 
+// viimeksi muistista näytetyt sivut (osoite → hetki): sivu kysyy tätä ja hakee tuoreet tiedot perään
+const instantServed = new Map();
+const PREFETCH_FRESH_MS = 20 * 60_000;
+let prefetching = false;
+
+self.addEventListener("message", (e) => {
+  const d = e.data || {};
+  if (d.type === "was-instant" && e.ports && e.ports[0]) {
+    const at = instantServed.get(d.url);
+    e.ports[0].postMessage({ instant: !!at && Date.now() - at < 15_000 });
+    instantServed.delete(d.url);
+    return;
+  }
+  if (d.type === "precache" && Array.isArray(d.urls) && !prefetching) {
+    prefetching = true;
+    e.waitUntil((async () => {
+      try {
+        for (const u of d.urls.slice(0, 8)) {
+          const url = new URL(u, location.origin);
+          if (url.origin !== location.origin || url.pathname.startsWith("/api/")) continue;
+          const old = await cachedPage(url.href);
+          if (old && Date.now() - Number(old.headers.get("X-SW-Cached-At") || 0) < PREFETCH_FRESH_MS) continue;
+          const req = new Request(url.href, { credentials: "same-origin" });
+          const res = await fetch(req).catch(() => null);
+          if (cacheable(res)) await savePage(req, res);
+        }
+      } finally { prefetching = false; }
+    })());
+  }
+});
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
@@ -124,7 +162,7 @@ self.addEventListener("fetch", (e) => {
     const network = () => fetch(req).then((res) => { if (cacheable(res)) e.waitUntil(savePage(req, res)); return res; });
     e.respondWith((async () => {
       const hit = await instantPage(req.url);
-      if (hit) { e.waitUntil(network().catch(() => {})); return hit; }
+      if (hit) { instantServed.set(req.url, Date.now()); e.waitUntil(network().catch(() => {})); return hit; }
       try { return await network(); }
       catch { return (await cachedPage(req.url)) || (await caches.match(OFFLINE)) || Response.error(); }
     })());

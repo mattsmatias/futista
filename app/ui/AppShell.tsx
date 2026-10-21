@@ -3,6 +3,8 @@
 // (Ottelut · Suosikit · Sarjat · Uutiset) – työpöydällä yläpalkissa, puhelimessa kiinteänä alapalkkina.
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useFavorites } from "@/lib/favorites";
+import { useBackgroundPrefetch, askServedFromCache } from "@/lib/prefetch";
 import { useI18n, LANGS, type Key } from "@/lib/i18n";
 import SearchDialog from "./Search";
 import { Icon } from "./Icons";
@@ -52,6 +54,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { navDepth++; }, [path]);
   // kotivalikosta avattu sovellus: alatunniste piiloon (CSS display-mode kattaa useimmat; vanha iOS tunnistetaan tästä)
   useEffect(() => { if ((navigator as any).standalone === true) document.documentElement.classList.add("app-mode"); }, []);
+  // taustalla esihaku (suosikit ja pääsarjat) → sivut aukeavat napautuksella heti
+  const { favs, ready } = useFavorites();
+  useBackgroundPrefetch(favs, ready);
+  // sivu avautui puhelimen muistista → palvelimen tuore versio heti perään (tulokset, taulukot)
+  useEffect(() => { askServedFromCache().then((yes) => { if (yes) router.refresh(); }).catch(() => {}); }, [path, router]);
 
   const openSearch = useCallback(() => { trigger.current = document.activeElement as HTMLElement | null; setSearchOpen(true); }, []);
   const closeSearch = useCallback(() => { setSearchOpen(false); setTimeout(() => trigger.current?.focus?.(), 0); }, []);

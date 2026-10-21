@@ -34,9 +34,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function TeamPage({ params }: Props) {
-  const d = await load(params);
+  // oma sarja ja Mestarien liiga rinnakkain (ei peräkkäin)
+  const [d, uclAll] = await Promise.all([load(params), params.source === "ucl" ? Promise.resolve(null) : getLeague("ucl").catch(() => null)]);
   if (!d) notFound();
-  const ucl = d.s.source === "ucl" ? null : await getLeague("ucl").catch(() => null);
+  const ucl = d.s.source === "ucl" ? null : uclAll;
   const [articles, info, games] = await Promise.all([
     getArticles(), getTeamInfo(d.team.id),
     getTeamGames(d.s.source, d.team.name, [d.s, ...(ucl ? [ucl] : [])]),
