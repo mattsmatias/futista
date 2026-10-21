@@ -31,7 +31,7 @@
             en: ["No connection", "This page hasn't been saved on your device. Data does not update without a connection.", "Try again", "Saved pages (may be out of date):", "Home"] };
   var lang = "fi"; try { lang = localStorage.getItem("futista-kieli") || "fi"; } catch (e) {}
   var x = L[lang]; if (x) { document.documentElement.lang = lang; document.getElementById("t").textContent = x[0]; document.getElementById("d").textContent = x[1]; document.getElementById("r").textContent = x[2]; document.getElementById("s").textContent = x[3]; }
-  if (window.caches) caches.open("futista-pages-v6").then(function (c) { return c.keys(); }).then(function (keys) {
+  if (window.caches) caches.open("futista-pages-v7").then(function (c) { return c.keys(); }).then(function (keys) {
     var ul = document.getElementById("l");
     if (!keys.length) { document.getElementById("s").style.display = "none"; return; }
     keys.slice(-15).reverse().forEach(function (k) {

@@ -121,11 +121,11 @@ const MIN = 60_000;
     let keys = await page.evaluate(() => caches.keys());
     ok("PWA: vanhan version välimuisti poistettu", !keys.includes("futista-v3"), keys.join(","));
     // täytetään 40 tallennettua sivua → seuraava tallennus rajaa 30:een
-    await page.evaluate(async () => { const c = await caches.open("futista-pages-v6"); for (let i = 0; i < 40; i++) await c.put(`/__taytto-${i}`, new Response("<p>x</p>", { headers: { "content-type": "text/html", "X-SW-Cached-At": String(Date.now()) } })); });
+    await page.evaluate(async () => { const c = await caches.open("futista-pages-v7"); for (let i = 0; i < 40; i++) await c.put(`/__taytto-${i}`, new Response("<p>x</p>", { headers: { "content-type": "text/html", "X-SW-Cached-At": String(Date.now()) } })); });
     await page.reload({ waitUntil: "networkidle" }); await page.goto(OFF_APP + "/tietosuoja", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
-    const n = await page.evaluate(async () => (await (await caches.open("futista-pages-v6")).keys()).length);
+    const n = await page.evaluate(async () => (await (await caches.open("futista-pages-v7")).keys()).length);
     ok("PWA: tallennettuja sivuja enintään 30", n <= 30, `${n}`);
-    const bad = await page.evaluate(async () => (await (await caches.open("futista-pages-v6")).keys()).map((r) => r.url).filter((u) => /\/api\/|_rsc=/.test(u)));
+    const bad = await page.evaluate(async () => (await (await caches.open("futista-pages-v7")).keys()).map((r) => r.url).filter((u) => /\/api\/|_rsc=/.test(u)));
     ok("PWA: rajapintavastauksia tai RSC-osia ei tallennettu", bad.length === 0, bad.join(","));
     await net(false); await ctx.setOffline(true);
     await page.goto(OFF_APP + "/tietoa", { waitUntil: "domcontentloaded" }); await page.waitForTimeout(800);

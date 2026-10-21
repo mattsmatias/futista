@@ -1,9 +1,9 @@
-// Futistan service worker (versio 6).
+// Futistan service worker (versio 7).
 // - Esihaku: sivu voi pyytää (postMessage "precache") hakemaan enintään 8 sivua taustalla muistiin; alle 20 min
 //   vanhoja ei haeta uudelleen. Haut tehdään yksi kerrallaan.
-// - Sivut (HTML-navigoinnit): jos laitteella on alle vuorokauden vanha tallennettu versio JA kaikki sen
-//   tarvitsemat tiedostot (/_next/static) ovat tallessa, se näytetään heti ja uusi versio haetaan taustalla
-//   seuraavaa avausta varten (sivu hakee tuoreet tulokset itse heti avauduttuaan). Muuten verkko ensin.
+// - Sivut (HTML-navigoinnit): verkko ensin. Jos vastaus viipyy yli 2,5 s ja laitteella on alle vuorokauden
+//   vanha tallennettu versio, jonka tiedostot (/_next/static) ovat tallessa, se näytetään ja verkkohaku
+//   päivittää muistin taustalla.
 //   Verkkovirheessä näytetään tallennettu versio, ja jos sitäkään ei ole, offline-sivu (/offline.html).
 // - Tallennetaan VAIN onnistuneet (200) samasta osoitteesta tulevat täydet HTML-sivut. EI tallenneta:
 //   /api/-vastauksia (live, ilmoitukset, cron), Next.js:n osittaisia reittivastauksia (RSC), virheitä,
@@ -12,7 +12,7 @@
 // - Vanhat välimuistiversiot poistetaan aktivoinnissa.
 // - Kieliversiot eivät sekoitu: palvelin tuottaa saman HTML:n kaikille, kieli valitaan selaimessa.
 // - Lähteiden kuvia (toiset palvelimet) ei tallenneta; selain käyttää omaa HTTP-välimuistiaan.
-const VERSION = "v6";
+const VERSION = "v7";
 const STATIC = `futista-static-${VERSION}`;
 const PAGES = `futista-pages-${VERSION}`;
 const OFFLINE = "/offline.html";
@@ -161,10 +161,19 @@ self.addEventListener("fetch", (e) => {
   if (req.mode === "navigate") {
     const network = () => fetch(req).then((res) => { if (cacheable(res)) e.waitUntil(savePage(req, res)); return res; });
     e.respondWith((async () => {
-      const hit = await instantPage(req.url);
-      if (hit) { instantServed.set(req.url, Date.now()); e.waitUntil(network().catch(() => {})); return hit; }
-      try { return await network(); }
-      catch { return (await cachedPage(req.url)) || (await caches.match(OFFLINE)) || Response.error(); }
+      // verkko ensin: uusin versio aina, kun yhteys toimii (ei vanhan ja uuden version välillä vaihtelua).
+      // Hitaalla yhteydellä (yli 2,5 s) näytetään tallennettu sivu, ja verkkohaku päivittää muistin taustalla.
+      const net = network();
+      const slow = new Promise((r) => setTimeout(() => r("slow"), 2500));
+      try {
+        const first = await Promise.race([net, slow]);
+        if (first !== "slow") return first;
+        const hit = await instantPage(req.url);
+        if (hit) { instantServed.set(req.url, Date.now()); e.waitUntil(net.catch(() => {})); return hit; }
+        return await net;
+      } catch {
+        return (await cachedPage(req.url)) || (await caches.match(OFFLINE)) || Response.error();
+      }
     })());
   }
 });
