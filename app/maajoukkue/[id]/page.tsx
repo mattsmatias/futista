@@ -5,8 +5,6 @@ import { country } from "@/lib/flags";
 import NationView from "./NationView";
 
 export const revalidate = 120;
-// sivu tehdään ensimmäisellä avauksella ja pidetään välimuistissa (ISR) → seuraavat avaukset heti
-export function generateStaticParams() { return []; }
 export const maxDuration = 60;
 
 type Props = { params: { id: string } };

@@ -6,8 +6,6 @@ import EspnMatchView from "./EspnMatchView";
 // Perustason ottelusivu kaikille otteluille, joille ei ole sarjakohtaista sivua
 // (cupit, Eurooppa-liiga, Konferenssiliiga, maaottelut, harjoitusottelut). Tiedot ESPN:stä.
 export const revalidate = 60;
-// sivu tehdään ensimmäisellä avauksella ja pidetään välimuistissa (ISR) → seuraavat avaukset heti
-export function generateStaticParams() { return []; }
 export const maxDuration = 60;
 
 type Props = { params: { id: string } };
