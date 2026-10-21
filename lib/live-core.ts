@@ -150,7 +150,11 @@ export function helsinkiEpoch(date: string, time: string) {
   const [y, m, d] = date.split("-").map(Number);
   const [h, mi] = time.split(":").map(Number);
   const guess = Date.UTC(y, m - 1, d, h, mi);
-  return guess - tzOffset(guess);
+  // kesäajan vaihtumisyönä aikaero arvauksen kohdalla voi olla eri kuin varsinaisella hetkellä → tarkistetaan
+  // aikaero lasketulla hetkellä (esim. 25.10. klo 01.28 Suomen aikaa = vielä kesäaika, +3 h)
+  const first = guess - tzOffset(guess);
+  const off = tzOffset(first);
+  return guess - off;
 }
 
 const LIVE_MIN = 115; // ottelu + tauko + lisäajat

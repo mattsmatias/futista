@@ -434,3 +434,11 @@ test("peliminuutti jakson todellisesta alusta (ESPN:n tapahtumat): ei viivettä,
   assert.equal(liveClock({ ...m, min: "60'" }, Date.parse("2026-10-21T18:22:30Z")), "63'"); // lähteen kello + kulunut aika
   assert.equal(liveClock({ min: "64'", fetchedAt: null }, Date.now()), "64'");
 });
+
+test("Suomen aika → aikaleima oikein kesäajan vaihtumisyönä (25.10.2026)", () => {
+  assert.equal(new Date(helsinkiEpoch("2026-10-25", "01:28")).toISOString(), "2026-10-24T22:28:00.000Z"); // vielä kesäaika (+3)
+  assert.equal(new Date(helsinkiEpoch("2026-10-25", "05:00")).toISOString(), "2026-10-25T03:00:00.000Z"); // talviaika (+2)
+  assert.equal(new Date(helsinkiEpoch("2026-03-29", "05:00")).toISOString(), "2026-03-29T02:00:00.000Z"); // kesäaika alkanut
+  assert.equal(new Date(helsinkiEpoch("2026-07-01", "22:00")).toISOString(), "2026-07-01T19:00:00.000Z");
+  assert.equal(new Date(helsinkiEpoch("2026-12-01", "22:00")).toISOString(), "2026-12-01T20:00:00.000Z");
+});
