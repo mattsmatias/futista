@@ -146,10 +146,11 @@ test("reaktiot: pyyntörajoitin päästää enintään N / min samasta osoittees
   t = 61_000; assert.equal(lim("a"), true);
 });
 
-import { parseEspnStandings, parseEspnEvents, parseEspnScorers, seasonYears } from "../lib/espn-league";
+import { parseEspnStandings, parseEspnEvents, parseEspnScorers, seasonYears, inSeason } from "../lib/espn-league";
 
 test("Süper Lig (ESPN): taulukko, ei tunnisteita (ei sekoitu football-datan seuroihin)", () => {
   const st = (n: string, rank: number, pts: number) => ({ team: { displayName: n, abbreviation: n.slice(0, 3).toUpperCase(), logos: [{ href: "x.png" }] }, stats: Object.entries({ rank, gamesPlayed: 8, wins: 6, ties: 1, losses: 1, pointsFor: 17, pointsAgainst: 11, points: pts }).map(([name, value]) => ({ name, value })) });
+  assert.equal(parseEspnStandings({ children: [{ standings: { seasonDisplayName: "2026-27 Turkish Super Lig", entries: [] } }] }).season, "2026–27");
   const r = parseEspnStandings({ children: [{ standings: { seasonDisplayName: "2026/2027", entries: [st("Amed SFK", 2, 17), st("Galatasaray", 1, 19)] } }] });
   assert.equal(r.season, "2026–27");
   assert.deepEqual(r.table.map((x) => [x.pos, x.team.name, x.pts]), [[1, "Galatasaray", 19], [2, "Amed SFK", 17]]);
@@ -174,6 +175,8 @@ test("Süper Lig (ESPN): tulokset vain päättyneille, puuttuva tulos ei ole 0�
   assert.deepEqual(r.results.map((x) => [x.date, x.hs, x.as]), [["2026-10-18", 2, 1]]);
   assert.deepEqual(r.fixtures.map((x) => [x.date, x.time]), [["2026-10-25", "19:00"]]); // talviaika alkaa 25.10.
   assert.deepEqual(seasonYears(new Date("2026-10-21")), [2026, 2027]);
+  // edellisen kauden kevään ottelut rajataan pois
+  assert.deepEqual(inSeason([{ date: "2026-04-10T17:00Z" }, { date: "2026-08-14T18:30Z" }], "2026-07-01T04:00Z", "2027-07-01T03:59Z").map((e) => e.date), ["2026-08-14T18:30Z"]);
   assert.deepEqual(seasonYears(new Date("2027-03-01")), [2026, 2027]);
 });
 

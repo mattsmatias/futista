@@ -27,7 +27,8 @@ export function parseEspnStandings(j: any): { table: Row[]; season: string | nul
     return { pos: s.rank, team: teamOf(e.team), p: s.gamesPlayed, w: s.wins, d: s.ties, l: s.losses, gf: s.pointsFor, ga: s.pointsAgainst, pts: s.points };
   }).filter((r) => [r.pos, r.p, r.w, r.d, r.l, r.gf, r.ga, r.pts].every((n) => Number.isFinite(n)))
     .sort((a, b) => a.pos - b.pos);
-  const season = typeof g?.seasonDisplayName === "string" ? g.seasonDisplayName.replace(/^(\d{4})\/(\d{4})$/, (_: string, a: string, b: string) => `${a}–${b.slice(2)}`) : null;
+  const m = typeof g?.seasonDisplayName === "string" ? g.seasonDisplayName.match(/(\d{4})\s*[-–/]\s*(\d{2,4})/) : null;
+  const season = m ? `${m[1]}–${m[2].slice(-2)}` : null;
   return { table, season };
 }
 
@@ -56,6 +57,13 @@ export function parseEspnEvents(events: any[], now = Date.now()): { results: Res
   return { results, fixtures };
 }
 
+/** Vain kauden aikavälin ottelut (ESPN:n kauden alku- ja loppupäivä); ilman tietoa ei rajata */
+export function inSeason(events: any[], start?: string, end?: string): any[] {
+  const a = start ? Date.parse(start) : NaN, b = end ? Date.parse(end) : NaN;
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return events;
+  return events.filter((e) => { const t = Date.parse(e?.date); return Number.isFinite(t) && t >= a && t < b; });
+}
+
 /** Kauden vuodet: kesästä kesään kulkevassa kaudessa kaksi kalenterivuotta */
 export function seasonYears(now = new Date()): number[] {
   const y = now.getUTCFullYear(), m = now.getUTCMonth() + 1;
@@ -71,11 +79,13 @@ const load = (id: SourceId, slug: string) =>
     ]);
     const { table, season } = st ? parseEspnStandings(st) : { table: [], season: null };
     const evOk = ev.every(Boolean);
-    const { results, fixtures } = parseEspnEvents(ev.flatMap((j) => j?.events ?? []));
+    // kalenterivuoden haku sisältää myös edellisen kauden kevään: vain kuluvan kauden ottelut
+    const span = ev.map((j) => j?.leagues?.[0]?.season).find((x) => x?.startDate && x?.endDate);
+    const { results, fixtures } = parseEspnEvents(inSeason(ev.flatMap((j) => j?.events ?? []), span?.startDate, span?.endDate));
     const failed: Part[] = [...(table.length ? [] : ["table" as const]), ...(evOk ? [] : ["results" as const, "fixtures" as const])];
     if (!table.length && !results.length && !fixtures.length) throw new Error("espn league unavailable");
     return { source: id, league: "", table, results, fixtures, season, updated: Date.now(), failed };
-  }, ["espn-league-v1", id, slug], { revalidate: 600 })();
+  }, ["espn-league-v2", id, slug], { revalidate: 600 })();
 
 export async function fromEspnLeague(id: SourceId, slug: string, league: string): Promise<LeagueStats | null> {
   if (process.env.ESPN_OFF === "1") return null;
