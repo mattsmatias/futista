@@ -14,6 +14,7 @@ import { HeartButton, useFavorites } from "@/lib/favorites";
 type SearchPlayer = { kind: "player"; id: number; name: string; team: string; crest?: string; position: string | null; href: string };
 import { norm } from "@/lib/teams";
 import { Badge } from "../Stats";
+import PlayerPhoto from "../PlayerPhoto";
 import { CompMark } from "./CompMark";
 import { Icon } from "./Icons";
 
@@ -166,7 +167,7 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
               <span className="s-name">{x.name}</span><span className="s-sub">{t("nationalTeamMen")}</span></>
           ))}
           {group("searchPlayers", players, (x) => (
-            <><Badge t={{ name: x.team, code: x.team.slice(0, 3).toUpperCase(), crest: x.crest }} size={24} /><span className="s-name">{x.name}</span>
+            <><PlayerPhoto name={x.name} team={x.team} size={32} className="s-pphoto" /><span className="s-name">{x.name}</span>
               <span className="s-sub">{x.team}</span></>
           ))}
           {q.trim().length >= 2 && state !== "loading" && !pLoading && flat.length === 0 && (

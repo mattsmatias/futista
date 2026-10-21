@@ -60,7 +60,6 @@ export default function PlayerView({ p }: { p: PlayerData }) {
         <section className="panel">
           <div className="panel-head"><h3>{t("lastMatches")}</h3></div>
           {p.matches.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
-          <p className="muted pad h2h-scope">{t("playerMatchesScope")}</p>
           {p.matches.map((m, n) => (
             <div className="mrow-wrap" key={n}>
               <span className="mrow-comp">{m.source ? i.league(m.source, m.comp) : m.comp} · {i.day(m.date)}</span>
