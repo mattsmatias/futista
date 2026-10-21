@@ -230,10 +230,10 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       await p.route(/(crests\.football-data|espncdn|thesportsdb|laliiga\.com\/wp-content|valioliiga\.com\/wp-content|flagcdn)/, (r) => r.abort());
       const errs = []; p.on('pageerror', (e) => errs.push(e.message));
       await p.goto(U + '/', { waitUntil: 'networkidle' }); await sl(1000);
-      const r = await p.evaluate(() => ({ broken: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0).length, badges: document.querySelectorAll('.badge').length }));
+      const r = await p.evaluate(() => ({ broken: [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0 && getComputedStyle(i).opacity !== '0').length, badges: document.querySelectorAll('.badge').length }));
       await p.goto(U + '/joukkue/laliga/barcelona#squad', { waitUntil: 'domcontentloaded', timeout: 60000 }); await sl(4000);
-      const r2 = await p.evaluate(() => { const b = [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0); return { broken: b.length, which: b.map((i) => `${i.className}:${i.src.slice(0, 80)}`), initials: document.querySelectorAll('.pphoto').length }; });
-      rec('kuvat estetty: varanäkymät (värimerkit, generoitu kuva, nimikirjaimet), ei rikkinäisiä kuvia', r.broken === 0 && r2.broken === 0 && errs.length === 0, { home: r, squad: r2, errs });
+      const r2 = await p.evaluate(() => { const b = [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.getBoundingClientRect().width > 0 && getComputedStyle(i).opacity !== '0'); return { broken: b.length, which: b.map((i) => `${i.className}:${i.src.slice(0, 80)}`), initials: document.querySelectorAll('.pphoto').length }; });
+      rec('kuvat estetty: varanäkymät (värimerkit, nimikirjaimet), ei näkyviä rikkinäisiä kuvia (latautumaton pelaajakuva on piilossa nimikirjainten alla)', r.broken === 0 && r2.broken === 0 && errs.length === 0, { home: r, squad: r2, errs });
       await c.close();
     }
     // ---------- perustason ottelusivu (maaottelu) ----------
