@@ -17,5 +17,19 @@ export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | 
   championship: { mark: "CH", country: "en" },
 };
 
+/** Kilpailun oma tunnus football-datan kuvapalvelusta (sama palvelu kuin seuralogoissa; ei uutta tietolähdettä).
+ *  Osoitteet tarkistettu 21.10.2026 (kaikki 200 image/png). Huom. Eredivisien kuva on ED.png, vaikka sarjakoodi on DED. */
+export const COMP_EMBLEM: Record<SourceId, string> = {
+  ucl: "https://crests.football-data.org/CL.png",
+  laliga: "https://crests.football-data.org/PD.png",
+  valioliiga: "https://crests.football-data.org/PL.png",
+  bundesliga: "https://crests.football-data.org/BL1.png",
+  seriea: "https://crests.football-data.org/SA.png",
+  ligue1: "https://crests.football-data.org/FL1.png",
+  eredivisie: "https://crests.football-data.org/ED.png",
+  primeira: "https://crests.football-data.org/PPL.png",
+  championship: "https://crests.football-data.org/ELC.png",
+};
+
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));
 export const hasNews = (id: string) => !!SOURCES.find((s) => s.id === id)?.feeds.length;
