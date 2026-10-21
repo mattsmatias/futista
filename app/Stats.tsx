@@ -11,7 +11,7 @@ import PlayerPhoto from "./PlayerPhoto";
 import { norm } from "@/lib/teams";
 import { usePersistentState } from "@/lib/persist";
 import { useBrokenImage } from "@/lib/img";
-import { useMatchState, StatusPill, useLiveExtras, useDataEnabled, LiveFreshness } from "@/lib/live";
+import { useMatchState, StatusPill, useLiveExtras, useDataEnabled } from "@/lib/live";
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
 import { MatchRow } from "./ui/MatchRow";
@@ -202,7 +202,6 @@ export function Results({ stats }: { stats: LeagueStats[] }) {
           );
         })}
       </div>
-      <LiveFreshness />
     </>
   );
 }

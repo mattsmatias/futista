@@ -219,17 +219,3 @@ export function ConflictInfo({ what }: { what?: "status" | "score" }) {
 
 const hm = (ms: number) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/Helsinki", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
 
-/** Live-tietojen tarkistusrivi: milloin Futista viimeksi sai tiedon lähteeltä ("Tarkistettu klo"), ja varoitus,
- *  jos päivitys oikeasti epäonnistuu, tieto on vanhentunut odotettua enemmän tai verkkoyhteys puuttuu
- *  (rajat: lib/live-fresh.ts). "Tilanne päivitetty" vain, kun lähteen päivitysaika todella tunnetaan. */
-export function LiveFreshness({ always, srcUpdatedAt }: { always?: boolean; srcUpdatedAt?: number }) {
-  const { t } = useI18n();
-  const { meta } = useLive();
-  // Ei varoitustekstejä ("Tieto voi olla vanhentunut", "Päivitys ei onnistu", "Ei verkkoyhteyttä"):
-  // näytetään vain tavallinen tarkistusaika; haku yrittää taustalla uudelleen itsestään.
-  if (!always) return null;
-  if (meta.loading) return <p className="fresh-line">{t("liveLoading")}</p>;
-  if (meta.checkedAt === null) return null;
-  const src = srcUpdatedAt ? <> · {t("sourceUpdated")} {hm(srcUpdatedAt)}</> : null;
-  return <p className="fresh-line" role="status">{t("liveUpdated")} {hm(meta.checkedAt)}{src}</p>;
-}

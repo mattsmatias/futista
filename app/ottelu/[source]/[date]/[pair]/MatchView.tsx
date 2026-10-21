@@ -8,7 +8,7 @@ import { teamHref } from "@/lib/routes";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
-import { useMatchState, StatusPill, LiveFreshness } from "@/lib/live";
+import { useMatchState, StatusPill } from "@/lib/live";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
@@ -174,7 +174,6 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
           </div>
         </section>
 
-        {!result && st.kind !== "upcoming" && <LiveFreshness always srcUpdatedAt={st.srcUpdatedAt} />}
         <div className="subtabs sticky" role="tablist">
           {tabs.map((x) => (
             <button key={x.id} role="tab" aria-selected={tab === x.id} className={tab === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>

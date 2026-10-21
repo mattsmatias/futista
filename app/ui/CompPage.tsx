@@ -8,7 +8,7 @@ import { COMP_META } from "@/lib/comps";
 import { useI18n, type Key } from "@/lib/i18n";
 import { useUrlParam } from "@/lib/url-state";
 import { useScorers } from "@/lib/leagues-client";
-import { useDataEnabled, useLiveData, useLiveExtras, LiveFreshness } from "@/lib/live";
+import { useDataEnabled, useLiveData, useLiveExtras } from "@/lib/live";
 import { matchState } from "@/lib/live-core";
 import { useFavorites } from "@/lib/favorites";
 import { matchHref } from "@/lib/routes";
@@ -92,7 +92,6 @@ function CompMatches({ s }: { s: LeagueStats }) {
         {doneDays.length ? doneDays.map((d) => dayBlock(d, s.results.filter((r) => r.date === d).map(rRow)))
           : <p className="muted">{s.failed?.includes("results") ? t("sourceDown") : t("noPlayed")}</p>}
       </section>
-      <LiveFreshness />
       <SrcLine name={src.name} updated={s.updated} stale={s.stale} />
     </>
   );

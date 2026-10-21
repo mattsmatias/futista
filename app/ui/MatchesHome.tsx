@@ -9,7 +9,6 @@ import { usePersistentState } from "@/lib/persist";
 import { useUrlParam } from "@/lib/url-state";
 import { addDays, isDate, nearestMatchDay, todayHel } from "@/lib/day";
 import { COMP_META } from "@/lib/comps";
-import { LiveFreshness } from "@/lib/live";
 import { compName } from "../Games";
 import DayPicker, { dayLabel } from "./DayPicker";
 import { MatchRow, MatchRowSkeleton } from "./MatchRow";
@@ -81,7 +80,6 @@ export default function MatchesHome({ stats: first, today: serverToday }: { stat
               </button>
             ))}
           </div>
-          {shown === today && <LiveFreshness always />}
         </div>
 
         {filter === "all" && favRows.length > 0 && (

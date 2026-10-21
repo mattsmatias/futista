@@ -40,17 +40,17 @@ const MIN = 60_000;
     await adv(1000);
     ok("live: ottelusivu, aloitusaika ohitettu ilman lähteen vahvistusta → 'tilaa ei vahvistettu'", (await page.locator("body").innerText()).includes("Aloitusaika ohitettu – tilaa ei vahvistettu"));
     ok("live: ei keksitty minuuttia tai tulosta", !/\d+'/.test(await page.locator(".mh-mid").innerText().catch(() => "")));
-    let t0 = await fresh(); ok("live: alussa 'Tarkistettu klo'", t0.startsWith("Tarkistettu klo"), t0);
+    let t0 = await fresh(); ok("live: ei 'Tarkistettu klo' -riviä", t0 === "" && !(await page.locator("body").innerText()).includes("Tarkistettu"), t0);
     let worst = "";
     for (const step of [5 * MIN, 5 * MIN, 6.5 * MIN /* ajastinviive taustalla */, 5 * MIN]) {
-      for (let s = 0; s < step; s += 30_000) { await adv(30_000); const f = await fresh(); if (!f.startsWith("Tarkistettu")) worst = f; }
+      for (let s = 0; s < step; s += 30_000) { await adv(30_000); const f = await fresh(); if (f !== "") worst = f; }
     }
     ok("live: normaali 5 min tarkistusväli + 2,5 min välimuistin ikä + 1,5 min ajastinviive → ei varoitusta", worst === "", worst);
     ok("  tarkistuksia tehtiin hitaalla välillä (ei tihennetty)", calls >= 4 && calls <= 7, `${calls} kutsua / 21,5 min`);
     respond = "fail"; await adv(5 * MIN + 1000);
-    ok("live: katko → ei varoitustekstiä, näytetään viimeisin tarkistusaika", (await fresh()).startsWith("Tarkistettu"), await fresh());
+    ok("live: katko → ei varoitus- eikä tarkistustekstiä", (await fresh()) === "", await fresh());
     respond = "ok"; await adv(2 * MIN);
-    ok("live: lähde palasi → 'Tarkistettu'", (await fresh()).startsWith("Tarkistettu"), await fresh());
+    ok("live: lähde palasi → ei tarkistustekstiä", (await fresh()) === "", await fresh());
     ageMs = 15 * MIN; await adv(10 * MIN);
     ok("live: vanha tieto → ei 'voi olla vanhentunut' -varoitusta", !/vanhentunut|ei onnistu/.test(await fresh()), await fresh());
     ageMs = 150_000;
