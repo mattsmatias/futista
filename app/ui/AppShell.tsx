@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useFavorites } from "@/lib/favorites";
+import NotifyCard from "./NotifyCard";
 import { useBackgroundPrefetch, askServedFromCache } from "@/lib/prefetch";
 import { useI18n, LANGS, type Key } from "@/lib/i18n";
 import SearchDialog from "./Search";
@@ -54,6 +55,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { navDepth++; }, [path]);
   // kotivalikosta avattu sovellus: alatunniste piiloon (CSS display-mode kattaa useimmat; vanha iOS tunnistetaan tästä)
   useEffect(() => { if ((navigator as any).standalone === true) document.documentElement.classList.add("app-mode"); }, []);
+  // ei nipistyszoomausta (iOS Safari ohittaa viewportin user-scalable-asetuksen, joten eleet estetään myös tässä)
+  useEffect(() => {
+    const stop = (e: Event) => e.preventDefault();
+    const pinch = (e: TouchEvent) => { if (e.touches.length > 1) e.preventDefault(); };
+    document.addEventListener("gesturestart", stop, { passive: false } as any);
+    document.addEventListener("gesturechange", stop, { passive: false } as any);
+    document.addEventListener("touchmove", pinch, { passive: false });
+    return () => {
+      document.removeEventListener("gesturestart", stop);
+      document.removeEventListener("gesturechange", stop);
+      document.removeEventListener("touchmove", pinch);
+    };
+  }, []);
   // taustalla esihaku (suosikit ja pääsarjat) → sivut aukeavat napautuksella heti
   const { favs, ready } = useFavorites();
   useBackgroundPrefetch(favs, ready);
@@ -143,6 +157,7 @@ function Settings() {
               <b>{l.short}</b>{l.name}{l.id === lang && <i aria-hidden="true">✓</i>}
             </button>
           ))}
+          <NotifyCard inMenu />
           <hr />
           <a role="menuitem" href="/tietoa" onClick={() => setOpen(false)}>{t("about")}</a>
           <a role="menuitem" href="/tietosuoja" onClick={() => setOpen(false)}>{t("privacy")}</a>

@@ -1338,3 +1338,12 @@ main.storypage { display: block; padding-top: 0; }
   html { background: var(--nav-solid); }
   body { min-height: 100vh; min-height: 100dvh; }
 }
+
+/* Ilmoitukset asetusvalikossa */
+.set-menu .notify.in-menu { grid-template-columns: auto 1fr auto; gap: 10px; padding: 8px 10px; border: 0; border-radius: 12px; background: none; }
+.set-menu .notify.in-menu .notify-ico { width: 34px; height: 34px; border-radius: 10px; }
+.set-menu .notify.in-menu .notify-txt { font-size: 12.5px; }
+.set-menu .notify.in-menu .notify-txt strong { font-size: 14px; }
+.set-menu { min-width: min(300px, calc(100vw - 24px)); }
+/* Ei zoomausta (kuten sovellus): kaksoisnapautus ei suurenna; iOS ei salli nipistyksen estoa kaikissa tiloissa, joten myös eleet estetään skriptillä */
+html { touch-action: manipulation; }

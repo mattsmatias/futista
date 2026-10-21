@@ -34,6 +34,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // kuten sovellus: ei nipistyszoomausta (tekstikoko säädetään puhelimen asetuksista)
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f3f4f7" },

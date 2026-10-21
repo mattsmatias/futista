@@ -207,7 +207,7 @@ const MIN = 60_000;
     const v2 = await page.evaluate(() => JSON.parse(localStorage.getItem("futista-suosikit-v2") || "[]"));
     ok("suosikit: vanha nimilista siirtyi uuteen muotoon tunnisteella", v2.length === 1 && v2[0].n === "Testiseura Kotka" && v2[0].id === 9001, JSON.stringify(v2));
     const fb = await page.locator("main").innerText();
-    ok("  kerrotaan, että suosikit tallentuvat tälle laitteelle", fb.includes("tälle laitteelle"));
+    ok("  ei otsikkoa eikä kuvausta (sivu alkaa suoraan otteluista)", !fb.includes("tälle laitteelle"));
     ok("  seuratut joukkueet listattu", fb.includes("Testiseura Kotka"));
     // vanhat linkit
     for (const [from, to] of [["/?nakyma=taulukko", "/sarjat"], ["/?nakyma=suosikit", "/suosikit"], ["/?nakyma=maajoukkueet", "/maajoukkueet"]]) {

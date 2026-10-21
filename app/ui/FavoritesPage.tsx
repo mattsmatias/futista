@@ -18,7 +18,6 @@ import Footer from "../Footer";
 import { MatchRow } from "./MatchRow";
 import { useDayBoard } from "./useDayBoard";
 import { useSearch } from "./AppShell";
-import NotifyCard from "./NotifyCard";
 import { NewsItem } from "./News";
 
 const SUGGEST = ["Barcelona", "Real Madrid", "Liverpool", "Arsenal", "Manchester City", "Manchester United"];
@@ -63,7 +62,6 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
   return (
     <>
       <main className="wrap favpage">
-        <div className="page-title"><h1>{t("nav_favs")}</h1><p className="muted">{t("favSaved")}</p></div>
 
         {ready && favs.length === 0 && (
           <section className="empty-state fav-empty">
@@ -113,7 +111,6 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
           </section>
         </>}
 
-        <NotifyCard />
 
         {favs.length > 0 && (
           <section className="fsec" aria-labelledby="fs-news">

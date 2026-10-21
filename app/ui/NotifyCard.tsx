@@ -13,7 +13,7 @@ const Bell = ({ on }: { on: boolean }) => (
 );
 
 /** Ilmoitukset päälle / pois */
-export default function NotifyCard() {
+export default function NotifyCard({ inMenu }: { inMenu?: boolean } = {}) {
   const { t } = useI18n();
   const { names: favs } = useFavorites();
   const [state, setState] = useState<PushState | "loading">("loading");
@@ -40,7 +40,8 @@ export default function NotifyCard() {
     : t("notifOff");
 
   return (
-    <div className={`notify${on ? " is-on" : ""}${state === "unavailable" ? " is-off" : ""}`}>
+    <>{inMenu && <hr />}
+    <div className={`notify${inMenu ? " in-menu" : ""}${on ? " is-on" : ""}${state === "unavailable" ? " is-off" : ""}`}>
       <span className="notify-ico"><Bell on={on} /></span>
       <div className="notify-txt">
         <strong>{t("notifTitle")}</strong>
@@ -53,7 +54,7 @@ export default function NotifyCard() {
           <i />
         </button>
       )}
-    </div>
+    </div></>
   );
 }
 
