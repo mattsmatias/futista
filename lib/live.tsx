@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { matchState, isOn, helsinkiParts, bestTeam, knownFixture, type LiveMatch, type MatchState } from "./live-core";
 import { isNewer, acceptList } from "./live-merge";
-import { FAST, SLOW, freshness } from "./live-fresh";
+import { FAST, SLOW } from "./live-fresh";
 import type { Fixture, LeagueStats, Team } from "./stats";
 import { useI18n } from "./i18n";
 
@@ -219,19 +219,12 @@ const hm = (ms: number) => new Intl.DateTimeFormat("fi-FI", { timeZone: "Europe/
  *  (rajat: lib/live-fresh.ts). "Tilanne päivitetty" vain, kun lähteen päivitysaika todella tunnetaan. */
 export function LiveFreshness({ always, srcUpdatedAt }: { always?: boolean; srcUpdatedAt?: number }) {
   const { t } = useI18n();
-  const { meta, now } = useLive();
+  const { meta } = useLive();
+  // Ei varoitustekstejä ("Tieto voi olla vanhentunut", "Päivitys ei onnistu", "Ei verkkoyhteyttä"):
+  // näytetään vain tavallinen tarkistusaika; haku yrittää taustalla uudelleen itsestään.
+  if (!always) return null;
+  if (meta.loading) return <p className="fresh-line">{t("liveLoading")}</p>;
+  if (meta.checkedAt === null) return null;
   const src = srcUpdatedAt ? <> · {t("sourceUpdated")} {hm(srcUpdatedAt)}</> : null;
-  if (meta.offline) return <p className="fresh-line warn" role="status">{t("offlineLive")}{meta.checkedAt !== null ? ` ${t("liveLastChecked")} ${hm(meta.checkedAt)}` : ""}</p>;
-  if (meta.loading) return always ? <p className="fresh-line">{t("liveLoading")}</p> : null;
-  if (meta.lastOkAt === null) return <p className="fresh-line warn" role="status">{t("liveDown")}</p>;
-  const f = freshness({ now: now ?? Date.now(), checkedAt: meta.checkedAt, lastOkAt: meta.lastOkAt, failing: meta.failing, pending: meta.pending, busy: meta.busy, offline: meta.offline });
-  const warn = f === "failing" || f === "stale";
-  if (meta.checkedAt === null)
-    return warn || always ? <p className={`fresh-line${warn ? " warn" : ""}`} role="status">{warn ? t("liveStaleUnknown") : t("liveTimeUnknown")}{src}</p> : null;
-  if (!warn && !always) return null;
-  return (
-    <p className={`fresh-line${warn ? " warn" : ""}`} role="status">
-      {f === "failing" ? t("liveStale") : f === "stale" ? t("liveOld") : t("liveUpdated")} {hm(meta.checkedAt)}{src}
-    </p>
-  );
+  return <p className="fresh-line" role="status">{t("liveUpdated")} {hm(meta.checkedAt)}{src}</p>;
 }

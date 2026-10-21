@@ -48,11 +48,11 @@ const MIN = 60_000;
     ok("live: normaali 5 min tarkistusväli + 2,5 min välimuistin ikä + 1,5 min ajastinviive → ei varoitusta", worst === "", worst);
     ok("  tarkistuksia tehtiin hitaalla välillä (ei tihennetty)", calls >= 4 && calls <= 7, `${calls} kutsua / 21,5 min`);
     respond = "fail"; await adv(5 * MIN + 1000);
-    ok("live: oikea katko → 'Päivitys ei onnistu'", (await fresh()).startsWith("Päivitys ei onnistu"), await fresh());
+    ok("live: katko → ei varoitustekstiä, näytetään viimeisin tarkistusaika", (await fresh()).startsWith("Tarkistettu"), await fresh());
     respond = "ok"; await adv(2 * MIN);
-    ok("live: lähde palasi → varoitus poistuu", (await fresh()).startsWith("Tarkistettu"), await fresh());
+    ok("live: lähde palasi → 'Tarkistettu'", (await fresh()).startsWith("Tarkistettu"), await fresh());
     ageMs = 15 * MIN; await adv(10 * MIN);
-    ok("live: palvelin antaa 10 min ajan vain vanhaa tietoa → 'voi olla vanhentunut'", (await fresh()).startsWith("Tieto voi olla vanhentunut"), await fresh());
+    ok("live: vanha tieto → ei 'voi olla vanhentunut' -varoitusta", !/vanhentunut|ei onnistu/.test(await fresh()), await fresh());
     ageMs = 150_000;
 
     // ristiriita: avattavissa kosketuksella ja näppäimistöllä
