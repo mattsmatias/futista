@@ -145,3 +145,43 @@ test("reaktiot: pyyntörajoitin päästää enintään N / min samasta osoittees
   assert.deepEqual([lim("a"), lim("a"), lim("a"), lim("a"), lim("b")], [true, true, true, false, true]);
   t = 61_000; assert.equal(lim("a"), true);
 });
+
+import { parseEspnStandings, parseEspnEvents, parseEspnScorers, seasonYears } from "../lib/espn-league";
+
+test("Süper Lig (ESPN): taulukko, ei tunnisteita (ei sekoitu football-datan seuroihin)", () => {
+  const st = (n: string, rank: number, pts: number) => ({ team: { displayName: n, abbreviation: n.slice(0, 3).toUpperCase(), logos: [{ href: "x.png" }] }, stats: Object.entries({ rank, gamesPlayed: 8, wins: 6, ties: 1, losses: 1, pointsFor: 17, pointsAgainst: 11, points: pts }).map(([name, value]) => ({ name, value })) });
+  const r = parseEspnStandings({ children: [{ standings: { seasonDisplayName: "2026/2027", entries: [st("Amed SFK", 2, 17), st("Galatasaray", 1, 19)] } }] });
+  assert.equal(r.season, "2026–27");
+  assert.deepEqual(r.table.map((x) => [x.pos, x.team.name, x.pts]), [[1, "Galatasaray", 19], [2, "Amed SFK", 17]]);
+  assert.equal(r.table[0].team.id, undefined);
+  // vajaa rivi (puuttuva tilasto) jätetään pois, ei muuteta nollaksi
+  const bad = parseEspnStandings({ children: [{ standings: { entries: [{ team: { displayName: "X" }, stats: [{ name: "rank", value: 1 }] }] } }] });
+  assert.equal(bad.table.length, 0);
+});
+
+test("Süper Lig (ESPN): tulokset vain päättyneille, puuttuva tulos ei ole 0–0", () => {
+  const T = (n: string) => ({ displayName: n, abbreviation: n.slice(0, 3) });
+  const ev = (id: number, date: string, state: string, name: string, hs?: string, as?: string) => ({ id: String(id), date, competitions: [{ status: { type: { name, state } }, competitors: [{ homeAway: "home", team: T("Fenerbahce"), score: hs }, { homeAway: "away", team: T("Besiktas"), score: as }] }] });
+  const now = Date.parse("2026-10-21T10:00:00Z");
+  const r = parseEspnEvents([
+    ev(1, "2026-10-18T17:00Z", "post", "STATUS_FULL_TIME", "2", "1"),
+    ev(2, "2026-10-19T17:00Z", "post", "STATUS_FULL_TIME"), // ei tulosta → ei listaan
+    ev(3, "2026-10-25T17:00Z", "pre", "STATUS_SCHEDULED"),
+    ev(1, "2026-10-18T17:00Z", "post", "STATUS_FULL_TIME", "2", "1"), // tupla
+    ev(4, "2026-10-20T08:00Z", "pre", "STATUS_SCHEDULED"), // yli 6 h vanha "tuleva" → ei
+    ev(5, "2026-10-26T17:00Z", "post", "STATUS_POSTPONED"),
+  ], now);
+  assert.deepEqual(r.results.map((x) => [x.date, x.hs, x.as]), [["2026-10-18", 2, 1]]);
+  assert.deepEqual(r.fixtures.map((x) => [x.date, x.time]), [["2026-10-25", "19:00"]]); // talviaika alkaa 25.10.
+  assert.deepEqual(seasonYears(new Date("2026-10-21")), [2026, 2027]);
+  assert.deepEqual(seasonYears(new Date("2027-03-01")), [2026, 2027]);
+});
+
+test("Süper Lig (ESPN): maalipörssi, puuttuvat syötöt null", () => {
+  const r = parseEspnScorers({ season: { year: 2026 }, stats: [{ name: "goalsLeaders", leaders: [
+    { value: 8, displayValue: "Matches: 8, Goals: 8", shortDisplayValue: "M: 8, G: 8: A: 3", athlete: { displayName: "Pelaaja A", team: { displayName: "Trabzonspor" } } },
+    { value: 7, displayValue: "Goals: 7", shortDisplayValue: "G: 7", athlete: { displayName: "Pelaaja B", team: { displayName: "Fenerbahce" } } },
+  ] }] });
+  assert.equal(r.season, "2026–27");
+  assert.deepEqual(r.list.map((p) => [p.name, p.goals, p.assists, p.played]), [["Pelaaja A", 8, 3, 8], ["Pelaaja B", 7, null, null]]);
+});

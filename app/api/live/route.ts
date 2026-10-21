@@ -18,7 +18,7 @@ import { fdMeta, hasFd } from "@/lib/fd";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const COMP: Record<string, string> = Object.fromEntries(SOURCES.map((s) => [s.fd, s.id]));
+const COMP: Record<string, string> = Object.fromEntries(SOURCES.filter((s) => s.fd).map((s) => [s.fd, s.id]));
 const day = (offset: number) => new Date(Date.now() + offset * 86400_000).toISOString().slice(0, 10);
 
 function fromFd(data: any, fetchedAt: number | null): LiveMatch[] {

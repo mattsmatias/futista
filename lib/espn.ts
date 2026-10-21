@@ -19,7 +19,7 @@ export const espnOn = () => process.env.ESPN_OFF !== "1";
 /** Meidän sarja → ESPN:n sarjatunnus */
 const LEAGUE: Record<string, string> = {
   laliga: "esp.1", valioliiga: "eng.1", ucl: "uefa.champions", bundesliga: "ger.1", seriea: "ita.1",
-  ligue1: "fra.1", eredivisie: "ned.1", primeira: "por.1", championship: "eng.2",
+  ligue1: "fra.1", eredivisie: "ned.1", primeira: "por.1", championship: "eng.2", superlig: "tur.1",
 };
 
 type EspnTeam = { id: string; name: string; words: string[] };

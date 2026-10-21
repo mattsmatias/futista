@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import { helsinkiParts } from "./live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "./score";
 import { fillFromLastGood } from "./stats-merge";
+import { fromEspnLeague } from "./espn-league";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
@@ -181,6 +182,7 @@ export async function getLeague(id: string): Promise<LeagueStats | null> {
   const s = SOURCES.find((x) => x.id === id);
   if (!s) return null;
   if (s.feeds.length) return (await getStats()).find((x) => x.source === id) ?? null;
+  if (s.espn) return fromEspnLeague(s.id, s.espn, s.league);
   return fromFd(s);
 }
 

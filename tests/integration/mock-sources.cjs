@@ -95,6 +95,21 @@ function espn(path, res) {
   if ((m = path.match(/^all\/teams\/(\d+)\/schedule/))) return json(res, 200, { events: [] });
   if ((m = path.match(/^all\/teams\/(\d+)$/))) { const t = espnTeams[m[1]]; return json(res, 200, t ? { team: t } : {}); }
   if (path.startsWith("all/summary")) return json(res, 404, { code: 404 });
+  // Süper Lig (koko sarja ESPN:stä): kuvitteelliset joukkueet
+  if (path.startsWith("tur.1/")) {
+    const T = (id, n, ab) => ({ id: String(id), displayName: n, shortDisplayName: n, abbreviation: ab, logos: [] });
+    const A = T(70001, "Testispor Ankara", "TSA"), B = T(70002, "Mittaspor Izmir", "MSI"), C = T(70003, "Koespor", "KOE");
+    if (path.startsWith("tur.1/standings")) {
+      const st = (t, rank, p, w, d, l, gf, ga, pts) => ({ team: t, stats: Object.entries({ rank, gamesPlayed: p, wins: w, ties: d, losses: l, pointsFor: gf, pointsAgainst: ga, points: pts }).map(([name, value]) => ({ name, value })) });
+      return json(res, 200, { children: [{ name: "Testiliiga", standings: { seasonDisplayName: "2026/2027", entries: [st(A, 1, 2, 2, 0, 0, 5, 1, 6), st(B, 2, 2, 1, 0, 1, 3, 3, 3), st(C, 3, 2, 0, 0, 2, 1, 5, 0)] } }] });
+    }
+    if (path.startsWith("tur.1/statistics")) return json(res, 200, { season: { year: 2026 }, stats: [{ name: "goalsLeaders", leaders: [{ value: 3, displayValue: "Matches: 2, Goals: 3", shortDisplayValue: "M: 2, G: 3: A: 1", athlete: { id: "1", displayName: "Testi Maalintekijä", team: A } }] }] });
+    if (path.startsWith("tur.1/scoreboard?dates=")) {
+      const ev = (id, t, h, a, done, hs, as) => ({ id: String(id), date: new Date(t).toISOString(), competitions: [{ status: { type: done ? { name: "STATUS_FULL_TIME", state: "post", completed: true } : { name: "STATUS_SCHEDULED", state: "pre" } }, competitors: [{ homeAway: "home", team: h, score: done ? String(hs) : undefined }, { homeAway: "away", team: a, score: done ? String(as) : undefined }] }] });
+      const y = Number(path.match(/dates=(\d{4})/)[1]), now = Date.now(), yr = (t) => new Date(t).getUTCFullYear() === y;
+      return json(res, 200, { events: [ev(9001, now - 86400_000, A, B, true, 2, 0), ev(9002, now + 2 * 86400_000, B, C, false)].filter((e) => yr(Date.parse(e.date))) });
+    }
+  }
   if (path.includes("/scoreboard")) return json(res, 200, { events: [] });
   if (path.endsWith("/teams")) return json(res, 200, { sports: [{ leagues: [{ teams: [] }] }] });
   return json(res, 404, {});

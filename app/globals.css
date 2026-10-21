@@ -1290,3 +1290,9 @@ div.match { cursor: default; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sh-x { background: #2b3038; } }
 :root[data-theme="dark"] .sh-x { background: #2b3038; }
 .react-note:empty { min-height: 0; margin-top: -12px; }
+
+/* Süper Lig (ESPN) */
+:root { --lg-superlig: #e30a17; --c-superlig: #c8102e; --uclq: #60a5fa; }
+.bar-superlig, .dot-superlig { background: var(--lg-superlig); } .chip-superlig { background: color-mix(in srgb, var(--lg-superlig) 16%, transparent); color: var(--lg-superlig); } .mh-superlig { --accent: var(--lg-superlig); } .lpick button.on-superlig { color: var(--lg-superlig); }
+.cm-superlig { background: var(--c-superlig); }
+.tbl tr.z-uclq .pos::before, .zk.z-uclq { background: var(--uclq); }

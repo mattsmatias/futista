@@ -2,10 +2,10 @@
 import { SOURCES, type SourceId } from "./sources";
 
 /** Johdonmukainen järjestys otteluiden etusivulla ja Sarjat-hakemistossa */
-export const COMP_ORDER: SourceId[] = ["ucl", "laliga", "valioliiga", "bundesliga", "seriea", "ligue1", "eredivisie", "primeira", "championship"];
+export const COMP_ORDER: SourceId[] = ["ucl", "laliga", "valioliiga", "bundesliga", "seriea", "ligue1", "eredivisie", "primeira", "championship", "superlig"];
 export const POPULAR: SourceId[] = ["laliga", "valioliiga", "ucl"];
 
-export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | "eu" | "de" | "it" | "fr" | "nl" | "pt" }> = {
+export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | "eu" | "de" | "it" | "fr" | "nl" | "pt" | "tr" }> = {
   ucl: { mark: "MLI", country: "eu" },
   laliga: { mark: "LL", country: "es" },
   valioliiga: { mark: "PL", country: "en" },
@@ -15,6 +15,7 @@ export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | 
   eredivisie: { mark: "ED", country: "nl" },
   primeira: { mark: "LP", country: "pt" },
   championship: { mark: "CH", country: "en" },
+  superlig: { mark: "SL", country: "tr" },
 };
 
 /** Kilpailun oma logo. Lähteet ovat jo käytössä olevia tietolähteitä (ESPN ja football-data), ei uusia.
@@ -32,6 +33,7 @@ export const COMP_EMBLEM: Record<SourceId, { light: string; dark?: string }> = {
   eredivisie: espn(11),
   primeira: espn(14),
   championship: { light: "https://crests.football-data.org/ELC.png" },
+  superlig: espn(18),
 };
 
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));

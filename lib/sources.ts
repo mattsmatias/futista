@@ -1,9 +1,9 @@
 // Uutislähteet. Uuden lähteen saa lisättyä tähän listaan.
-export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship";
+export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship" | "superlig";
 
 export type Club = { tag: string; name: string; short: string; c1: string; c2: string };
 
-export type Zone = { from: number; to: number; label: string; kind: "ucl" | "uel" | "uecl" | "rel" | "r16" | "po" | "promo" | "pp" };
+export type Zone = { from: number; to: number; label: string; kind: "ucl" | "uclq" | "uel" | "uecl" | "rel" | "r16" | "po" | "promo" | "pp" };
 
 const EURO_ZONES: Zone[] = [
   { from: 1, to: 4, label: "Mestarien liiga", kind: "ucl" },
@@ -18,7 +18,8 @@ export type Source = {
   league: string; // näkyy välilehdellä
   base: string;
   feeds: string[];  // RSS-syötteet (tyhjä = sarja ilman uutisia, tiedot football-datasta)
-  fd: string;       // football-data.orgin sarjakoodi
+  fd: string;       // football-data.orgin sarjakoodi ("" = ei football-datassa)
+  espn?: string;    // ESPN:n sarjatunnus, kun koko sarja haetaan ESPN:stä (taulukko, ottelut, maalipörssi)
   pages?: { table: string; results: string; fixtures: string }; // tilastosivut, oletuksena base + sarjataulukko/ jne.
   clubs: Club[];  // seurapikavalinnat (tag = syötteen kategoria)
   zones: Zone[];  // sarjataulukon värikoodit
@@ -90,11 +91,17 @@ export const SOURCES: Source[] = [
   fdLeague("eredivisie", "Eredivisie", "DED", [z(1, 2, "ucl"), z(3, 3, "uel"), z(16, 18, "rel")]),
   fdLeague("primeira", "Liga Portugal", "PPL", [z(1, 2, "ucl"), z(3, 3, "uel"), z(16, 18, "rel")]),
   fdLeague("championship", "Championship", "ELC", [z(1, 2, "promo"), z(3, 6, "pp"), z(22, 24, "rel")]),
+  // Sarjat, joita football-datan ilmaisversio ei kata: kaikki tiedot ESPN:stä.
+  // Sijoitusvärit ESPN:n taulukon merkintöjen mukaan (2026–27: 1. MLI, 2. MLI-karsinta, 3. EL-karsinta, 4. ECL-karsinta, 16–18 putoaa).
+  espnLeague("superlig", "Süper Lig", "tur.1", [z(1, 1, "ucl"), z(2, 2, "uclq"), z(3, 3, "uel"), z(4, 4, "uecl"), z(16, 18, "rel")]),
 ];
 
 function z(from: number, to: number, kind: Zone["kind"]): Zone { return { from, to, label: kind, kind }; }
 function fdLeague(id: SourceId, league: string, fd: string, zones: Zone[]): Source {
   return { id, name: "football-data.org", league, base: "", feeds: [], fd, clubs: [], zones };
+}
+function espnLeague(id: SourceId, league: string, espn: string, zones: Zone[]): Source {
+  return { id, name: "ESPN", league, base: "", feeds: [], fd: "", espn, clubs: [], zones };
 }
 
 /** Sarjat, joista on uutisia (näkyvät etusivulla ja yläpalkin valitsimessa) */
