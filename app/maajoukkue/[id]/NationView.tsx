@@ -32,7 +32,7 @@ export default function NationView({ id, team, games }: { id: string; team: Game
       <AutoRefresh every={games.some(isOn) ? 45_000 : 120_000} />
       <main className="wrap entity">
         <header className="ehead">
-          <GBadge t={team} size={48} />
+          {id === "458" ? <img className="nation-crest" src="/icons/huuhkajat.png" alt="" width={37} height={48} /> : <GBadge t={team} size={48} />}
           <div className="ehead-txt">
             <h1>{nm(team)}</h1>
             <p className="muted">{t("nationalTeamMen")}</p>

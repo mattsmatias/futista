@@ -31,7 +31,7 @@ export default function CompsDirectory() {
         {items.map((x) => (
           <li key={x.id}>
             <a href={x.href}>
-              {x.id === "fin" ? <img className="dir-flag" src="https://flagcdn.com/w40/fi.png" alt="" width={24} height={16} /> : <CompMark id={x.id} />}
+              {x.id === "fin" ? <span className="cmark cmark-logo cmark-crest" aria-hidden="true"><img src="/icons/huuhkajat.png" alt="" width={22} height={28} /></span> : <CompMark id={x.id} />}
               <span className="dir-name">{x.name}</span><span className="dir-sub">{x.country}</span>{Icon.next}
             </a>
           </li>

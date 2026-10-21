@@ -53,7 +53,7 @@ export default function IntlBoard({ initial }: { initial?: IntlData | null }) {
     <div className="intl">
       <section className="panel fin-card">
         <div className="panel-head">
-          <h3><img src="https://flagcdn.com/w40/fi.png" alt="" width={22} height={15} /> {t("huuhkajat")}</h3>
+          <h3><img className="fin-crest" src="/icons/huuhkajat.png" alt="" width={17} height={22} /> {t("huuhkajat")}</h3>
           <a className="see-all" href={`/maajoukkue/${FIN}`}>{t("allMatchesOf")} →</a>
         </div>
         {fin.length ? fin.map((g) => <GameRow key={g.id} g={g} nations highlight={FIN} />) : <p className="muted pad">{t("noFinGames")}</p>}
