@@ -13,6 +13,8 @@ import { MarkRead } from "@/lib/read-news";
 import { T, LeagueName, TypeName, LocalDate } from "@/lib/i18n";
 
 export const revalidate = 3600;
+// sivu tehdään ensimmäisellä avauksella ja pidetään välimuistissa (ISR) → seuraavat avaukset heti
+export function generateStaticParams() { return []; }
 
 type Props = { params: { path: string[] } };
 
