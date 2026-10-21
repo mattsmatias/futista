@@ -61,7 +61,8 @@ export async function GET() {
   const matches = mergeLive(fdMatches, espn.matches);
   // tarkistushetki: vanhin käytetyistä tunnetuista hakuhetkistä (ei koskaan uudempi kuin mikään käytetty tieto)
   const known = [espn.at, fdRes ? fdAt : null].filter((x): x is number => typeof x === "number");
-  const checkedAt = known.length ? Math.min(...known) : null;
+  // live-tila tulee ensisijaisesti ESPN:stä: sen hakuhetki; football-datan hetki vain, jos ESPN ei vastannut
+  const checkedAt = espn.at ?? (known.length ? Math.min(...known) : null);
   const sources = {
     fd: { state: !fdOn ? "off" : fdRes ? "ok" : "error", fetchedAt: fdAt },
     espn: { state: !espnOn() ? "off" : espn.at === null ? "error" : espn.ok ? "ok" : "partial", fetchedAt: espn.at },

@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { matchState, isOn, helsinkiParts, bestTeam, knownFixture, type LiveMatch, type MatchState } from "./live-core";
-import { isNewer, acceptList } from "./live-merge";
+import { acceptList } from "./live-merge";
 import { FAST, SLOW } from "./live-fresh";
 import type { Fixture, LeagueStats, Team } from "./stats";
 import { useI18n } from "./i18n";
@@ -67,13 +67,11 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const d = await r.json();
         if (!r.ok || d.error) throw new Error("live " + r.status);
         if (stop) return;
-        // vastaus, jonka tarkistushetki on vanhempi kuin näytetyn, hylätään kokonaan (ei nuorenneta tietoa)
-        const stale = s.checkedAt !== null && !isNewer(s.checkedAt, d.checkedAt);
-        if (!stale) {
-          if (typeof d.checkedAt === "number") s.checkedAt = d.checkedAt;
-          s.current = acceptList(s.current, d.matches ?? []);
-          setLive(s.current);
-        }
+        // otteluittain: kunkin ottelun uudempi tieto hyväksytään (acceptList), vaikka toinen lähde olisi jäänyt
+        // hetkeksi vanhaan – koko vastausta ei hylätä, joten päivitys ei voi pysähtyä
+        if (typeof d.checkedAt === "number" && (s.checkedAt === null || d.checkedAt > s.checkedAt)) s.checkedAt = d.checkedAt;
+        s.current = acceptList(s.current, d.matches ?? []);
+        setLive(s.current);
         setEnabled(d.enabled !== false);
         s.fails = 0;
         const b = busyNow(s.current, Date.now());
