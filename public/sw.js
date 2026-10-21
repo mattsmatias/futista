@@ -6,7 +6,7 @@
 //   päivittää muistin taustalla.
 //   Verkkovirheessä näytetään tallennettu versio, ja jos sitäkään ei ole, offline-sivu (/offline.html).
 // - Tallennetaan VAIN onnistuneet (200) samasta osoitteesta tulevat täydet HTML-sivut. EI tallenneta:
-//   /api/-vastauksia (live, ilmoitukset, cron), Next.js:n osittaisia reittivastauksia (RSC), virheitä,
+//   /api/-vastauksia (live, ilmoitukset, cron, Livekatsomon viestit), /livekatsomo-sivuja (kirjautuminen), Next.js:n osittaisia reittivastauksia (RSC), virheitä,
 //   no-store/private-vastauksia eikä evästeitä asettavia vastauksia.
 // - Sivuvälimuisti on rajattu: enintään 30 sivua ja 3 vrk; staattiset tiedostot enintään 200.
 // - Vanhat välimuistiversiot poistetaan aktivoinnissa.
@@ -141,6 +141,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;           // lähteiden kuvat yms.: selain hoitaa itse
   if (url.pathname.startsWith("/api/")) return;         // live, ilmoitukset, cron: ei koskaan välimuistiin
+  if (url.pathname.startsWith("/livekatsomo")) return;  // kirjautumislinkit ja ylläpito: ei koskaan välimuistiin
   if (isRsc(req, url)) return;                          // Next.js:n osittaiset reittivastaukset: ei tallenneta
 
   // Next.js:n versioidut tiedostot ja kuvakkeet: välimuistista (eivät muutu)

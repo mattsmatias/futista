@@ -17,7 +17,14 @@ const ok = (name, cond, info = "") => { results.push(!!cond); console.log(`${con
   let r = await fetch(`${APP}/api/league/eredivisie`); ok("FD_OFF: muu sarja → 503 no-store", r.status === 503 && r.headers.get("cache-control") === "no-store");
   r = await fetch(`${APP}/api/h2h/5001?l=bundesliga`); ok("FD_OFF: H2H → 503", r.status === 503);
   r = await fetch(`${APP}/api/live`); const live = await r.json(); ok("FD_OFF+ESPN_OFF: live-rajapinta vastaa ilman lähteitä", r.status === 200, JSON.stringify(live).slice(0, 100));
+  // Livekatsomo pois (LIVEKATSOMO_ENABLED=0): rajapinta ei palauta mitään, sivut 404, kirjoitus 503
+  r = await fetch(`${APP}/api/livekatsomo/rooms`); const lk = await r.json();
+  ok("Livekatsomo pois: huoneluettelo tyhjä (enabled:false)", r.status === 200 && lk.enabled === false && lk.rooms.length === 0);
+  r = await fetch(`${APP}/api/livekatsomo/room/00000000-0000-4000-8000-000000000000/messages`, { method: "POST", body: "{}" });
+  ok("Livekatsomo pois: lähetys → 503", r.status === 503);
+  r = await fetch(`${APP}/livekatsomo/hallinta`); ok("Livekatsomo pois: ylläpitosivu → 404", r.status === 404);
   await page.goto(APP + "/", { waitUntil: "networkidle" });
+  ok("Livekatsomo pois: etusivulla ei nostoa eikä merkkejä", (await page.locator(".lk-strip, .lk-badge").count()) === 0);
   const hits = (await (await fetch(`${MOCK}/__log`)).json()).length;
   ok("ei yhtään hakua football-dataan tai ESPN:ään", hits === 0, `${hits} hakua`);
   await browser.close();

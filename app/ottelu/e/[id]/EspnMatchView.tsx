@@ -6,6 +6,12 @@ import { StatusPill } from "@/lib/live";
 import Footer from "../../../Footer";
 import { GBadge, compName, compClass, useTeamName } from "../../../Games";
 import { SrcLine } from "../../../Stats";
+import dynamic from "next/dynamic";
+import { useUrlParam } from "@/lib/url-state";
+import { useLkRooms, useRoomFor } from "@/lib/lk-client";
+import { ChatIcon } from "@/app/ui/LkBits";
+
+const Livekatsomo = dynamic(() => import("@/app/ui/Livekatsomo"), { ssr: false, loading: () => <div className="panel"><p className="muted pad">…</p></div> });
 
 const NATIONAL = /^(uefa\.nations|uefa\.euro|fifa\.|concacaf\.nations|caf\.nations)/;
 
@@ -17,6 +23,10 @@ export default function EspnMatchView({ m, at }: { m: EspnMatch; at: number }) {
   const nm = useTeamName(nations);
   const on = g.kind === "live" || g.kind === "ht";
   const hasScore = g.hs !== null && g.as !== null && g.kind !== "upcoming";
+  const room = useRoomFor(g.date, g.home.name, g.away.name, g.time);
+  const roomsLoaded = useLkRooms() !== null;
+  const [v, setV] = useUrlParam("v", "summary", (x) => x === "summary" || x === "livekatsomo");
+  const tab = v === "livekatsomo" && (room || !roomsLoaded) ? "livekatsomo" : "summary";
   const hw = g.kind === "ft" && hasScore && g.hs! > g.as!, aw = g.kind === "ft" && hasScore && g.as! > g.hs!;
   const team = (x: typeof g.home, lost: boolean) => {
     const inner = <><GBadge t={x} size={72} /><b>{nm(x)}</b></>;
@@ -48,7 +58,14 @@ export default function EspnMatchView({ m, at }: { m: EspnMatch; at: number }) {
           </div>
         </section>
 
-        <section className="panel">
+        {room && (
+          <div className="subtabs sticky" role="tablist">
+            <button role="tab" aria-selected={tab === "summary"} className={tab === "summary" ? "on" : ""} onClick={() => setV("summary")}>{t("summary")}</button>
+            <button role="tab" aria-selected={tab === "livekatsomo"} className={`tab-lk${tab === "livekatsomo" ? " on" : ""}`} onClick={() => setV("livekatsomo")}><ChatIcon />Livekatsomo</button>
+          </div>
+        )}
+        {tab === "livekatsomo" && (room ? <Livekatsomo roomId={room.id} /> : <div className="panel"><p className="muted pad">{t("loading")}</p></div>)}
+        {tab === "summary" && <section className="panel">
           <div className="panel-head"><h3>{t("matchInfo")}</h3></div>
           <dl className="facts">
             <div><dt>{t("competition")}</dt><dd>{compName(g, i.lang)}</dd></div>
@@ -60,7 +77,7 @@ export default function EspnMatchView({ m, at }: { m: EspnMatch; at: number }) {
           </dl>
           <p className="muted pad">{t("basicMatchNote")}</p>
           <SrcLine name="ESPN" updated={at} maxAgeMin={on ? 5 : 60} />
-        </section>
+        </section>}
       </main>
       <Footer />
     </>

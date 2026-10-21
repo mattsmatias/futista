@@ -5,7 +5,7 @@ import type { Lang } from "./i18n";
 export type Section = { h: string; p: string[] };
 export type Doc = { title: string; intro: string; sections: Section[] };
 
-export const PRIVACY: Record<Lang, Doc> = {
+const PRIVACY_BASE: Record<Lang, Doc> = {
   fi: {
     title: "Tietosuoja",
     intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
@@ -154,6 +154,74 @@ export const PRIVACY: Record<Lang, Doc> = {
     ],
   },
 };
+
+// ---------- Livekatsomo (vain kun ominaisuus on käännöksessä päällä: NEXT_PUBLIC_LIVEKATSOMO=1) ----------
+// Kuvaus vastaa toteutusta: supabase/migrations/20261022_livekatsomo.sql (säilytysajat lk_settings) ja docs/livekatsomo.md.
+const LK: Record<Lang, { section: Section; intro: string; rights: string }> = {
+  fi: {
+    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön tai kirjaudu kirjoittamaan Livekatsomoon. Sivulla ei ole mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
+    rights: "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Livekatsomon viestisi voit poistaa itse milloin tahansa. Nimimerkin ja kirjautumistilin poistoa voit pyytää yllä mainitusta osoitteesta.",
+    section: {
+      h: "Livekatsomo (ottelukeskustelu)",
+      p: [
+        "Livekatsomo on ylläpidon valitsemiin otteluihin avattava tekstikeskustelu. Keskustelua voi lukea kirjautumatta.",
+        "Kirjautuminen: kirjoittaminen vaatii kirjautumisen sähköpostiin lähetettävällä linkillä. Sähköpostiosoite ja kirjautumistili käsitellään [Supabase Authissa](https://supabase.com/privacy). Futista ei näytä sähköpostiosoitetta keskustelussa eikä tallenna sitä omiin tauluihinsa. Kirjautumisistunto tallennetaan laitteellesi (localStorage), kunnes kirjaudut ulos tai istunto vanhenee.",
+        "Julkiset tiedot: valitsemasi nimimerkki sekä lähettämäsi viestit lähetysaikoineen näkyvät kaikille keskustelun lukijoille. Älä kirjoita viesteihin henkilötietoja.",
+        "Paikallaolo: kun keskustelu on näkyvissä, selain lähettää noin 20 sekunnin välein tiedon paikallaolosta. Siinä on satunnainen istuntotunniste, joka vaihtuu viimeistään 30 minuutin käyttämättömyyden jälkeen (sama saman selaimen välilehdillä), ja kirjautuneelta käyttäjätunniste. Väärinkäytösten rajoittamiseksi palvelin tallentaa IP-osoitteesta suolatun tiivisteen, joka vaihtuu vuorokausittain; itse IP-osoitetta ei tallenneta. Paikallaolotieto poistuu noin 45 sekunnin kuluttua viimeisestä sykkeestä.",
+        "Ilmoitukset ja moderointi: jos ilmoitat viestistä ylläpidolle, tallennamme ilmoituksen, mahdollisen syyn ja viestin tekstiotteen käsittelyä varten. Ilmoittajan tietoja ei näytetä muille käyttäjille. Ylläpidon toimet (viestien poistot, kirjoituskiellot ja keskustelun tilan muutokset) kirjataan moderointilokiin. Henkilökohtainen mykistys tallennetaan vain laitteellesi.",
+        "Säilytys: suljetun keskustelun viestit poistetaan automaattisesti 7 vuorokauden kuluttua sulkemisesta. Ilmoitukset tekstiotteineen poistetaan 30 vuorokauden ja moderointiloki 180 vuorokauden kuluttua. Nimimerkki ja kirjoituskiellot säilyvät, kunnes tili poistetaan. Kun poistat oman viestisi, sen teksti poistetaan heti.",
+        "Reaaliaikaiset päivitykset välitetään [Supabase Realtimen](https://supabase.com/privacy) kautta; se välittää vain tiedon uudesta viestistä, ei viestien sisältöä. Keskustelua, viestejä tai kirjautumistietoja ei tallenneta sovelluksen offline-muistiin.",
+      ],
+    },
+  },
+  sv: {
+    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar eller loggar in för att skriva i Livekatsomo. Sidan har ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel, och Cloudflare lägger till besöksstatistik på sidan (Cloudflare Web Analytics; se Server och loggar).",
+    rights: "Aviseringsuppgifterna raderar du genom att stänga av aviseringar. Dina meddelanden i Livekatsomo kan du själv radera när som helst. Radering av smeknamn och inloggningskonto kan du begära via adressen ovan.",
+    section: {
+      h: "Livekatsomo (matchchatt)",
+      p: [
+        "Livekatsomo är en textchatt som öppnas för matcher som administratörerna valt. Chatten kan läsas utan inloggning.",
+        "Inloggning: för att skriva loggar du in med en länk som skickas till din e-post. E-postadressen och inloggningskontot behandlas i [Supabase Auth](https://supabase.com/privacy). Futista visar inte e-postadressen i chatten och sparar den inte i sina egna tabeller. Inloggningssessionen sparas på din enhet (localStorage) tills du loggar ut eller sessionen går ut.",
+        "Offentliga uppgifter: ditt valda smeknamn och dina meddelanden med tidpunkt syns för alla som läser chatten. Skriv inga personuppgifter i meddelandena.",
+        "Närvaro: när chatten är synlig skickar webbläsaren ungefär var 20:e sekund en närvarosignal. Den innehåller ett slumpmässigt sessions-id som byts senast efter 30 minuters inaktivitet (samma för flikar i samma webbläsare) och, för inloggade, användar-id. För att begränsa missbruk sparar servern en saltad hash av IP-adressen som byts dagligen; själva IP-adressen sparas inte. Närvarouppgiften försvinner cirka 45 sekunder efter den senaste signalen.",
+        "Anmälningar och moderering: om du anmäler ett meddelande sparar vi anmälan, eventuell orsak och ett utdrag av meddelandet för behandling. Anmälarens uppgifter visas inte för andra användare. Administratörernas åtgärder (raderingar, skrivförbud och ändringar av chattens status) loggas. Personlig ljudlös-funktion (mute) sparas bara på din enhet.",
+        "Lagring: meddelanden i en stängd chatt raderas automatiskt 7 dygn efter stängningen. Anmälningar med utdrag raderas efter 30 dygn och modereringsloggen efter 180 dygn. Smeknamn och skrivförbud finns kvar tills kontot raderas. När du raderar ditt eget meddelande raderas texten genast.",
+        "Realtidsuppdateringar förmedlas via [Supabase Realtime](https://supabase.com/privacy); den förmedlar bara att ett nytt meddelande finns, inte innehållet. Chatten, meddelanden och inloggningsuppgifter sparas inte i appens offlineminne.",
+      ],
+    },
+  },
+  en: {
+    intro: "Futista does not collect personal data about you unless you turn on notifications or sign in to write in the live lounge (Livekatsomo). There is no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel, and Cloudflare adds visitor statistics to the page (Cloudflare Web Analytics; see Hosting and server logs).",
+    rights: "You delete notification data by turning notifications off. You can delete your own live lounge messages at any time. You can request deletion of your nickname and sign-in account at the address above.",
+    section: {
+      h: "Live lounge (match chat)",
+      p: [
+        "The live lounge is a text chat opened for matches chosen by the moderators. Anyone can read it without signing in.",
+        "Sign-in: writing requires signing in with a link sent to your email. The email address and sign-in account are processed in [Supabase Auth](https://supabase.com/privacy). Futista never shows your email in the chat and does not store it in its own tables. The sign-in session is stored on your device (localStorage) until you sign out or it expires.",
+        "Public data: your chosen nickname and your messages with their times are visible to everyone reading the chat. Do not write personal data in messages.",
+        "Presence: while the chat is visible, your browser sends a presence signal about every 20 seconds. It contains a random session id that changes after at most 30 minutes of inactivity (shared by tabs of the same browser) and, if signed in, your user id. To limit abuse the server stores a salted hash of your IP address that changes daily; the IP address itself is not stored. Presence data expires about 45 seconds after the last signal.",
+        "Reports and moderation: if you report a message, we store the report, an optional reason and an excerpt of the message for review. Reporters are not shown to other users. Moderator actions (removals, write bans and chat state changes) are logged. Personal mutes are stored only on your device.",
+        "Retention: messages of a closed chat are deleted automatically 7 days after it closes. Reports with excerpts are deleted after 30 days and the moderation log after 180 days. Nicknames and write bans are kept until the account is deleted. When you delete your own message, its text is deleted immediately.",
+        "Real-time updates go through [Supabase Realtime](https://supabase.com/privacy); it carries only a notice that a new message exists, not the content. The chat, messages and sign-in data are never stored in the app's offline storage.",
+      ],
+    },
+  },
+};
+
+function withLk(base: Record<Lang, Doc>): Record<Lang, Doc> {
+  if (process.env.NEXT_PUBLIC_LIVEKATSOMO !== "1") return base;
+  const out = {} as Record<Lang, Doc>;
+  for (const l of Object.keys(base) as Lang[]) {
+    const d = base[l], x = LK[l];
+    const secs = [...d.sections];
+    secs.splice(Math.max(0, secs.length - 3), 0, x.section); // ennen "Palvelin ja lokitiedot"
+    secs[secs.length - 1] = { ...secs[secs.length - 1], p: [x.rights, ...secs[secs.length - 1].p.slice(1)] };
+    out[l] = { ...d, intro: x.intro, sections: secs };
+  }
+  return out;
+}
+
+export const PRIVACY: Record<Lang, Doc> = withLk(PRIVACY_BASE);
 
 export const ABOUT: Record<Lang, Doc> = {
   fi: {

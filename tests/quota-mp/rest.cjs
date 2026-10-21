@@ -37,6 +37,44 @@ http.createServer(async (req, res) => {
     finally { await client.query("reset role").catch(() => {}); client.release(); }
     return;
   }
+  // ---------- Livekatsomo: Supabase Auth -emulaatio (testikäyttäjät) ----------
+  // Tunniste "test-<uuid>" = kirjautunut testikäyttäjä <uuid>. Muut tunnisteet hylätään (401).
+  if (req.url === "/auth/v1/user") {
+    const t = (req.headers.authorization || "").replace(/^Bearer /, "");
+    const mm = t.match(/^test-([0-9a-f-]{36})$/);
+    if (!mm) { res.writeHead(401); res.end('{"message":"invalid token"}'); return; }
+    res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ id: mm[1], email: `${mm[1]}@test.invalid` })); return;
+  }
+  if (req.method === "POST" && req.url.startsWith("/auth/v1/otp")) {
+    let body = ""; for await (const c of req) body += c;
+    // ei lähetetä sähköpostia: tallennetaan vain testin luettavaksi
+    global.__lastOtp = { email: JSON.parse(body).email, redirect: decodeURIComponent((req.url.split("redirect_to=")[1] || "")) };
+    res.writeHead(200, { "content-type": "application/json" }); res.end("{}"); return;
+  }
+  if (req.url === "/__lk/last-otp") { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(global.__lastOtp || null)); return; }
+  if (req.method === "POST" && req.url.startsWith("/auth/v1/token")) {
+    let body = ""; for await (const c of req) body += c;
+    const mm = (JSON.parse(body).refresh_token || "").match(/^r-([0-9a-f-]{36})$/);
+    if (!mm) { res.writeHead(400); res.end("{}"); return; }
+    res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ access_token: `test-${mm[1]}`, refresh_token: `r-${mm[1]}`, expires_in: 3600 })); return;
+  }
+  // Livekatsomon RPC-funktiot (nimetyt argumentit kuten PostgREST)
+  const lk = req.method === "POST" && req.url.match(/^\/rest\/v1\/rpc\/(lk_[a-z_]+)$/);
+  if (lk) {
+    let body = ""; for await (const c of req) body += c;
+    const a = body ? JSON.parse(body) : {};
+    const keys = Object.keys(a).filter((k) => /^p_[a-z_]+$/.test(k));
+    const sql = `select public.${lk[1]}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as v`;
+    const vals = keys.map((k) => (a[k] !== null && typeof a[k] === "object" ? JSON.stringify(a[k]) : a[k]));
+    const client = await pool.connect();
+    try {
+      await client.query("set role service_role");
+      const r = await client.query(sql, vals);
+      res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(r.rows[0]?.v ?? null));
+    } catch (e) { res.writeHead(400); res.end(JSON.stringify({ message: String(e.message) })); }
+    finally { await client.query("reset role").catch(() => {}); client.release(); }
+    return;
+  }
   const m = req.url.match(/^\/rest\/v1\/rpc\/(fd_quota_acquire|fd_quota_block)$/);
   if (!m || req.method !== "POST") { res.writeHead(404); res.end("{}"); return; }
   let body = ""; for await (const c of req) body += c;

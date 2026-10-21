@@ -18,6 +18,7 @@ import { useSearch } from "./AppShell";
 import { useTeamName } from "../Games";
 import { Icon } from "./Icons";
 import Footer from "../Footer";
+import { LkHomeStrip } from "./LkBits";
 
 type Filter = "all" | "live" | "suosikit";
 
@@ -81,6 +82,8 @@ export default function MatchesHome({ stats: first, today: serverToday }: { stat
             ))}
           </div>
         </div>
+
+        <LkHomeStrip />
 
         {filter === "all" && favRows.length > 0 && (
           <section className="cgroup cg-fav" aria-labelledby="g-fav">
@@ -180,7 +183,7 @@ function IntlGroup({ games, open, onToggle }: { games: import("@/lib/espn-parse"
         {games.map((g) => (
           <div key={g.id} className="mrow-wrap">
             <span className="mrow-comp">{compName(g, i.lang)}</span>
-            <MatchRow href={g.href ?? `/ottelu/e/${g.id}`} time={g.time} s={gameState(g)}
+            <MatchRow href={g.href ?? `/ottelu/e/${g.id}`} date={g.date} time={g.time} s={gameState(g)}
               home={{ name: g.home.name, display: nm(g.home), code: g.home.code, crest: g.home.logo }}
               away={{ name: g.away.name, display: nm(g.away), code: g.away.code, crest: g.away.logo }} />
           </div>

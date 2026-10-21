@@ -12,8 +12,16 @@ import { useMatchState, StatusPill } from "@/lib/live";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
+import dynamic from "next/dynamic";
+import { useUrlParam } from "@/lib/url-state";
+import { useLkRooms, useRoomFor } from "@/lib/lk-client";
+import { ChatIcon } from "@/app/ui/LkBits";
 
-type Tab = "summary" | "h2h" | "table";
+// Livekatsomo ladataan vasta, kun välilehti avataan (ei kasvata ottelusivun latausta)
+const Livekatsomo = dynamic(() => import("@/app/ui/Livekatsomo"), { ssr: false, loading: () => <div className="panel"><p className="muted pad">…</p></div> });
+
+type Tab = "summary" | "h2h" | "table" | "livekatsomo";
+const TABS = ["summary", "h2h", "table", "livekatsomo"];
 
 function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number; b: number; lowerBetter?: boolean; noBar?: boolean }) {
   const total = a + b || 1;
@@ -118,7 +126,11 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
   const i = useI18n();
   const { t } = i;
   const m = (result ?? fixture)!;
-  const [tab, setTab] = useState<Tab>("summary");
+  // välilehti osoitteessa (?v=livekatsomo) → suora, jaettava linkki keskusteluun
+  const [tabRaw, setTab] = useUrlParam("v", "summary", (v) => TABS.includes(v));
+  const room = useRoomFor(m.date, m.home.name, m.away.name, fixture?.time ?? result?.time ?? null, `/ottelu/${s.source}/${m.date}/`);
+  const roomsLoaded = useLkRooms() !== null;
+  const tab = (tabRaw === "livekatsomo" && !room && roomsLoaded ? "summary" : tabRaw) as Tab;
   const loadH2h = useCallback(() => {
     if (!extra?.apiId) return;
     gate.current.run(async () => {
@@ -140,7 +152,8 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
   const liveScore = !result && st.hs != null && st.as != null ? { hs: st.hs, as: st.as } : null;
   const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
 
-  const tabs: { id: Tab; label: Key }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" }];
+  const tabs: { id: Tab; label: Key | null }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" }];
+  if (room) tabs.push({ id: "livekatsomo", label: null });
 
   return (
     <>
@@ -176,7 +189,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
 
         <div className="subtabs sticky" role="tablist">
           {tabs.map((x) => (
-            <button key={x.id} role="tab" aria-selected={tab === x.id} className={tab === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>
+            <button key={x.id} role="tab" aria-selected={tab === x.id} className={`${tab === x.id ? "on" : ""}${x.label ? "" : " tab-lk"}`} onClick={() => setTab(x.id)}>{x.label ? t(x.label) : <><ChatIcon />Livekatsomo</>}</button>
           ))}
         </div>
 
@@ -236,6 +249,8 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
         )}
 
         {tab === "table" && <Standings s={s} highlight={[m.home.name, m.away.name]} />}
+
+        {tab === "livekatsomo" && (room ? <Livekatsomo roomId={room.id} /> : <div className="panel"><p className="muted pad">{t("loading")}</p></div>)}
       </main>
       <Footer />
     </>

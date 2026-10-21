@@ -27,6 +27,10 @@ kiintiömigraatio ajetaan. `FD_QUOTA_REQUIRED=1`, joten yhteinen kiintiö on pak
   Tulospalvelu: navigaatio ja aktiivinen kohta, ≥44 px kosketusalueet, kilpailuryhmät, nopeat päivänvaihdot
   (viimeisin valinta jää voimaan), paluu palauttaa päivän ja vierityskohdan, Live-suodatin osoitteessa, haku
   näppäimistöllä (Escape palauttaa kohdistuksen), suosikkien siirto vanhasta muodosta, vanhat linkit, kilpailusivu.
+- `livekatsomo.cjs`: Livekatsomon rajapinta (oikeudet, rajat rinnakkain, kaksoislähetys, poistot, ilmoitukset,
+  paikallaolo, sulkeminen ja säilytysajan poisto) ja selain (nosto, merkit, keskustelu, vieritys, katko,
+  mobiilin näppäimistö, teemat, näppäimistökäyttö, ylläpito). Testikäyttäjät ovat keksittyjä; sähköpostia ei
+  lähetetä. Kuvakaappaukset: `SHOTS=<kansio>`. Ks. docs/livekatsomo.md.
 - `switches.cjs`: `FD_OFF=1` ja `ESPN_OFF=1` → 0 lähdehakua, hallittu virhe, ei välimuistissa olevaa dataa.
 Suljetussa ympäristössä, jossa Google Fonts ei vastaa, käännös tehdään Nextin testitilalla
 `FONTS_MOCK=<tiedosto>` (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`; fonttitiedostot korvataan). Tämä ei ole

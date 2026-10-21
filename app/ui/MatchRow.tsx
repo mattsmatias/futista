@@ -8,6 +8,8 @@ import type { MatchState } from "@/lib/live-core";
 import { useI18n } from "@/lib/i18n";
 import { Num } from "@/lib/fresh";
 import { Badge } from "../Stats";
+import { useRoomFor } from "@/lib/lk-client";
+import { LkRowBadge } from "./LkBits";
 
 export type RowTeam = Team & { display?: string };
 
@@ -32,7 +34,9 @@ export function useStatusText() {
   };
 }
 
-export function MatchRow({ href, home, away, s, time, highlight }: { href: string; home: RowTeam; away: RowTeam; s: MatchState; time: string | null; highlight?: (t: Team) => boolean }) {
+export function MatchRow({ href, home, away, s, time, highlight, date }: { href: string; home: RowTeam; away: RowTeam; s: MatchState; time: string | null; highlight?: (t: Team) => boolean; date?: string }) {
+  // Livekatsomo (vain ylläpidon valitsemat ottelut): päivä osoitteesta, jos sitä ei annettu
+  const room = useRoomFor(date ?? href.match(/\/(\d{4}-\d{2}-\d{2})\//)?.[1], home.name, away.name, time, href);
   const st = useStatusText()(s, time);
   const score = hasScore(s);
   const done = s.kind === "ft";
@@ -41,7 +45,7 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
   const name = (x: RowTeam) => x.display ?? x.name;
   const label = `${name(home)}${score ? ` ${s.hs}–${s.as}` : ""} ${name(away)}. ${st.long}${s.pens ? ` ${s.pens[0]}–${s.pens[1]}` : ""}`;
   return (
-    <div className={`mrow${isLive ? " is-live" : ""}`}>
+    <div className={`mrow${isLive ? " is-live" : ""}${room ? " has-lk" : ""}`}>
       <a className="mrow-link" href={href} aria-label={label}>
         <span className={`mrow-st ms-${st.cls}`} aria-hidden="true">
           {isLive && <i className="live-dot" />}
@@ -56,6 +60,7 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
           <span className={aw ? "win" : ""}>{score ? <Num v={s.as} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[1]})</small>}</span>
         </span>
       </a>
+      {room && <LkRowBadge room={room} />}
     </div>
   );
 }
