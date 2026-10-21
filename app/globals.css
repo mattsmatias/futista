@@ -1329,4 +1329,12 @@ main.storypage { display: block; padding-top: 0; }
 @media (max-width: 900px) {
   .bottomnav::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 120px; background: var(--glass); -webkit-backdrop-filter: inherit; backdrop-filter: inherit; pointer-events: none; }
 }
-html { background: var(--bg); }
+/* Lyhyellä sivulla iPhone (kotivalikon sovellus) piirtää alapalkin alle jäävän alueen sivun pohjavärillä:
+   pohjaväri = alapalkin väri, ja itse sivu (body) täyttää koko näytön harmaalla taustallaan. */
+:root { --nav-solid: #fbfbfc; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nav-solid: #090c10; } }
+:root[data-theme="dark"] { --nav-solid: #090c10; }
+@media (max-width: 900px) {
+  html { background: var(--nav-solid); }
+  body { min-height: 100vh; min-height: 100dvh; }
+}
