@@ -10,8 +10,6 @@ import { fdScore } from "@/lib/score";
 import PlayerView, { type PlayerData } from "./PlayerView";
 
 export const revalidate = 1800;
-// sivu tehdään ensimmäisellä avauksella ja pidetään välimuistissa (ISR) → seuraavat avaukset heti
-export function generateStaticParams() { return []; }
 export const maxDuration = 60;
 
 type Props = { params: { id: string } };
