@@ -58,7 +58,8 @@ tarkistetaan ennen välimuistia, joten aiemmin tallennettua sisältöä ei näyt
 Vanhat versiot poistetaan aktivoinnissa. Ilman verkkoa näkyy ilmoitus "näytetään tallennettu versio".
 
 ## Tietosuoja
-Futistan oma koodi ei käytä evästeitä eikä analytiikkaa. Liikenne kulkee Cloudflaren ja Vercelin kautta;
+Futistan oma koodi ei käytä evästeitä eikä analytiikkaa. Cloudflare lisää tuotantosivuihin Cloudflare Web
+Analytics -kävijätilastoskriptin (havaittu 21.10.2026). Liikenne kulkee Cloudflaren ja Vercelin kautta;
 niiden käsittely on kuvattu /tietosuoja-sivulla. Rekisterinpitäjän nimi ja yhteystieto puuttuvat
 (`lib/site.ts`) – omistajan täytettävä ennen julkaisua.
 

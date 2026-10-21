@@ -8,7 +8,7 @@ export type Doc = { title: string; intro: string; sections: Section[] };
 export const PRIVACY: Record<Lang, Doc> = {
   fi: {
     title: "Tietosuoja",
-    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta (ks. Palvelin ja lokitiedot).",
+    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
     sections: [
       {
         h: "Rekisterinpitäjä ja yhteystiedot",
@@ -33,7 +33,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Palvelin ja lokitiedot",
         p: [
-          "Sivuston liikenne kulkee [Cloudflaren](https://www.cloudflare.com/privacypolicy/) verkon kautta, ja sivusto toimii [Vercelin](https://vercel.com/legal/privacy-policy) palvelimilla. Cloudflaren vastaukset pyytävät selainta raportoimaan verkkovirheistä Cloudflarelle (Network Error Logging). Kuten kaikki verkkopalvelut, Cloudflare ja Vercel käsittelevät teknisesti IP-osoitteesi ja selaimesi tiedot sivun toimittamiseksi ja tietoturvan vuoksi, ja säilyttävät lokit omien käytäntöjensä mukaisesti.",
+          "Sivuston liikenne kulkee [Cloudflaren](https://www.cloudflare.com/privacypolicy/) verkon kautta, ja sivusto toimii [Vercelin](https://vercel.com/legal/privacy-policy) palvelimilla. Cloudflaren vastaukset pyytävät selainta raportoimaan verkkovirheistä Cloudflarelle (Network Error Logging). Cloudflare lisää sivulle myös [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) -skriptin, joka lähettää Cloudflarelle sivun latausta ja käyntiä koskevia tilastotietoja; Cloudflaren mukaan se ei käytä evästeitä. Kuten kaikki verkkopalvelut, Cloudflare ja Vercel käsittelevät teknisesti IP-osoitteesi ja selaimesi tiedot sivun toimittamiseksi ja tietoturvan vuoksi, ja säilyttävät lokit omien käytäntöjensä mukaisesti.",
         ],
       },
       {
@@ -55,7 +55,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   sv: {
     title: "Integritet",
-    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering och ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel (se Server och loggar).",
+    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering och ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel, och Cloudflare lägger till besöksstatistik på sidan (Cloudflare Web Analytics; se Server och loggar).",
     sections: [
       {
         h: "Personuppgiftsansvarig och kontakt",
@@ -80,7 +80,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Server och loggar",
         p: [
-          "Trafiken går via [Cloudflares](https://www.cloudflare.com/privacypolicy/) nät och webbplatsen körs på [Vercels](https://vercel.com/legal/privacy-policy) servrar. Cloudflares svar ber webbläsaren rapportera nätverksfel till Cloudflare (Network Error Logging). Som alla webbtjänster behandlar Cloudflare och Vercel tekniskt din IP-adress och webbläsarinformation för att leverera sidan och av säkerhetsskäl, och sparar loggar enligt sina egna rutiner.",
+          "Trafiken går via [Cloudflares](https://www.cloudflare.com/privacypolicy/) nät och webbplatsen körs på [Vercels](https://vercel.com/legal/privacy-policy) servrar. Cloudflares svar ber webbläsaren rapportera nätverksfel till Cloudflare (Network Error Logging). Cloudflare lägger också till skriptet [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/), som skickar statistik om sidladdning och besök till Cloudflare; enligt Cloudflare använder det inga kakor. Som alla webbtjänster behandlar Cloudflare och Vercel tekniskt din IP-adress och webbläsarinformation för att leverera sidan och av säkerhetsskäl, och sparar loggar enligt sina egna rutiner.",
         ],
       },
       {
@@ -102,7 +102,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   en: {
     title: "Privacy",
-    intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up and no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel (see Server and logs).",
+    intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up and no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel, and Cloudflare adds visitor statistics to the page (Cloudflare Web Analytics; see Server and logs).",
     sections: [
       {
         h: "Controller and contact",
@@ -127,7 +127,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Hosting and server logs",
         p: [
-          "Traffic passes through [Cloudflare's](https://www.cloudflare.com/privacypolicy/) network and the site runs on [Vercel](https://vercel.com/legal/privacy-policy) servers. Cloudflare's responses ask the browser to report network errors to Cloudflare (Network Error Logging). Like any web service, Cloudflare and Vercel technically process your IP address and browser details to deliver the page and for security, and keep logs under their own policies.",
+          "Traffic passes through [Cloudflare's](https://www.cloudflare.com/privacypolicy/) network and the site runs on [Vercel](https://vercel.com/legal/privacy-policy) servers. Cloudflare's responses ask the browser to report network errors to Cloudflare (Network Error Logging). Cloudflare also adds the [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) script, which sends page-load and visit statistics to Cloudflare; according to Cloudflare it uses no cookies. Like any web service, Cloudflare and Vercel technically process your IP address and browser details to deliver the page and for security, and keep logs under their own policies.",
         ],
       },
       {

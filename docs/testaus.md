@@ -40,8 +40,9 @@ esikatselusta pelkän nimen perusteella – älä käytä sellaista testikohteen
 ## Testiliikenteen merkintä
 Testiskriptit lisäävät omiin pyyntöihinsä otsakkeen `X-Futista-Test: 1` (vain saman sivuston pyyntöihin).
 Otsake ei ohita mitään: palvelin käsittelee pyynnön täsmälleen kuten muutkin.
-- Futistalla ei ole omaa analytiikkaa, joten esikatselun testit eivät päädy tuotannon analytiikkaan.
-  Esikatselut (`*.vercel.app`) eivät kulje Futistan Cloudflaren kautta.
+- Futistan omassa koodissa ei ole analytiikkaa. Cloudflare lisää futista.fi:n sivuihin Cloudflare Web Analytics
+  -skriptin; testit estävät sen (`static.cloudflareinsights.com`, `/cdn-cgi/rum`), joten testiajot eivät päädy
+  kävijätilastoihin. Esikatselut (`*.vercel.app`) eivät kulje Futistan Cloudflaren kautta.
 - Cloudflare (futista.fi): suodatusta otsakkeen perusteella EI ole tarkistettu – tähän työhön ei ole pääsyä
   Futistan Cloudflare-tiliin. Otsake näkyy Cloudflarelle, mutta ilmaistason liikennetilastot eivät
   tiettävästi suodata pyyntöotsakkeen mukaan. Tuotantoon tehdyt testipyynnöt voivat siis näkyä Cloudflaren

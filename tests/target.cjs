@@ -20,6 +20,9 @@ function resolveTarget(raw, argv = process.argv, env = process.env) {
 /** Lisää X-Futista-Test: 1 vain kohdeosoitteen pyyntöihin (ei kolmansille osapuolille) */
 async function markTestTraffic(context, origin) {
   await context.route((url) => url.origin === origin, (route) => route.continue({ headers: { ...route.request().headers(), "x-futista-test": "1" } }));
+  // testiliikenne ei päädy tuotannon kävijätilastoihin (Cloudflare lisää futista.fi:n sivuihin Web Analytics -skriptin).
+  // Rekisteröidään viimeisenä, jolloin se ohittaa yllä olevan säännön myös saman sivuston /cdn-cgi/rum-osoitteelle.
+  await context.route(/static\.cloudflareinsights\.com|\/cdn-cgi\/rum/, (route) => route.abort());
 }
 
 module.exports = { resolveTarget, markTestTraffic, PRODUCTION };
