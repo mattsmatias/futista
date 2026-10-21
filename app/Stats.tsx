@@ -75,20 +75,17 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
   const { t } = i;
   const { isFav } = useFavorites();
   const hl = highlight.map(norm);
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <h3><i className={`bar-${s.source}`} />{i.league(s.source, s.league)}</h3>
-        <span className="muted">{t("standing")}{s.season ? ` · ${s.season}` : ""}</span>
-      </div>
-      {rows.length === 0 ? <p className="muted pad">{s.failed?.includes("table") ? t("sourceDown") : t("noTable")}</p> : (
+  // useampi lohko (MLS:n konferenssit): oma taulukko kullekin; tiiviissä näkymässä vain korostetun / ensimmäisen lohko
+  const groups = s.groups?.length ? s.groups : null;
+  const shownGroups = groups && compact ? [groups.find((g) => g.table.some((r) => hl.includes(norm(r.team.name)))) ?? groups[0]] : groups;
+  const tableOf = (list: typeof rows) => (
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
               <tr><th>#</th><th className="l">{t("team")}</th><th>{t("colP")}</th><th className="opt">{t("colW")}</th><th className="opt">{t("colD")}</th><th className="opt">{t("colL")}</th><th className="opt">{t("colG")}</th><th>+/-</th><th>{t("colPts")}</th></tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {list.map((r) => {
                 const z = zoneOf(s.source, r.pos);
                 const gd = r.gf - r.ga;
                 const cls = [z ? `z-${z.kind}` : "", isFav(r.team) ? "fav" : "", hl.includes(norm(r.team.name)) ? "hl" : ""].join(" ").trim();
@@ -106,6 +103,17 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
             </tbody>
           </table>
         </div>
+  );
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <h3><i className={`bar-${s.source}`} />{i.league(s.source, s.league)}</h3>
+        <span className="muted">{t("standing")}{s.season ? ` · ${s.season}` : ""}</span>
+      </div>
+      {rows.length === 0 ? <p className="muted pad">{s.failed?.includes("table") ? t("sourceDown") : t("noTable")}</p> : (
+        groups ? <>{shownGroups!.map((g) => (
+          <div key={g.key}><h4 className="tbl-group">{t(`conf_${g.key}` as Key) !== `conf_${g.key}` ? t(`conf_${g.key}` as Key) : g.name}</h4>{tableOf(compact ? g.table.slice(0, 6) : g.table)}</div>
+        ))}</> : tableOf(rows)
       )}
       {!compact && (
         <div className="legend" aria-label={t("zonesTitle")}>

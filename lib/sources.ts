@@ -1,9 +1,9 @@
 // Uutislähteet. Uuden lähteen saa lisättyä tähän listaan.
-export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship" | "superlig";
+export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship" | "superlig" | "mls";
 
 export type Club = { tag: string; name: string; short: string; c1: string; c2: string };
 
-export type Zone = { from: number; to: number; label: string; kind: "ucl" | "uclq" | "uel" | "uecl" | "rel" | "r16" | "po" | "promo" | "pp" };
+export type Zone = { from: number; to: number; label: string; kind: "ucl" | "uclq" | "uel" | "uecl" | "rel" | "r16" | "po" | "promo" | "pp" | "mlspo" | "mlswc" };
 
 const EURO_ZONES: Zone[] = [
   { from: 1, to: 4, label: "Mestarien liiga", kind: "ucl" },
@@ -20,6 +20,7 @@ export type Source = {
   feeds: string[];  // RSS-syötteet (tyhjä = sarja ilman uutisia, tiedot football-datasta)
   fd: string;       // football-data.orgin sarjakoodi ("" = ei football-datassa)
   espn?: string;    // ESPN:n sarjatunnus, kun koko sarja haetaan ESPN:stä (taulukko, ottelut, maalipörssi)
+  calendarYear?: boolean; // kausi = kalenterivuosi (esim. MLS), ei syksystä kevääseen
   pages?: { table: string; results: string; fixtures: string }; // tilastosivut, oletuksena base + sarjataulukko/ jne.
   clubs: Club[];  // seurapikavalinnat (tag = syötteen kategoria)
   zones: Zone[];  // sarjataulukon värikoodit
@@ -94,6 +95,8 @@ export const SOURCES: Source[] = [
   // Sarjat, joita football-datan ilmaisversio ei kata: kaikki tiedot ESPN:stä.
   // Sijoitusvärit ESPN:n taulukon merkintöjen mukaan (2026–27: 1. MLI, 2. MLI-karsinta, 3. EL-karsinta, 4. ECL-karsinta, 16–18 putoaa).
   espnLeague("superlig", "Süper Lig", "tur.1", [z(1, 1, "ucl"), z(2, 2, "uclq"), z(3, 3, "uel"), z(4, 4, "uecl"), z(16, 18, "rel")]),
+  // MLS: kaksi konferenssia (sijat konferenssin sisällä): 1–7 pudotuspeleihin, 8–9 wild card -otteluihin
+  { ...espnLeague("mls", "MLS", "usa.1", [z(1, 7, "mlspo"), z(8, 9, "mlswc")]), calendarYear: true },
 ];
 
 function z(from: number, to: number, kind: Zone["kind"]): Zone { return { from, to, label: kind, kind }; }

@@ -19,17 +19,25 @@ const teamOf = (t: any): Team => ({
 });
 
 /** ESPN:n sarjataulukko → rivit ja kausi */
-export function parseEspnStandings(j: any): { table: Row[]; season: string | null } {
-  const g = (j?.children ?? [])[0]?.standings;
-  const entries: any[] = g?.entries ?? [];
-  const table: Row[] = entries.map((e) => {
+export function parseEspnStandings(j: any): { table: Row[]; season: string | null; groups?: { key: string; name: string; table: Row[] }[] } {
+  const rowsOf = (g: any): Row[] => (g?.entries ?? []).map((e: any) => {
     const s: Record<string, number> = Object.fromEntries((e.stats ?? []).map((x: any) => [x.name, Number(x.value)]));
     return { pos: s.rank, team: teamOf(e.team), p: s.gamesPlayed, w: s.wins, d: s.ties, l: s.losses, gf: s.pointsFor, ga: s.pointsAgainst, pts: s.points };
-  }).filter((r) => [r.pos, r.p, r.w, r.d, r.l, r.gf, r.ga, r.pts].every((n) => Number.isFinite(n)))
-    .sort((a, b) => a.pos - b.pos);
-  const m = typeof g?.seasonDisplayName === "string" ? g.seasonDisplayName.match(/(\d{4})\s*[-–/]\s*(\d{2,4})/) : null;
-  const season = m ? `${m[1]}–${m[2].slice(-2)}` : null;
-  return { table, season };
+  }).filter((r: Row) => [r.pos, r.p, r.w, r.d, r.l, r.gf, r.ga, r.pts].every((n) => Number.isFinite(n)))
+    .sort((a: Row, b: Row) => a.pos - b.pos);
+  const children: any[] = j?.children ?? [];
+  const g = children[0]?.standings;
+  const name = typeof g?.seasonDisplayName === "string" ? g.seasonDisplayName : "";
+  // kausi "2025-26" → "2025–26"; kalenterivuoden sarja ("2026 MLS") → "2026"
+  const m = name.match(/(\d{4})\s*[-–/]\s*(\d{2,4})/);
+  const y = name.match(/^(\d{4})\b/);
+  const season = m ? `${m[1]}–${m[2].slice(-2)}` : y ? y[1] : null;
+  if (children.length > 1) {
+    // useampi lohko (esim. MLS:n konferenssit): sijat lohkon sisällä
+    const groups = children.map((c) => ({ key: String(c.abbreviation ?? c.name ?? ""), name: String(c.name ?? ""), table: rowsOf(c.standings) })).filter((x) => x.table.length);
+    return { table: groups.flatMap((x) => x.table), season, groups };
+  }
+  return { table: rowsOf(g), season };
 }
 
 /** ESPN:n ottelut → tulokset (vain päättyneet, joissa tulos) ja otteluohjelma (tulevat ja käynnissä olevat) */
@@ -65,32 +73,33 @@ export function inSeason(events: any[], start?: string, end?: string): any[] {
 }
 
 /** Kauden vuodet: kesästä kesään kulkevassa kaudessa kaksi kalenterivuotta */
-export function seasonYears(now = new Date()): number[] {
+export function seasonYears(now = new Date(), calendarYear = false): number[] {
   const y = now.getUTCFullYear(), m = now.getUTCMonth() + 1;
+  if (calendarYear) return [y];
   return m >= 7 ? [y, y + 1] : [y - 1, y];
 }
 
-const load = (id: SourceId, slug: string) =>
+const load = (id: SourceId, slug: string, calendarYear = false) =>
   unstable_cache(async (): Promise<LeagueStats> => {
-    const years = seasonYears();
+    const years = seasonYears(new Date(), calendarYear);
     const [st, ...ev] = await Promise.all([
       getJson(`${STAND}${slug}/standings`, 10000).catch(() => null),
       ...years.map((y) => getJson(`${SITE}${slug}/scoreboard?dates=${y}&limit=1000`, 12000).catch(() => null)),
     ]);
-    const { table, season } = st ? parseEspnStandings(st) : { table: [], season: null };
+    const { table, season, groups } = st ? parseEspnStandings(st) : { table: [] as Row[], season: null, groups: undefined };
     const evOk = ev.every(Boolean);
     // kalenterivuoden haku sisältää myös edellisen kauden kevään: vain kuluvan kauden ottelut
     const span = ev.map((j) => j?.leagues?.[0]?.season).find((x) => x?.startDate && x?.endDate);
     const { results, fixtures } = parseEspnEvents(inSeason(ev.flatMap((j) => j?.events ?? []), span?.startDate, span?.endDate));
     const failed: Part[] = [...(table.length ? [] : ["table" as const]), ...(evOk ? [] : ["results" as const, "fixtures" as const])];
     if (!table.length && !results.length && !fixtures.length) throw new Error("espn league unavailable");
-    return { source: id, league: "", table, results, fixtures, season, updated: Date.now(), failed };
-  }, ["espn-league-v2", id, slug], { revalidate: 600 })();
+    return { source: id, league: "", table, results, fixtures, season, updated: Date.now(), failed, ...(groups ? { groups } : {}) };
+  }, ["espn-league-v3", id, slug], { revalidate: 600 })();
 
-export async function fromEspnLeague(id: SourceId, slug: string, league: string): Promise<LeagueStats | null> {
+export async function fromEspnLeague(id: SourceId, slug: string, league: string, calendarYear = false): Promise<LeagueStats | null> {
   if (process.env.ESPN_OFF === "1") return null;
   try {
-    const s = await load(id, slug);
+    const s = await load(id, slug, calendarYear);
     return { ...s, league };
   } catch (e) {
     console.error("espn-sarja", slug, (e as Error).message);
@@ -100,7 +109,7 @@ export async function fromEspnLeague(id: SourceId, slug: string, league: string)
 
 /** Maalipörssi ESPN:n tilastoista. Pelaajan tunnistetta ei anneta (id 0 = ei linkkiä pelaajasivulle, joka on
  *  football-datan tunnisteille). Puuttuva syöttö- tai ottelumäärä on null, ei nolla. */
-export function parseEspnScorers(j: any): { list: { name: string; team: Team; goals: number | null; assists: number | null; played: number | null }[]; season: string | null } {
+export function parseEspnScorers(j: any, calendarYear = false): { list: { name: string; team: Team; goals: number | null; assists: number | null; played: number | null }[]; season: string | null } {
   const g = (j?.stats ?? []).find((x: any) => x.name === "goalsLeaders");
   const num = (re: RegExp, s: unknown) => { const m = typeof s === "string" ? s.match(re) : null; return m ? Number(m[1]) : null; };
   const list = (g?.leaders ?? []).slice(0, 15).map((l: any) => ({
@@ -111,22 +120,22 @@ export function parseEspnScorers(j: any): { list: { name: string; team: Team; go
     played: num(/Matches:\s*(\d+)/, l.displayValue) ?? num(/\bM:\s*(\d+)/, l.shortDisplayValue),
   }));
   const y = Number(j?.season?.year);
-  return { list, season: Number.isFinite(y) ? `${y}–${String(y + 1).slice(2)}` : null };
+  return { list, season: Number.isFinite(y) ? (calendarYear ? String(y) : `${y}–${String(y + 1).slice(2)}`) : null };
 }
 
-const scorersCache = (slug: string) =>
+const scorersCache = (slug: string, calendarYear = false) =>
   unstable_cache(async () => {
     const j = await getJson(`${SITE}${slug}/statistics`, 10000);
-    const r = parseEspnScorers(j);
+    const r = parseEspnScorers(j, calendarYear);
     if (!r.list.length) throw new Error("no scorers");
     return { ...r, at: Date.now() };
-  }, ["espn-scorers-v1", slug], { revalidate: 3600 })();
+  }, ["espn-scorers-v2", slug], { revalidate: 3600 })();
 
-export async function espnScorers(id: string, slug: string) {
+export async function espnScorers(id: string, slug: string, calendarYear = false) {
   if (process.env.ESPN_OFF === "1") return null;
   try {
-    const r = await scorersCache(slug);
-    const league = await fromEspnLeague(id as SourceId, slug, "");
+    const r = await scorersCache(slug, calendarYear);
+    const league = await fromEspnLeague(id as SourceId, slug, "", calendarYear);
     const teams = league?.table.map((x) => x.team) ?? [];
     const list = r.list.map((p) => ({
       id: 0, name: p.name, nationality: null,

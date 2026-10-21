@@ -1313,3 +1313,13 @@ main.storypage { display: block; padding-top: 0; }
 .s-row .s-fav-only .s-name { margin: 0; align-self: center; }
 /* Lähde- ja tarkistusrivit paneelien alla pois näkyvistä (lähteet kerrotaan Tietoa-sivulla) */
 .panel-src { display: none !important; }
+
+/* MLS */
+:root { --lg-mls: #1d4ed8; --c-mls: #0b1f4b; }
+.bar-mls, .dot-mls { background: var(--lg-mls); } .chip-mls { background: color-mix(in srgb, var(--lg-mls) 16%, transparent); color: var(--lg-mls); } .mh-mls { --accent: var(--lg-mls); } .lpick button.on-mls { color: var(--lg-mls); }
+.cm-mls { background: var(--c-mls); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --lg-mls: #60a5fa; } }
+:root[data-theme="dark"] { --lg-mls: #60a5fa; }
+.tbl tr.z-mlspo .pos::before, .zk.z-mlspo { background: var(--ucl, #3b82f6); }
+.tbl tr.z-mlswc .pos::before, .zk.z-mlswc { background: var(--uel); }
+.tbl-group { margin: 14px 12px 6px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }

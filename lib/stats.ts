@@ -19,6 +19,7 @@ export type LeagueStats = {
   updated?: number | null;  // vanhimman käytetyn lähdevastauksen aika (ms) – ei hakuyrityksen aika
   failed?: Part[];          // osat, joita lähde ei juuri nyt antanut (ja joista ei ole aiempaa tietoa)
   stale?: boolean;          // osa tiedoista on aiemmasta onnistuneesta hausta
+  groups?: { key: string; name: string; table: Row[] }[]; // useampi taulukko (esim. MLS:n konferenssit); table = kaikki yhdessä
 };
 
 const UA = { "User-Agent": "Futista/1.0" };
@@ -182,7 +183,7 @@ export async function getLeague(id: string): Promise<LeagueStats | null> {
   const s = SOURCES.find((x) => x.id === id);
   if (!s) return null;
   if (s.feeds.length) return (await getStats()).find((x) => x.source === id) ?? null;
-  if (s.espn) return fromEspnLeague(s.id, s.espn, s.league);
+  if (s.espn) return fromEspnLeague(s.id, s.espn, s.league, !!s.calendarYear);
   return fromFd(s);
 }
 

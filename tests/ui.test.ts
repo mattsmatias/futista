@@ -225,3 +225,20 @@ test("pelaajahaku: nimen osat, aksentit, sukunimi ensin, tuplat pois", () => {
   assert.equal(searchPlayers(rows, "l").length, 0);
   assert.equal(searchPlayers(rows, "pedri")[0].team, "Barça");
 });
+
+test("MLS: konferenssit omiksi taulukoiksi, kausi kalenterivuotena", async () => {
+  const { parseEspnStandings, seasonYears } = await import("../lib/espn-league");
+  const ent = (name: string, rank: number, pts: number) => ({ team: { displayName: name, abbreviation: name.slice(0, 3).toUpperCase() },
+    stats: [["rank", rank], ["gamesPlayed", 30], ["wins", 10], ["ties", 5], ["losses", 15], ["pointsFor", 40], ["pointsAgainst", 45], ["points", pts]].map(([name, value]) => ({ name, value })) });
+  const j = { children: [
+    { name: "Eastern Conference", abbreviation: "East", standings: { seasonDisplayName: "2026 MLS", entries: [ent("Chicago Fire FC", 2, 50), ent("Inter Miami CF", 1, 60)] } },
+    { name: "Western Conference", abbreviation: "West", standings: { seasonDisplayName: "2026 MLS", entries: [ent("LAFC", 1, 58)] } },
+  ] };
+  const r = parseEspnStandings(j);
+  assert.equal(r.season, "2026");
+  assert.deepEqual(r.groups?.map((g) => [g.key, g.table.map((x) => x.team.name)]), [["East", ["Inter Miami CF", "Chicago Fire FC"]], ["West", ["LAFC"]]]);
+  assert.equal(r.table.length, 3);
+  assert.equal(parseEspnStandings({ children: [{ standings: { seasonDisplayName: "2025-26 Turkish Super Lig", entries: [ent("Galatasaray", 1, 30)] } }] }).season, "2025–26");
+  assert.deepEqual(seasonYears(new Date("2026-10-22T12:00:00Z"), true), [2026]);
+  assert.deepEqual(seasonYears(new Date("2026-10-22T12:00:00Z")), [2026, 2027]);
+});
