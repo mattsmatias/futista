@@ -205,3 +205,23 @@ test("kanavamainokset: lähdesivun WhatsApp-mainos poistuu, tavallinen teksti s�
   assert.equal(isPromo("Pelaaja seuraa meitä kohti mestaruutta, sanoi valmentaja."), false);
   assert.equal(isPromo("Tilanne: " + "pitkä teksti ".repeat(40) + " liity nyt"), false); // pitkää kappaletta ei poisteta
 });
+
+import { buildPlayers, searchPlayers } from "../lib/player-search";
+
+test("pelaajahaku: nimen osat, aksentit, sukunimi ensin, tuplat pois", () => {
+  const rows = buildPlayers([
+    [{ name: "FC Barcelona", shortName: "Barça", crest: "x.png", squad: [
+      { id: 1, name: "Robert Lewandowski", position: "Offence" },
+      { id: 2, name: "Pedri", position: "Midfield" },
+      { id: 3, name: "Fermín López", position: "Midfield" },
+    ] }],
+    [{ name: "FC Barcelona", squad: [{ id: 1, name: "Robert Lewandowski" }] }, { name: "Bayern", squad: [{ id: 9, name: "Lewis Hall" }] }],
+  ]);
+  assert.equal(rows.length, 4);
+  assert.deepEqual(searchPlayers(rows, "lewandowski").map((p) => p.id), [1]);
+  assert.deepEqual(searchPlayers(rows, "robert lew").map((p) => p.href), ["/pelaaja/1"]);
+  assert.deepEqual(searchPlayers(rows, "fermin").map((p) => p.name), ["Fermín López"]);
+  assert.deepEqual(searchPlayers(rows, "lew").map((p) => p.id).sort(), [1, 9]); // etu- tai sukunimen alku
+  assert.equal(searchPlayers(rows, "l").length, 0);
+  assert.equal(searchPlayers(rows, "pedri")[0].team, "Barça");
+});

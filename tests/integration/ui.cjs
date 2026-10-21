@@ -196,6 +196,11 @@ const MIN = 60_000;
     await page.locator(".search-btn").click(); await page.keyboard.type("qqqzz");
     await page.locator("[role=dialog]", { hasText: "Ei hakutuloksia" }).waitFor({ timeout: 8000 }).catch(() => {});
     { const dt = await page.locator("[role=dialog]").innerText().catch((e) => "ERR " + e.message); ok("  osumaton haku → ohjeellinen teksti", /Ei hakutuloksia/i.test(dt), dt.slice(0, 160).replace(/\n/g, " / ")); }
+    // pelaajahaku: nimellä löytyy pelaajan profiili
+    await page.locator("[role=dialog] input").fill("testi pel");
+    await page.locator("[role=option]", { hasText: "Testi Pelaaja" }).waitFor({ timeout: 8000 }).catch(() => {});
+    const ph = await page.locator("[role=option]", { hasText: "Testi Pelaaja" }).first().getAttribute("href").catch(() => null);
+    ok("haku: pelaaja löytyy nimellä → profiili", ph === "/pelaaja/7001", String(ph));
     await page.keyboard.press("Escape");
     // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan
     await page.goto(APP + "/suosikit", { waitUntil: "networkidle" }); await page.waitForTimeout(800);

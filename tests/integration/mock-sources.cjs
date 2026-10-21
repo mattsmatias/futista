@@ -74,7 +74,7 @@ function fd(path, res) {
       { id: 5000, utcDate: iso(now - 4 * 86400_000), status: "FINISHED", matchday: 3, homeTeam: B, awayTeam: A, score: { fullTime: { home: 1, away: 3 } } }] });
   if ((m = path.match(/^\/competitions\/(\w+)\/scorers/)))
     return json(res, 200, { season: { startDate: "2026-08-01", endDate: "2027-05-30" }, scorers: [{ player: { id: 7001, name: "Testi Pelaaja", nationality: "Finland" }, team: A, goals: 4, assists: 1, playedMatches: 3 }] });
-  if (path.startsWith("/competitions/") && path.includes("/teams")) return json(res, 200, { teams: [A, B] });
+  if (path.startsWith("/competitions/") && path.includes("/teams")) return json(res, 200, { teams: [{ ...A, squad: [{ id: 7001, name: "Testi Pelaaja", position: "Offence" }] }, B] });
   if (path.startsWith("/matches?")) {
     const all = Object.keys(GEN).flatMap((c) => gen(c).matches).filter((x) => Math.abs(Date.parse(x.utcDate) - now) < 30 * H);
     return json(res, 200, { matches: all });

@@ -10,6 +10,8 @@ import { SOURCES } from "@/lib/sources";
 import { COMP_META, COMP_ORDER } from "@/lib/comps";
 import { country } from "@/lib/flags";
 import { HeartButton, useFavorites } from "@/lib/favorites";
+
+type SearchPlayer = { kind: "player"; id: number; name: string; team: string; crest?: string; position: string | null; href: string };
 import { norm } from "@/lib/teams";
 import { Badge } from "../Stats";
 import { CompMark } from "./CompMark";
@@ -61,7 +63,23 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
   }), [index, i.lang]);
 
   const res = useMemo(() => search({ teams: index?.teams ?? [], comps, nations }, q), [index, comps, nations, q]);
-  const flat: (SearchTeam | SearchComp | SearchNation)[] = [...res.teams, ...res.comps, ...res.nations];
+  // pelaajat palvelimelta (viive 250 ms, vanha haku perutaan)
+  const [players, setPlayers] = useState<SearchPlayer[]>([]);
+  const [pLoading, setPLoading] = useState(false);
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) { setPlayers([]); setPLoading(false); return; }
+    const ctl = new AbortController();
+    setPLoading(true);
+    const t = setTimeout(() => {
+      fetch(`/api/pelaajat?q=${encodeURIComponent(term)}`, { signal: ctl.signal })
+        .then((r) => (r.ok ? r.json() : { players: [] }))
+        .then((d) => { setPlayers((d.players ?? []).map((p: any) => ({ ...p, kind: "player" as const }))); setPLoading(false); })
+        .catch(() => { if (!ctl.signal.aborted) { setPlayers([]); setPLoading(false); } });
+    }, 250);
+    return () => { clearTimeout(t); ctl.abort(); };
+  }, [q]);
+  const flat: (SearchTeam | SearchComp | SearchNation | SearchPlayer)[] = [...res.teams, ...res.comps, ...res.nations, ...players];
   useEffect(() => { setActive(0); }, [q]);
 
   const close = () => { setQ(""); onClose(); };
@@ -85,7 +103,7 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
   if (!open) return null;
   const optId = (n: number) => `${listId}-o${n}`;
   let n = -1;
-  const group = <T extends SearchTeam | SearchComp | SearchNation>(label: Key, items: T[], render: (x: T) => JSX.Element) =>
+  const group = <T extends SearchTeam | SearchComp | SearchNation | SearchPlayer>(label: Key, items: T[], render: (x: T) => JSX.Element) =>
     items.length > 0 && (
       <section className="s-group" aria-label={t(label)}>
         <h3>{t(label)}</h3>
@@ -147,7 +165,11 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
             <>{x.flag ? <img className="s-flag" src={`https://flagcdn.com/w40/${x.flag}.png`} alt="" width={24} height={16} /> : <span className="s-flag" />}
               <span className="s-name">{x.name}</span><span className="s-sub">{t("nationalTeamMen")}</span></>
           ))}
-          {q.trim().length >= 2 && state !== "loading" && flat.length === 0 && (
+          {group("searchPlayers", players, (x) => (
+            <><Badge t={{ name: x.team, code: x.team.slice(0, 3).toUpperCase(), crest: x.crest }} size={24} /><span className="s-name">{x.name}</span>
+              <span className="s-sub">{x.team}</span></>
+          ))}
+          {q.trim().length >= 2 && state !== "loading" && !pLoading && flat.length === 0 && (
             <div className="pad"><p><b>{t("searchNone")}</b></p><p className="muted">{t("searchHint")}</p></div>
           )}
           {index?.partial && q.trim().length >= 2 && <p className="muted pad">{t("searchPartial")}</p>}
