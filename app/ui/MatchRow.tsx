@@ -7,7 +7,6 @@ import type { Team } from "@/lib/stats";
 import type { MatchState } from "@/lib/live-core";
 import { useI18n } from "@/lib/i18n";
 import { Num } from "@/lib/fresh";
-import { ConflictInfo } from "@/lib/live";
 import { Badge } from "../Stats";
 
 export type RowTeam = Team & { display?: string };
@@ -40,7 +39,7 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
   const hw = done && score && s.hs! > s.as!, aw = done && score && s.as! > s.hs!;
   const isLive = s.kind === "live" || s.kind === "ht";
   const name = (x: RowTeam) => x.display ?? x.name;
-  const label = `${name(home)}${score ? ` ${s.hs}–${s.as}` : ""} ${name(away)}. ${st.long}${s.pens ? ` ${s.pens[0]}–${s.pens[1]}` : ""}${s.uncertain ? `. ?` : ""}`;
+  const label = `${name(home)}${score ? ` ${s.hs}–${s.as}` : ""} ${name(away)}. ${st.long}${s.pens ? ` ${s.pens[0]}–${s.pens[1]}` : ""}`;
   return (
     <div className={`mrow${isLive ? " is-live" : ""}`}>
       <a className="mrow-link" href={href} aria-label={label}>
@@ -57,7 +56,6 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
           <span className={aw ? "win" : ""}>{score ? <Num v={s.as} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[1]})</small>}</span>
         </span>
       </a>
-      {s.uncertain && <span className="mrow-q"><ConflictInfo what={s.uncertainWhat} /></span>}
     </div>
   );
 }

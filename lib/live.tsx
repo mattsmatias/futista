@@ -93,7 +93,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     setNow(Date.now());
     // ensimmäinen haku heti; aiemmin haettu tieto näytetään sillä välin
     if (Date.now() - s.lastAttempt > RESUME_MIN) load(); else schedule(RESUME_MIN - (Date.now() - s.lastAttempt));
-    const b = setInterval(() => setNow(Date.now()), 30_000);
+    const b = setInterval(() => setNow(Date.now()), 10_000); // peliminuutti juoksee
     const vis = () => {
       if (document.hidden) return;
       setNow(Date.now());

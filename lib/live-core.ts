@@ -58,6 +58,22 @@ export function fmtClock(c?: string | null): string | undefined {
   return add ? `${base}+${add}'` : `${base}'`;
 }
 
+/** Peliminuutti juoksee sivulla lähteen kellosta eteenpäin päivitysten välillä: lähteen minuutti + hakuhetkestä
+ *  kulunut aika. Ei ylitä jakson loppua (45' / 90' / 105' / 120'); lisäajan minuutit vain, jos lähde on ne
+ *  ilmoittanut. Jos tieto on yli 10 min vanha tai kellot eivät täsmää, näytetään lähteen minuutti sellaisenaan. */
+export function tickClock(min: string | undefined, fetchedAt: number | null | undefined, now: number | null): string | undefined {
+  if (!min || typeof fetchedAt !== "number" || now === null) return min;
+  const m = min.match(/^(\d{1,3})(?:\+(\d{1,2}))?'$/);
+  if (!m) return min;
+  const gone = now - fetchedAt;
+  if (gone < 0 || gone > 10 * 60_000) return min;
+  const step = Math.floor(gone / 60_000);
+  const base = Number(m[1]);
+  if (m[2] !== undefined) return `${base}+${Math.min(Number(m[2]) + step, 15)}'`;
+  const end = base <= 45 ? 45 : base <= 90 ? 90 : base <= 105 ? 105 : 120;
+  return `${Math.min(base + step, end)}'`;
+}
+
 const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "de", "la", "cd", "ud", "sd", "sad", "fk", "bk", "if", "balompie", "1907", "1909", "1913", "and", "hove", "albion", "calcio", "futbol"]);
 
 export const words = (s: string) =>
@@ -137,8 +153,8 @@ export function matchState(
     const srcAt = hit.statusSrc !== "espn" && typeof hit.sourceUpdatedAt === "number" ? hit.sourceUpdatedAt : undefined;
     const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true, uncertainWhat: hit.conflictKind } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
     switch (hit.status) {
-      case "IN_PLAY": return r({ kind: "live", ...sc, min: fmtClock(hit.min), ...extra });
-      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: fmtClock(hit.min), ...extra, phase: "et" });
+      case "IN_PLAY": return r({ kind: "live", ...sc, min: tickClock(fmtClock(hit.min), hit.fetchedAt, now), ...extra });
+      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: tickClock(fmtClock(hit.min), hit.fetchedAt, now), ...extra, phase: "et" });
       case "PENALTY_SHOOTOUT": return r({ kind: "live", ...sc, ...extra, phase: "pens" });
       case "PAUSED": return r({ kind: "ht", ...sc, ...extra });
       case "FINISHED": case "AWARDED": return r({ kind: "ft", ...sc, pens: extra.pens, aet: extra.aet });

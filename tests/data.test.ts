@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { createGuard, retryAfterMs, SourceError, type Fetched } from "../lib/guard";
 import { mergeLive, findMatch, isNewer, acceptMatch, acceptList, isRegression } from "../lib/live-merge";
 import { matchState, fmtClock, helsinkiParts, helsinkiEpoch, knownFixture, words, type LiveMatch } from "../lib/live-core";
+import { tickClock } from "../lib/live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "../lib/score";
 import { parseStatus, parseScore, toGame, toLive, isSeniorMen, parseSummary } from "../lib/espn-parse";
 import { fillFromLastGood } from "../lib/stats-merge";
@@ -392,4 +393,20 @@ test("perustason ottelusivu: puoliaika, kausi ja puuttuvat tiedot", () => {
   const mu = parseSummary({ header: { competitions: [u], league: { slug: "eng.league_cup" } } }, "1")!;
   assert.deepEqual([mu.game.kind, mu.game.hs, mu.ht, mu.season], ["upcoming", null, null, null]);
   assert.equal(parseSummary({}, "2"), null);
+});
+
+test("peliminuutti juoksee lähteen kellosta päivitysten välillä, ei yli jakson lopun", () => {
+  const T = Date.UTC(2026, 9, 21, 18, 8);
+  const M = 60_000;
+  assert.equal(tickClock("64'", T, T + 30_000), "64'");
+  assert.equal(tickClock("64'", T, T + 3 * M + 5000), "67'");
+  assert.equal(tickClock("43'", T, T + 5 * M), "45'");          // ensimmäinen puoliaika ei jatku yli 45'
+  assert.equal(tickClock("88'", T, T + 6 * M), "90'");
+  assert.equal(tickClock("45+1'", T, T + 2 * M), "45+3'");      // lähteen ilmoittama lisäaika jatkuu
+  assert.equal(tickClock("64'", T, T + 11 * M), "64'");         // vanha tieto: ei arvata
+  assert.equal(tickClock("64'", T, T - M), "64'");              // kellot eivät täsmää: ei arvata
+  assert.equal(tickClock("64'", null, T), "64'");
+  const f = { source: "ucl", date: "2026-10-21", time: "19:45", home: { name: "Como" }, away: { name: "Manchester United" } };
+  const st = matchState(f, [lm({ source: "ucl", home: "Como", away: "Manchester United", kickoff: Date.UTC(2026, 9, 21, 16, 45), status: "IN_PLAY", hs: 3, as: 0, min: "64'", fetchedAt: T })], T + 4 * M);
+  assert.equal(st.min, "68'");
 });
