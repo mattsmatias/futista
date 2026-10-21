@@ -51,6 +51,8 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     cur.current = list;
     setFavs(list);
     setReady(true);
+    // vanha tallennusmuoto siirretään heti uuteen avaimeen (tunniste lisätään, kun joukkue nähdään tunnisteen kanssa)
+    try { if (!localStorage.getItem(STORE_V2) && list.length) localStorage.setItem(STORE_V2, JSON.stringify(list)); } catch {}
     // toinen välilehti muutti suosikkeja
     const onStorage = (e: StorageEvent) => { if (e.key === STORE_V2) { const l = read(); cur.current = l; setFavs(l); } };
     window.addEventListener("storage", onStorage);

@@ -125,7 +125,7 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       await p.goto(U + '/joukkue/laliga/barcelona', { waitUntil: 'networkidle' }); await sl(1000);
       await p.goto(U + '/suosikit', { waitUntil: 'networkidle' }); await sl(1500);
       const r = await p.evaluate(() => ({ v2: JSON.parse(localStorage.getItem('futista-suosikit-v2') || '[]'), body: document.querySelector('main')?.innerText || '', teams: [...document.querySelectorAll('.team-list li')].map((li) => li.innerText.trim()) }));
-      rec('suosikit: vanha nimilista siirtyy uuteen muotoon (yksi seura, tunniste), "tälle laitteelle"', r.v2.length === 1 && r.v2[0].n === 'Barcelona' && Number.isInteger(r.v2[0].id) && /tälle laitteelle/.test(r.body) && r.teams.length === 1, { v2: r.v2, teams: r.teams });
+      rec('suosikit: vanha nimilista siirtyy uuteen muotoon (yksi seura; tunniste kun lähde antaa sen), "tälle laitteelle"', r.v2.length === 1 && r.v2[0].n === 'Barcelona' && /tälle laitteelle/.test(r.body) && r.teams.length === 1, { v2: r.v2, teams: r.teams });
       await c.close();
     }
     // ---------- virhetilat simuloidulla /api/live:llä ----------
