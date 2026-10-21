@@ -1,13 +1,12 @@
 "use client";
-// Suosikit: suosikkien päivän ottelut ja seuraavat ottelut, seuratut joukkueet, ilmoitukset, uutiset.
+// Suosikit: suosikkien seuraavat ottelut (myös tämän päivän), seuratut joukkueet, ilmoitukset, uutiset.
 import { useEffect, useMemo, useState } from "react";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
 import { useI18n } from "@/lib/i18n";
 import { useFreshStats } from "@/lib/fresh";
 import { useFavorites, HeartButton } from "@/lib/favorites";
-import { useUrlParam } from "@/lib/url-state";
-import { isDate, todayHel } from "@/lib/day";
+import { todayHel } from "@/lib/day";
 import { allClubs } from "@/lib/sources";
 import { staticCrest } from "@/lib/crest-ids";
 import { matchHref, teamHref } from "@/lib/routes";
@@ -16,7 +15,6 @@ import { useLiveData } from "@/lib/live";
 import { matchState } from "@/lib/live-core";
 import { Badge } from "../Stats";
 import Footer from "../Footer";
-import DayPicker from "./DayPicker";
 import { MatchRow } from "./MatchRow";
 import { useDayBoard } from "./useDayBoard";
 import { useSearch } from "./AppShell";
@@ -31,10 +29,9 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
   const stats = useFreshStats(first);
   const [today, setToday] = useState(serverToday);
   useEffect(() => setToday(todayHel()), []);
-  const [date, setDate] = useUrlParam("pv", today, isDate);
   const { favs, isFav, ready, seen } = useFavorites();
   const { openSearch } = useSearch();
-  const board = useDayBoard(stats, date, today);
+  const board = useDayBoard(stats, today, today);
   const { live, now } = useLiveData();
   useEffect(() => { seen(board.allStats.flatMap((s) => s.table.map((r) => r.team))); }, [board.allStats, seen]);
 
@@ -51,11 +48,10 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
   }, [board.allStats]);
   const infoFor = (f: { n: string; id?: number }) => (f.id !== undefined ? teamInfo.get(`id:${f.id}`) : undefined) ?? teamInfo.get(`n:${norm(f.n)}`);
 
-  const dayRows = board.comps.flatMap((c) => c.rows).filter((r) => isFav(r.home) || isFav(r.away));
-  const next = useMemo(() => board.allStats.flatMap((s) => s.fixtures.filter((f) => f.date > date).map((f) => ({ f, source: s.source })))
+  const next = useMemo(() => board.allStats.flatMap((s) => s.fixtures.filter((f) => f.date >= today).map((f) => ({ f, source: s.source })))
     .filter(({ f }) => isFav(f.home) || isFav(f.away))
     .sort((a, b) => (a.f.date + a.f.time).localeCompare(b.f.date + b.f.time))
-    .slice(0, 6), [board.allStats, date, isFav]);
+    .slice(0, 6), [board.allStats, today, isFav]);
   const stories = articles.filter((a) => favs.some((f) => storyIsAbout(f.n, a.tags))).slice(0, 8);
 
   const suggestions = SUGGEST.map((n) => {
@@ -83,15 +79,6 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
         )}
 
         {favs.length > 0 && <>
-          <section className="fsec" aria-labelledby="fs-day">
-            <h2 id="fs-day" className="sub-h">{t("dayMatches")}</h2>
-            <DayPicker date={date} today={today} onChange={setDate} min={board.range?.from} max={board.range?.to} />
-            <div className="cg-list panel-list">
-              {dayRows.length ? dayRows.map((r) => <MatchRow key={r.key} href={r.href} home={r.home} away={r.away} s={r.s} time={r.time} highlight={isFav} />)
-                : <p className="muted pad">{t("noFavMatches")}</p>}
-            </div>
-          </section>
-
           {next.length > 0 && (
             <section className="fsec" aria-labelledby="fs-next">
               <h2 id="fs-next" className="sub-h">{t("nextMatches")}</h2>
