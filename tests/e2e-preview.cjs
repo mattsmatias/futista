@@ -21,7 +21,9 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const intl = await get('/api/intl');
       rec('API /api/intl: virhe ja aikaleima erotettu', intl.s === 200 && 'error' in intl.j && 'at' in intl.j, { error: intl.j?.error, at: intl.j?.at, n: intl.j?.games?.length, partial: intl.j?.partial });
       const h2h = await get('/api/h2h/999999999?l=laliga');
-      rec('API /api/h2h: tuntematon ottelutunniste hylätään (ei kiintiön kulutusta)', h2h.s === 404, { status: h2h.s });
+      // 404 = tunniste tarkistettu ja tuntematon; 503 no-store = football-data ei käytettävissä (esim. esikatselu ilman
+      // yhteistä kiintiötä), tunnistetta ei voi tarkistaa → ei hakua lähteeseen eikä väärää 404:ää
+      rec('API /api/h2h: tuntematon ottelutunniste ei kuluta kiintiötä (404, tai 503 no-store jos lähde ei käytössä)', h2h.s === 404 || (h2h.s === 503 && h2h.cc === 'no-store'), { status: h2h.s, cc: h2h.cc });
       const ph = await get('/api/photo?n=' + encodeURIComponent('<script>x</script>'));
       rec('API /api/photo: roskasyöte hylätään', ph.s === 400, { status: ph.s });
       const rob = await p.evaluate(async () => (await fetch('/robots.txt')).text());
@@ -114,16 +116,23 @@ const sl = (ms) => new Promise((r) => setTimeout(r, ms));
       const date = fx.href.split('/')[3];
       const hel = (d, t) => { const g = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10), +t.slice(0, 2), +t.slice(3, 5)); for (const off of [3, 2]) { const e = g - off * 3600_000; const f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Helsinki', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(e)); if (f === t) return e; } return g - 2 * 3600_000; };
       const kick = hel(date, fx.time);
-      let step = 0;
-      const now = Date.now();
+      // aika hallitaan (page.clock): live-haku tehdään 1 min välein, kun ottelu on käynnissä
+      let step = 0, fake = Date.now();
+      const at = [];
       const snap = (asOf, hs, as, status = 'IN_PLAY', min) => ({ enabled: true, checkedAt: asOf, sources: {}, error: false, matches: [{ id: 'espn:test', fetchedAt: asOf, sourceUpdatedAt: null, statusSrc: 'espn', source: fx.href.split('/')[2], kickoff: kick, status, home: fx.home.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(Boolean), away: fx.away.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(Boolean), hs, as, min }] });
-      const conflictSnap = (t) => { const x = snap(t, 1, 0, 'IN_PLAY', "50'"); x.matches[0].conflict = true; return x; };
-      const seq = [snap(now - 20_000, null, null, 'IN_PLAY', undefined), snap(now - 10_000, 2, 0, 'IN_PLAY', "45'+2'"), snap(now - 60_000, 3, 0, 'IN_PLAY', "30'"), snap(now, 1, 0, 'IN_PLAY', "47'"), conflictSnap(now + 1000)];
-      await p.route('**/api/live', (r) => r.fulfill({ json: seq[Math.min(step, seq.length - 1)] }));
-      await p.goto(U + fx.href, { waitUntil: 'networkidle' }); await sl(1200);
+      const build = (i) => {
+        if (i === 0) return snap(fake - 20_000, null, null, 'IN_PLAY', undefined);
+        if (i === 1) { at[1] = fake - 10_000; return snap(at[1], 2, 0, 'IN_PLAY', "45'+2'"); }
+        if (i === 2) return snap(at[1] - 50_000, 3, 0, 'IN_PLAY', "30'"); // sisällöltään vanhempi kuin edellinen
+        if (i === 3) return snap(fake, 1, 0, 'IN_PLAY', "47'");
+        const x = snap(fake + 1000, 1, 0, 'IN_PLAY', "50'"); x.matches[0].conflict = true; x.matches[0].conflictKind = 'status'; return x;
+      };
+      await p.clock.install({ time: fake });
+      await p.route('**/api/live', (r) => r.fulfill({ json: build(Math.min(step, 4)) }));
+      await p.goto(U + fx.href, { waitUntil: 'networkidle' }); await p.clock.runFor(1500); await sl(800);
       const read = () => p.evaluate(() => ({ mid: document.querySelector('.mh-mid')?.innerText.replace(/\n/g, ' ') }));
       const s0 = await read();
-      const next = async () => { step++; await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await sl(1200); return read(); };
+      const next = async () => { step++; for (let d = 0; d < 61_000; d += 5000) { fake += 5000; await p.clock.runFor(5000); await sl(40); } await sl(800); return read(); };
       const s1 = await next(); const s2 = await next(); const s3 = await next();
       rec('puuttuva live-tulos ei näy 0–0:na (' + fx.href + ')', !/0\s*–\s*0/.test(s0.mid) && /LIVE/.test(s0.mid), s0);
       rec('lisäaika 45+2 näkyy muodossa 45+2\' (myös kun lähde antaa 45\'+2\')', /2\s*–\s*0/.test(s1.mid) && /45\+2'/.test(s1.mid), s1);
