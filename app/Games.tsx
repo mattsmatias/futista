@@ -2,10 +2,9 @@
 // Ottelurivit ESPN:n otteluille (joukkueen kaikki kilpailut ja maaottelut)
 import type { Game, GameTeam } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
-import { StatusPill } from "@/lib/live";
-import { Num } from "@/lib/fresh";
 import { country } from "@/lib/flags";
 import { Badge } from "./Stats";
+import { MatchRow } from "./ui/MatchRow";
 
 /** Kilpailujen nimet suomeksi / ruotsiksi / englanniksi (ESPN:n tunnuksen mukaan) */
 const COMP: Record<string, [string, string, string]> = {
@@ -67,40 +66,19 @@ export function useTeamName(nations?: boolean) {
   return (t: GameTeam) => (nations ? country(t.name, lang as "fi" | "sv" | "en")?.name ?? t.name : t.name);
 }
 
-/** Yksi ottelu mistä tahansa kilpailusta. nations = maaottelu (maiden nimet valitulla kielellä) */
+/** Yksi ottelu mistä tahansa kilpailusta (yhteinen ottelurivi + kilpailu/päivä-merkintä).
+ *  nations = maaottelu (maiden nimet valitulla kielellä) */
 export function GameRow({ g, nations, highlight, hideDate }: { g: Game; nations?: boolean; highlight?: string; hideDate?: boolean }) {
   const i = useI18n();
   const nm = useTeamName(nations);
-  const played = g.kind === "ft";
-  const on = g.kind === "live" || g.kind === "ht";
-  const hw = played && g.hs! > g.as!, aw = played && g.as! > g.hs!;
-  const side = (t: GameTeam, home: boolean, win: boolean) => {
-    const cls = `side ${home ? "home" : "away"}${win ? " win" : ""}${played ? "" : " upcoming"}${highlight && t.id === highlight ? " hl" : ""}`;
-    const inner = home ? <>{nm(t)}<GBadge t={t} /></> : <><GBadge t={t} />{nm(t)}</>;
-    return <span className={cls}>{inner}</span>;
-  };
-  const body = (
-    <>
-      {side(g.home, true, hw)}
-      {g.kind === "upcoming"
-        ? <span className="score ko">{g.time}</span>
-        : <span className={`mid mid-${g.kind}`}>
-            {g.hs !== null && g.as !== null && <span className="score"><Num v={g.hs} /><i>–</i><Num v={g.as} /></span>}
-            {!played && <StatusPill s={{ kind: g.kind, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet }} />}
-            {played && (g.pens || g.aet) && <small className="r-note">{g.pens ? `${i.t("pensShort")} ${g.pens[0]}–${g.pens[1]}` : i.t("aetShort")}</small>}
-          </span>}
-      {side(g.away, false, aw)}
-    </>
-  );
+  const t = (x: GameTeam) => ({ name: x.name, display: nm(x), code: x.code, crest: x.logo, id: undefined });
   return (
-    <div className="day">
-      <div className="day-label g-label">
-        <span className={`g-comp ${compClass(g.slug)}`}>{compName(g, i.lang)}</span>
-        {!hideDate && <span>{i.day(g.date)}{g.kind === "upcoming" ? "" : ` · ${g.time}`}</span>}
-        {hideDate && g.kind !== "upcoming" && <span>{g.time}</span>}
-      </div>
+    <div className="mrow-wrap">
+      <span className="mrow-comp"><span className={`g-comp ${compClass(g.slug)}`}>{compName(g, i.lang)}</span>{!hideDate && <> · {i.day(g.date)}</>}</span>
       {/* sarjaotteluille sarjan ottelusivu, muille (cupit, EL, ECL, maaottelut) perustason ottelusivu */}
-      <a className={`match${on ? " is-live" : ""}`} href={g.href ?? `/ottelu/e/${g.id}`}>{body}</a>
+      <MatchRow href={g.href ?? `/ottelu/e/${g.id}`} time={g.time} home={t(g.home)} away={t(g.away)}
+        s={{ kind: g.kind, hs: g.hs, as: g.as, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet }}
+        highlight={highlight ? (x) => x.name === g.home.name ? g.home.id === highlight : x.name === g.away.name ? g.away.id === highlight : false : undefined} />
     </div>
   );
 }

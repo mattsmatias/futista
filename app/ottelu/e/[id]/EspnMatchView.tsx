@@ -3,7 +3,6 @@ import type { EspnMatch } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { AutoRefresh, Num } from "@/lib/fresh";
 import { StatusPill } from "@/lib/live";
-import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
 import { GBadge, compName, compClass, useTeamName } from "../../../Games";
 import { SrcLine } from "../../../Stats";
@@ -27,7 +26,6 @@ export default function EspnMatchView({ m, at }: { m: EspnMatch; at: number }) {
   };
   return (
     <>
-      <SubBar />
       {/* päättynyttä ottelua ei päivitetä live-tahdilla */}
       <AutoRefresh every={on ? 60_000 : g.kind === "ft" ? 900_000 : 300_000} />
       <main className="wrap entity">

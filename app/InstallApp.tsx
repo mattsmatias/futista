@@ -65,6 +65,15 @@ export default function InstallApp() {
 
     if (isStandalone()) { markInstalled(); return; }
     if (knownInstalled() || read() > Date.now()) return;
+    // ei asennuskehotusta ensimmäisellä käynnillä: tulospalvelu ensin, kehotus vasta palaavalle käyttäjälle
+    let visits = 0;
+    try {
+      const k = "futista-kaynnit", day = new Date().toISOString().slice(0, 10);
+      const v = JSON.parse(localStorage.getItem(k) || "{}");
+      visits = (v.n ?? 0) + (v.d === day ? 0 : 1);
+      localStorage.setItem(k, JSON.stringify({ n: visits, d: day }));
+    } catch {}
+    if (visits < 2) return;
 
     let cancelled = false;
     const ua = navigator.userAgent;

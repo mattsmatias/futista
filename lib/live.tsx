@@ -121,6 +121,9 @@ function useLive(): Ctx {
   return c;
 }
 
+/** Live-tilanteet ja nykyhetki listan omaan laskentaan (esim. Live-suodatin ja -määrä) */
+export function useLiveData() { const { live, now } = useLive(); return { live, now }; }
+
 /** Live-tietojen tila (päivitysaika, virhe, lataus) */
 export function useLiveMeta() { return useLive().meta; }
 
@@ -178,7 +181,7 @@ export function StatusPill({ s, explain }: { s: MatchState; explain?: boolean })
 }
 
 /** Ristiriidan selitys: painike (saavutettava nimi) avaa ja sulkee selityksen; toimii kosketuksella ja näppäimistöllä */
-function ConflictInfo({ what }: { what?: "status" | "score" }) {
+export function ConflictInfo({ what }: { what?: "status" | "score" }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const id = useId();

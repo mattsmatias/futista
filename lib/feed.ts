@@ -31,6 +31,17 @@ export function decode(s: string) {
     .replace(/&quot;/g, '"');
 }
 
+/** Otteisiin päätyneet tekniset tekstit pois (linkkikuvakkeiden selitteet, syötteen allekirjoitukset) */
+export function cleanText(s: string): string {
+  return s
+    .replace(/\(?\s*(avautuu uuteen ikkunaan|ulkoinen linkki|external link|opens in a new (tab|window))\s*\)?/gi, " ")
+    .replace(/\b(The post|Artikkeli) .{0,200}? (appeared first on|ilmestyi ensimmäisenä) [^.]*\.?/gi, " ")
+    .replace(/\b(Lue lisää|Jatka lukemista|Read more)\s*(»|→|…)?\s*$/i, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const toArray = <T,>(x: T | T[] | undefined): T[] => (!x ? [] : Array.isArray(x) ? x : [x]);
 
 const UCL = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim() === "mestarien liiga";
@@ -54,9 +65,7 @@ async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
   return items.map((it: any): Article => {
     const desc: string = it.description?.__cdata ?? it.description ?? "";
     const img = desc.match(/src="([^"]+)"/)?.[1] ?? null;
-    const text = decode(desc.replace(/<[^>]+>/g, " ").replace(/\[(…|&#8230;)\]/g, ""))
-      .replace(/\s+/g, " ")
-      .trim();
+    const text = cleanText(decode(desc.replace(/<[^>]+>/g, " ").replace(/\[(…|&#8230;)\]/g, "")));
     const excerpt = (text.match(/[^.!?]+[.!?]+/g) ?? [text]).slice(0, 2).join(" ").trim();
     const cats = toArray(it.category).map((c: any) => decode(String(c?.__cdata ?? c)));
     // Mestarien liigan jutut omaan sarjaansa, vaikka ne tulisivat La Ligan tai Valioliigan syötteestä
@@ -79,7 +88,7 @@ async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
 }
 
 /** Uutiset kaikista syötteistä; käsitelty lista tallennetaan kolmeksi minuutiksi */
-export const getArticles = unstable_cache(readAll, ["articles-v2"], { revalidate: 180 });
+export const getArticles = unstable_cache(readAll, ["articles-v3"], { revalidate: 180 });
 
 async function readAll(): Promise<Article[]> {
   const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, f))))).flat();

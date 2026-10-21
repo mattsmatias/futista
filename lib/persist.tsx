@@ -25,6 +25,8 @@ export function usePersistentState<T extends string = string>(key: string, initi
   return [v, set];
 }
 
+const curKey = () => `futista:scroll:${location.pathname}${location.search}`;
+
 /** Vierityskohdan muisti: tallennetaan vierittäessä ja linkkiä painettaessa, palautetaan takaisin-navigoinnissa.
  *  Poistuttaessa EI tallenneta, koska uusi sivu on silloin jo vieritetty alkuun (se nollaisi muistin). */
 export function ScrollMemory() {
@@ -39,7 +41,8 @@ export function ScrollMemory() {
     // tallennus heti linkkiä painettaessa (ennen kuin navigointi vierittää uuden sivun alkuun)
     const onClick = (e: MouseEvent) => {
       if ((e.target as Element | null)?.closest?.("a[href]") && keyRef.current) {
-        write(keyRef.current, String(Math.round(window.scrollY)));
+        // avain luetaan nyt: näkymän tila (esim. ?pv=…) voi olla muuttunut osoitteessa sivulle tulon jälkeen
+        write(curKey(), String(Math.round(window.scrollY)));
         leaving.current = true;
         setTimeout(() => { leaving.current = false; }, 3000); // jos navigointia ei tapahtunutkaan
       }
@@ -79,7 +82,7 @@ export function ScrollMemory() {
     let armed = false;
     // ensimmäiset vieritystapahtumat ovat navigoinnin omia (alkuun vieritys / palautus): ei tallenneta niitä
     const arm = setTimeout(() => { armed = true; }, 800);
-    const save = () => { if (!armed || leaving.current) return; if (t) clearTimeout(t); t = setTimeout(() => write(key, String(Math.round(window.scrollY))), 150); };
+    const save = () => { if (!armed || leaving.current) return; if (t) clearTimeout(t); t = setTimeout(() => write(curKey(), String(Math.round(window.scrollY))), 150); };
     window.addEventListener("scroll", save, { passive: true });
     return () => { cancelled = true; stopUser?.(); clearTimeout(arm); window.removeEventListener("scroll", save); if (t) clearTimeout(t); };
   }, [path]);

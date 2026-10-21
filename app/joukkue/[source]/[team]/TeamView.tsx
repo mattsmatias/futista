@@ -10,7 +10,6 @@ import { norm } from "@/lib/teams";
 import { matchHref } from "@/lib/routes";
 import { Badge, FixtureRow, FormPills, Match, Standings, SrcLine } from "../../../Stats";
 import { Card } from "../../../Cards";
-import SubBar from "../../../SubBar";
 import Footer from "../../../Footer";
 import Flag from "../../../Flag";
 import PlayerPhoto from "../../../PlayerPhoto";
@@ -140,7 +139,8 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
     }
   };
   const gameLists = (n: number) => {
-    const up = n < 10 ? upcoming : pick(upcoming), past = n < 10 ? played : pick(played);
+    // yleiskatsauksessa seuraava ottelu näkyy jo omana korttinaan → ei toisteta listassa
+    const up = n < 10 ? upcoming.slice(1) : pick(upcoming), past = n < 10 ? played : pick(played);
     return (
       <div className="duo">
         <div className="panel">
@@ -162,7 +162,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
       <div className="panel">
         <div className="panel-head"><h3>{t("nextMatches")}</h3>{n < 10 && fixtures.length > n && <button className="see-all" onClick={() => go("matches")}>{t("seeAll")} →</button>}</div>
         {fixtures.length === 0 && <p className="muted pad">{t("noUpcoming")}</p>}
-        {fixtures.slice(0, n).map((f) => (
+        {fixtures.slice(n < 10 ? 1 : 0, n < 10 ? n + 1 : n).map((f) => (
           <div className="day" key={f.date + f.home.name}>
             <div className="day-label">{i.day(f.date)}</div>
             <FixtureRow f={f} source={s.source} />
@@ -186,18 +186,16 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
 
   return (
     <>
-      <SubBar />
       <AutoRefresh every={anyLive ? 45_000 : 120_000} />
       <main className="wrap entity">
-        <section className="ent-hero" style={style}>
-          <div className="ent-crest"><Badge t={team} size={84} /></div>
-          <div className="ent-txt">
-            <span className={`chip chip-${s.source}`}>{i.league(s.source, s.league)}</span>
+        <header className="ehead team-head" style={style}>
+          <Badge t={team} size={48} />
+          <div className="ehead-txt">
             <h1>{team.name}</h1>
-            {row && <p className="ent-sub">{row.pos}. · {row.pts} {t("pointsWord")}</p>}
+            <p className="muted"><a className="ehead-comp" href={`/sarjat/${s.source}`}>{i.league(s.source, s.league)}</a>{row ? ` · ${row.pos}. · ${row.pts} ${t("pointsWord")}` : ""}</p>
           </div>
-          <HeartButton team={team.name} label={t("favToggle")} />
-        </section>
+          <HeartButton team={team} label={t("favToggle")} withText={t("nav_favs")} />
+        </header>
 
         <div className="subtabs sticky ent-tabs" role="tablist" ref={tabsRef}>
           {tabs.map((k) => (
@@ -208,14 +206,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
         <div className="tab-pane" key={tab}>
         {tab === "overview" && <>
           {row && (
-            <div className="kpis">
-              <div><b>{row.pos}.</b><span>{t("position")}</span></div>
-              <div><b>{row.pts}</b><span>{t("colPts")}</span></div>
-              <div><b>{row.p}</b><span>{t("played")}</span></div>
-              <div><b>{row.w}-{row.d}-{row.l}</b><span>{t("colW")}-{t("colD")}-{t("colL")}</span></div>
-              <div><b>{row.gf}–{row.ga}</b><span>{t("colG")}</span></div>
-              <div className="kpi-form"><FormPills team={team.name} results={s.results} source={s.source} /><span>{t("form")}</span></div>
-            </div>
+            <div className="form-line"><span className="muted">{t("form")} · {t("formScope")}</span><FormPills team={team.name} results={s.results} source={s.source} /></div>
           )}
           {nextGame ? (() => {
             const g = nextGame;

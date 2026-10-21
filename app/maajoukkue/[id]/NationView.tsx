@@ -4,7 +4,6 @@ import type { Game, GameTeam } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { AutoRefresh } from "@/lib/fresh";
 import { StatusPill } from "@/lib/live";
-import SubBar from "../../SubBar";
 import Footer from "../../Footer";
 import { GameRow, GBadge, compName, compClass, useTeamName } from "../../Games";
 import { SrcLine } from "../../Stats";
@@ -30,21 +29,20 @@ export default function NationView({ id, team, games }: { id: string; team: Game
 
   return (
     <>
-      <SubBar />
       <AutoRefresh every={games.some(isOn) ? 45_000 : 120_000} />
       <main className="wrap entity">
-        <section className="ent-hero" style={{ ["--c1" as any]: "var(--c-nt, #0b7fc7)", ["--c2" as any]: "var(--surface-2)" }}>
-          <div className="ent-crest"><GBadge t={team} size={84} /></div>
-          <div className="ent-txt">
-            <span className="chip">{t("nationalTeamMen")}</span>
+        <header className="ehead">
+          <GBadge t={team} size={48} />
+          <div className="ehead-txt">
             <h1>{nm(team)}</h1>
-            {form.length > 0 && (
-              <p className="ent-sub"><span className="form">
-                {form.map(({ g, k }) => <span key={g.id} className={`fp fp-${k}`} title={`${nm(g.home)} ${g.hs}–${g.as} ${nm(g.away)}`}>{t(k === "w" ? "colW" : k === "d" ? "colD" : "colL")}</span>)}
-              </span></p>
-            )}
+            <p className="muted">{t("nationalTeamMen")}</p>
           </div>
-        </section>
+        </header>
+        {form.length > 0 && (
+          <div className="form-line"><span className="muted">{t("form")}</span><span className="form">
+            {form.map(({ g, k }) => <span key={g.id} className={`fp fp-${k}`} title={`${nm(g.home)} ${g.hs}–${g.as} ${nm(g.away)}`}>{t(k === "w" ? "colW" : k === "d" ? "colD" : "colL")}</span>)}
+          </span></div>
+        )}
 
         {next && (
           <a className="next-card" href={`/ottelu/e/${next.id}`}>
@@ -72,8 +70,9 @@ export default function NationView({ id, team, games }: { id: string; team: Game
         <div className="duo">
           <div className="panel">
             <div className="panel-head"><h3>{t("nextMatches")}</h3></div>
-            {pick(up).length === 0 && <p className="muted pad">{t("noUpcoming")}</p>}
-            {pick(up).map((g) => <GameRow key={g.id} g={g} nations highlight={id} />)}
+            {pick(up).filter((g) => g !== next).length === 0 && <p className="muted pad">{t("noUpcoming")}</p>}
+            {/* seuraava ottelu näkyy jo omana korttinaan → ei toisteta */}
+            {pick(up).filter((g) => g !== next).map((g) => <GameRow key={g.id} g={g} nations highlight={id} />)}
           </div>
           <div className="panel">
             <div className="panel-head"><h3>{t("recentResults")}</h3></div>

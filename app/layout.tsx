@@ -7,6 +7,7 @@ import { FavoritesProvider } from "@/lib/favorites";
 import { LiveProvider } from "@/lib/live";
 import FastLinks from "./FastLinks";
 import { ScrollMemory } from "@/lib/persist";
+import AppShell from "./ui/AppShell";
 import { Unbounded, Onest, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--f-display", display: "swap" });
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.futista.fi"),
   alternates: { canonical: "./" },
   openGraph: { siteName: "Futista", locale: "fi_FI", type: "website" },
-  title: "Futista – jalkapallouutiset suomeksi",
-  description: "La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan sarjojen tulokset, LIVE-tilanteet ja sarjataulukot suomeksi.",
+  title: "Futista – jalkapallon tulokset, ottelut ja uutiset suomeksi",
+  description: "Päivän ottelut, live-tilanteet, sarjataulukot ja uutiset: La Liga, Valioliiga, Mestarien liiga ja Euroopan sarjat suomeksi.",
   appleWebApp: { capable: true, title: "Futista", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {
@@ -46,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <I18nProvider>
           <FavoritesProvider>
-            <LiveProvider>{children}</LiveProvider>
+            <LiveProvider><AppShell>{children}</AppShell></LiveProvider>
             <OfflineBanner />
             <InstallApp />
             <FastLinks />

@@ -1,10 +1,11 @@
-import { getArticles } from "@/lib/feed";
 import { getStats, slimStats } from "@/lib/stats";
-import NewsBoard from "./NewsBoard";
+import { todayHel } from "@/lib/day";
+import MatchesHome from "./ui/MatchesHome";
 
+// Etusivu = Ottelut. Pääsarjojen tiedot palvelimelta (katkaistu lista), muut sarjat ja live selaimessa.
 export const revalidate = 120;
 
 export default async function Page() {
-  const [articles, stats] = await Promise.all([getArticles(), getStats()]);
-  return <NewsBoard articles={articles} stats={slimStats(stats)} />;
+  const stats = await getStats();
+  return <MatchesHome stats={slimStats(stats)} today={todayHel()} />;
 }

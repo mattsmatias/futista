@@ -10,6 +10,34 @@ const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, "Z");
 const T = (id, name, tla) => ({ id, name, shortName: name, tla, crest: null });
 const A = T(9001, "Testiseura Kotka", "TSK"), B = T(9002, "Mittaus United", "MIU");
 
+// Kuvitteelliset sarjat käyttöliittymän testaukseen (±9 päivää; tänään yksi käynnissä, yksi päättynyt, muut tulossa)
+const CITIES = ["Aurinkola", "Kivikylä", "Merilinna", "Tuulimäki", "Kuusiranta", "Hiekkasatama", "Revontuli", "Järvenpää City", "Pohjoistähti", "Lumilaakso"];
+const GEN = { SA: 1, FL1: 2, DED: 3, PPL: 4, ELC: 5 };
+const H = 3600_000, DAY = 86400_000;
+function genComp(code) {
+  const k = GEN[code];
+  const teams = CITIES.map((c, i) => T(k * 1000 + i, `${c} ${["FC", "United", "SK", "AC", "Athletic"][k - 1]}`, (c.slice(0, 2) + code.slice(0, 1)).toUpperCase()));
+  const matches = [];
+  const day0 = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), new Date(now).getUTCDate());
+  for (let d = -9; d <= 9; d += 3) {
+    const shift = (((d / 3 + k) % 5) + 5) % 5;
+    for (let m = 0; m < 5; m++) {
+      const h = teams[(m * 2 + shift) % 10], a = teams[(m * 2 + 1 + shift) % 10];
+      let t = day0 + (d + (k % 3)) * DAY + [13, 15.5, 18, 18, 20.75][m] * H - 3 * H; // Helsingin iltapäivä/ilta
+      const id = k * 100000 + (d + 9) * 10 + m;
+      let status = t < now - 2 * H ? "FINISHED" : "TIMED";
+      if (d + (k % 3) === 0 && m === 0) { t = now - 30 * 60_000; status = "IN_PLAY"; }
+      if (d + (k % 3) === 0 && m === 1) { t = now - 2.5 * H; status = "FINISHED"; }
+      const done = status === "FINISHED", live = status === "IN_PLAY";
+      const hs = done || live ? (id % 4) : null, as = done || live ? ((id >> 2) % 3) : null;
+      matches.push({ id, utcDate: iso(t), status, matchday: (d + 9) / 3 + 1, homeTeam: h, awayTeam: a, lastUpdated: iso(now - 60_000), competition: { code }, score: { fullTime: { home: hs, away: as } } });
+    }
+  }
+  return { teams, matches };
+}
+const genCache = {};
+const gen = (code) => (genCache[code] ??= genComp(code));
+
 function fd(path, res) {
   if (mode.fd === "down") return json(res, 503, { message: "simuloitu katko" });
   if (mode.fd === "429") return json(res, 429, { message: "simuloitu raja" }, { "retry-after": "30" });
@@ -24,6 +52,18 @@ function fd(path, res) {
     if (mode.h2h === "empty") return json(res, 200, { matches: [] });
     return json(res, 200, { matches: [{ id: 4001, utcDate: iso(now - 200 * 86400_000), status: "FINISHED", competition: { code: "BL1" }, homeTeam: A, awayTeam: B, score: { fullTime: { home: 2, away: 1 } } }] });
   }
+  if ((m = path.match(/^\/competitions\/(\w+)\/(standings|matches|scorers|teams)/)) && GEN[m[1]]) {
+    const g = gen(m[1]);
+    if (m[2] === "matches") return json(res, 200, { resultSet: { first: g.matches[0].utcDate.slice(0, 10) }, matches: g.matches });
+    if (m[2] === "teams") return json(res, 200, { teams: g.teams });
+    if (m[2] === "scorers") return json(res, 200, { season: { startDate: "2026-08-01", endDate: "2027-05-30" }, scorers: g.teams.slice(0, 6).map((tm, n) => ({ player: { id: 8000 + n, name: `Pelaaja ${n + 1}`, nationality: "Finland" }, team: tm, goals: 9 - n, assists: n % 3 === 0 ? null : n, playedMatches: 7 })) });
+    const pts = (tm) => g.matches.filter((x) => x.status === "FINISHED" && (x.homeTeam.id === tm.id || x.awayTeam.id === tm.id)).reduce((p, x) => {
+      const me = x.homeTeam.id === tm.id, gf = me ? x.score.fullTime.home : x.score.fullTime.away, ga = me ? x.score.fullTime.away : x.score.fullTime.home;
+      return { p: p.p + 1, w: p.w + (gf > ga), d: p.d + (gf === ga), l: p.l + (gf < ga), gf: p.gf + gf, ga: p.ga + ga, pts: p.pts + (gf > ga ? 3 : gf === ga ? 1 : 0) };
+    }, { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
+    const rows = g.teams.map((tm) => ({ tm, ...pts(tm) })).sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+    return json(res, 200, { season: { startDate: "2026-08-01", endDate: "2027-05-30" }, standings: [{ type: "TOTAL", table: rows.map((r, n) => ({ position: n + 1, team: r.tm, playedGames: r.p, won: r.w, draw: r.d, lost: r.l, goalsFor: r.gf, goalsAgainst: r.ga, points: r.pts })) }] });
+  }
   if ((m = path.match(/^\/competitions\/(\w+)\/standings/)))
     return json(res, 200, { season: { startDate: "2026-08-01", endDate: "2027-05-30" }, standings: [{ type: "TOTAL", table: [
       { position: 1, team: A, playedGames: 3, won: 3, draw: 0, lost: 0, goalsFor: 7, goalsAgainst: 1, points: 9 },
@@ -35,6 +75,10 @@ function fd(path, res) {
   if ((m = path.match(/^\/competitions\/(\w+)\/scorers/)))
     return json(res, 200, { season: { startDate: "2026-08-01", endDate: "2027-05-30" }, scorers: [{ player: { id: 7001, name: "Testi Pelaaja", nationality: "Finland" }, team: A, goals: 4, assists: 1, playedMatches: 3 }] });
   if (path.startsWith("/competitions/") && path.includes("/teams")) return json(res, 200, { teams: [A, B] });
+  if (path.startsWith("/matches?")) {
+    const all = Object.keys(GEN).flatMap((c) => gen(c).matches).filter((x) => Math.abs(Date.parse(x.utcDate) - now) < 30 * H);
+    return json(res, 200, { matches: all });
+  }
   if (path.startsWith("/matches")) return json(res, 200, { matches: [] });
   return json(res, 404, { message: "not found" });
 }

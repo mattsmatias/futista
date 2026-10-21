@@ -3,7 +3,6 @@
 // toimiva paluulinkki ja tilapäisessä häiriössä uudelleenyritys ilman koko sivun latausta.
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import SubBar from "./SubBar";
 import { useI18n, type Key } from "@/lib/i18n";
 
 export type StatusContext = "page" | "article" | "team" | "match" | "player" | "nation";
@@ -24,7 +23,6 @@ export default function StatusPage({ kind, ctx = "page", reset }: {
   };
   return (
     <>
-      <SubBar />
       <main className="wrap status-page" role={kind === "error" ? "alert" : undefined}>
         <h1>{t(title)}</h1>
         <p className="muted">{t(text)}</p>

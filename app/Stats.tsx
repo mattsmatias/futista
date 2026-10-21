@@ -14,6 +14,7 @@ import { useBrokenImage } from "@/lib/img";
 import { useMatchState, StatusPill, useLiveExtras, useDataEnabled, LiveFreshness } from "@/lib/live";
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
+import { MatchRow } from "./ui/MatchRow";
 
 export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
   const [failed, setFailed] = useState(0); // 0 = alkuperäinen, 1 = .svg-yritys, 2 = värimerkki
@@ -90,7 +91,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
               {rows.map((r) => {
                 const z = zoneOf(s.source, r.pos);
                 const gd = r.gf - r.ga;
-                const cls = [z ? `z-${z.kind}` : "", isFav(r.team.name) ? "fav" : "", hl.includes(norm(r.team.name)) ? "hl" : ""].join(" ").trim();
+                const cls = [z ? `z-${z.kind}` : "", isFav(r.team) ? "fav" : "", hl.includes(norm(r.team.name)) ? "hl" : ""].join(" ").trim();
                 return (
                   <tr key={r.team.name} className={cls}>
                     <td className="pos">{r.pos}</td>
@@ -107,26 +108,23 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
         </div>
       )}
       {!compact && (
-        <div className="legend">
+        <div className="legend" aria-label={t("zonesTitle")}>
           {src.zones.map((z) => <span key={z.kind}><i className={`zk z-${z.kind}`} />{t(`zone_${z.kind}` as Key)}</span>)}
         </div>
+      )}
+      {!compact && (
+        <p className="legend abbr"><b>{t("abbr")}:</b> {t("colP")} = {t("played")} · {t("colW")} = {t("won")} · {t("colD")} = {t("drawn")} · {t("colL")} = {t("lost")} · +/- = {t("gdFull")} · {t("colPts")} = {t("ptsFull")}</p>
       )}
       {!compact && <SrcLine name={src.name} updated={s.updated} stale={s.stale} maxAgeMin={60} />}
     </div>
   );
 }
 
-/** Pelattu ottelu: koti – tulos – vieras, vie ottelusivulle */
+/** Pelattu ottelu (yhteinen ottelurivi) */
 export function Match({ r, source }: { r: Result; source: string }) {
-  const { t } = useI18n();
-  const hw = r.hs > r.as, aw = r.as > r.hs;
-  return (
-    <a className="match" href={matchHref(source, r.date, r.home.name, r.away.name)}>
-      <span className={`side home${hw ? " win" : ""}`}>{r.home.name}<Badge t={r.home} /></span>
-      <span className="score"><Num v={r.hs} /><i>–</i><Num v={r.as} />{r.note && <small className="r-note" title={r.pens ? `${r.pens[0]}–${r.pens[1]}` : undefined}>{r.note === "pens" ? `${t("pensShort")}${r.pens ? ` ${r.pens[0]}–${r.pens[1]}` : ""}` : t("aetShort")}</small>}</span>
-      <span className={`side away${aw ? " win" : ""}`}><Badge t={r.away} />{r.away.name}</span>
-    </a>
-  );
+  const { isFav } = useFavorites();
+  return <MatchRow href={matchHref(source, r.date, r.home.name, r.away.name)} home={r.home} away={r.away} time={r.time ?? null} highlight={isFav}
+    s={{ kind: "ft", hs: r.hs, as: r.as, aet: r.note === "aet", pens: r.pens ?? null, ...(r.note === "pens" ? { phase: "pens" as const } : {}) }} />;
 }
 
 const hasScore = (s: MatchState) => s.hs !== undefined && s.hs !== null && s.as !== undefined && s.as !== null;
@@ -142,16 +140,11 @@ export function StateCenter({ s, time }: { s: MatchState; time: string }) {
   );
 }
 
-/** Tuleva tai käynnissä oleva ottelu: koti – kellonaika / LIVE – vieras */
+/** Tuleva tai käynnissä oleva ottelu (yhteinen ottelurivi, live-tila) */
 export function FixtureRow({ f, source }: { f: Fixture; source: string }) {
   const s = useMatchState({ ...f, source });
-  return (
-    <a className={`match${s.kind === "live" || s.kind === "ht" ? " is-live" : ""}`} href={matchHref(source, f.date, f.home.name, f.away.name)}>
-      <span className="side home upcoming">{f.home.name}<Badge t={f.home} /></span>
-      <StateCenter s={s} time={f.time} />
-      <span className="side away upcoming"><Badge t={f.away} />{f.away.name}</span>
-    </a>
-  );
+  const { isFav } = useFavorites();
+  return <MatchRow href={matchHref(source, f.date, f.home.name, f.away.name)} home={f.home} away={f.away} time={f.time} s={s} highlight={isFav} />;
 }
 
 function UpcomingCard({ f }: { f: Fixture & { s: string; league: string } }) {

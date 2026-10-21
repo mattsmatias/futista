@@ -6,8 +6,8 @@ import { ageOf } from "@/lib/age";
 import { Badge } from "../../Stats";
 import Flag from "../../Flag";
 import PlayerPhoto from "../../PlayerPhoto";
-import SubBar from "../../SubBar";
 import Footer from "../../Footer";
+import { MatchRow } from "../../ui/MatchRow";
 
 export type PlayerMatch = {
   source: string | null; comp: string; emblem: string | null; date: string; time: string;
@@ -33,21 +33,19 @@ export default function PlayerView({ p }: { p: PlayerData }) {
 
   return (
     <>
-      <SubBar />
       <main className="wrap entity">
-        <section className="ent-hero player-hero" style={{ ["--c1" as any]: "var(--cl)", ["--c2" as any]: "var(--pl)" }}>
-          <div className={`ent-crest pl-avatar${p.photo ? " has-photo" : ""}`}>
-            {p.photo ? <PlayerPhoto name={p.name} initial={p.photo} size={100} className="big" /> : <span>{initials}</span>}
-            {p.shirtNumber != null && <b className="pl-num">{p.shirtNumber}</b>}
+        <header className="ehead player-head">
+          <div className={`pl-avatar sm${p.photo ? " has-photo" : ""}`}>
+            {p.photo ? <PlayerPhoto name={p.name} initial={p.photo} size={56} /> : <span>{initials}</span>}
           </div>
-          <div className="ent-txt">
-            {p.club && (p.club.href
-              ? <a className="chip pl-club" href={p.club.href}>{p.club.crest && <SafeImg src={p.club.crest} alt="" width={16} height={16} />}{p.club.name}</a>
-              : <span className="chip pl-club">{p.club.crest && <SafeImg src={p.club.crest} alt="" width={16} height={16} />}{p.club.name}</span>)}
+          <div className="ehead-txt">
             <h1>{p.name}</h1>
-            <p className="ent-sub">{[pos, age != null ? `${age} ${t("years")}` : null].filter(Boolean).join(" · ")}</p>
+            <p className="muted">
+              {p.club && (p.club.href ? <a className="ehead-comp" href={p.club.href}>{p.club.name}</a> : p.club.name)}
+              {[pos, age != null ? `${age} ${t("years")}` : null, p.shirtNumber != null ? `#${p.shirtNumber}` : null].filter(Boolean).map((x) => ` · ${x}`).join("")}
+            </p>
           </div>
-        </section>
+        </header>
 
         <section className="panel">
           <dl className="facts">
@@ -62,21 +60,19 @@ export default function PlayerView({ p }: { p: PlayerData }) {
         <section className="panel">
           <div className="panel-head"><h3>{t("lastMatches")}</h3></div>
           {p.matches.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
-          {p.matches.map((m, n) => {
-            const body = (
-              <>
-                <span className="side home">{m.home.name}<Badge t={m.home} /></span>
-                {m.hs != null ? <span className="score"><b>{m.hs}</b><i>–</i><b>{m.as}</b></span> : <span className="score ko">{m.time}</span>}
-                <span className="side away"><Badge t={m.away} />{m.away.name}</span>
-              </>
-            );
-            return (
-              <div className="day" key={n}>
-                <div className="day-label pm-label">{m.emblem && <img src={m.emblem} alt="" width={14} height={14} />}{m.source ? i.league(m.source, m.comp) : m.comp} · {i.day(m.date)}</div>
-                {m.href ? <a className="match" href={m.href}>{body}</a> : <div className="match">{body}</div>}
-              </div>
-            );
-          })}
+          <p className="muted pad h2h-scope">{t("playerMatchesScope")}</p>
+          {p.matches.map((m, n) => (
+            <div className="mrow-wrap" key={n}>
+              <span className="mrow-comp">{m.source ? i.league(m.source, m.comp) : m.comp} · {i.day(m.date)}</span>
+              {m.href
+                ? <MatchRow href={m.href} home={m.home} away={m.away} time={m.time} s={m.hs != null ? { kind: "ft", hs: m.hs, as: m.as } : { kind: "upcoming" }} />
+                : <div className="mrow"><span className="mrow-link nolink">
+                    <span className="mrow-st">{m.hs != null ? t("st_ft") : m.time}</span>
+                    <span className="mrow-teams"><span className="mrow-tm"><Badge t={m.home} size={20} /><span className="nm">{m.home.name}</span></span><span className="mrow-tm"><Badge t={m.away} size={20} /><span className="nm">{m.away.name}</span></span></span>
+                    <span className="mrow-sc"><span>{m.hs ?? ""}</span><span>{m.as ?? ""}</span></span>
+                  </span></div>}
+            </div>
+          ))}
           <div className="panel-src">{t("playerNote")} {t("source")}: football-data.org</div>
         </section>
       </main>

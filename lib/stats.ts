@@ -9,7 +9,7 @@ import { fillFromLastGood } from "./stats-merge";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
-export type Result = { date: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null };
+export type Result = { date: string; time?: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null }; // time vain, jos lähde kertoo alkamisajan
 export type Fixture = { date: string; time: string; home: Team; away: Team };
 export type Part = "table" | "results" | "fixtures";
 export type LeagueStats = {
@@ -161,7 +161,7 @@ async function fromFd(s: (typeof SOURCES)[number]): Promise<LeagueStats> {
     .map((m) => ({ m, sc: fdScore(m.score) }))
     .filter(({ sc }) => sc.hs !== null && sc.as !== null) // puuttuva tulos ei ole 0–0
     .map(({ m, sc }) => ({
-      date: helsinkiParts(Date.parse(m.utcDate)).date, home: team(m.homeTeam), away: team(m.awayTeam), hs: sc.hs!, as: sc.as!,
+      ...helsinkiParts(Date.parse(m.utcDate)), home: team(m.homeTeam), away: team(m.awayTeam), hs: sc.hs!, as: sc.as!,
       ...(sc.pens ? { note: "pens" as const, pens: sc.pens } : sc.aet ? { note: "aet" as const } : {}),
     }))
     .sort((a, b) => b.date.localeCompare(a.date));

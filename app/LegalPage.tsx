@@ -1,6 +1,6 @@
 "use client";
 import { Fragment } from "react";
-import { useI18n, LangSwitch, LOCALE } from "@/lib/i18n";
+import { useI18n, LOCALE } from "@/lib/i18n";
 import { PRIVACY, ABOUT } from "@/lib/legal";
 import { SITE } from "@/lib/site";
 import Footer from "./Footer";
@@ -28,14 +28,6 @@ export default function LegalPage({ kind }: { kind: "privacy" | "about" }) {
 
   return (
     <>
-      <header className="appbar">
-        <div className="wrap appbar-in">
-          <a href="/" className="logo"><span>Futista</span></a>
-          <a href="/" className="legal-back">{t("back")}</a>
-          <LangSwitch />
-        </div>
-      </header>
-      <div className="appbar-space" />
       <main className="wrap legal">
         <h1>{doc.title}</h1>
         <p className="legal-intro">{doc.intro}</p>

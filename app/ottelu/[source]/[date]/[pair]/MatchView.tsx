@@ -6,22 +6,22 @@ import { useI18n, type Key } from "@/lib/i18n";
 import { norm } from "@/lib/teams";
 import { teamHref } from "@/lib/routes";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
-import SubBar from "../../../../SubBar";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
 import { useMatchState, StatusPill, LiveFreshness } from "@/lib/live";
 import { Num, AutoRefresh } from "@/lib/fresh";
+import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
 
 type Tab = "summary" | "h2h" | "table";
 
-function Compare({ label, a, b, lowerBetter }: { label: string; a: number; b: number; lowerBetter?: boolean }) {
+function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number; b: number; lowerBetter?: boolean; noBar?: boolean }) {
   const total = a + b || 1;
   const aBetter = lowerBetter ? a < b : a > b, bBetter = lowerBetter ? b < a : b > a;
   return (
     <div className="cmp">
       <div className="cmp-top"><b className={aBetter ? "lead" : ""}>{a}</b><span>{label}</span><b className={bBetter ? "lead" : ""}>{b}</b></div>
-      <div className="cmp-bar"><i className="h" style={{ width: `${(a / total) * 100}%` }} /><i className="a" style={{ width: `${(b / total) * 100}%` }} /></div>
+      {!noBar && <div className="cmp-bar"><i className="h" style={{ width: `${(a / total) * 100}%` }} /><i className="a" style={{ width: `${(b / total) * 100}%` }} /></div>}
     </div>
   );
 }
@@ -48,18 +48,13 @@ function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
 function History({ list, home, away }: { list: Meeting[]; home: Team; away: Team }) {
   const i = useI18n();
   const { t } = i;
-  const isTeam = (x: Team, y: Team) => (x.id && y.id ? x.id === y.id : norm(x.name) === norm(y.name));
-  let hw = 0, aw = 0, d = 0;
-  for (const m of list) {
-    if (m.hs === m.as) { d++; continue; }
-    const winner = m.hs > m.as ? m.home : m.away;
-    if (isTeam(winner, home)) hw++; else if (isTeam(winner, away)) aw++;
-  }
+  const { hw, aw, d, unknown } = h2hSummary(list, home, away);
   const total = hw + aw + d || 1;
   const fmt = (iso: string) => { const [y, mo, da] = iso.split("-"); return i.lang === "en" ? `${+da}/${+mo}/${y}` : `${+da}.${+mo}.${y}`; };
   return (
     <div className="panel">
-      <div className="panel-head"><h3>{t("earlierMeetings")}</h3><span className="muted">{list.length}</span></div>
+      <div className="panel-head"><h3>{t("earlierMeetings")}</h3><span className="muted">{list.length} {t("h2hCount")}</span></div>
+      <p className="muted pad h2h-scope">{t("h2hScope")} (football-data.org){unknown ? ` · ${unknown} ?` : ""}</p>
       {list.length === 0 ? <p className="muted pad">{t("noEarlierMeetings")}</p> : (
         <>
           <div className="h2h-sum">
@@ -143,7 +138,6 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
 
   return (
     <>
-      <SubBar />
       {/* päättynyttä ottelua ei päivitetä live-tahdilla */}
       <AutoRefresh every={result ? 900_000 : st.kind === "live" || st.kind === "ht" || st.kind === "unconfirmed" ? 60_000 : 300_000} />
       <main className="wrap entity">
@@ -154,7 +148,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
           </div>
           <div className="mh-row">
             <a className={`mh-team${aw ? " lost" : ""}`} href={teamHref(s.source, m.home.name)}>
-              <Badge t={m.home} size={72} /><b>{m.home.name}</b>{rh && <small>{rh.pos}.</small>}
+              <Badge t={m.home} size={48} /><b>{m.home.name}</b>{rh && <small>{rh.pos}.</small>}
             </a>
             <div className="mh-mid">
               {result
@@ -169,7 +163,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                   : <StatusPill s={st} explain />}
             </div>
             <a className={`mh-team${hw ? " lost" : ""}`} href={teamHref(s.source, m.away.name)}>
-              <Badge t={m.away} size={72} /><b>{m.away.name}</b>{ra && <small>{ra.pos}.</small>}
+              <Badge t={m.away} size={48} /><b>{m.away.name}</b>{ra && <small>{ra.pos}.</small>}
             </a>
           </div>
         </section>
@@ -185,7 +179,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
           <>
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             <div className="panel">
-              <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("last5")}</span></div>
+              <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScope")} · {t("last5")}</span></div>
               <div className="form-duo">
                 <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
                 <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>
@@ -195,7 +189,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
               <div className="panel">
                 <div className="panel-head"><h3>{t("comparison")}</h3><span className="muted">{t("standing")}</span></div>
                 <div className="cmps">
-                  <Compare label={t("position")} a={rh.pos} b={ra.pos} lowerBetter />
+                  <Compare label={t("position")} a={rh.pos} b={ra.pos} lowerBetter noBar />
                   <Compare label={t("colPts")} a={rh.pts} b={ra.pts} />
                   <Compare label={t("won")} a={rh.w} b={ra.w} />
                   <Compare label={t("drawn")} a={rh.d} b={ra.d} />
@@ -205,7 +199,7 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                 </div>
               </div>
             )}
-            <p className="muted note">{t("lineupsLater")}</p>
+            <p className="muted note">{t("lineupsNA")}</p>
           </>
         )}
 

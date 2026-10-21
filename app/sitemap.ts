@@ -1,3 +1,4 @@
+import { SOURCES } from "@/lib/sources";
 import type { MetadataRoute } from "next";
 import { getStats } from "@/lib/stats";
 import { teamHref } from "@/lib/routes";
@@ -17,6 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: `${BASE}/`, lastModified: now, changeFrequency: "hourly", priority: 1 },
     { url: `${BASE}/maajoukkueet`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
+    { url: `${BASE}/uutiset`, lastModified: now, changeFrequency: "hourly", priority: 0.8 },
+    { url: `${BASE}/sarjat`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
+    ...SOURCES.map((s) => ({ url: `${BASE}/sarjat/${s.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.7 })),
     { url: `${BASE}/tietoa`, changeFrequency: "monthly", priority: 0.2 },
     { url: `${BASE}/tietosuoja`, changeFrequency: "monthly", priority: 0.2 },
     ...[...teams.entries()].map(([path, updated]) => ({ url: BASE + path, lastModified: updated ? new Date(updated) : now, changeFrequency: "daily" as const, priority: 0.5 })),

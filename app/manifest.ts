@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Futista – jalkapallo suomeksi",
     short_name: "Futista",
-    description: "La Ligan, Valioliigan ja Mestarien liigan uutiset sekä Euroopan sarjojen ja maajoukkueiden tulokset, otteluohjelmat ja sarjataulukot suomeksi.",
+    description: "Päivän ottelut, live-tilanteet, sarjataulukot ja uutiset: La Liga, Valioliiga, Mestarien liiga, Euroopan sarjat ja maajoukkueet suomeksi.",
     lang: "fi",
     start_url: "/",
     scope: "/",
@@ -24,9 +24,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Tulokset", url: "/?nakyma=tulokset", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Sarjataulukot", url: "/?nakyma=taulukko", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Suosikit", url: "/?nakyma=suosikit", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Ottelut", url: "/", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Suosikit", url: "/suosikit", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Sarjat", url: "/sarjat", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Maajoukkueet", url: "/maajoukkueet", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };

@@ -9,6 +9,11 @@ module.exports = {
   async redirects() {
     return [
       { source: "/:path*", has: [{ type: "host", value: "futista.vercel.app" }], destination: "https://www.futista.fi/:path*", permanent: true },
+      // Vanhat näkymälinkit (kotivalikon pikakuvakkeet, jaetut linkit) uuteen rakenteeseen.
+      // (?nakyma=tulokset = etusivu, siistitään selaimessa; tilapäinen ohjaus, jotta rakennetta voi vielä muuttaa)
+      { source: "/", has: [{ type: "query", key: "nakyma", value: "taulukko" }], destination: "/sarjat", permanent: false },
+      { source: "/", has: [{ type: "query", key: "nakyma", value: "suosikit" }], destination: "/suosikit", permanent: false },
+      { source: "/", has: [{ type: "query", key: "nakyma", value: "maajoukkueet" }], destination: "/maajoukkueet", permanent: false },
     ];
   },
 };

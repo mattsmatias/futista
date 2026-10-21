@@ -936,3 +936,309 @@ div.match { cursor: default; }
 @media (min-width: 1121px) { .offline-bar { bottom: 20px; } }
 .notify-scope { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .notify.is-off .notify-ico { opacity: .5; }
+
+/* ================================================================
+   TULOSPALVELU (2026-10): sama teema (värit, fontit, pinnat), tiiviit listat.
+   Päänavigaatio: työpöydällä yläpalkissa, ≤ 900 px kiinteä alapalkki.
+   ================================================================ */
+:root { --appbar-h: 56px; --live: #e5243b; --bottom-h: 64px;
+  --c-ucl: #2f5bea; --c-laliga: #f0472b; --c-valioliiga: #7c3aed; --c-bundesliga: #d1243b; --c-seriea: #1d6fb8; --c-ligue1: #0c8a6b; --c-eredivisie: #e56a10; --c-primeira: #157a3d; --c-championship: #6b7280; --c-intl: #0f766e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --live: #ff4d5e; } }
+:root[data-theme="dark"] { --live: #ff4d5e; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.grow { flex: 1; }
+
+/* Yläpalkki */
+.appbar-in { gap: 12px; }
+.logo { font-size: 18px; }
+.icon-btn { flex: none; display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: var(--fg); }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn:hover:not(:disabled) { background: var(--surface-2); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.back-btn { margin-left: -8px; }
+.topnav { display: flex; gap: 2px; margin-left: 12px; }
+.topnav a { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 12px; border-radius: 10px; font-weight: 600; font-size: 14px; color: var(--muted); position: relative; }
+.topnav a svg { width: 18px; height: 18px; }
+.topnav a:hover { color: var(--fg); background: var(--surface-2); }
+.topnav a.on { color: var(--fg); font-weight: 750; }
+.topnav a.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -8px; height: 3px; border-radius: 3px 3px 0 0; background: var(--fg); }
+.search-btn { display: flex; align-items: center; gap: 8px; height: 40px; min-width: 44px; padding: 0 14px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 14px; }
+.search-btn svg { width: 18px; height: 18px; flex: none; }
+.search-btn:hover { color: var(--fg); }
+.settings { position: relative; }
+.set-btn { width: auto; padding: 0 8px; gap: 4px; display: inline-flex; align-items: center; }
+.set-lang { font: 700 11.5px var(--ui); letter-spacing: .05em; color: var(--muted); }
+.set-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 200px; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 18px 40px -14px rgba(0,0,0,.45); display: grid; }
+.set-menu .set-h { margin: 6px 10px 4px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.set-menu button, .set-menu a { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 10px; font-size: 14.5px; text-align: left; }
+.set-menu button b { font-size: 11px; letter-spacing: .06em; color: var(--muted); width: 22px; }
+.set-menu button i { margin-left: auto; font-style: normal; font-weight: 700; }
+.set-menu button:hover, .set-menu a:hover, .set-menu button.on { background: var(--surface-2); }
+.set-menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; width: auto; }
+
+/* Alapalkki (puhelin, tabletti) */
+.bottomnav { display: none; }
+@media (max-width: 900px) {
+  .topnav, .search-ph { display: none; }
+  .search-btn { background: none; padding: 0; width: 44px; justify-content: center; color: var(--fg); }
+  .search-btn svg { width: 22px; height: 22px; }
+  .bottomnav { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; transform: none; width: auto;
+    padding: 4px max(8px, env(safe-area-inset-right, 0px)) calc(4px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+    border-radius: 0; background: var(--glass); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border: 0; border-top: 1px solid var(--line); box-shadow: none; }
+  .bottomnav a { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; border-radius: 12px; font-size: 11.5px; font-weight: 600; color: var(--muted); position: relative; }
+  .bottomnav a svg { width: 22px; height: 22px; }
+  .bottomnav a.on { color: var(--fg); font-weight: 750; }
+  .bottomnav a.on::before { content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--fg); }
+  .bottomnav a.on svg { stroke-width: 2.4; }
+  main { padding-bottom: calc(var(--bottom-h) + 32px + env(safe-area-inset-bottom, 0px)); }
+  .foot-in { padding-bottom: calc(var(--bottom-h) + 24px + env(safe-area-inset-bottom, 0px)); }
+  .install { bottom: calc(var(--bottom-h) + 12px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+  .bottomnav a { grid-auto-flow: column; gap: 6px; min-height: 44px; }
+}
+
+/* Sivujen otsikot ja yleiset osat */
+.page-title { display: grid; gap: 4px; }
+.page-title h1 { font: 700 24px/1.15 var(--display); letter-spacing: -0.025em; margin: 0; }
+.page-title p { margin: 0; }
+.sub-h { font: 700 15px/1.2 var(--display); letter-spacing: -0.015em; margin: 0 0 10px; }
+.sub-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sub-head .sub-h { margin: 0; }
+.btn.sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.chip-btn { min-height: 36px; padding: 0 12px; border-radius: 999px; background: var(--surface-2); font-weight: 650; font-size: 13px; }
+.empty-state { display: grid; gap: 12px; justify-items: start; padding: 20px 16px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
+.empty-state p { margin: 0; max-width: 60ch; }
+.empty-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.part-fail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line)); font-size: 13.5px; }
+
+/* Otteluiden etusivu */
+.mhome { gap: 14px; padding-top: 12px; }
+.mh-controls { display: grid; gap: 10px; position: sticky; top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px)); z-index: 20; background: var(--bg); padding: 6px 0 8px; margin: -6px 0 0; }
+.mh-controls .fresh-line { margin: 0; font-size: 12px; }
+.daypick { display: flex; align-items: center; gap: 4px; }
+.dp-mid { flex: 1; min-width: 0; text-align: center; }
+.dp-label { font-size: 15px; white-space: nowrap; }
+.dp-label b { font-weight: 750; }
+.dp-label span { color: var(--muted); }
+.dp-cal { position: relative; }
+.dp-input { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 44px; height: 44px; }
+.dp-today { margin-left: 4px; }
+.filters { display: flex; gap: 6px; }
+.fbtn { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 650; font-size: 14px; color: var(--muted); }
+.fbtn:hover { color: var(--fg); }
+.fbtn.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.fcount { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; font: 700 12px var(--mono); background: var(--surface-2); color: var(--fg); }
+.fbtn.on .fcount { background: color-mix(in srgb, var(--bg) 20%, transparent); color: inherit; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live); flex: none; }
+.fbtn.on .live-dot { background: var(--live); box-shadow: 0 0 0 2px var(--bg); }
+
+/* Kilpailuryhmä */
+.cgroup { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.cg-head { display: flex; align-items: center; gap: 4px; padding-right: 6px; border-bottom: 1px solid var(--line); }
+.cg-title { flex: 1; min-width: 0; margin: 0; font: inherit; }
+.cg-toggle, .cg-fav .cg-title { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; text-align: left; }
+.cg-name { font-weight: 750; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cg-country { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.cg-n { font: 600 12px var(--mono); color: var(--muted); }
+.cg-warn { font-size: 11.5px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.cg-chev { margin-left: auto; display: grid; color: var(--muted); transition: transform .2s; }
+.cg-chev svg { width: 18px; height: 18px; }
+.cg-chev:not(.open) { transform: rotate(-90deg); }
+.cg-link { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 8px; font-size: 12.5px; font-weight: 650; color: var(--muted); white-space: nowrap; border-radius: 10px; }
+.cg-link svg { width: 16px; height: 16px; }
+.cg-link:hover { color: var(--fg); background: var(--surface-2); }
+.cmark { flex: none; display: inline-grid; place-items: center; min-width: 30px; height: 22px; padding: 0 5px; border-radius: 6px; font: 800 10.5px/1 var(--ui); letter-spacing: .03em; color: #fff; background: var(--muted); }
+.cm-ucl { background: var(--c-ucl); } .cm-laliga { background: var(--c-laliga); } .cm-valioliiga { background: var(--c-valioliiga); }
+.cm-bundesliga { background: var(--c-bundesliga); } .cm-seriea { background: var(--c-seriea); } .cm-ligue1 { background: var(--c-ligue1); }
+.cm-eredivisie { background: var(--c-eredivisie); } .cm-primeira { background: var(--c-primeira); } .cm-championship { background: var(--c-championship); }
+.cm-intl { background: var(--c-intl); }
+.cm-fav { background: color-mix(in srgb, #ff3d6e 16%, transparent); color: #ff3d6e; }
+.cm-fav svg { width: 14px; height: 14px; fill: currentColor; }
+.cg-list > * + * { border-top: 1px solid var(--line); }
+.panel-list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.mrow-wrap { display: grid; }
+.mrow-comp { padding: 8px 12px 0; font-size: 11.5px; font-weight: 650; color: var(--muted); }
+.mrow-wrap .mrow { border: 0; }
+
+/* Ottelurivi */
+.mrow { position: relative; display: flex; align-items: stretch; min-height: 60px; }
+.mrow-link { flex: 1; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 8px 12px 8px 10px; }
+.mrow-link:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.mrow-st { display: grid; justify-items: center; gap: 2px; font: 600 13px/1.1 var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); text-align: center; }
+.mrow-st span { white-space: nowrap; }
+.mrow-st.ms-live { color: var(--live); font-weight: 800; }
+.mrow-st.ms-ft { color: var(--muted); font-family: var(--ui); font-size: 12.5px; font-weight: 650; }
+.mrow-st.ms-off { color: var(--gold); font-family: var(--ui); font-size: 12px; font-weight: 700; }
+.mrow-st.ms-unc { color: var(--gold); font-family: var(--ui); font-size: 11.5px; font-weight: 700; }
+.mrow-teams { display: grid; gap: 5px; min-width: 0; }
+.mrow-tm { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; line-height: 1.25; color: var(--fg); }
+.mrow-tm .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow-tm.win { font-weight: 750; }
+.mrow-tm.fav .nm::after { content: "♥"; margin-left: 6px; font-size: 10px; color: #ff3d6e; vertical-align: 1px; }
+.mrow-tm .crest, .mrow-tm .badge { width: 20px; height: 20px; }
+.mrow-tm .badge { font-size: 7px; }
+.mrow-sc { display: grid; gap: 5px; justify-items: end; font: 700 15px/1.25 var(--mono); font-variant-numeric: tabular-nums; min-width: 2.2ch; }
+.mrow-sc > span { display: inline-flex; gap: 4px; align-items: baseline; min-height: 20px; color: var(--muted); }
+.mrow-sc > span.win { color: var(--fg); }
+.mrow-sc.live > span { color: var(--live); }
+.mrow-sc small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.mrow-sc b { font-weight: inherit; display: inline-block; min-width: 1.2ch; text-align: right; }
+.mrow-sc .nil { visibility: hidden; }
+.mrow-q { display: grid; place-items: center; padding-right: 8px; }
+.mrow.is-live .mrow-link { box-shadow: inset 3px 0 0 var(--live); }
+.sk-row .sk-st { width: 36px; height: 14px; border-radius: 6px; justify-self: center; }
+.sk-row .sk-nm { display: block; height: 14px; width: 60%; border-radius: 6px; }
+.sk-row .sk-nm.short { width: 45%; }
+
+/* Haku */
+.s-scrim { position: fixed; inset: 0; z-index: 80; background: rgba(5,7,11,.45); display: flex; justify-content: center; align-items: flex-start; padding: max(10px, env(safe-area-inset-top, 0px)) 10px 10px; }
+.s-dialog { width: min(640px, 100%); max-height: min(78svh, 680px); display: grid; grid-template-rows: auto 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 30px 70px -20px rgba(0,0,0,.6); overflow: hidden; margin-top: 6vh; }
+.s-bar { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-bottom: 1px solid var(--line); }
+.s-ico { display: grid; color: var(--muted); }
+.s-ico svg { width: 20px; height: 20px; }
+.s-bar input { flex: 1; min-width: 0; height: 44px; border: 0; background: none; color: var(--fg); font: 500 16px var(--ui); outline: none; }
+.s-bar input::-webkit-search-cancel-button { display: none; }
+.s-body { overflow-y: auto; overscroll-behavior: contain; padding-bottom: 6px; }
+.s-group h3 { margin: 12px 14px 4px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.s-group ul { list-style: none; margin: 0; padding: 0 6px; }
+.s-row { display: flex; align-items: center; border-radius: 10px; }
+.s-row.on { background: var(--surface-2); }
+.s-row a { flex: 1; min-width: 0; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; min-height: 48px; padding: 6px 8px; }
+.s-row a > :first-child { grid-row: span 2; }
+.s-name { font-weight: 650; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-flag { width: 24px; height: 16px; border-radius: 2px; object-fit: cover; background: var(--surface-2); display: inline-block; }
+@media (max-width: 640px) { .s-scrim { padding: 0; } .s-dialog { margin: 0; width: 100%; max-height: none; height: 100svh; border-radius: 0; border: 0; } }
+
+/* Suosikit */
+.favpage, .newspage, .dirpage, .comppage { gap: 22px; padding-top: 16px; }
+.fsec { display: grid; gap: 10px; }
+.fsec .daypick { margin-bottom: 4px; }
+.team-list { list-style: none; margin: 0; padding: 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); width: 100%; }
+.team-list li { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 2px 0 10px; border-radius: 10px; min-width: 0; }
+.team-list .tl-name { flex: 1; min-width: 0; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-list a.tl-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.heart { width: 44px; height: 44px; }
+.heart-txt { width: auto; padding: 0 14px 0 10px; gap: 6px; display: inline-flex; border-radius: 999px; background: var(--surface-2); font-weight: 650; font-size: 13.5px; }
+.fav-empty { justify-items: stretch; }
+.fav-empty > .btn { justify-self: start; }
+
+/* Uutiset */
+.nfilters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-laliga { background: var(--c-laliga); } .dot-valioliiga { background: var(--c-valioliiga); } .dot-ucl { background: var(--c-ucl); }
+.fbtn.on .dot { box-shadow: 0 0 0 2px var(--bg); }
+.nlead { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.nlead .art { min-height: 240px; max-height: 340px; }
+.nlead-txt { display: grid; gap: 10px; align-content: start; padding: 18px; }
+.nlead h2 { font: 700 clamp(20px, 2.4vw, 26px)/1.18 var(--display); letter-spacing: -0.025em; margin: 0; text-wrap: balance; }
+.nlead p { margin: 0; color: var(--muted); font-size: 15px; }
+.nlead .chip { justify-self: start; }
+.nlist { display: grid; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.nlist > * + * { border-top: 1px solid var(--line); }
+.nitem { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 12px; }
+.nitem .art { width: 96px; height: 64px; border-radius: 8px; }
+.nitem .gen b { font-size: 30px; bottom: -6px; right: -4px; }
+.nitem h3 { margin: 0 0 4px; font-size: 15px; line-height: 1.3; font-weight: 650; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nitem:hover h3, .nlead:hover h2 { text-decoration: underline; text-underline-offset: 3px; }
+.nmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; font-size: 12px; color: var(--muted); }
+.nm-lg { font-weight: 700; }
+.nm-laliga { color: var(--c-laliga); } .nm-valioliiga { color: var(--c-valioliiga); } .nm-ucl { color: var(--c-ucl); }
+.nm-type { font-weight: 700; color: var(--gold); }
+.more-btn { justify-self: center; margin-top: 10px; }
+@media (max-width: 760px) { .nlead { grid-template-columns: 1fr; } .nlead .art { min-height: 0; aspect-ratio: 16 / 9; max-height: 240px; } .nlead-txt { padding: 14px; } }
+
+/* Sarjat */
+.dir-filter { display: flex; align-items: center; gap: 8px; max-width: 420px; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.dir-filter svg { width: 18px; height: 18px; }
+.dir-filter input { flex: 1; min-width: 0; border: 0; background: none; color: var(--fg); font: 500 15px var(--ui); outline: none; }
+.dir-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.dir-list li + li { border-top: 1px solid var(--line); }
+@media (min-width: 640px) { .dir-list li + li { border-top: 0; } .dir-list li { border-bottom: 1px solid var(--line); } }
+.dir-list a { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px; }
+.dir-list a:hover { background: var(--surface-2); }
+.dir-list a svg { width: 18px; height: 18px; color: var(--muted); margin-left: auto; flex: none; }
+.dir-name { font-weight: 700; }
+.dir-sub { font-size: 12.5px; color: var(--muted); }
+.dir-flag { width: 30px; height: 20px; border-radius: 3px; object-fit: cover; }
+.dir-sec { display: grid; }
+
+/* Kilpailu- ja kohdesivujen kompakti yläosa + välilehdet */
+.ehead { display: flex; align-items: center; gap: 12px; }
+.ehead h1 { font: 700 22px/1.15 var(--display); letter-spacing: -0.025em; margin: 0; }
+.ehead p { margin: 2px 0 0; }
+.ehead .cmark { min-width: 40px; height: 30px; font-size: 12px; border-radius: 8px; }
+.etabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin-top: -8px; }
+.etabs::-webkit-scrollbar { display: none; }
+.etabs button { flex: none; min-height: 44px; padding: 0 14px; font-weight: 650; font-size: 14.5px; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.etabs button.on { color: var(--fg); font-weight: 750; border-bottom-color: var(--fg); }
+.epane { display: grid; gap: 18px; min-width: 0; }
+.day-block { display: grid; gap: 6px; margin-bottom: 12px; }
+.day-h { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.legend.abbr { display: block; margin: 0; border-top: 1px solid var(--line); }
+
+@media (max-width: 640px) {
+  .mhome { padding-top: 8px; }
+  .page-title h1 { font-size: 21px; }
+  .mrow-link { grid-template-columns: 48px minmax(0, 1fr) auto; column-gap: 8px; padding-inline: 8px 10px; }
+  .mrow-st { font-size: 12.5px; }
+  .mrow-tm { font-size: 14px; }
+  .cg-country { display: none; }
+  .fbtn { padding: 0 12px; }
+  .dp-label { font-size: 14px; }
+}
+@media (max-width: 360px) {
+  .cg-link { padding: 0 4px; font-size: 0; }
+  .cg-link svg { width: 18px; height: 18px; }
+  .dp-today { padding: 0 8px; font-size: 12px; }
+  .fbtn { padding: 0 10px; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .cg-chev { transition: none; } }
+.mrow-st { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.mrow-sc .bump { transform: none !important; }
+@media (min-width: 901px) {
+  .mhome, .favpage, .comppage, .dirpage { max-width: 860px; }
+  .newspage { max-width: 980px; }
+}
+
+/* Ottelusivun yläosa: matala, sama pinta kuin listoissa (ei koristeellista heroa) */
+.match-hero { padding: 12px 14px 14px; border-radius: var(--r-md); color: var(--fg); background: var(--surface); border: 1px solid var(--line); }
+.match-hero::before { display: none; }
+.match-hero .chip { background: color-mix(in srgb, var(--accent, var(--pl)) 14%, transparent); color: var(--accent, var(--fg)); }
+.mh-meta { justify-content: flex-start; color: var(--muted); opacity: 1; }
+.mh-row { margin-top: 10px; gap: 10px; }
+.mh-team { gap: 6px; }
+.mh-team b { font: 700 clamp(14px, 2.2vw, 17px)/1.15 var(--ui); letter-spacing: -0.01em; }
+.mh-team .crest, .mh-team .badge { padding: 0; border-radius: 50%; background: none; width: 44px !important; height: 44px !important; }
+.mh-team .badge { background: var(--surface-2); }
+.mh-team.lost { opacity: .7; }
+.mh-score { font-size: clamp(30px, 7vw, 42px); }
+.mh-score.mh-live { color: var(--live); }
+.mh-time { font-size: clamp(24px, 5vw, 32px); }
+.mh-status { background: var(--surface-2); color: var(--muted); }
+.mh-status.up { background: var(--surface-2); color: var(--muted); }
+.mh-mid .st-ft { background: var(--surface-2); color: var(--muted); }
+.h2h-scope { padding-block: 8px 0; font-size: 12.5px; }
+@media (max-width: 640px) { .mh-team .crest, .mh-team .badge { width: 40px !important; height: 40px !important; } }
+.form-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ehead-comp { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
+.team-head .heart-txt { margin-left: auto; }
+.ehead .crest, .ehead .badge { width: 48px; height: 48px; }
+.entity { gap: 18px; }
+.next-card { padding: 12px 14px; }
+.pl-avatar.sm { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--surface-2); font: 700 18px var(--display); flex: none; }
+.pl-avatar.sm img { width: 56px; height: 56px; object-fit: cover; }
+.mrow-link.nolink:hover { background: none; }
+
+/* Artikkeli: otsikko ja ingressi ensin, kuva maltillisena */
+.story-head { max-width: 760px; display: grid; gap: 12px; padding-top: 18px; }
+.story-head h1 { font: 700 clamp(24px, 4vw, 38px)/1.12 var(--display); letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
+.story-head .meta { color: var(--muted); }
+.story-fig { max-width: 760px; margin: 14px auto 0; }
+.story-fig img { width: 100%; height: auto; max-height: 420px; object-fit: cover; border-radius: var(--r-md); background: var(--surface-2); }
+.story { max-width: 720px; }
+.more .nlist { max-width: 760px; }
+@media (max-width: 640px) { .story-fig img { max-height: 260px; } .story-head { padding-top: 12px; } }
+.sk-hero, .sk-hero.dark { height: 120px; border-radius: var(--r-md) !important; }

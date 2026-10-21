@@ -6,6 +6,7 @@ import { toLocal } from "@/lib/links";
 import { GenArt } from "../../Art";
 import Progress from "../../Progress";
 import Footer from "../../Footer";
+import { NewsItem } from "../../ui/News";
 import SafeImg from "../../SafeImg";
 import { T, LeagueName, TypeName, LocalDate } from "@/lib/i18n";
 
@@ -49,31 +50,24 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <>
       <Progress />
-      <header className={`story-top${a.image ? " has-img" : ""}`}>
-        {a.image ? (
-          <>
-            {/* sumennettu tausta täyttää reunat, itse kuva näytetään kokonaan ja alkuperäisessä muodossaan */}
-            <div className="story-bg" style={{ backgroundImage: `url("${a.image}")` }} aria-hidden="true" />
-            <figure className="story-figure">
-              <SafeImg src={a.image} alt="" width={1264} height={843} referrerPolicy="no-referrer" fetchPriority="high" decoding="async" />
-            </figure>
-          </>
-        ) : (
-          <div className="art"><GenArt seed={a.source} tags={a.tags} source={a.sourceId} /></div>
-        )}
-        <a className="back" href="/"><T k="back" /></a>
-        <div className="wrap" style={{ maxWidth: 820 }}>
-          <div className="chips">
-            <span className={`chip chip-${a.sourceId}`}><LeagueName source={a.sourceId} fallback={a.league} /></span>
-            {a.type !== "Uutiset" && <span className="chip"><TypeName type={a.type} /></span>}
-          </div>
-          <h1>{a.title}</h1>
-          <div className="meta">
-            {a.author && <span>{a.author}</span>}
-            {a.date && <LocalDate iso={a.date} />}
-          </div>
+      {/* otsikko ja ingressi ensin, sitten maltillisen kokoinen kuva */}
+      <header className="wrap story-head">
+        <div className="chips">
+          <span className={`chip chip-${a.sourceId}`}><LeagueName source={a.sourceId} fallback={a.league} /></span>
+          {a.type !== "Uutiset" && <span className="chip"><TypeName type={a.type} /></span>}
+        </div>
+        <h1>{a.title}</h1>
+        <div className="meta">
+          {a.author && <span>{a.author}</span>}
+          {a.date && <LocalDate iso={a.date} />}
+          <span><T k="source" />: {a.sourceName}</span>
         </div>
       </header>
+      {a.image && (
+        <figure className="wrap story-fig">
+          <SafeImg src={a.image} alt="" width={1264} height={843} referrerPolicy="no-referrer" fetchPriority="high" decoding="async" />
+        </figure>
+      )}
 
       <article className="wrap story">
         {excerpt0
@@ -86,21 +80,7 @@ export default async function ArticlePage({ params }: Props) {
       {more.length > 0 && (
         <section className="wrap sec more">
           <div className="sec-head"><h2><T k="more" /></h2></div>
-          <div className="grid">
-            {more.map((m) => (
-              <a key={m.id} className="card" href={toLocal(m.link)}>
-                <div className="art" style={{ aspectRatio: "16/10" }}>
-                  {m.image
-                    ? <SafeImg src={m.image} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    : <GenArt seed={m.id} tags={m.tags} source={m.source} />}
-                </div>
-                <div className="card-body">
-                  <div className="chips"><span className={`chip chip-${m.source}`}><LeagueName source={m.source} fallback={m.league} /></span></div>
-                  <h3>{m.title}</h3>
-                </div>
-              </a>
-            ))}
-          </div>
+          <div className="nlist">{more.map((m) => <NewsItem key={m.id} a={m} />)}</div>
         </section>
       )}
 
