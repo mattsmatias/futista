@@ -50,6 +50,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const fallback = backFallback(path);
 
   useEffect(() => { navDepth++; }, [path]);
+  // kotivalikosta avattu sovellus: alatunniste piiloon (CSS display-mode kattaa useimmat; vanha iOS tunnistetaan tästä)
+  useEffect(() => { if ((navigator as any).standalone === true) document.documentElement.classList.add("app-mode"); }, []);
 
   const openSearch = useCallback(() => { trigger.current = document.activeElement as HTMLElement | null; setSearchOpen(true); }, []);
   const closeSearch = useCallback(() => { setSearchOpen(false); setTimeout(() => trigger.current?.focus?.(), 0); }, []);

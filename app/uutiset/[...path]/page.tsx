@@ -53,6 +53,7 @@ export default async function ArticlePage({ params }: Props) {
     <>
       <Progress />
       <MarkRead path={"/uutiset/" + params.path.join("/")} />
+      <main className="storypage">
       {/* otsikko ja ingressi ensin, sitten maltillisen kokoinen kuva */}
       <header className="wrap story-head">
         <div className="chips">
@@ -87,6 +88,7 @@ export default async function ArticlePage({ params }: Props) {
           <div className="nlist">{more.map((m) => <NewsItem key={m.id} a={m} />)}</div>
         </section>
       )}
+      </main>
 
       <Footer />
     </>

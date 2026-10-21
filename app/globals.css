@@ -1301,3 +1301,8 @@ div.match { cursor: default; }
 .nm-read { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px 1px 5px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-weight: 650; }
 .nitem.is-read h3, .nlead.is-read h2 { color: color-mix(in srgb, var(--fg) 68%, var(--bg)); }
 .nitem.is-read .art, .nlead.is-read .art { opacity: .8; }
+
+/* Kotivalikosta avattu sovellus: ei alatunnistetta (Tietoa ja Tietosuoja löytyvät Asetukset-valikosta) */
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) { .foot { display: none; } }
+html.app-mode .foot { display: none; }
+main.storypage { display: block; padding-top: 0; }

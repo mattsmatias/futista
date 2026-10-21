@@ -188,3 +188,20 @@ test("Süper Lig (ESPN): maalipörssi, puuttuvat syötöt null", () => {
   assert.equal(r.season, "2026–27");
   assert.deepEqual(r.list.map((p) => [p.name, p.goals, p.assists, p.played]), [["Pelaaja A", 8, 3, 8], ["Pelaaja B", 7, null, null]]);
 });
+
+import { isPromo } from "../lib/promo";
+import { parseHTML } from "linkedom";
+import { removePromos } from "../lib/promo";
+
+test("kanavamainokset: lähdesivun WhatsApp-mainos poistuu, tavallinen teksti säilyy", () => {
+  const { document } = parseHTML(`<html><body><article><p>– Tämä onkin hyvä esimerkki siitä, miten erotuomarin ratkaisu toimii.</p><p><strong>Liity kanavallemme <a href="https://whatsapp.com/channel/0029Va">WhatAppissa</a> ja saa tuoreimmat päivitykset Valioliigan tapahtumista! <a href="https://whatsapp.com/channel/0029Va">LIITY NYT</a></strong></p><p>Joukkue liittyi kärkeen ja seuraa nyt tiiviisti kilpailijoitaan.</p></article></body></html>`);
+  removePromos(document);
+  const t = document.body.textContent ?? "";
+  assert.ok(!/liity|whatsapp|whatapp/i.test(t), t);
+  assert.ok(t.includes("erotuomarin ratkaisu") && t.includes("Joukkue liittyi kärkeen"));
+  assert.equal(document.querySelectorAll("p").length, 2);
+  assert.equal(isPromo("Liity kanavallemme WhatsAppissa ja saa tuoreimmat päivitykset!"), true);
+  assert.equal(isPromo("Seuraa meitä myös Instagramissa"), true);
+  assert.equal(isPromo("Pelaaja seuraa meitä kohti mestaruutta, sanoi valmentaja."), false);
+  assert.equal(isPromo("Tilanne: " + "pitkä teksti ".repeat(40) + " liity nyt"), false); // pitkää kappaletta ei poisteta
+});

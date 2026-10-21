@@ -4,6 +4,7 @@ import sanitizeHtml from "sanitize-html";
 import { getArticles } from "./feed";
 import { toLocal } from "./links";
 import { sourceById } from "./sources";
+import { isPromo, PROMO_LINK, removePromos } from "./promo";
 
 const DATE_SLUG = /^\d{4}\/\d{2}\/\d{2}\/[a-z0-9-]+$/;
 
@@ -60,7 +61,9 @@ function cleanImages(doc: any) {
       (el.tagName === "STRONG" && el.parentElement?.tagName === "P" ? el.parentElement : el).remove();
     }
   }
+  removePromos(doc);
 }
+
 
 const baseName = (u: string | null | undefined) =>
   (u || "").split("?")[0].split("/").pop()?.replace(/-\d+x\d+(?=\.\w+$)/, "") || "";
@@ -92,6 +95,8 @@ export async function getFullArticle(parts: string[]): Promise<FullArticle | nul
     exclusiveFilter: (frame) =>
       // pois kasino-, vedonlyönti- ja mainoslinkit sekä tyhjät kappaleet
       (frame.tag === "a" && /affiliate|record\.|casino|kasino|bonus|vedonly/i.test(frame.attribs.href ?? "")) ||
+      (frame.tag === "a" && PROMO_LINK.test(frame.attribs.href ?? "")) ||
+      ((frame.tag === "p" || frame.tag === "li" || /^h[2-4]$/.test(frame.tag)) && isPromo(frame.text)) ||
       (frame.tag === "p" && /ilmaiskierro|talletu|kasino|18\+/i.test(frame.text)) ||
       (frame.tag === "p" && !frame.text.trim() && !frame.mediaChildren.length),
     transformTags: {

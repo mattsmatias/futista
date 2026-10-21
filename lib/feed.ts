@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { isPromo } from "./promo";
 import { unstable_cache } from "next/cache";
 import { SOURCES, siteName, type Source, type SourceId } from "./sources";
 
@@ -66,7 +67,7 @@ async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
     const desc: string = it.description?.__cdata ?? it.description ?? "";
     const img = desc.match(/src="([^"]+)"/)?.[1] ?? null;
     const text = cleanText(decode(desc.replace(/<[^>]+>/g, " ").replace(/\[(…|&#8230;)\]/g, "")));
-    const excerpt = (text.match(/[^.!?]+[.!?]+/g) ?? [text]).slice(0, 2).join(" ").trim();
+    const excerpt = (text.match(/[^.!?]+[.!?]+/g) ?? [text]).filter((x) => !isPromo(x)).slice(0, 2).join(" ").trim();
     const cats = toArray(it.category).map((c: any) => decode(String(c?.__cdata ?? c)));
     // Mestarien liigan jutut omaan sarjaansa, vaikka ne tulisivat La Ligan tai Valioliigan syötteestä
     const s = cats.some(UCL) ? ucl : src;
