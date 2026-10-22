@@ -229,6 +229,7 @@ async function apiTests() {
   ok("lukuvastaus jaetaan CDN:ssä lyhyesti, kirjoitukset no-store", /s-maxage=1/.test((await api(`/room/${ROOM}/messages`)).cc) && /no-store/.test((await send(ROOM, await fresh("Testi Cache"), "x y z")).cc ?? ""));
 
   // ---------- kirjautumislinkki (emulaattori, ei sähköpostia) ----------
+  sql(`delete from public.lk_auth_attempts`); // aiempien ajojen pyynnöt eivät saa täyttää tunnin rajaa
   r = await api("/auth/link", { method: "POST", body: { email: "testi@example.invalid", next: `/ottelu/pd/test-1?v=livekatsomo` } });
   const otp = await (await fetch(`${REST}/__lk/last-otp`, { headers: { apikey: "test" } })).json();
   ok("kirjautumislinkkipyyntö välitetään Supabase Authille, ei välimuistia", r.status === 200 && /no-store/.test(r.cc) && otp?.redirect?.includes("/livekatsomo/kirjaudu?next="));

@@ -428,7 +428,11 @@ export function useChat(roomId: string, active: boolean) {
       rtOff = connectRealtime(roomId, cfg, onBatch, (st) => {
         if (stop) return;
         if (st === "up") { const was = modeRef.current; setMode("rt"); if (was !== "rt") { loadNew(); reschedule(); } }
-        else { setMode(st === "full" ? "full" : "fallback"); reschedule(); }
+        else {
+          // vain tilan vaihtuessa: toistuvat uudelleenyhdistysyritykset eivät saa siirtää varakyselyä jatkuvasti
+          const next = st === "full" ? "full" : "fallback", was = modeRef.current;
+          setMode(next); if (was !== next) reschedule();
+        }
       });
       if (modeRef.current === "init") setMode("fallback"); // kunnes liittyminen onnistuu
     };
