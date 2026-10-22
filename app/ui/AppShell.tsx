@@ -2,6 +2,7 @@
 // Sovelluksen runko kaikille sivuille: kompakti yläpalkki (logo, haku, asetukset), päänavigaatio
 // (Ottelut · Suosikit · Sarjat · Uutiset) – työpöydällä yläpalkissa, puhelimessa kiinteänä alapalkkina.
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useAppUpdate } from "@/lib/app-update";
 import { usePathname, useRouter } from "next/navigation";
 import { useFavorites } from "@/lib/favorites";
 import NotifyCard from "./NotifyCard";
@@ -52,6 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const active = activeNav(path);
   const fallback = backFallback(path);
 
+  useAppUpdate(); // uusi julkaisu käyttöön automaattisesti (myös kotivalikosta avattu sovellus)
   useEffect(() => { navDepth++; }, [path]);
   // kotivalikosta avattu sovellus: alatunniste piiloon (CSS display-mode kattaa useimmat; vanha iOS tunnistetaan tästä)
   useEffect(() => { if ((navigator as any).standalone === true) document.documentElement.classList.add("app-mode"); }, []);

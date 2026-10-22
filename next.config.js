@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
+  // julkaisun tunniste: avoin sovellus vertaa tätä palvelimen versioon ja päivittää itsensä (lib/app-update.ts)
+  env: { NEXT_PUBLIC_BUILD: process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "dev" },
   experimental: {
     serverComponentsExternalPackages: ["linkedom", "@mozilla/readability", "sanitize-html"],
   },
