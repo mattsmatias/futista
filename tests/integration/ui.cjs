@@ -164,6 +164,30 @@ const MIN = 60_000;
     const hrefs = await page.locator(".cgroup a[href^='/ottelu/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
     ok("päivät: 5 nopeaa vaihtoa → osoitteessa viimeisin päivä", pv === want, `${pv} / ${want}`);
     ok("  näkyvät ottelut kuuluvat valittuun päivään", hrefs.every((h) => h.includes(`/${want}/`)), hrefs.slice(0, 3).join(" "));
+    // kalenteri: napautus osuu oikeaan päivämääräkenttään (iPhonen Safari avaa valitsimen vain suoraan napautuksesta)
+    const cb = await page.locator(".dp-cal .icon-btn").boundingBox();
+    const hit = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}:${e.getAttribute("type")}` : "-"; }, [cb.x + cb.width / 2, cb.y + cb.height / 2]);
+    ok("kalenteri: kuvakkeen kohdalla on päivämääräkenttä (napautus avaa valitsimen)", hit === "INPUT:date", hit);
+    const calIn = await page.locator(".dp-input").boundingBox();
+    ok("  kosketusalue vähintään 44 × 44 px", calIn.width >= 44 && calIn.height >= 44, `${calIn.width}×${calIn.height}`);
+    const pick = addD(today, 2);
+    await page.locator(".dp-input").fill(pick); await page.waitForTimeout(800);
+    ok("  päivän valinta kalenterista vaihtaa päivän", new URL(page.url()).searchParams.get("pv") === pick, page.url());
+    await page.locator(".daypick button[aria-label='Seuraava päivä']").click(); await page.waitForTimeout(300);
+    await page.locator(".daypick .dp-today").click().catch(() => {}); await page.waitForTimeout(300);
+    for (let i = 0; i < 5; i++) await page.locator(".daypick button[aria-label='Seuraava päivä']").click();
+    await page.waitForTimeout(1200);
+    // suosikit ilman joukkueita: "Lisää joukkueita" sopivan kokoinen
+    {
+      const c2 = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } }); await markTestTraffic(c2, APP);
+      const p2 = await c2.newPage();
+      await p2.goto(APP + "/suosikit", { waitUntil: "networkidle" });
+      const bt = p2.locator(".fav-empty > .btn");
+      const bb = await bt.boundingBox().catch(() => null);
+      const fs = await bt.evaluate((e) => getComputedStyle(e).fontSize).catch(() => "-");
+      ok("suosikit: 'Lisää joukkueita' sopivan kokoinen (korkeus ≤ 42 px, teksti 14 px, ei koko leveä)", !!bb && bb.height <= 42 && bb.height >= 36 && fs === "14px" && bb.width < 250, `${bb && Math.round(bb.width)}×${bb && Math.round(bb.height)} ${fs}`);
+      await c2.close();
+    }
     // paluu: päivä ja vierityskohta palautuvat
     // taaksepäin, kunnes päivällä on otteluita (simuloiduissa sarjoissa ottelupäiviä on joka toinen tai kolmas päivä)
     for (let i = 0; i < 8; i++) {

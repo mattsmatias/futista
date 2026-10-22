@@ -1,6 +1,5 @@
 "use client";
 // Päivämäärävalitsin: edellinen · valittu päivä · seuraava · kalenteri · paluu tähän päivään
-import { useRef } from "react";
 import { useI18n, LOCALE } from "@/lib/i18n";
 import { addDays } from "@/lib/day";
 import { Icon } from "./Icons";
@@ -16,13 +15,7 @@ export function dayLabel(date: string, today: string, lang: "fi" | "sv" | "en", 
 export default function DayPicker({ date, today, onChange, min, max }: { date: string; today: string; onChange: (d: string) => void; min?: string; max?: string }) {
   const i = useI18n();
   const { t } = i;
-  const cal = useRef<HTMLInputElement>(null);
   const l = dayLabel(date, today, i.lang, t);
-  const openCal = () => {
-    const el = cal.current;
-    if (!el) return;
-    try { (el as any).showPicker ? (el as any).showPicker() : el.click(); } catch { el.focus(); el.click(); }
-  };
   return (
     <div className="daypick" role="group" aria-label={t("pickDate")}>
       <button type="button" className="icon-btn" onClick={() => onChange(addDays(date, -1))} aria-label={t("prevDay")} disabled={!!min && date <= min}>{Icon.prev}</button>
@@ -30,9 +23,13 @@ export default function DayPicker({ date, today, onChange, min, max }: { date: s
         <span className="dp-label" aria-live="polite"><b>{l.rel ?? l.main}</b>{l.rel && <span> · {l.main}</span>}</span>
       </div>
       <button type="button" className="icon-btn" onClick={() => onChange(addDays(date, 1))} aria-label={t("nextDay")} disabled={!!max && date >= max}>{Icon.next}</button>
+      {/* Kalenteri: oikea päivämääräkenttä on näkymättömänä kuvakkeen päällä, joten napautus osuu suoraan siihen.
+          iPhonen Safari avaa valitsimen vain, kun käyttäjä napauttaa kenttää itse (piilotetun kentän avaaminen
+          koodista ei toimi). Chromessa showPicker avaa valitsimen samalla napautuksella. */}
       <span className="dp-cal">
-        <button type="button" className="icon-btn" onClick={openCal} aria-label={t("pickDate")}>{Icon.calendar}</button>
-        <input ref={cal} type="date" className="dp-input" value={date} min={min} max={max} tabIndex={-1} aria-hidden="true"
+        <span className="icon-btn" aria-hidden="true">{Icon.calendar}</span>
+        <input type="date" className="dp-input" value={date} min={min} max={max} aria-label={t("pickDate")}
+          onClick={(e) => { try { (e.currentTarget as any).showPicker?.(); } catch {} }}
           onChange={(e) => { if (e.target.value) onChange(e.target.value); }} />
       </span>
       {date !== today && <button type="button" className="chip-btn dp-today" onClick={() => onChange(today)}>{t("backToToday")}</button>}
