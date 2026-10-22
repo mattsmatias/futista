@@ -42,6 +42,8 @@ export type LiveMatch = {
 export type Kind = "upcoming" | "live" | "ht" | "ft" | "suspended" | "postponed" | "cancelled" | "unconfirmed";
 export type MatchState = {
   kind: Kind; hs?: number | null; as?: number | null; min?: string;
+  /** sekuntikello "61:27" (kulunut peliaika), vain kun jakson alkuhetki tiedetään ja ollaan varsinaisella peliajalla */
+  clock?: string;
   phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
   inferred?: boolean; // tila päätelty alkamisajasta (ei rajapinnan tietoa)
   late?: boolean;      // unconfirmed: tavanomainen ottelun kesto on jo kulunut
@@ -95,6 +97,23 @@ export function liveClock(m: { min?: string; periodStart?: number; periodBase?: 
   if (reported !== null && (minute < reported - 1 || minute > reported + 12)) return fallback;
   if (minute - end > 20) return fallback;
   return minute > end ? `${end}+${minute - end}'` : `${Math.max(minute, m.periodBase / 60 + 1)}'`;
+}
+
+/** Peliaika sekunnin tarkkuudella ("61:27") jakson todellisesta alkuhetkestä. Vain varsinaisella peliajalla
+ *  (lisäajalla näytetään minuutti muodossa 45+2'), ja vain kun liveClock luottaa jakson alkuhetkeen
+ *  (sama tarkistus kuin minuutille). Muuten undefined → näytetään pelkkä minuutti, sekunteja ei arvata. */
+export function liveStopwatch(m: { min?: string; periodStart?: number; periodBase?: number; fetchedAt?: number | null }, now: number | null): string | undefined {
+  if (now === null || typeof m.periodStart !== "number" || typeof m.periodBase !== "number") return undefined;
+  const sec = m.periodBase + (now - m.periodStart) / 1000;
+  if (sec < m.periodBase - 5) return undefined;
+  const len = m.periodBase >= 5400 ? 15 : 45;
+  const endSec = m.periodBase + len * 60;
+  if (sec >= endSec) return undefined; // lisäaika: minuuttimuoto
+  // luotetaanko alkuhetkeen: sama minuutti kuin liveClockin laskema (ei lähteen kelloon perustuva varamuoto)
+  const minute = Math.floor(sec / 60) + 1;
+  if (liveClock(m, now) !== `${Math.max(minute, m.periodBase / 60 + 1)}'`) return undefined;
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "de", "la", "cd", "ud", "sd", "sad", "fk", "bk", "if", "balompie", "1907", "1909", "1913", "and", "hove", "albion", "calcio", "futbol"]);
@@ -180,8 +199,8 @@ export function matchState(
     const srcAt = hit.statusSrc !== "espn" && typeof hit.sourceUpdatedAt === "number" ? hit.sourceUpdatedAt : undefined;
     const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true, uncertainWhat: hit.conflictKind } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
     switch (hit.status) {
-      case "IN_PLAY": return r({ kind: "live", ...sc, min: liveClock(hit, now), ...extra });
-      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: liveClock(hit, now), ...extra, phase: "et" });
+      case "IN_PLAY": return r({ kind: "live", ...sc, min: liveClock(hit, now), clock: liveStopwatch(hit, now), ...extra });
+      case "EXTRA_TIME": return r({ kind: "live", ...sc, min: liveClock(hit, now), clock: liveStopwatch(hit, now), ...extra, phase: "et" });
       case "PENALTY_SHOOTOUT": return r({ kind: "live", ...sc, ...extra, phase: "pens" });
       case "PAUSED": return r({ kind: "ht", ...sc, ...extra });
       case "FINISHED": case "AWARDED": return r({ kind: "ft", ...sc, pens: extra.pens, aet: extra.aet });

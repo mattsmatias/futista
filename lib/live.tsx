@@ -175,7 +175,7 @@ export function StatusPill({ s, explain }: { s: MatchState; explain?: boolean })
   if (s.kind === "unconfirmed") return <span className="st st-unc" title={t("inferredHint")}>{s.late ? t("awaitingResult") : t("started")}</span>;
   if (s.kind === "live") {
     if (s.phase === "pens") return <span className="st st-live"><i />{t("penalties")}{s.pens && <b className="st-min">{s.pens[0]}–{s.pens[1]}</b>}</span>;
-    return <span className="st st-live"><i />{s.phase === "et" ? t("extraTime") : t("live")}{s.min && <b className="st-min">{s.min}</b>}</span>;
+    return <span className="st st-live"><i />{s.phase === "et" ? t("extraTime") : t("live")}{(s.clock ?? s.min) && <b className="st-min">{s.clock ?? s.min}</b>}</span>;
   }
   if (s.kind === "ft") {
     const extra = s.pens ? ` · ${t("pensShort")} ${s.pens[0]}–${s.pens[1]}` : s.aet ? ` · ${t("aetShort")}` : "";

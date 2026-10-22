@@ -442,3 +442,16 @@ test("Suomen aika → aikaleima oikein kesäajan vaihtumisyönä (25.10.2026)", 
   assert.equal(new Date(helsinkiEpoch("2026-07-01", "22:00")).toISOString(), "2026-07-01T19:00:00.000Z");
   assert.equal(new Date(helsinkiEpoch("2026-12-01", "22:00")).toISOString(), "2026-12-01T20:00:00.000Z");
 });
+
+test("live: sekuntikello 61:27 vain, kun jakson alkuhetki tiedetään ja ollaan varsinaisella peliajalla", async () => {
+  const { liveStopwatch } = await import("../lib/live-core");
+  const s2 = Date.parse("2026-10-21T17:49:08Z");
+  const m = { min: "62'", periodStart: s2, periodBase: 2700, fetchedAt: s2 + 16 * 60_000 };
+  assert.equal(liveStopwatch(m, s2 + 16 * 60_000 + 27_000), "61:27");                 // 45:00 + 16:27
+  assert.equal(liveStopwatch(m, s2 + 16 * 60_000 + 28_500), "61:28");
+  assert.equal(liveStopwatch({ ...m, min: "90'+2'" }, s2 + 47 * 60_000), undefined);   // lisäaika → 90+3'
+  assert.equal(liveStopwatch({ min: "62'", fetchedAt: Date.now() }, Date.now()), undefined); // ei alkuhetkeä → ei arvata sekunteja
+  assert.equal(liveStopwatch({ ...m, min: "30'" }, s2 + 16 * 60_000), undefined);      // ristiriita lähteen kanssa → ei sekunteja
+  const h1 = { min: "1'", periodStart: s2, periodBase: 0, fetchedAt: s2 };
+  assert.equal(liveStopwatch(h1, s2 + 5_000), "0:05");
+});

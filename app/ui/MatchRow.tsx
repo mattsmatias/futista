@@ -21,7 +21,7 @@ export function useStatusText() {
       case "upcoming": return { short: time ?? "–", long: time ? `${t("kickoff")} ${time}` : t("statusUpcoming"), cls: "up" };
       case "live":
         if (s.phase === "pens") return { short: t("st_pens"), long: t("penalties"), cls: "live" };
-        return { short: s.min ?? (s.phase === "et" ? t("st_et") : "LIVE"), long: `${s.phase === "et" ? t("extraTime") : t("live")}${s.min ? ` ${s.min}` : ""}`, cls: "live" };
+        return { short: s.clock ?? s.min ?? (s.phase === "et" ? t("st_et") : "LIVE"), long: `${s.phase === "et" ? t("extraTime") : t("live")}${s.min ? ` ${s.min}` : ""}`, cls: "live" };
       case "ht": return { short: t("st_ht"), long: t("halfTime"), cls: "live" };
       case "ft": { const pens = !!s.pens || s.phase === "pens"; return { short: pens ? t("st_pens") : s.aet ? t("st_et") : t("st_ft"), long: `${t("statusFt")}${pens ? ` · ${t("pensShort")}` : s.aet ? ` · ${t("aetShort")}` : ""}`, cls: "ft" }; }
       case "postponed": return { short: t("st_post"), long: t("postponed"), cls: "off" };
