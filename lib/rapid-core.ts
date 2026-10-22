@@ -5,9 +5,26 @@ import { aliasGroup } from "./teams";
 import { fdIdFor } from "./crest-ids";
 import { helsinkiParts } from "./live-core";
 
-/** Lähteen sarjatunnisteet, vahvistettu oikeista vastauksista 22.10.2026: 87 La Liga, 47 Premier League,
- *  42 Mestarien liiga, 53 Ligue 1 (Marseille päivän listassa). Muita sarjoja ei yhdistetä ennen vahvistusta. */
-export const RAPID_LEAGUE: Record<string, number> = { laliga: 87, valioliiga: 47, ucl: 42, ligue1: 53 };
+/** Lähteen sarjatunnisteet, vahvistettu oikeista vastauksista 22.10.2026 (päivän listan joukkueet):
+ *  87 La Liga, 47 Premier League, 42 Mestarien liiga, 53 Ligue 1, 54 Bundesliga, 55 Serie A, 71 Süper Lig.
+ *  Eredivisie, Liga Portugal, Championship ja MLS: tunnistetta ei voitu vahvistaa → ei yhdistetä. */
+export const RAPID_LEAGUE: Record<string, number> = { laliga: 87, valioliiga: 47, ucl: 42, ligue1: 53, bundesliga: 54, seriea: 55, superlig: 71 };
+
+/** Lähteen nimet, joita lib/crest-ids ei tunne → football-data-tunniste (tarkistettu käsin lähteen ja
+ *  Futistan joukkuelistoista 22.10.2026, tests/fixtures/rapidapi/team-names.json) */
+const RAPID_FD: Record<string, number> = {
+  "mainz 05": 15, "werder bremen": 12, "hamburger sv": 7, "schalke 04": 6, paderborn: 29, "borussia monchengladbach": 18,
+  como: 7397, angers: 532, rennes: 529,
+};
+/** Rinnakkaisnimet seuroille ilman football-data-tunnistetta (Süper Lig tulee ESPN:stä) */
+const RAPID_ALIASES: string[][] = [["basaksehir", "istanbul basaksehir"]];
+/** Turkin pisteetön i ei hajoa NFD-muodossa: Kasımpaşa → kasimpasa */
+const fold = (n: string) => n.replace(/ı/g, "i").replace(/İ/g, "I");
+const group = (n: string) => {
+  const g = aliasGroup(fold(n));
+  for (const a of RAPID_ALIASES) if (g.some((x) => a.includes(x))) g.push(...a);
+  return [...new Set(g)];
+};
 
 export type RapidTeam = { id: number | null; names: string[] };
 export type RapidMatch = {
@@ -51,12 +68,12 @@ const squadMark = (n: string) => (n.match(SQUAD)?.[0] ?? "");
  *  1. Varmennettu tunniste: meidän football-data-tunniste ja lähteen nimen tunniste nimiluettelosta (lib/crest-ids) → ratkaisee.
  *  2. Muuten täsmällinen nimi tai tunnettu rinnakkaisnimi (lib/teams). EI osittaista sanavertailua. */
 export function sameClub(ours: { name: string; id?: number }, theirs: RapidTeam): boolean {
-  const our = aliasGroup(ours.name);
-  const their = theirs.names.flatMap((n) => aliasGroup(n));
+  const our = group(ours.name);
+  const their = theirs.names.flatMap((n) => group(n));
   if (!their.length) return false;
   if (their.some((n) => squadMark(n) !== squadMark(our[0]))) return false;
   if (ours.id) {
-    const ids = their.map((n) => fdIdFor(n)).filter((x): x is number => typeof x === "number");
+    const ids = their.map((n) => fdIdFor(n) ?? RAPID_FD[n]).filter((x): x is number => typeof x === "number");
     if (ids.length) return ids.includes(ours.id);
   }
   return our.some((n) => their.includes(n));

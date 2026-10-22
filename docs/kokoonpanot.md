@@ -25,8 +25,13 @@ Dokumentaatiosivua ei saatu luettua (sivu vaatii JavaScriptin).
 | 9 | `/football-get-all-matches-by-league?leagueid=42` | 189 ottelua, mutta **kaudelta 2025–26** (kaikki päättyneitä). Tämän kauden tulevia otteluita ei saatu tällä endpointilla |
 
 **Vahvistettu vastauksista**
-- **Sarjatunnisteet**: 87 La Liga, 47 Premier League, 42 Mestarien liiga (kauden 2025–26 listasta), 53 Ligue 1
-  (Marseille päivän listassa). Muita ei yhdistetä ennen vahvistusta.
+- **Sarjatunnisteet**: 87 La Liga, 47 Premier League, 42 Mestarien liiga (kauden 2025–26 listasta), 53 Ligue 1,
+  54 Bundesliga, 55 Serie A, 71 Süper Lig (joukkueet päivän listassa). Eredivisie, Liga Portugal, Championship ja
+  MLS: tunnistetta ei voitu vahvistaa (Eredivisie-seurat ja MLS-seurat näkyivät tuntemattomilla tunnisteilla
+  937276 ja 913550) → näitä ei yhdistetä.
+- `/football-get-list-all-team?leagueid=…` palautti Bundesliga-listan jokaisella sarjatunnisteella (6 hakua 22.10.):
+  endpoint ei ole käyttökelpoinen sarjan joukkueiden hakuun. Nimien yhdistäminen tarkistettiin käsin
+  (tests/fixtures/rapidapi/team-names.json, yksikkötesti).
 - **Päivälistan raja**: lista `date=20261018` sisälsi ottelut 17.10. klo 19.00 UTC – 18.10. klo 18.45 UTC.
   Myöhäiset ottelut ovat siis seuraavan päivän listassa. Tämä on havaittu yhdestä listasta; adapteri hakee
   tarvittaessa myös Suomen ajan mukaisen päivän.
@@ -52,7 +57,8 @@ Dokumentaatiosivua ei saatu luettua (sivu vaatii JavaScriptin).
 - `x-ratelimit-requests-limit: 100`, nollautuminen noin 31 vrk:ssa → **100 hakua / kk** (Basic, ilmainen).
 - `x-ratelimit-rapid-free-plans-hard-limit-limit: 500000` → ilmaispaketin kova raja, ei ylityslaskutusta
   (päätelty otsakkeen nimestä; vahvista RapidAPI:n hallintapaneelista).
-- Kulutus 22.10.2026: tutkimus 9 + Preview 6 = **15**.
+- Kulutus 22.10.2026: tutkimus 9 + Preview 6 + tuotannon tarkistus 4 + joukkuelistat 6 + ≈ 1 = **noin 26**
+  (lähteen ilmoitus: jäljellä 74).
 
 **Hakujen hinta Futistassa**
 
@@ -162,7 +168,7 @@ kenttänimiä.
 |---|---|---|
 | `RAPIDAPI_KEY` | – | Avain, vain palvelimella (Sensitive). Ei selaimelle, lokeihin eikä välimuistiin |
 | `RAPIDAPI_ON` | pois | `1` = käytössä. Muuten ei välilehtiä eikä hakuja (tarkistetaan ennen välimuistia) |
-| `RAPIDAPI_SCOPE` | tyhjä | Pilkuin eroteltuna: kilpailut (`laliga`, `valioliiga`, `ucl`, `ligue1`) ja/tai ottelut (`laliga/2026-10-25/real-madrid--barcelona`) |
+| `RAPIDAPI_SCOPE` | tyhjä | Pilkuin eroteltuna: kilpailut (`laliga`, `valioliiga`, `ucl`, `ligue1`, `bundesliga`, `seriea`, `superlig`) ja/tai ottelut (`laliga/2026-10-25/real-madrid--barcelona`) |
 | `RAPIDAPI_PER_HOUR` | 6 | Yhteinen tuntiraja (1–60) |
 | `RAPIDAPI_RESERVE` | 5 | Kuukausikiintiön varaus: tämän alle ei haeta |
 | `RAPIDAPI_LIVE_MIN` | 0 | Live-hakujen väli minuutteina; 0 = ei hakuja ottelun aikana |

@@ -156,3 +156,20 @@ test("hakuvaiheet ja välimuistilokerot (kiintiö)", () => {
   assert.deepEqual(earlierKeys("live2"), ["live1", "live0", "pre1", "pre0"]);
   assert.equal(earlierKeys("final").at(-1), "pre0");
 });
+
+test("uudet sarjat: lähteen nimet yhdistyvät Futistan joukkueisiin yksiselitteisesti", () => {
+  const names = fx("team-names.json");
+  // Futistan joukkuenimet ja football-data-tunnisteet tuotannosta 22.10.2026 (Süper Lig ESPN:stä, ei tunnisteita)
+  const ours: Record<string, [string, number?][]> = {
+    bundesliga: [["Bayern", 5], ["Dortmund", 4], ["Freiburg", 17], ["Leverkusen", 3], ["Mainz", 15], ["Elversberg", 719], ["RB Leipzig", 721], ["Bremen", 12], ["HSV", 7], ["Augsburg", 16], ["Frankfurt", 19], ["1. FC Köln", 1], ["Stuttgart", 10], ["Hoffenheim", 2], ["Schalke", 6], ["SC Paderborn", 29], ["Union Berlin", 28], ["M'gladbach", 18]],
+    seriea: [["Inter", 108], ["Lazio", 110], ["Roma", 100], ["Milan", 98], ["Como 1907", 7397], ["Juventus", 109], ["Napoli", 113], ["Atalanta", 102], ["Lecce", 5890], ["Udinese", 115], ["Fiorentina", 99]],
+    ligue1: [["Olympique Lyon", 523], ["PSG", 524], ["Paris FC", 1045], ["Monaco", 548], ["Stade Rennais", 529], ["Lorient", 525], ["Marseille", 516], ["Auxerre", 519], ["Nice", 522], ["Angers SCO", 532], ["Le Havre", 533]],
+    superlig: [["Galatasaray"], ["Kasimpasa"], ["Kocaelispor"], ["Istanbul Basaksehir"], ["Goztepe"], ["Gaziantep FK"], ["Samsunspor"]],
+  };
+  for (const lg of Object.keys(ours)) for (const n of names[lg] as string[]) {
+    const hits = ours[lg].filter(([name, id]) => sameClub({ name, id }, { id: 1, names: [n] }));
+    assert.equal(hits.length, 1, `${lg}: ${n} → ${hits.map((h) => h[0]).join(",") || "ei osumaa"}`);
+  }
+  assert.equal(sameClub({ name: "Paris FC", id: 1045 }, { id: 1, names: ["PSG"] }), false);
+  assert.equal(sameClub({ name: "Inter", id: 108 }, { id: 1, names: ["Milan"] }), false);
+});
