@@ -50,3 +50,13 @@ test("kunto: kauden kokonaismäärät vain kuluvalta kaudelta", () => {
   assert.equal(seasonStart("2027-03-01", false), "2026-07-01");
   assert.equal(seasonStart("2026-10-22", true), "2026-01-01");
 });
+
+import { compRank } from "../lib/team-form";
+test("kilpailujen järjestys: sarja, eurooppalaiset turnaukset, cupit, harjoitusottelut", () => {
+  const list = [["club.friendly", "Club Friendly"], ["esp.copa_del_rey", "Copa del Rey"], ["uefa.champions", "UEFA Champions League"], ["esp.1", "LALIGA"], ["esp.joan_gamper", "Trofeo Joan Gamper"], ["esp.super_cup", "Supercopa"]];
+  const sorted = [...list].sort((a, b) => compRank(a[0], a[1]) - compRank(b[0], b[1])).map((x) => x[0]);
+  assert.equal(sorted[0], "esp.1");
+  assert.equal(sorted[1], "uefa.champions");
+  assert.deepEqual(sorted.slice(2, 4).sort(), ["esp.copa_del_rey", "esp.super_cup"]);
+  assert.deepEqual(sorted.slice(4).sort(), ["club.friendly", "esp.joan_gamper"]);
+});

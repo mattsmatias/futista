@@ -46,3 +46,12 @@ export function teamForm(games: (Game & { side?: "home" | "away" })[], from: str
   for (const p of played) if (p.date >= from) totals[p.k]++;
   return { last: played.slice(-n), totals, from };
 }
+
+/** Kilpailujen järjestys joukkueen otteluissa: 0 kotimaan sarja, 1 eurooppalaiset turnaukset (MLI, EL, ECL),
+ *  2 muut turnaukset ja cupit, 3 harjoitusottelut ja kutsuturnaukset. */
+export function compRank(slug: string, comp = ""): number {
+  if (!isOfficial(slug, comp)) return 3;
+  if (/^uefa\.(champions|europa)/.test(slug)) return 1;
+  if (/^[a-z]{3}\.\d$/.test(slug)) return 0;
+  return 2;
+}

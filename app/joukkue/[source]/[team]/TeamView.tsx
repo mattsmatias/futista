@@ -9,7 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { HeartButton } from "@/lib/favorites";
 import { norm } from "@/lib/teams";
 import { matchHref } from "@/lib/routes";
-import { Badge, FixtureRow, FormPills, Match, Standings, SrcLine } from "../../../Stats";
+import { Badge, FixtureRow, FormPills, LoadError, Match, Scorers, Standings, SrcLine } from "../../../Stats";
 import { Card } from "../../../Cards";
 import Footer from "../../../Footer";
 import Flag from "../../../Flag";
@@ -22,7 +22,8 @@ import type { Key } from "@/lib/i18n";
 import type { Game } from "@/lib/espn";
 import { GameRow, GBadge, compName, compClass } from "../../../Games";
 import { StatusPill } from "@/lib/live";
-import { teamForm, seasonStart, type FormItem } from "@/lib/team-form";
+import { teamForm, seasonStart, compRank, type FormItem } from "@/lib/team-form";
+import { useScorers } from "@/lib/leagues-client";
 import { todayHel } from "@/lib/day";
 
 /** Kunto kaikista virallisista kilpailuista: 5 viimeisintä (uusin oikealla) ja kauden kokonaismäärät */
@@ -58,7 +59,7 @@ function FormAll({ games, calendarYear, season }: { games: Game[]; calendarYear:
 }
 
 type Tab = "overview" | "matches" | "squad" | "news" | "table";
-const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", news: "teamNews", table: "table" };
+const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", news: "teamNews", table: "standingsTab" };
 
 const ORDER = ["Goalkeeper", "Defence", "Midfield", "Offence"];
 
@@ -132,6 +133,20 @@ function ClubInfo({ info }: { info: TeamInfo }) {
   );
 }
 
+/** Sarjan maalintekijät Sarjataulukko-välilehdellä (sama tieto kuin sarjasivun maalipörssissä) */
+function TeamScorers({ id, league }: { id: string; league: string }) {
+  const { t } = useI18n();
+  const sc = useScorers([id]);
+  return (
+    <section className="sec" aria-label={t("scorersTitle")}>
+      <h2 className="sub-h">{t("scorersTitle")}</h2>
+      {sc.loading ? <p className="muted pad">{t("loading")}</p>
+        : sc.failed.length && !sc.data.length ? <LoadError onRetry={sc.retry} />
+        : <Scorers data={sc.data[0]} source={id} league={league} />}
+    </section>
+  );
+}
+
 export default function TeamView({ s, team, news, info, infoFailed, games }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null; infoFailed?: boolean; games: Game[] | null }) {
   const i = useI18n();
   const { t } = i;
@@ -146,9 +161,16 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
   const upcoming = all.filter((g) => g.kind === "upcoming" || g.kind === "live" || g.kind === "ht" || g.kind === "postponed")
     .sort((a, b) => Number(b.kind === "live" || b.kind === "ht") - Number(a.kind === "live" || a.kind === "ht") || a.epoch - b.epoch);
   const played = all.filter((g) => g.kind === "ft" || g.kind === "suspended" || g.kind === "cancelled").sort((a, b) => b.epoch - a.epoch);
-  const comps = [...new Map(all.map((g) => [g.slug, g] as const)).values()];
+  // kilpailut: kotimaan sarja ensin, sitten eurooppalaiset turnaukset, muut cupit ja viimeisenä harjoitusottelut
+  const comps = [...new Map(all.map((g) => [g.slug, g] as const)).values()]
+    .sort((a, b) => compRank(a.slug, a.comp) - compRank(b.slug, b.comp) || compName(a, i.lang).localeCompare(compName(b, i.lang), "fi"));
   const pick = (l: Game[]) => (comp === "all" ? l : l.filter((g) => g.slug === comp));
   const nextGame = upcoming[0];
+  const upList = pick(upcoming), pastList = pick(played);
+  const hasUp = games && games.length ? upcoming.length > 0 : fixtures.length > 0;
+  // Ottelut-välilehti: Otteluohjelma (tulevat) ja Tulokset (pelatut) erikseen; oletuksena tulevat, jos niitä on
+  const [view, setView] = useState<"fixtures" | "results">("fixtures");
+  useEffect(() => { if (!hasUp) setView("results"); }, [hasUp]);
   const anyLive = all.some((g) => g.kind === "live" || g.kind === "ht");
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
@@ -280,17 +302,38 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
         </>}
 
         {tab === "matches" && <>
+          <div className="mx-switch">
+            <div className="seg" role="tablist" aria-label={t("matches")}>
+              <button role="tab" aria-selected={view === "fixtures"} className={view === "fixtures" ? "on" : ""} onClick={() => setView("fixtures")}>{t("fixturesTab")} <span className="seg-n">{upList.length}</span></button>
+              <button role="tab" aria-selected={view === "results"} className={view === "results" ? "on" : ""} onClick={() => setView("results")}>{t("results")} <span className="seg-n">{pastList.length}</span></button>
+            </div>
+          </div>
           {comps.length > 1 && (
             <div className="comp-filter" role="group" aria-label={t("competition")}>
               <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
               {comps.map((g) => (
                 <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
-                  <span className={`g-dot ${compClass(g.slug)}`} />{compName(g, i.lang)}
+                  <CompMark slug={g.slug} small />{compName(g, i.lang)}
                 </button>
               ))}
             </div>
           )}
-          {lists(60)}
+          <section className="panel mx-list" aria-label={view === "fixtures" ? t("fixturesTab") : t("results")}>
+            {games && games.length ? (
+              (view === "fixtures" ? upList : pastList).length === 0
+                ? <p className="muted pad">{view === "fixtures" ? t("noUpcoming") : t("noPlayed")}</p>
+                : (view === "fixtures" ? upList : pastList).slice(0, 80).map((g) => <GameRow key={g.id} g={g} />)
+            ) : view === "fixtures" ? (
+              fixtures.length === 0 ? <p className="muted pad">{t("noUpcoming")}</p> : fixtures.map((f) => (
+                <div className="day" key={f.date + f.home.name}><div className="day-label">{i.day(f.date)}</div><FixtureRow f={f} source={s.source} /></div>
+              ))
+            ) : (
+              results.length === 0 ? <p className="muted pad">{t("noPlayed")}</p> : results.map((r) => (
+                <div className="day" key={r.date + r.home.name}><div className="day-label">{i.day(r.date)}</div><Match r={r} source={s.source} /></div>
+              ))
+            )}
+            {games && games.length ? <div className="panel-src">{t("source")}: ESPN</div> : <SrcLine name={src.name} updated={s.updated} stale={s.stale} />}
+          </section>
         </>}
 
         {tab === "squad" && info && <Squad info={info} team={team.name} />}
@@ -302,7 +345,10 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
             : <p className="muted">{t("noTeamNews")}</p>}
         </section>}
 
-        {tab === "table" && <section className="sec"><Standings s={s} highlight={[team.name]} /></section>}
+        {tab === "table" && <>
+          <section className="sec"><Standings s={s} highlight={[team.name]} /></section>
+          <TeamScorers id={s.source} league={s.league} />
+        </>}
         </div>
       </main>
       <Footer />

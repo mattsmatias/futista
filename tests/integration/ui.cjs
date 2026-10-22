@@ -316,7 +316,9 @@ const MIN = 60_000;
     ok("Eurooppa-liiga: taulukko ESPN:stä", el.status === 200 && elj.stats?.table?.length === 2 && elj.stats.table[0].team.name === "Eurokaupunki FC", `${el.status} ${elj.stats?.table?.length}`);
     el = await fetch(`${APP}/api/scorers/uel`); elj = await el.json().catch(() => ({}));
     ok("  maalipörssi", el.status === 200 && elj.scorers?.list?.[0]?.goals === 4, JSON.stringify(elj).slice(0, 120));
-    await page.goto(APP + "/sarjat", { waitUntil: "networkidle" });
+    // ei "networkidle": sivun taustapäivitykset (live, logot) voivat pitää verkon aktiivisena → odotetaan sisältöä
+    await page.goto(APP + "/sarjat", { waitUntil: "domcontentloaded" });
+    await page.locator("main", { hasText: "Konferenssiliiga" }).waitFor({ timeout: 15000 }).catch(() => {});
     const dir = await page.locator("main").innerText();
     ok("  Sarjat-hakemistossa Eurooppa-liiga ja Konferenssiliiga", dir.includes("Eurooppa-liiga") && dir.includes("Konferenssiliiga"));
     await page.goto(APP + "/sarjat/uel?v=taulukko", { waitUntil: "networkidle" });
@@ -354,6 +356,27 @@ const MIN = 60_000;
     const teamHtml = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
     ok("kilpailulogot: Eurooppa-liigan ja Süper Ligin logo ottelulistassa", teamHtml.includes("leaguelogos/soccer/500/2310.png") && teamHtml.includes("leaguelogos/soccer/500/18.png"));
     ok("  ei värineliötä kilpailun nimen edessä", await page.evaluate(() => [...document.querySelectorAll(".g-comp")].every((e) => getComputedStyle(e, "::before").content === "none" || getComputedStyle(e, "::before").content === "normal")));
+    // joukkuesivu: osiot erillään, välilehti Sarjataulukko + maalintekijät, Ottelut: Otteluohjelma / Tulokset, kilpailujen järjestys
+    {
+      const gap = await page.evaluate(() => { const a = document.querySelector(".form-all").getBoundingClientRect(), b = document.querySelector(".next-card").getBoundingClientRect(); return Math.round(b.top - a.bottom); });
+      ok("joukkuesivu: kuntorivi ja seuraava ottelu erillään (väli ≥ 12 px)", gap >= 12, `${gap} px`);
+      const tabsT = (await page.locator(".ent-tabs [role=tab]").allInnerTexts()).map((x) => x.trim());
+      ok("  välilehti 'Sarjataulukko' (ei 'Taulukko')", tabsT.includes("Sarjataulukko") && !tabsT.includes("Taulukko"), tabsT.join("|"));
+      await page.locator(".ent-tabs [role=tab]", { hasText: "Ottelut" }).click(); await page.waitForTimeout(300);
+      const segT = (await page.locator(".mx-switch [role=tab]").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
+      ok("  Ottelut: Otteluohjelma ja Tulokset erikseen (oletuksena otteluohjelma)", segT[0] === "Otteluohjelma 2" && segT[1] === "Tulokset 6" && (await page.locator(".mx-switch [aria-selected=true]").innerText()).startsWith("Otteluohjelma") && (await page.locator(".mx-list .grow, .mx-list a").count()) >= 1, segT.join("|"));
+      const upTxt = await page.locator(".mx-list").innerText();
+      await page.locator(".mx-switch [role=tab]", { hasText: "Tulokset" }).click(); await page.waitForTimeout(300);
+      const resTxt = await page.locator(".mx-list").innerText();
+      ok("  Tulokset-näkymässä pelatut, otteluohjelmassa tulevat", resTxt.includes("Kesäseura") && resTxt.includes("Cupspor") && !upTxt.includes("Kesäseura") && upTxt.includes("Eurooppa FC"), upTxt.slice(0, 80).replace(/\n/g, " ") + " // " + resTxt.slice(0, 80).replace(/\n/g, " "));
+      const chips = (await page.locator(".comp-filter button").allInnerTexts()).map((x) => x.trim());
+      ok("  kilpailut järjestyksessä: sarja, Eurooppa-liiga, cup, harjoitusottelut viimeisenä", chips[0] === "Kaikki" && /Süper Lig|Super Lig/.test(chips[1]) && /Eurooppa-liiga/.test(chips[2]) && /Harjoitus/.test(chips[chips.length - 1]), chips.join("|"));
+      ok("  kilpailuvalinnoissa logo (ei värineliötä)", (await page.locator(".comp-filter .g-dot").count()) === 0 && (await page.locator(".comp-filter .cmark, .comp-filter .cm-dot").count()) >= chips.length - 1);
+      await page.locator(".ent-tabs [role=tab]", { hasText: "Sarjataulukko" }).click();
+      await page.locator("text=Testi Maalintekijä").first().waitFor({ timeout: 10000 }).catch(() => {});
+      const tbT = await page.locator(".tab-pane").innerText();
+      ok("  Sarjataulukko-välilehdellä taulukko ja maalintekijät", tbT.includes("Maalintekijät") && tbT.includes("Testi Maalintekijä") && tbT.includes("Mittaspor Izmir"), tbT.slice(0, 160).replace(/\n/g, " "));
+    }
     // uutisten reaktiot (Supabase-emulaattori + migraatio)
     let rr = await fetch(`${APP}/api/reactions?a=testi/2026/10/21/juttu`); let rj = await rr.json();
     ok("reaktiot: haku palauttaa summat (käytössä)", rr.status === 200 && rj.enabled === true && rj.up === 0 && rj.down === 0, JSON.stringify(rj));

@@ -1520,3 +1520,16 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
   .dp-stack .dp-date { font-size: 12px; }
   .dp-today { padding: 0 8px; }
 }
+
+/* Joukkuesivu: osiot selvästi erillään (kuntorivi, seuraava ottelu, listat, uutiset) */
+.entity .tab-pane { display: flex; flex-direction: column; gap: 18px; }
+.entity .tab-pane > * { margin-top: 0; margin-bottom: 0; }
+.entity .form-all { display: grid; gap: 6px; }
+/* Ottelut-välilehti: Otteluohjelma / Tulokset */
+.mx-switch { display: flex; }
+.mx-switch .seg { margin-left: 0; }
+.mx-switch .seg button { min-height: 40px; font-size: 14px; }
+.seg-n { margin-left: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.seg button.on .seg-n { color: inherit; opacity: .7; }
+.entity .comp-filter { padding-bottom: 2px; }
+.comp-filter button .cmark { flex: none; }
