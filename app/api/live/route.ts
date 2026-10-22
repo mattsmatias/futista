@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { words, type LiveMatch, type LiveStatus } from "@/lib/live-core";
+import { words, matchWindow, type LiveMatch, type LiveStatus } from "@/lib/live-core";
 import { mergeLive } from "@/lib/live-merge";
 import { fdScore } from "@/lib/score";
 import { getEspnLive, espnOn } from "@/lib/espn";
@@ -51,10 +51,11 @@ function fromFd(data: any, fetchedAt: number | null): LiveMatch[] {
 
 export async function GET() {
   const fdOn = hasFd();
-  const [fdRes, espn] = await Promise.all([
-    fdOn ? fdMeta<any>(`/matches?competitions=${Object.keys(COMP).join(",")}&dateFrom=${day(-1)}&dateTo=${day(1)}`, 45) : Promise.resolve(null),
-    getEspnLive().catch(() => ({ matches: [] as LiveMatch[], at: null as number | null, ok: false })),
-  ]);
+  // ESPN ensin (oma välimuisti 30 s, ei football-datan kiintiötä). Football-data päivitetään 45 s välein vain, kun
+  // ottelu on käynnissä tai alkamassa/juuri päättynyt; muulloin 10 min välein (ilmaisversion 10 hakua/min riittää muille).
+  const espn = await getEspnLive().catch(() => ({ matches: [] as LiveMatch[], at: null as number | null, ok: false }));
+  const fdTtl = espn.at === null || !espn.ok || matchWindow(espn.matches, Date.now()) ? 45 : 600;
+  const fdRes = fdOn ? await fdMeta<any>(`/matches?competitions=${Object.keys(COMP).join(",")}&dateFrom=${day(-1)}&dateTo=${day(1)}`, fdTtl) : null;
   // football-datan hakuhetki; vanhoissa välimuistimerkinnöissä sitä ei ole → null (ei arvata)
   const fdAt = fdRes ? fdRes.at : null;
   const fdMatches = fdRes ? fromFd(fdRes.data, fdAt) : [];

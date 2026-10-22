@@ -31,7 +31,7 @@ export function supabaseQuotaStore(
   conn: { url: string; key: string },
   bucket: string,
   lim: QuotaLimits = FD_LIMITS,
-  timeoutMs = 3000,
+  timeoutMs = 5000,
   fetchImpl: typeof fetch = nodeFetch as unknown as typeof fetch,
 ): QuotaStore {
   async function rpc(fn: string, body: unknown): Promise<any> {

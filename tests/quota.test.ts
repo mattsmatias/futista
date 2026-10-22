@@ -75,6 +75,21 @@ test("Q4: varaston häiriö → ei lähdehakua (fail closed), eikä varastoa kys
   assert.equal(asked, 2); assert.equal(called, 0);
 });
 
+test("Q4b: varaston häiriö + varaluku 2 → enintään 2 tärkeää hakua / min, ei matalan prioriteetin hakuja", async () => {
+  const c = clock(); let asked = 0; let called = 0;
+  const broken: QuotaStore = { async acquire() { asked++; throw new Error("down"); }, async block() {} };
+  const g = createGuard({ perMin: 6, shared: () => broken, requireShared: true, now: c.now, degradedPerMin: 2 });
+  const res = [];
+  for (let i = 0; i < 5; i++) res.push(await g.run(`/p${i}`, async () => { called++; return ok(i); }, JSON.parse).then(() => "ok", (e: SourceError) => e.kind));
+  assert.deepEqual(res, ["ok", "ok", "quota", "quota", "quota"]);
+  assert.equal(called, 2);
+  await assert.rejects(g.run("/low", async () => { called++; return ok(1); }, JSON.parse, "low"), (e: SourceError) => e.kind === "quota");
+  assert.equal(called, 2);
+  c.add(61_000); // uusi minuutti, varasto yhä rikki → taas 2
+  for (let i = 0; i < 3; i++) await g.run(`/q${i}`, async () => { called++; return ok(i); }, JSON.parse).catch(() => {});
+  assert.equal(called, 4);
+});
+
 test("Q5: varasto puuttuu ja kiintiö vaaditaan → ei lähdehakua", async () => {
   let called = 0;
   const g = createGuard({ perMin: 6, shared: () => null, requireShared: true });

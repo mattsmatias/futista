@@ -8,8 +8,8 @@
 //    keskinäiset ottelut, joukkueet). Varaus on atominen tietokantafunktiossa.
 //  - 429 / X-Requests-Available-Minute: 0: yhteinen tauko Retry-After / X-RequestCounter-Reset mukaan;
 //    401/403: 6 h yhteinen tauko; 5xx/aikakatkaisu: 15 s (instanssikohtainen)
-//  - Vercelissä yhteinen kiintiö on pakollinen: jos sitä ei voi varmistaa, lähteestä ei haeta
-//    (välimuistidata tai hallittu virhe). Paikallisessa kehityksessä ilman Supabasea: 6 hakua/min
+//  - Vercelissä yhteinen kiintiö on pakollinen: jos sitä ei voi varmistaa, tehdään enintään 2 korkean
+//    prioriteetin hakua / min / instanssi (muuten välimuistidata tai hallittu virhe). Paikallisessa kehityksessä ilman Supabasea: 6 hakua/min
 //    (enintään 2 matalan prioriteetin) ja 429-tauko tämän prosessin sisällä. Tämä EI suojaa usean
 //    prosessin tai palvelimen yhteiskäyttöä – siihen tarvitaan yhteinen kiintiö (docs/kiintio.md).
 //  - ympäristömuuttuja FD_OFF=1 katkaisee kaikki haut heti
@@ -35,6 +35,8 @@ const guard = createGuard({
   lowPerMin: 2,
   shared: sharedStore,
   requireShared: !!process.env.VERCEL || process.env.FD_QUOTA_REQUIRED === "1",
+  // varaston häiriössä 2 tärkeää hakua / min / instanssi (ennen: ei yhtään → tuloksia ja taulukoita puuttui)
+  degradedPerMin: 2,
 });
 
 function get(path: string, key: string): Promise<Fetched> {

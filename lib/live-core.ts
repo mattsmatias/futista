@@ -203,3 +203,10 @@ export function matchState(
 export function knownFixture(list: { date: string; home: { name: string }; away: { name: string } }[], l: LiveMatch): boolean {
   return list.some((f) => sameTeam(f.home.name, l.home) && sameTeam(f.away.name, l.away) && Math.abs(Date.parse(f.date + "T12:00:00Z") - l.kickoff) < 2 * 86400_000);
 }
+
+const PLAYING = new Set<string>(["IN_PLAY", "PAUSED", "EXTRA_TIME", "PENALTY_SHOOTOUT", "LIVE"]);
+/** Onko jokin ottelu käynnissä, alkamassa 20 min sisällä tai alkanut alle 3 h sitten (tulos voi vielä päivittyä)?
+ *  Käytetään football-datan päivitysvälin valintaan (/api/live). */
+export function matchWindow(ms: Pick<LiveMatch, "status" | "kickoff">[], now: number): boolean {
+  return ms.some((m) => PLAYING.has(m.status) || (Number.isFinite(m.kickoff) && m.kickoff - now < 20 * 60_000 && now - m.kickoff < 3 * 3600_000));
+}

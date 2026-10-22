@@ -1,5 +1,12 @@
 {
   "regions": [
     "arn1"
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "feature/kokoonpanot": false,
+      "korjaus/luotettavuus": false,
+      "ui/tulospalvelu": false
+    }
+  }
 }

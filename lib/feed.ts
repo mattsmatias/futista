@@ -48,20 +48,31 @@ const toArray = <T,>(x: T | T[] | undefined): T[] => (!x ? [] : Array.isArray(x)
 const UCL = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim() === "mestarien liiga";
 const ucl = SOURCES.find((s) => s.id === "ucl")!;
 
+/** Yksi syöte jaetussa välimuistissa 3 min. Epäonnistunutta hakua ei tallenneta: viimeisin onnistunut lista jää
+ *  voimaan, joten yhden sivuston hidastelu ei pudota sen uutisia hetkeksi pois. */
 async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
+  try {
+    return await unstable_cache(() => fetchFeed(src, feedUrl), ["feed-v1", src.id, feedUrl], { revalidate: 180 })();
+  } catch (e) {
+    console.warn("syöte", feedUrl, (e as Error)?.message);
+    return [];
+  }
+}
+
+async function fetchFeed(src: Source, feedUrl: string): Promise<Article[]> {
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 20_000);
   let xml: string;
   try {
-    const res = await fetch(feedUrl, {
-      next: { revalidate: 180 }, // päivittyy 3 min välein
-      headers: { "User-Agent": "Futista/1.0" },
-    });
-    if (!res.ok) return [];
+    const res = await fetch(feedUrl, { cache: "no-store", headers: { "User-Agent": "Futista/1.0" }, signal: ctl.signal });
+    if (!res.ok) throw new Error(`http ${res.status}`);
     xml = await res.text();
-  } catch {
-    return [];
+  } finally {
+    clearTimeout(to);
   }
   const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: "__cdata" });
   const items = toArray(parser.parse(xml)?.rss?.channel?.item);
+  if (!items.length) throw new Error("tyhjä tai tunnistamaton syöte"); // ei korvata aiempaa listaa
 
   return items.map((it: any): Article => {
     const desc: string = it.description?.__cdata ?? it.description ?? "";

@@ -26,9 +26,10 @@ Dokumentaatiosivua ei saatu luettua (sivu vaatii JavaScriptin).
 
 **Vahvistettu vastauksista**
 - **Sarjatunnisteet**: 87 La Liga, 47 Premier League, 42 Mestarien liiga (kauden 2025–26 listasta), 53 Ligue 1,
-  54 Bundesliga, 55 Serie A, 71 Süper Lig (joukkueet päivän listassa). Eredivisie, Liga Portugal, Championship ja
-  MLS: tunnistetta ei voitu vahvistaa (Eredivisie-seurat ja MLS-seurat näkyivät tuntemattomilla tunnisteilla
-  937276 ja 913550) → näitä ei yhdistetä.
+  54 Bundesliga, 55 Serie A, 71 Süper Lig (joukkueet päivän listassa). Eredivisie 937276 ja MLS
+  913550 (22.10.2026: päivälistan 20261018 kaikki ottelut näillä tunnisteilla olivat Eredivisien / MLS:n runkosarjaa;
+  tunnisteet näyttävät kausikohtaisilta → tarkistettava kauden vaihtuessa). Liga Portugal ja Championship puuttuivat
+  päivälistasta kokonaan → niihin ei kokoonpanoja.
 - `/football-get-list-all-team?leagueid=…` palautti Bundesliga-listan jokaisella sarjatunnisteella (6 hakua 22.10.):
   endpoint ei ole käyttökelpoinen sarjan joukkueiden hakuun. Nimien yhdistäminen tarkistettiin käsin
   (tests/fixtures/rapidapi/team-names.json, yksikkötesti).

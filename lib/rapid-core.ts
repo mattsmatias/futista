@@ -8,16 +8,29 @@ import { helsinkiParts } from "./live-core";
 /** Lähteen sarjatunnisteet, vahvistettu oikeista vastauksista 22.10.2026 (päivän listan joukkueet):
  *  87 La Liga, 47 Premier League, 42 Mestarien liiga, 53 Ligue 1, 54 Bundesliga, 55 Serie A, 71 Süper Lig.
  *  Eredivisie, Liga Portugal, Championship ja MLS: tunnistetta ei voitu vahvistaa → ei yhdistetä. */
-export const RAPID_LEAGUE: Record<string, number> = { laliga: 87, valioliiga: 47, ucl: 42, ligue1: 53, bundesliga: 54, seriea: 55, superlig: 71 };
+// eredivisie ja mls: tunnisteet päivälistasta 20261018 (ottelut tunnistettu joukkueista); lähde käyttää niille
+// kausikohtaisia tunnisteita, joten ne pitää tarkistaa uuden kauden alkaessa. Championship ja Primeira Liga
+// puuttuivat lähteen päivälistasta kokonaan → ei kokoonpanoja niihin.
+export const RAPID_LEAGUE: Record<string, number> = { laliga: 87, valioliiga: 47, ucl: 42, ligue1: 53, bundesliga: 54, seriea: 55, superlig: 71, eredivisie: 937276, mls: 913550 };
 
 /** Lähteen nimet, joita lib/crest-ids ei tunne → football-data-tunniste (tarkistettu käsin lähteen ja
  *  Futistan joukkuelistoista 22.10.2026, tests/fixtures/rapidapi/team-names.json) */
 const RAPID_FD: Record<string, number> = {
   "mainz 05": 15, "werder bremen": 12, "hamburger sv": 7, "schalke 04": 6, paderborn: 29, "borussia monchengladbach": 18,
   como: 7397, angers: 532, rennes: 529,
+  // Eredivisie (lähteen nimet päivälistasta 20261018, Futistan tunnisteet /api/league/eredivisie 22.10.2026)
+  "sparta rotterdam": 6806, "willem ii": 672, "pec zwolle": 684, "go ahead eagles": 718, cambuur: 1909, "az alkmaar": 682,
+  "fc groningen": 677, "fc twente": 666, "fc utrecht": 676, "nec nijmegen": 1915, "fortuna sittard": 1920,
+  // seuran virallinen nimi; lähteen kirjoitusasua ei vielä nähty (jos eri, ottelu jää yhdistämättä – ei väärää osumaa)
+  "sc heerenveen": 673, heerenveen: 673, excelsior: 670, "sbv excelsior": 670, telstar: 1912, "ado den haag": 680,
 };
 /** Rinnakkaisnimet seuroille ilman football-data-tunnistetta (Süper Lig tulee ESPN:stä) */
-const RAPID_ALIASES: string[][] = [["basaksehir", "istanbul basaksehir"]];
+const RAPID_ALIASES: string[][] = [
+  ["basaksehir", "istanbul basaksehir"],
+  // MLS (Futistan nimet ESPN:stä, lähteen nimet päivälistasta 20261018)
+  ["minnesota united", "minnesota united fc"], ["st louis city", "st louis city sc"], ["atlanta united", "atlanta united fc"],
+  ["orlando city", "orlando city sc"], ["dc united", "d c united"], ["los angeles fc", "lafc"],
+];
 /** Turkin pisteetön i ei hajoa NFD-muodossa: Kasımpaşa → kasimpasa */
 const fold = (n: string) => n.replace(/ı/g, "i").replace(/İ/g, "I");
 const group = (n: string) => {

@@ -160,11 +160,13 @@ test("hakuvaiheet ja välimuistilokerot (kiintiö)", () => {
 test("uudet sarjat: lähteen nimet yhdistyvät Futistan joukkueisiin yksiselitteisesti", () => {
   const names = fx("team-names.json");
   // Futistan joukkuenimet ja football-data-tunnisteet tuotannosta 22.10.2026 (Süper Lig ESPN:stä, ei tunnisteita)
-  const ours: Record<string, [string, number?][]> = {
+  const ours: Record<string, [string, number?][]> = { // eredivisie ja mls: /api/league 22.10.2026
     bundesliga: [["Bayern", 5], ["Dortmund", 4], ["Freiburg", 17], ["Leverkusen", 3], ["Mainz", 15], ["Elversberg", 719], ["RB Leipzig", 721], ["Bremen", 12], ["HSV", 7], ["Augsburg", 16], ["Frankfurt", 19], ["1. FC Köln", 1], ["Stuttgart", 10], ["Hoffenheim", 2], ["Schalke", 6], ["SC Paderborn", 29], ["Union Berlin", 28], ["M'gladbach", 18]],
     seriea: [["Inter", 108], ["Lazio", 110], ["Roma", 100], ["Milan", 98], ["Como 1907", 7397], ["Juventus", 109], ["Napoli", 113], ["Atalanta", 102], ["Lecce", 5890], ["Udinese", 115], ["Fiorentina", 99]],
     ligue1: [["Olympique Lyon", 523], ["PSG", 524], ["Paris FC", 1045], ["Monaco", 548], ["Stade Rennais", 529], ["Lorient", 525], ["Marseille", 516], ["Auxerre", 519], ["Nice", 522], ["Angers SCO", 532], ["Le Havre", 533]],
     superlig: [["Galatasaray"], ["Kasimpasa"], ["Kocaelispor"], ["Istanbul Basaksehir"], ["Goztepe"], ["Gaziantep FK"], ["Samsunspor"]],
+    eredivisie: [["Feyenoord", 675], ["AZ", 682], ["PSV", 674], ["Ajax", 678], ["Twente", 666], ["Sittard", 1920], ["Groningen", 677], ["Heerenveen", 673], ["Go Ahead", 718], ["Excelsior", 670], ["Utrecht", 676], ["NEC", 1915], ["Sparta", 6806], ["Cambuur", 1909], ["Zwolle", 684], ["Telstar", 1912], ["Den Haag", 680], ["Willem II", 672]],
+    mls: ["Atlanta United FC", "Austin FC", "CF Montréal", "Charlotte FC", "Chicago Fire FC", "Colorado Rapids", "Columbus Crew", "D.C. United", "FC Cincinnati", "FC Dallas", "Houston Dynamo FC", "Inter Miami CF", "LA Galaxy", "LAFC", "Minnesota United FC", "Nashville SC", "New England Revolution", "New York City FC", "Orlando City SC", "Philadelphia Union", "Portland Timbers", "Real Salt Lake", "Red Bull New York", "San Diego FC", "San Jose Earthquakes", "Seattle Sounders FC", "Sporting Kansas City", "St. Louis CITY SC", "Toronto FC", "Vancouver Whitecaps"].map((n) => [n]),
   };
   for (const lg of Object.keys(ours)) for (const n of names[lg] as string[]) {
     const hits = ours[lg].filter(([name, id]) => sameClub({ name, id }, { id: 1, names: [n] }));

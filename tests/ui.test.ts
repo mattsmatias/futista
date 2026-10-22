@@ -23,6 +23,11 @@ test("suosikit: yksi seura = yksi suosikki eri kilpailuissa (tunniste ratkaisee)
   assert.ok(!sameTeam({ n: "Real Madrid", id: 86 }, { name: "Real Madrid", id: 90 })); // eri tunniste = eri seura
   // ilman tunnistetta ei yhdistetä pelkän samankaltaisen nimen perusteella
   assert.ok(!sameTeam({ n: "Manchester United" }, "Manchester City"));
+  // pelkät etu- ja jälkiliitteet eivät estä osumaa (eurocupin nimi ↔ sarjan nimi)
+  assert.ok(sameTeam({ n: "Fenerbahçe" }, "Fenerbahçe SK"));
+  assert.ok(sameTeam({ n: "Galatasaray" }, { name: "Galatasaray SK" }));
+  assert.ok(!sameTeam({ n: "Inter" }, "Inter Miami CF"));
+  assert.ok(!sameTeam({ n: "Milan" }, "Inter Milan"));
 });
 
 test("suosikit: nimellä tallennettu saa tunnisteen, kun sama nimi nähdään tunnisteen kanssa", () => {

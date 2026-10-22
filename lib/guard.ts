@@ -47,6 +47,10 @@ export type GuardOptions = {
   requireShared?: boolean;
   /** kuinka kauan varaston häiriön jälkeen ei yritetä uudelleen (ms) */
   storeRetryMs?: number;
+  /** Varaston häiriön aikana sallitut korkean prioriteetin haut / min / instanssi (oletus 0 = ei yhtään).
+   *  Pieni varaluku pitää tärkeimmät tiedot (tulokset, taulukot) ajan tasalla, vaikka varasto ei vastaa;
+   *  muutama instanssi × varaluku pysyy lähteen rajan alla. Matalan prioriteetin hakuja ei sallita. */
+  degradedPerMin?: number;
 };
 
 export function createGuard(o: GuardOptions) {
@@ -59,7 +63,17 @@ export function createGuard(o: GuardOptions) {
   let fetchCount = 0;
   let deferUntil = 0;      // yhteinen kiintiö täynnä → ei kysytä varastolta turhaan ennen tätä
   let deferLowUntil = 0;   // matalan prioriteetin osaraja täynnä
-  let storeDownUntil = 0;  // varaston häiriö → ei haeta ennen tätä
+  let storeDownUntil = 0;  // varaston häiriö → ei haeta ennen tätä (paitsi varaluvun verran)
+  const degraded: number[] = []; // varaston häiriön aikana tehdyt haut (aikaleimat)
+  let degradedCount = 0;
+
+  /** Varaston häiriö: salli varaluvun verran korkean prioriteetin hakuja, muuten virhe "quota" */
+  function degradedAdmit(p: Priority, msg: string) {
+    const t = now();
+    while (degraded.length && t - degraded[0] >= 60_000) degraded.shift();
+    if (p === "high" && degraded.length < (o.degradedPerMin ?? 0)) { degraded.push(t); degradedCount++; return; }
+    throw new SourceError("quota", msg);
+  }
 
   /** Yhteinen tauko kaikille instansseille (paras yritys; paikallinen tauko on jo asetettu) */
   function sharedBlock(until: number, reason: string) {
@@ -74,7 +88,7 @@ export function createGuard(o: GuardOptions) {
       return;
     }
     const t = now();
-    if (t < storeDownUntil) throw new SourceError("quota", "shared quota store unavailable");
+    if (t < storeDownUntil) return degradedAdmit(p, "shared quota store unavailable");
     if (t < deferUntil || (p === "low" && t < deferLowUntil)) throw new SourceError("limit", "shared limit");
     let r;
     try {
@@ -82,7 +96,7 @@ export function createGuard(o: GuardOptions) {
     } catch (e) {
       storeDownUntil = now() + (o.storeRetryMs ?? 10_000);
       lastError = { kind: "quota", at: now() };
-      throw new SourceError("quota", "shared quota store unavailable: " + ((e as Error)?.message ?? ""));
+      return degradedAdmit(p, "shared quota store unavailable: " + ((e as Error)?.message ?? ""));
     }
     if (!r.ok) {
       if (r.reason === "paused") blockedUntil = Math.max(blockedUntil, now() + r.waitMs);
@@ -148,6 +162,6 @@ export function createGuard(o: GuardOptions) {
 
   return {
     run,
-    state: () => ({ blockedUntil, deferUntil, storeDownUntil, lastError, callsLastMinute: calls.filter((c) => now() - c.t < 60_000).length, fetchCount }),
+    state: () => ({ blockedUntil, deferUntil, storeDownUntil, lastError, callsLastMinute: calls.filter((c) => now() - c.t < 60_000).length, fetchCount, degradedCount }),
   };
 }

@@ -24,19 +24,45 @@ export type LeagueStats = {
 
 const UA = { "User-Agent": "Futista/1.0" };
 
-/** Lähdesivu ja sen luontihetki (palvelimen Date-otsake; välimuistissa enintään 2 min) */
-async function getHtml(url: string): Promise<{ html: string; at: number } | null> {
+/** Lähdesivu ja sen luontihetki. Ei Next-hakuvälimuistia: koko HTML-sivu voi ylittää välimuistin 2 Mt:n rajan,
+ *  jolloin jokainen pyyntö hakisi sivun uudelleen. Välimuistiin tallennetaan jäsennetty (pieni) tulos (pagePart). */
+async function getHtml(url: string): Promise<{ html: string; at: number }> {
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 20_000);
   try {
-    const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 12_000);
-    const res = await fetch(url, { next: { revalidate: 120 }, headers: UA, signal: ctl.signal }); // 2 min välein
-    clearTimeout(to);
-    if (!res.ok) { console.error("lähdesivu", url, res.status); return null; }
+    const res = await fetch(url, { cache: "no-store", headers: UA, signal: ctl.signal });
+    if (!res.ok) throw new Error(`http ${res.status}`);
     const html = await res.text();
     const d = Date.parse(res.headers.get("date") ?? "");
     return { html, at: Number.isFinite(d) ? d : Date.now() };
   } catch (e) {
-    console.error("lähdesivu", url, (e as Error)?.message);
+    const msg = (e as Error)?.name === "AbortError" ? "aikakatkaisu 20 s" : (e as Error)?.message;
+    throw new Error(`lähdesivu ${url}: ${msg}`);
+  } finally {
+    clearTimeout(to);
+  }
+}
+
+type PageParts = { at: number; table?: Row[]; results?: Result[]; fixtures?: Fixture[] };
+/** Sivun jäsennetyt osat jaetussa välimuistissa 2 min. Epäonnistunutta hakua ei tallenneta: viimeisin onnistunut
+ *  tulos jää voimaan (vanhentunut merkintä palautetaan heti ja päivitetään taustalla). null = ei koskaan saatu. */
+async function pagePart(url: string, parts: Part[]): Promise<PageParts | null> {
+  try {
+    return await unstable_cache(async () => {
+      const { html, at } = await getHtml(url);
+      const doc = parseHTML(html).document;
+      const out: PageParts = { at };
+      if (parts.includes("table")) {
+        out.table = parseTable(doc);
+        // sivu saatiin mutta taulukkoa ei tunnistettu (esim. rakenne muuttui): ei korvata aiempaa tulosta
+        if (!out.table.length) throw new Error(`lähdesivu ${url}: taulukkoa ei tunnistettu`);
+      }
+      if (parts.includes("results")) out.results = parseResults(doc);
+      if (parts.includes("fixtures")) out.fixtures = parseFixtures(doc);
+      return out;
+    }, ["page-v1", url, parts.join(",")], { revalidate: 120 })();
+  } catch (e) {
+    console.warn((e as Error)?.message);
     return null;
   }
 }
@@ -148,7 +174,7 @@ function parseResults(doc: any): Result[] {
 /** Sarja kokonaan football-data.orgista (sarjat ilman uutislähdettä) */
 async function fromFd(s: (typeof SOURCES)[number]): Promise<LeagueStats> {
   const [stR, mtR] = await Promise.all([
-    fdMeta<any>(`/competitions/${s.fd}/standings`, 900),
+    fdMeta<any>(`/competitions/${s.fd}/standings`, 1800), // taulukko muuttuu vain otteluiden jälkeen; tulokset tulevat myös live-hausta
     fdMeta<any>(`/competitions/${s.fd}/matches`, 900),
   ]);
   const st = stR?.data, mt = mtR?.data;
@@ -228,24 +254,23 @@ async function computeStats(): Promise<LeagueStats[]> {
       const p = s.pages ?? { table: `${s.base}sarjataulukko/`, results: `${s.base}tulokset/`, fixtures: `${s.base}otteluohjelma/` };
       // sama sivu haetaan vain kerran (Mestarien liigassa kaikki on yhdellä sivulla)
       const urls = [...new Set([p.table, p.results, p.fixtures])];
-      const pages = await Promise.all(urls.map(getHtml));
+      const partsOf = (u: string) => (["table", "results", "fixtures"] as Part[]).filter((x) => p[x] === u);
+      const pages = await Promise.all(urls.map((u) => pagePart(u, partsOf(u))));
       const page = (u: string) => pages[urls.indexOf(u)];
       const [t, r, f] = [page(p.table), page(p.results), page(p.fixtures)];
-      const failed: Part[] = [...(t ? [] : ["table" as const]), ...(r ? [] : ["results" as const]), ...(f ? [] : ["fixtures" as const])];
+      const failed: Part[] = [...(t?.table ? [] : ["table" as const]), ...(r?.results ? [] : ["results" as const]), ...(f?.fixtures ? [] : ["fixtures" as const])];
       const times = pages.filter(Boolean).map((x) => x!.at);
       const out: LeagueStats = {
         source: s.id,
         league: s.league,
-        table: t ? parseTable(parseHTML(t.html).document) : [],
-        results: r ? parseResults(parseHTML(r.html).document) : [],
-        fixtures: f ? parseFixtures(parseHTML(f.html).document) : [],
+        table: t?.table ?? [],
+        results: r?.results ?? [],
+        fixtures: f?.fixtures ?? [],
         // lähdesivun taulukko on aina kuluvalta kaudelta (syksy–kevät)
         season: seasonFromDate(new Date()),
         updated: times.length ? Math.min(...times) : null,
         failed,
       };
-      // sivu saatiin mutta taulukkoa ei tunnistettu (esim. sivun rakenne muuttui): käsitellään puuttuvana
-      if (t && !out.table.length && !failed.includes("table")) out.failed!.push("table");
       return out;
     })
   );

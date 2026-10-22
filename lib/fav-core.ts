@@ -12,10 +12,15 @@ export type TeamLike = { name: string; id?: number };
 
 const asTeam = (t: TeamLike | string): TeamLike => (typeof t === "string" ? { name: t } : t);
 
+// Seuran nimen yleiset etu- ja jälkiliitteet ("Fenerbahçe SK" = "Fenerbahçe", "AS Monaco" = "Monaco").
+// Vain nämä sanat ohitetaan; muuten nimen pitää täsmätä kokonaan (ei osittaista vertailua).
+const FILLER = new Set(["fc", "cf", "afc", "sk", "ac", "as", "sc", "ssc", "cp", "fk", "jk", "sv", "club", "calcio", "1907", "1909"]);
+const core = (s: string) => { const n = norm(s); return n.split(" ").filter((w) => !FILLER.has(w)).join(" ") || n; };
+
 export function sameTeam(f: Fav, t: TeamLike | string): boolean {
   const x = asTeam(t);
   if (f.id !== undefined && x.id !== undefined) return f.id === x.id;
-  return norm(f.n) === norm(x.name);
+  return core(f.n) === core(x.name);
 }
 
 /** Lukee tallennetun arvon: uusi muoto [{n,id}] tai vanha ["Barcelona", …] */
