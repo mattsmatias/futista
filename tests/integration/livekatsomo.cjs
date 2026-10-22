@@ -561,9 +561,7 @@ async function uiTests() {
     ok("Realtime: uusi viesti näkyy ilman kyselyä (≤ 3,5 s)", lat <= 3500, `${lat} ms`);
     ok("Realtime: 22 s aikana ei tiheää viestikyselyä (≤ 1 HTTP-haku)", httpMsgs <= 1, `${httpMsgs} hakua`);
     // menetetty lähetys (aukko järjestysnumeroissa) → puuttuva haetaan HTTP:llä
-    sql(`with r as (update public.lk_rooms set seq = seq + 1 where id = '${RA}' returning seq)
-         insert into public.lk_messages (room, user_id, nickname, body, norm, has_link, client_id, seq) select '${RA}', '${w}', 'Testi Reaali', 'kadonnut lähetys', 'kadonnut', false, gen_random_uuid(), seq from r;
-         update public.lk_rooms set sent_seq = seq where id = '${RA}'`);
+    sql(`with r as (update public.lk_rooms set seq = seq + 1 where id = '${RA}' returning seq) insert into public.lk_messages (room, user_id, nickname, body, norm, has_link, client_id, seq) select '${RA}', '${w}', 'Testi Reaali', 'kadonnut lähetys', 'kadonnut', false, gen_random_uuid(), seq from r; update public.lk_rooms set sent_seq = seq where id = '${RA}'`);
     await sleep(2500);
     await send(RA, w2, "aukon jälkeinen viesti");
     const gapOk = await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent === "kadonnut lähetys"), null, { timeout: 10000 }).then(() => true).catch(() => false);

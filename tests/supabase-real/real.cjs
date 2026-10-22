@@ -88,8 +88,8 @@ function rtClient(topic, { token, priv = true } = {}) {
          and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))`) === "0");
   ok("SECURITY DEFINER -funktioissa tyhjä search_path",
     sql(`select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'lk\\_%' and p.prosecdef
-         and not coalesce(p.proconfig::text like '%search_path=""%', false)`) === "0",
-    sql(`select string_agg(proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'lk\\_%' and p.prosecdef and not coalesce(p.proconfig::text like '%search_path=""%', false)`));
+         and not ('search_path=""' = any(coalesce(p.proconfig, '{}')))`) === "0",
+    sql(`select string_agg(proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'lk\\_%' and p.prosecdef and not ('search_path=""' = any(coalesce(p.proconfig, '{}')))`));
   ok("Realtime-käytäntö: vain vastaanotto (SELECT) livekatsomo-aiheisiin, ei INSERT-käytäntöä",
     sql(`select string_agg(policyname || ':' || cmd, ',') from pg_policies where schemaname = 'realtime' and tablename = 'messages' and policyname like 'lk\\_%'`) === "lk_doorbell_receive:SELECT");
 

@@ -6,7 +6,7 @@
 # Käyttö (Ubuntu, root): bash tests/supabase-real/sandbox.sh [setup|app|test|ui]
 set -euo pipefail
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-SB=/opt/lk-supabase
+SB=/vercel/sb   # Supabase-projektin kansio (nimi "sb" -> säiliöt supabase_*_sb)
 step=${1:-all}
 
 setup() {
@@ -29,10 +29,10 @@ setup() {
 app() {
   set -a; . $SB/status.env; set +a
   cd "$REPO"
-  [ -d node_modules/next ] || npm ci --no-audit --no-fund > /tmp/npmci.log 2>&1
+  [ -d node_modules/next ] || npm install --no-audit --no-fund > /tmp/npmci.log 2>&1
   (node tests/integration/mock-sources.cjs > /tmp/mock.log 2>&1 &)
   export LK_SUPABASE_URL="$API_URL" LK_SUPABASE_SECRET_KEY="$SECRET_KEY" SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SECRET_KEY"
-  export LK_REALTIME_URL="${LK_REALTIME_PUBLIC_URL:-$API_URL}" LK_REALTIME_KEY="$PUBLISHABLE_KEY" LIVEKATSOMO_ENABLED=1 LK_LOGIN=test LK_IP_SALT=$(openssl rand -hex 24)
+  export LK_REALTIME_URL="${LK_REALTIME_PUBLIC_URL:-$API_URL}" LK_REALTIME_KEY="$PUBLISHABLE_KEY" LIVEKATSOMO_ENABLED=1 LK_LOGIN=test LK_IP_SALT=$(openssl rand -hex 24) LK_SITE_URL=http://127.0.0.1:3000
   export FOOTBALL_DATA_KEY=test-not-a-real-key FD_BASE_URL=http://127.0.0.1:9101/v4 ESPN_BASE_URL=http://127.0.0.1:9101/espn/ FD_QUOTA_REQUIRED=1 NEXT_TELEMETRY_DISABLED=1
   export NEXT_PUBLIC_LIVEKATSOMO=1 NEXT_PUBLIC_LK_TESTDATA=1
   [ -f .next/BUILD_ID ] || npx next build > /tmp/build.log 2>&1 || { tail -30 /tmp/build.log; exit 1; }
