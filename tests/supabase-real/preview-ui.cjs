@@ -91,13 +91,14 @@ let ctxReq;
   await pa.waitForTimeout(5200);
   let fail = true;
   await pa.route("**/api/livekatsomo/room/*/messages", (rt) => (rt.request().method() === "POST" && fail ? (fail = false, rt.abort("failed")) : rt.continue()));
-  await pa.locator(".lk textarea").fill("TESTIDATA: uudelleenyritys"); await pa.locator(".lk-send").click();
+  const RETRY = `TESTIDATA: uudelleenyritys ${Date.now()}`;
+  await pa.locator(".lk textarea").fill(RETRY); await pa.locator(".lk-send").click();
   await pa.waitForSelector(".lk-msg.pending.failed", { timeout: 10000 });
   await pa.locator(".lk-msg.pending.failed button", { hasText: "Yritä uudelleen" }).click();
   await pa.waitForFunction(() => !document.querySelector(".lk-msg.pending"), null, { timeout: 15000 });
   await pa.unroute("**/api/livekatsomo/room/*/messages");
   await pb.waitForTimeout(3000);
-  ok("9. lähetyksen uudelleenyritys ei luo kaksoiskappaletta (tietokanta + toinen selain)", sql(`select count(*) from public.lk_messages where body = 'TESTIDATA: uudelleenyritys'`) === "1" && (await pb.locator(".lk-body", { hasText: "TESTIDATA: uudelleenyritys" }).count()) === 1);
+  ok("9. lähetyksen uudelleenyritys ei luo kaksoiskappaletta (tietokanta + toinen selain)", sql(`select count(*) from public.lk_messages where body = '${RETRY}'`) === "1" && (await pb.locator(".lk-body", { hasText: RETRY }).count()) === 1);
 
   // poisto ja kirjoituskielto näkyvät toisessa selaimessa
   const bid = Number(sql(`select id from public.lk_messages where body = 'TESTIDATA: vastaus työpöydältä'`));
