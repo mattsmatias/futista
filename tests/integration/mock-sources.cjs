@@ -132,6 +132,17 @@ function espn(path, res) {
       return json(res, 200, { events: [ev(9001, now - 86400_000, A, B, true, 2, 0), ev(9002, now + 2 * 86400_000, B, C, false)].filter((e) => yr(Date.parse(e.date))) });
     }
   }
+  // Eurooppa-liiga (ESPN): liigavaihe, kuvitteelliset joukkueet
+  if (path.startsWith("uefa.europa/")) {
+    const T = (id, n, ab) => ({ id: String(id), displayName: n, shortDisplayName: n, abbreviation: ab, logos: [] });
+    const A = T(71001, "Eurokaupunki FC", "EUR"), B = T(71002, "Mannerseura", "MAN");
+    if (path.startsWith("uefa.europa/standings")) {
+      const st = (t, rank, p, w, d, l, gf, ga, pts) => ({ team: t, stats: Object.entries({ rank, gamesPlayed: p, wins: w, ties: d, losses: l, pointsFor: gf, pointsAgainst: ga, points: pts }).map(([name, value]) => ({ name, value })) });
+      return json(res, 200, { children: [{ name: "League Phase", standings: { seasonDisplayName: "2026-27 UEFA Europa League", entries: [st(A, 1, 3, 3, 0, 0, 7, 1, 9), st(B, 2, 3, 2, 0, 1, 4, 3, 6)] } }] });
+    }
+    if (path.startsWith("uefa.europa/statistics")) return json(res, 200, { season: { year: 2026 }, stats: [{ name: "goalsLeaders", leaders: [{ value: 4, displayValue: "Matches: 3, Goals: 4", shortDisplayValue: "M: 3, G: 4: A: 0", athlete: { id: "2", displayName: "Euro Maalintekijä", team: A } }] }] });
+    if (path === "uefa.europa/teams") return json(res, 200, { sports: [{ leagues: [{ teams: [A, B].map((team) => ({ team })) }] }] });
+  }
   if (path.includes("/scoreboard")) return json(res, 200, { events: [] });
   if (path.endsWith("/teams")) return json(res, 200, { sports: [{ leagues: [{ teams: [] }] }] });
   return json(res, 404, {});

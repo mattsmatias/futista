@@ -165,7 +165,7 @@ export const ABOUT: Record<Lang, Doc> = {
         p: [
           "Uutiset (otsikot, otteet, tekstit ja kuvat) sekä La Ligan, Valioliigan ja Mestarien liigan sarjataulukot, tulokset ja otteluohjelmat: [LaLiiga.com](https://www.laliiga.com) ja [Valioliiga.com](https://www.valioliiga.com). Jokaisen jutun lopussa on linkki alkuperäiseen artikkeliin.",
           "Muiden sarjojen tiedot, maalipörssit, kokoonpanot, pelaajasivut, aiemmat kohtaamiset ja ensisijaiset lopputulokset: [football-data.org](https://www.football-data.org) (ilmaisversio, jossa tulokset päivittyvät viiveellä).",
-          "Otteluiden live-tila ja peliminuutti, joukkueiden kaikkien kilpailujen ottelut, maaottelut, cup- ja Eurooppa-otteluiden perustiedot sekä Turkin Süper Ligin taulukko, ottelut ja maalipörssi: ESPN:n tulospalvelun julkinen rajapinta.",
+          "Otteluiden live-tila ja peliminuutti, joukkueiden kaikkien kilpailujen ottelut, maaottelut, cup- ja Eurooppa-otteluiden perustiedot sekä Turkin Süper Ligin, MLS:n, Eurooppa-liigan ja Konferenssiliigan taulukko, ottelut ja maalipörssi: ESPN:n tulospalvelun julkinen rajapinta.",
           "Pelaajakuvat: [Wikimedia Commons](https://commons.wikimedia.org) (avoimet lisenssit, kuvien tekijät ja lisenssit näkyvät kunkin kuvan sivulla Commonsissa) ja [TheSportsDB](https://www.thesportsdb.com). Osa logoista: TheSportsDB. Maiden liput: [Flagpedia](https://flagpedia.net).",
         ],
       },
@@ -195,7 +195,7 @@ export const ABOUT: Record<Lang, Doc> = {
         p: [
           "Nyheter (rubriker, utdrag, texter och bilder) samt tabeller, resultat och spelscheman för La Liga, Premier League och Champions League: [LaLiiga.com](https://www.laliiga.com) och [Valioliiga.com](https://www.valioliiga.com). Varje artikel avslutas med en länk till originalet.",
           "Andra ligor, skytteligor, trupper, spelarsidor, tidigare möten och primära slutresultat: [football-data.org](https://www.football-data.org) (gratisversion där resultaten uppdateras med fördröjning).",
-          "Matchstatus och matchminut, lagens matcher i alla turneringar, landskamper, grunduppgifter om cup- och Europamatcher samt Turkiets Süper Lig (tabell, matcher och skytteliga): ESPN:s öppna resultatgränssnitt.",
+          "Matchstatus och matchminut, lagens matcher i alla turneringar, landskamper, grunduppgifter om cup- och Europamatcher samt Turkiets Süper Lig, MLS, Europa League och Conference League (tabell, matcher och skytteliga): ESPN:s öppna resultatgränssnitt.",
           "Spelarbilder: [Wikimedia Commons](https://commons.wikimedia.org) (öppna licenser, upphovsperson och licens anges på respektive bilds sida på Commons) och [TheSportsDB](https://www.thesportsdb.com). Vissa logotyper: TheSportsDB. Flaggor: [Flagpedia](https://flagpedia.net).",
         ],
       },
@@ -220,7 +220,7 @@ export const ABOUT: Record<Lang, Doc> = {
         p: [
           "News (headlines, excerpts, texts and images) and La Liga, Premier League and Champions League standings, results and fixtures: [LaLiiga.com](https://www.laliiga.com) and [Valioliiga.com](https://www.valioliiga.com). Every story ends with a link to the original article.",
           "Other leagues, top scorers, squads, player pages, previous meetings and primary final scores: [football-data.org](https://www.football-data.org) (free tier, results update with a delay).",
-          "Live match status and minute, teams' matches in all competitions, internationals, basic cup and European match details and Turkey's Süper Lig (table, matches and top scorers): ESPN's public scores API.",
+          "Live match status and minute, teams' matches in all competitions, internationals, basic cup and European match details and Turkey's Süper Lig, MLS, the Europa League and the Conference League (tables, matches and top scorers): ESPN's public scores API.",
           "Player photos: [Wikimedia Commons](https://commons.wikimedia.org) (open licences; author and licence are shown on each image's Commons page) and [TheSportsDB](https://www.thesportsdb.com). Some logos: TheSportsDB. Flags: [Flagpedia](https://flagpedia.net).",
         ],
       },

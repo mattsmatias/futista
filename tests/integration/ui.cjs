@@ -243,6 +243,16 @@ const MIN = 60_000;
     await page.goto(APP + "/sarjat/superlig?v=taulukko", { waitUntil: "networkidle" });
     const slBody = await page.locator("main").innerText();
     ok("Süper Lig: sarjasivu näyttää taulukon", /Süper Lig/.test(slBody) && /Testispor Ankara/.test(slBody), slBody.slice(0, 100).replace(/\n/g, " "));
+    // Eurooppa-liiga (ESPN, simuloitu): taulukko liigavaiheesta ja maalipörssi; kilpailuhakemistossa
+    let el = await fetch(`${APP}/api/league/uel`); let elj = await el.json().catch(() => ({}));
+    ok("Eurooppa-liiga: taulukko ESPN:stä", el.status === 200 && elj.stats?.table?.length === 2 && elj.stats.table[0].team.name === "Eurokaupunki FC", `${el.status} ${elj.stats?.table?.length}`);
+    el = await fetch(`${APP}/api/scorers/uel`); elj = await el.json().catch(() => ({}));
+    ok("  maalipörssi", el.status === 200 && elj.scorers?.list?.[0]?.goals === 4, JSON.stringify(elj).slice(0, 120));
+    await page.goto(APP + "/sarjat", { waitUntil: "networkidle" });
+    const dir = await page.locator("main").innerText();
+    ok("  Sarjat-hakemistossa Eurooppa-liiga ja Konferenssiliiga", dir.includes("Eurooppa-liiga") && dir.includes("Konferenssiliiga"));
+    await page.goto(APP + "/sarjat/uel?v=taulukko", { waitUntil: "networkidle" });
+    ok("  sarjasivu näyttää taulukon", (await page.locator("main").innerText()).includes("Eurokaupunki FC"));
     // joukkueen kunto kaikista kilpailuista (ESPN:n otteluohjelma, simuloitu: sarja, Eurooppa-liiga, cup, harjoitus, siirretty, tuleva)
     await page.goto(APP + "/joukkue/superlig/testispor-ankara", { waitUntil: "networkidle" });
     const fa = page.locator(".form-all");

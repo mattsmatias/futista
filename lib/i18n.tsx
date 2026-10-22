@@ -28,6 +28,8 @@ const D = {
   lg_championship: ["Championship", "Championship", "Championship"],
   lg_superlig: ["Süper Lig", "Süper Lig", "Süper Lig"],
   lg_mls: ["MLS", "MLS", "MLS"],
+  lg_uel: ["Eurooppa-liiga", "Europa League", "Europa League"],
+  lg_uecl: ["Konferenssiliiga", "Conference League", "Conference League"],
   otherLeagues: ["Muut sarjat", "Andra ligor", "Other leagues"],
   loading: ["Ladataan…", "Laddar…", "Loading…"],
   mainLeagues: ["Pääsarjat", "Huvudligor", "Main leagues"],

@@ -1473,3 +1473,9 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .match-hero .cmark.has-dark .cl-light { display: none; }
 .match-hero .cmark.has-dark .cl-dark { display: block; }
 .match-hero .cmark.cmark-logo.cm-sm:not(.has-dark) { background: #fff; padding: 1px; }
+
+/* Eurooppa-liiga ja Konferenssiliiga (ESPN) */
+:root { --lg-uel: #ea8a0c; --c-uel: #f26b0f; --lg-uecl: #0d9488; --c-uecl: #10b981; }
+.bar-uel, .dot-uel { background: var(--lg-uel); } .chip-uel { background: color-mix(in srgb, var(--lg-uel) 16%, transparent); color: var(--lg-uel); } .mh-uel { --accent: var(--lg-uel); } .lpick button.on-uel { color: var(--lg-uel); }
+.bar-uecl, .dot-uecl { background: var(--lg-uecl); } .chip-uecl { background: color-mix(in srgb, var(--lg-uecl) 16%, transparent); color: var(--lg-uecl); } .mh-uecl { --accent: var(--lg-uecl); } .lpick button.on-uecl { color: var(--lg-uecl); }
+.cm-uel { background: var(--c-uel); } .cm-uecl { background: var(--c-uecl); }
