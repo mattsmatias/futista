@@ -1,6 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
+import { stableCache } from "./stable-cache";
 import { isPromo } from "./promo";
-import { unstable_cache } from "next/cache";
 import { SOURCES, siteName, type Source, type SourceId } from "./sources";
 
 export type Article = {
@@ -52,7 +52,7 @@ const ucl = SOURCES.find((s) => s.id === "ucl")!;
  *  voimaan, joten yhden sivuston hidastelu ei pudota sen uutisia hetkeksi pois. */
 async function readFeed(src: Source, feedUrl: string): Promise<Article[]> {
   try {
-    return await unstable_cache(() => fetchFeed(src, feedUrl), ["feed-v1", src.id, feedUrl], { revalidate: 180 })();
+    return await stableCache(() => fetchFeed(src, feedUrl), ["feed-v1", src.id, feedUrl], { revalidate: 180 })();
   } catch (e) {
     console.warn("syöte", feedUrl, (e as Error)?.message);
     return [];
@@ -100,7 +100,7 @@ async function fetchFeed(src: Source, feedUrl: string): Promise<Article[]> {
 }
 
 /** Uutiset kaikista syötteistä; käsitelty lista tallennetaan kolmeksi minuutiksi */
-export const getArticles = unstable_cache(readAll, ["articles-v3"], { revalidate: 180 });
+export const getArticles = stableCache(readAll, ["articles-v3"], { revalidate: 180 });
 
 async function readAll(): Promise<Article[]> {
   const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, f))))).flat();

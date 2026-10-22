@@ -20,6 +20,7 @@
     "ui.test.ts",
     "flags.test.ts",
     "team-form.test.ts",
+    "cache.test.ts",
     "rapid.test.ts"
   ]
 }

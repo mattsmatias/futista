@@ -2,7 +2,7 @@
 // Kaksi hakua: sarjataulukko ja kauden ottelut vuosittain (scoreboard?dates=VVVV&limit=1000).
 // Joukkueille EI anneta tunnistetta (id): ESPN:n tunnisteet eivät ole football-datan tunnisteita, eikä
 // suosikkeja saa yhdistää väärään seuraan. Puuttuvaa tietoa ei arvata (tulos vain päättyneille otteluille).
-import { unstable_cache } from "next/cache";
+import { stableCache } from "./stable-cache";
 import { getJson } from "./http";
 import { toGame } from "./espn-parse";
 import type { LeagueStats, Row, Result, Fixture, Team, Part } from "./stats";
@@ -80,7 +80,7 @@ export function seasonYears(now = new Date(), calendarYear = false): number[] {
 }
 
 const load = (id: SourceId, slug: string, calendarYear = false) =>
-  unstable_cache(async (): Promise<LeagueStats> => {
+  stableCache(async (): Promise<LeagueStats> => {
     const years = seasonYears(new Date(), calendarYear);
     const [st, ...ev] = await Promise.all([
       getJson(`${STAND}${slug}/standings`, 10000).catch(() => null),
@@ -124,7 +124,7 @@ export function parseEspnScorers(j: any, calendarYear = false): { list: { name: 
 }
 
 const scorersCache = (slug: string, calendarYear = false) =>
-  unstable_cache(async () => {
+  stableCache(async () => {
     const j = await getJson(`${SITE}${slug}/statistics`, 10000);
     const r = parseEspnScorers(j, calendarYear);
     if (!r.list.length) throw new Error("no scorers");

@@ -1,7 +1,7 @@
 // Pelaajien kuvat: ensin Wikipedia (Wikimedia Commons, avoimesti lisensoidut ja yleensä tuoreimmat kuvat),
 // varalla TheSportsDB (ilmainen avain "123"). Vain palvelimella.
 // Tulos (myös "kuvaa ei löytynyt") tallennetaan viikoksi; epäonnistunutta hakua ei tallenneta.
-import { unstable_cache } from "next/cache";
+import { stableCache } from "./stable-cache";
 import { words } from "./live-core";
 import { getJson } from "./http";
 
@@ -53,7 +53,7 @@ async function find(name: string, team: string): Promise<string | null> {
 export async function getPhoto(name: string, team = ""): Promise<string | null> {
   if (!name) return null;
   try {
-    const r = await unstable_cache(async () => ({ url: await find(name, team) }), ["photo-v2", name, team], { revalidate: 7 * 86400 })();
+    const r = await stableCache(async () => ({ url: await find(name, team) }), ["photo-v2", name, team], { revalidate: 7 * 86400 })();
     return r.url;
   } catch {
     return null;
@@ -63,7 +63,7 @@ export async function getPhoto(name: string, team = ""): Promise<string | null> 
 /** Sama kuin getPhoto, mutta kertoo myös, oliko haku hetkellisesti mahdoton (ei tallenneta välimuistiin) */
 export async function lookupPhoto(name: string, team = ""): Promise<{ url: string | null; ok: boolean }> {
   try {
-    const r = await unstable_cache(async () => ({ url: await find(name, team) }), ["photo-v2", name, team], { revalidate: 7 * 86400 })();
+    const r = await stableCache(async () => ({ url: await find(name, team) }), ["photo-v2", name, team], { revalidate: 7 * 86400 })();
     return { url: r.url, ok: true };
   } catch {
     return { url: null, ok: false };

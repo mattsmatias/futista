@@ -13,9 +13,9 @@
 //    (enintään 2 matalan prioriteetin) ja 429-tauko tämän prosessin sisällä. Tämä EI suojaa usean
 //    prosessin tai palvelimen yhteiskäyttöä – siihen tarvitaan yhteinen kiintiö (docs/kiintio.md).
 //  - ympäristömuuttuja FD_OFF=1 katkaisee kaikki haut heti
+import { stableCache } from "./stable-cache";
 import https from "node:https";
 import http from "node:http";
-import { unstable_cache } from "next/cache";
 import { createGuard, SourceError, type Fetched, type Priority } from "./guard";
 import { fdQuotaStore, type QuotaStore } from "./quota";
 
@@ -87,7 +87,7 @@ export async function fdTry<T = any>(path: string, ttl: number): Promise<FdOutco
   try {
     // sama välimuistiavain kuin aiemmin: julkaisu ei tyhjennä välimuistia eikä aiheuta hakuryöppyä.
     // Vanhat merkinnät ovat pelkkää dataa (ei hakuaikaa) → aika tuntematon (null) kunnes merkintä uusiutuu.
-    const r: any = await unstable_cache(() => load(path), ["fd-v1", path], { revalidate: ttl })();
+    const r: any = await stableCache(() => load(path), ["fd-v1", path], { revalidate: ttl })();
     const wrapped = r && typeof r === "object" && typeof r.at === "number" && "data" in r && Object.keys(r).length === 2;
     return wrapped ? { status: "ok", data: r.data as T, at: r.at } : { status: "ok", data: r as T, at: null };
   } catch (e) {

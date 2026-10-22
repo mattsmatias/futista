@@ -1,8 +1,8 @@
 import { parseHTML } from "linkedom";
+import { stableCache } from "./stable-cache";
 import { SOURCES, type SourceId } from "./sources";
 import { crestLookup } from "./crests";
 import { fdMeta } from "./fd";
-import { unstable_cache } from "next/cache";
 import { helsinkiParts } from "./live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "./score";
 import { fillFromLastGood } from "./stats-merge";
@@ -48,7 +48,7 @@ type PageParts = { at: number; table?: Row[]; results?: Result[]; fixtures?: Fix
  *  tulos jää voimaan (vanhentunut merkintä palautetaan heti ja päivitetään taustalla). null = ei koskaan saatu. */
 async function pagePart(url: string, parts: Part[]): Promise<PageParts | null> {
   try {
-    return await unstable_cache(async () => {
+    return await stableCache(async () => {
       const { html, at } = await getHtml(url);
       const doc = parseHTML(html).document;
       const out: PageParts = { at };
@@ -225,7 +225,7 @@ export async function getStatsWith(extra: string[] = []): Promise<LeagueStats[]>
 class PartialStats extends Error {
   constructor(public partial: LeagueStats[]) { super("osittaiset tilastot"); }
 }
-const cachedStats = unstable_cache(async () => {
+const cachedStats = stableCache(async () => {
   const s = await computeStats();
   // tyhjää tai osittaista tulosta ei tallenneta välimuistiin: edellinen onnistunut tulos jää voimaan
   if (!s.some((x) => x.table.length || x.results.length)) throw new PartialStats(s);

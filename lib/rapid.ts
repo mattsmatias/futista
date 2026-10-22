@@ -8,11 +8,11 @@
 //  - kuukausikiintiö: kun lähteen ilmoittama jäljellä oleva määrä ≤ RAPIDAPI_RESERVE, haut pysähtyvät nollautumiseen asti
 //  - 429 / 401 / 403 / aikakatkaisu: yhteinen tai paikallinen tauko; häiriössä näytetään viimeisin kelvollinen tieto
 //  - avain vain otsakkeessa; sitä ei kirjoiteta lokeihin eikä välimuistiin
+import { stableCache } from "./stable-cache";
 import https from "node:https";
 import http from "node:http";
 import { createHash } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { unstable_cache } from "next/cache";
 import { createGuard, SourceError, type Fetched } from "./guard";
 import { supabaseQuotaStore, type QuotaStore } from "./quota";
 import { supabaseServer } from "./supabase-rest";
@@ -141,7 +141,7 @@ async function loadParsed(kind: string, path: string): Promise<{ at: number; dat
 }
 
 async function cached<T>(kind: string, path: string, slot: string, ttl: number, peek = false): Promise<{ at: number; data: T }> {
-  const fn = unstable_cache((k: string, p: string) => loadParsed(k, p), ["rapid-v1", kind, path, slot], { revalidate: ttl });
+  const fn = stableCache((k: string, p: string) => loadParsed(k, p), ["rapid-v1", kind, path, slot], { revalidate: ttl });
   return (peek ? PEEK.run(true, () => fn(kind, path)) : fn(kind, path)) as Promise<{ at: number; data: T }>;
 }
 

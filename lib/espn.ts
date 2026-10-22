@@ -1,7 +1,7 @@
 // Joukkueen kaikki ottelut kaikista kilpailuista (sarja, Mestarien liiga, Eurooppa-liiga,
 // Konferenssiliiga, cupit, Supercup, harjoitusottelut) ESPN:n avoimesta rajapinnasta.
 // Ei avainta. Vastaukset välimuistissa: joukkuelistat vuorokauden, otteluohjelma minuutin.
-import { unstable_cache } from "next/cache";
+import { stableCache } from "./stable-cache";
 import { getJson } from "./http";
 import { words, sameTeam, helsinkiParts, type LiveMatch } from "./live-core";
 import type { LeagueStats, Team } from "./stats";
@@ -25,7 +25,7 @@ const LEAGUE: Record<string, string> = {
 type EspnTeam = { id: string; name: string; words: string[] };
 
 const teamsOf = (slug: string) =>
-  unstable_cache(async (): Promise<EspnTeam[]> => {
+  stableCache(async (): Promise<EspnTeam[]> => {
     const j = await getJson(`${BASE}${slug}/teams`);
     const list = (j?.sports?.[0]?.leagues?.[0]?.teams ?? []).map((x: any) => x.team).filter(Boolean);
     if (!list.length) throw new Error("no teams");
@@ -53,7 +53,7 @@ async function findTeam(source: string, name: string): Promise<string | null> {
 }
 
 export const scheduleOf = (id: string) =>
-  unstable_cache(async (): Promise<Game[]> => {
+  stableCache(async (): Promise<Game[]> => {
     const [past, next] = await Promise.all([
       getJson(`${BASE}all/teams/${id}/schedule`),
       getJson(`${BASE}all/teams/${id}/schedule?fixture=true`),
@@ -154,7 +154,7 @@ export async function getGamesById(id: string): Promise<Game[] | null> {
 //  - oletuskilpailu on maajoukkueiden kilpailu (FIFA/UEFA/CONCACAF/CONMEBOL/CAF/AFC/OFC), ei seurakilpailu
 //  - nimi ei viittaa naisiin, nuoriin tai olympiajoukkueeseen
 const teamInfo = (id: string) =>
-  unstable_cache(async (): Promise<{ team: any | null }> => {
+  stableCache(async (): Promise<{ team: any | null }> => {
     // ESPN palauttaa tuntemattomalle tunnisteelle tyhjän olion: se on "ei löydy", ei häiriö
     const j = await getJson(`${BASE}all/teams/${id}`, 8000);
     return { team: j?.team?.id ? { id: String(j.team.id), slug: j.team.slug, displayName: j.team.displayName, abbreviation: j.team.abbreviation, logo: j.team.logos?.[0]?.href, defaultLeague: { slug: j.team.defaultLeague?.slug } } : null };
@@ -193,7 +193,7 @@ export const FINLAND = "458";
 const ymd = (iso: string) => iso.slice(0, 10).replace(/-/g, "");
 
 /** Maaotteluikkunoiden päivät (ystävyysotteluiden kalenterista, joka kattaa kaikki ikkunat) */
-const intlDays = unstable_cache(async (): Promise<string[]> => {
+const intlDays = stableCache(async (): Promise<string[]> => {
   const j = await getJson(`${BASE}fifa.friendly/scoreboard`);
   const cal: string[] = (j?.leagues?.[0]?.calendar ?? []).filter((x: any) => typeof x === "string");
   if (!cal.length) throw new Error("no calendar");
@@ -201,7 +201,7 @@ const intlDays = unstable_cache(async (): Promise<string[]> => {
 }, ["espn-intl-days-v1"], { revalidate: 21600 });
 
 const dayGames = (comp: string, day: string, past: boolean) =>
-  unstable_cache(async (): Promise<{ at: number; games: Game[] }> => {
+  stableCache(async (): Promise<{ at: number; games: Game[] }> => {
     const j = await getJson(`${BASE}${comp}/scoreboard?dates=${ymd(day)}`);
     const name = j?.leagues?.[0]?.name;
     // vain miesten A-maajoukkueet (nuorten, naisten ja olympiajoukkueiden ottelut pidetään erillään)
@@ -257,14 +257,14 @@ const TEST_SOURCE = (() => {
 })();
 const board = (slug: string) => {
   const test = TEST_SOURCE && slug === LEAGUE.laliga ? TEST_SOURCE : null;
-  return unstable_cache(async (): Promise<{ at: number; events: any[] }> => {
+  return stableCache(async (): Promise<{ at: number; events: any[] }> => {
     const j = await getJson(test ? `${test}/scoreboard` : `${BASE}${slug}/scoreboard`, 8000);
     return { at: Date.now(), events: j?.events ?? [] };
   }, [test ? "espn-board-test" : "espn-board-v2", slug], { revalidate: 15 })();
 };
 
 const periodStart = (slug: string, id: string, period: number) =>
-  unstable_cache(async (): Promise<number> => {
+  stableCache(async (): Promise<number> => {
     const j = await getJson(`${BASE}${slug}/summary?event=${id}`, 6000);
     const t = periodStartFrom(j, period);
     if (t === null) throw new Error("no period start"); // ei tallenneta: yritetään seuraavalla kerralla uudelleen
@@ -301,7 +301,7 @@ export async function getEspnLive(): Promise<{ matches: LiveMatch[]; at: number 
 
 // ---- Yksittäinen ottelu (perustason ottelusivu cup-, EL-, ECL- ja maaotteluille) ----
 const summary = (id: string) =>
-  unstable_cache(async (): Promise<{ at: number; m: EspnMatch }> => {
+  stableCache(async (): Promise<{ at: number; m: EspnMatch }> => {
     const j = await getJson(`${BASE}all/summary?event=${id}`, 10000);
     const m = parseSummary(j, id);
     if (!m) throw new Error("no match");
