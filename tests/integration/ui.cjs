@@ -209,6 +209,17 @@ const MIN = 60_000;
     const fb = await page.locator("main").innerText();
     ok("  ei otsikkoa eikä kuvausta (sivu alkaa suoraan otteluista)", !fb.includes("tälle laitteelle"));
     ok("  seuratut joukkueet listattu", fb.includes("Testiseura Kotka"));
+    // lisää suosikkeja: isot Mestarien liigan seurat, valittu siirtyy seurattuihin tunnisteella
+    const more = page.locator("section[aria-labelledby=fs-more]");
+    const mt = await more.innerText().catch(() => "");
+    ok("  'Lisää suosikkeja': Bayern, Galatasaray ja muut isot seurat", ["Bayern München", "Galatasaray", "Paris Saint-Germain", "Inter", "Real Madrid"].every((x) => mt.includes(x)) && (await more.locator("li").count()) >= 16, String(await more.locator("li").count()));
+    await more.getByRole("button", { name: /Galatasaray/ }).click();
+    await page.waitForTimeout(300);
+    const v3 = await page.evaluate(() => JSON.parse(localStorage.getItem("futista-suosikit-v2") || "[]"));
+    ok("  ehdotuksesta suosikiksi tunnisteella, poistuu ehdotuksista", v3.some((f) => f.n === "Galatasaray" && f.id === 610) && !(await more.innerText()).includes("Galatasaray") && (await page.locator("section[aria-labelledby=fs-teams]").innerText()).includes("Galatasaray"), JSON.stringify(v3));
+    await page.locator("section[aria-labelledby=fs-teams]").getByRole("button", { name: /Galatasaray/ }).click();
+    await page.waitForTimeout(300);
+    ok("  poisto palauttaa ehdotuksiin", (await more.innerText()).includes("Galatasaray"));
     // vanhat linkit
     for (const [from, to] of [["/?nakyma=taulukko", "/sarjat"], ["/?nakyma=suosikit", "/suosikit"], ["/?nakyma=maajoukkueet", "/maajoukkueet"]]) {
       await page.goto(APP + from, { waitUntil: "domcontentloaded" });

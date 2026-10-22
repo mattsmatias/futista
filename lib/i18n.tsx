@@ -354,6 +354,7 @@ const D = {
   editFavs: ["Muokkaa suosikkeja", "Redigera favoriter", "Edit favourites"],
   followedTeams: ["Seuratut joukkueet", "Följda lag", "Followed teams"],
   suggestions: ["Ehdotuksia", "Förslag", "Suggestions"],
+  moreSuggestions: ["Lisää suosikkeja", "Fler favoriter", "Add more favourites"],
   dayMatches: ["Päivän ottelut", "Dagens matcher", "Matches of the day"],
   popularComps: ["Suositut", "Populära", "Popular"],
   otherComps: ["Muut sarjat", "Övriga serier", "Other competitions"],

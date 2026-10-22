@@ -20,7 +20,15 @@ import { useDayBoard } from "./useDayBoard";
 import { useSearch } from "./AppShell";
 import { NewsItem } from "./News";
 
-const SUGGEST = ["Barcelona", "Real Madrid", "Liverpool", "Arsenal", "Manchester City", "Manchester United"];
+// Ehdotukset: suosituimmat Mestarien liigan seurat. Tunniste (football-data) yhdistää saman seuran kaikkiin kilpailuihin;
+// lyhyt nimi täsmää myös lähteisiin, joissa tunnistetta ei ole (esim. Süper Lig).
+const SUGGEST: { n: string; id?: number }[] = [
+  { n: "Barcelona", id: 81 }, { n: "Real Madrid", id: 86 }, { n: "Bayern München", id: 5 }, { n: "Liverpool", id: 64 },
+  { n: "Arsenal", id: 57 }, { n: "Manchester City", id: 65 }, { n: "Manchester United", id: 66 }, { n: "Paris Saint-Germain", id: 524 },
+  { n: "Inter", id: 108 }, { n: "Juventus", id: 109 }, { n: "Milan", id: 98 }, { n: "Borussia Dortmund", id: 4 },
+  { n: "Atlético Madrid", id: 78 }, { n: "Chelsea", id: 61 }, { n: "Napoli", id: 113 }, { n: "Galatasaray", id: 610 },
+  { n: "Fenerbahçe" }, { n: "Benfica", id: 1903 },
+];
 
 export default function FavoritesPage({ stats: first, articles, today: serverToday }: { stats: LeagueStats[]; articles: Article[]; today: string }) {
   const i = useI18n();
@@ -53,11 +61,12 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
     .slice(0, 6), [board.allStats, today, isFav]);
   const stories = articles.filter((a) => favs.some((f) => storyIsAbout(f.n, a.tags))).slice(0, 8);
 
-  const suggestions = SUGGEST.map((n) => {
+  const suggestions = SUGGEST.map(({ n, id }) => {
     const c = allClubs.find((x) => x.tag === n);
-    const hit = teamInfo.get(`n:${norm(n)}`);
-    return { name: hit?.team.name ?? n, id: hit?.team.id, code: c?.short ?? n.slice(0, 3).toUpperCase(), crest: hit?.team.crest ?? staticCrest(n) ?? undefined };
+    const hit = (id !== undefined ? teamInfo.get(`id:${id}`) : undefined) ?? teamInfo.get(`n:${norm(n)}`);
+    return { name: n, id: id ?? hit?.team.id, code: c?.short ?? hit?.team.code ?? n.slice(0, 3).toUpperCase(), crest: hit?.team.crest ?? staticCrest(n) ?? undefined };
   });
+  const moreSuggestions = suggestions.filter((s) => !isFav({ name: s.name, id: s.id }));
 
   return (
     <>
@@ -109,6 +118,17 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
               })}
             </ul>
           </section>
+
+          {moreSuggestions.length > 0 && (
+            <section className="fsec" aria-labelledby="fs-more">
+              <h2 id="fs-more" className="sub-h">{t("moreSuggestions")}</h2>
+              <ul className="team-list">
+                {moreSuggestions.map((s) => (
+                  <li key={s.name}><Badge t={s} size={24} /><span className="tl-name">{s.name}</span><HeartButton team={{ name: s.name, id: s.id }} label={t("favToggle")} /></li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>}
 
 
