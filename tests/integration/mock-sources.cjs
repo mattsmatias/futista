@@ -147,7 +147,10 @@ function espn(path, res) {
       const y = Number(path.match(/dates=(\d{4})/)[1]), now = Date.now();
       const ev = (id, t, h, a, done, hs, as) => ({ id: String(id), date: new Date(t).toISOString(), league: { slug: "uefa.europa" }, competitions: [{ status: { type: done ? { name: "STATUS_FULL_TIME", state: "post", completed: true } : { name: "STATUS_SCHEDULED", state: "pre" } }, competitors: [{ homeAway: "home", team: h, score: done ? String(hs) : undefined }, { homeAway: "away", team: a, score: done ? String(as) : undefined }] }] });
       const list = [ev(81001, now - 26 * 3600_000, A, B, true, 0, 4), ev(81002, now + 5 * 86400_000, B, A, false)];
-      return json(res, 200, { leagues: [{ season: {} }], events: list.filter((e) => new Date(e.date).getUTCFullYear() === y) });
+      // vuosihaku (sarjasivu) → vuoden ottelut; päivähaku (etusivu, VVVVKKPP) → vain sen päivän ottelut
+      const d8 = path.match(/dates=(\d{8})/)?.[1];
+      const pick = (e) => d8 ? e.date.slice(0, 10).replace(/-/g, "") === d8 : new Date(e.date).getUTCFullYear() === y;
+      return json(res, 200, { leagues: [{ season: {} }], events: list.filter(pick) });
     }
     if (path === "uefa.europa/summary?event=81001") return json(res, 200, require("../fixtures/espn-summary-uel.json"));
   }
