@@ -16,7 +16,7 @@ import { unstable_cache } from "next/cache";
 import { createGuard, SourceError, type Fetched } from "./guard";
 import { supabaseQuotaStore, type QuotaStore } from "./quota";
 import { supabaseServer } from "./supabase-rest";
-import { parseDay, parseLineup, parseStats, findEvent, earlierKeys, RAPID_LEAGUE, type RapidMatch, type Lineup, type StatRow, type FindResult } from "./rapid-core";
+import { parseDay, parseLineup, parseStats, findEvent, earlierKeys, dayCandidates, RAPID_LEAGUE, type RapidMatch, type Lineup, type StatRow, type FindResult } from "./rapid-core";
 
 const HOST = "free-api-live-football-data.p.rapidapi.com";
 // Testejä varten osoitteen voi korvata, mutta EI koskaan tuotannossa
@@ -163,14 +163,10 @@ async function withFallback<T>(kind: string, path: string, slot: string, ttl: nu
   }
 }
 
-const ymd = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
-/** Lähteen päivälistan raja havaittiin klo 19.00 UTC:ssa (lista 20261018 = 17.10. 19.00 – 18.10. 18.45 UTC) */
-const DAY_SHIFT = 5 * 3600_000;
 
 /** Ottelun lähdetunniste: päivän lista (yksi haku päivää kohden, kaikille sarjoille yhteinen) ja varma yhdistäminen */
 export async function rapidEvent(ours: { source: string; date: string; kickoff: number | null; home: { name: string; id?: number }; away: { name: string; id?: number } }): Promise<{ status: "ok"; find: FindResult; at: number } | { status: "off" } | { status: "unavailable"; reason: string }> {
-  const noon = Date.parse(ours.date + "T12:00:00Z");
-  const dates = [...new Set([ymd((ours.kickoff ?? noon) + DAY_SHIFT), ours.date.replace(/-/g, "")])];
+  const dates = dayCandidates(ours.date, ours.kickoff);
   let last: FindResult = { status: "none" }, at = 0;
   for (const d of dates) {
     const past = Date.parse(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T19:00:00Z`) < Date.now() - 6 * 3600_000;

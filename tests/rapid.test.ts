@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { parseDay, findEvent, sameClub, parseLineup, parseStats, statValue, startersAverage, phaseOf, slotKey, earlierKeys } from "../lib/rapid-core";
+import { dayCandidates, parseDay, findEvent, sameClub, parseLineup, parseStats, statValue, startersAverage, phaseOf, slotKey, earlierKeys } from "../lib/rapid-core";
 
 const FX = path.join(__dirname, "..", "..", "tests", "fixtures", "rapidapi");
 const fx = (f: string) => JSON.parse(fs.readFileSync(path.join(FX, f), "utf8"));
@@ -172,4 +172,11 @@ test("uudet sarjat: lähteen nimet yhdistyvät Futistan joukkueisiin yksiselitte
   }
   assert.equal(sameClub({ name: "Paris FC", id: 1045 }, { id: 1, names: ["PSG"] }), false);
   assert.equal(sameClub({ name: "Inter", id: 108 }, { id: 1, names: ["Milan"] }), false);
+});
+
+test("päivälistat: iltaottelu seuraavan päivän listasta, tuntematon aika → molemmat päivät", () => {
+  // havaittu: lista 20261018 sisälsi Valencia–Athletic 17.10. klo 19.00 UTC
+  assert.deepEqual(dayCandidates("2026-10-17", Date.parse("2026-10-17T19:00:00Z")), ["20261018", "20261017"]);
+  assert.deepEqual(dayCandidates("2026-10-18", Date.parse("2026-10-18T14:15:00Z")), ["20261018"]);
+  assert.deepEqual(dayCandidates("2026-10-21", null), ["20261021", "20261022"]);
 });

@@ -240,3 +240,12 @@ export function earlierKeys(key: string): string[] {
   if (key === "pre1") return ["pre0"];
   return [];
 }
+
+/** Lähteen päivälistat, joista ottelua etsitään. Lista `date=D` kattaa havaitusti D-1 klo 19.00 – D klo 18.59 UTC.
+ *  Aloitusaika tiedossa → sen hetken lista (ja varalla ottelupäivä). Tuntematon (tulos ilman kellonaikaa) → ottelupäivä
+ *  ja seuraava päivä, koska iltaottelut (esim. klo 21 Suomen aikaa = 18–19 UTC) ovat seuraavan päivän listassa. */
+export function dayCandidates(date: string, kickoff: number | null): string[] {
+  const ymd = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
+  const noon = Date.parse(date + "T12:00:00Z");
+  return [...new Set(kickoff !== null ? [ymd(kickoff + 5 * 3600_000), date.replace(/-/g, "")] : [date.replace(/-/g, ""), ymd(noon + 24 * 3600_000)])];
+}
