@@ -1494,3 +1494,15 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 
 /* Suosikit: "Lisää joukkueita" sopivan kokoiseksi (ei koko levyistä isoa painiketta) */
 .fav-empty > .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+
+/* Valittu suodatinpainike on käänteinen (vaaleassa teemassa musta, tummassa vaalea): logosta käänteinen versio,
+   jotta esim. Mestarien liigan tumma logo näkyy mustalla painikkeella (lähteen valkoinen versio). */
+.fbtn.on .cmark.has-dark .cl-light { display: none; }
+.fbtn.on .cmark.has-dark .cl-dark { display: block; }
+.fbtn.on .cmark.cmark-logo:not(.has-dark) { background: #fff; padding: 1px; border-radius: 4px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fbtn.on .cmark.has-dark .cl-light { display: block; }
+  :root:not([data-theme="light"]) .fbtn.on .cmark.has-dark .cl-dark { display: none; }
+}
+:root[data-theme="dark"] .fbtn.on .cmark.has-dark .cl-light { display: block; }
+:root[data-theme="dark"] .fbtn.on .cmark.has-dark .cl-dark { display: none; }

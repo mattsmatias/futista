@@ -206,6 +206,17 @@ const MIN = 60_000;
       ok("  Siirtouutiset-valinta poistaa sarjarajauksen", after2.join() === "Siirtouutiset" && !url2.searchParams.get("sarja") && url2.searchParams.get("tyyppi") === "siirrot", `${after2} ${url2.search}`);
       await page.locator(".nfilters .fbtn", { hasText: /^Kaikki$/ }).click(); await page.waitForTimeout(300);
       ok("  Kaikki: ei rajauksia", (await on()).join() === "Kaikki" && new URL(page.url()).search === "", page.url());
+      // valittu (musta) painike: logosta valkoinen versio; tummassa teemassa (vaalea painike) tavallinen
+      const vis = (theme) => page.evaluate((th) => {
+        if (th) document.documentElement.setAttribute("data-theme", th); else document.documentElement.removeAttribute("data-theme");
+        const b = document.createElement("button"); b.className = "fbtn on";
+        b.innerHTML = '<span class="cmark cmark-logo has-dark cm-sm"><img class="cl-light" alt=""><img class="cl-dark" alt=""></span>';
+        document.querySelector(".nfilters").appendChild(b);
+        const r = [...b.querySelectorAll("img")].filter((x) => getComputedStyle(x).display !== "none").map((x) => x.className).join();
+        b.remove(); document.documentElement.removeAttribute("data-theme"); return r;
+      }, theme);
+      const lightOn = await vis("light"), darkOn = await vis("dark");
+      ok("  valitussa painikkeessa logon käänteinen versio (vaalea teema: valkoinen logo, tumma: tavallinen)", lightOn === "cl-dark" && darkOn === "cl-light", `${lightOn} / ${darkOn}`);
       await c3.close();
     }
     // suosikit ilman joukkueita: "Lisää joukkueita" sopivan kokoinen
