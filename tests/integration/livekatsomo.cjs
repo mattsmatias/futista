@@ -354,10 +354,10 @@ async function measure(browser, row, label) {
   await emu("/__lk/reset"); await fetch(RT + "/__rt/reset");
   const poster = await fresh(`Mittaus ${label}`);
   const T = 120_000, t0 = Date.now();
-  for (let i = 0; i < 12; i++) { await send(room, poster, `mittausviesti ${i} ${Date.now()}`); await sleep(10_000); }
+  for (let i = 0; i < 12; i++) { await send(room, poster, `mittausviesti ${label} ${i} ${Date.now()}`); await sleep(10_000); }
   await sleep(Math.max(0, T - (Date.now() - t0)));
   const db = await emu("/__lk/stats"), rts = await rt("/__rt/stats");
-  const seen = await page.locator(".lk-body", { hasText: "mittausviesti" }).count();
+  const seen = await page.locator(".lk-body", { hasText: `mittausviesti ${label} ` }).count();
   await ctx.close();
   setS(DEFAULTS);
   const out = { label, mode: MODE, seconds: Math.round((Date.now() - t0) / 1000), messages: 12, seen, browserRequests: req, browserBytes: bytes, dbRpc: db?.rpc, authChecks: db?.authUser, realtime: rts };
@@ -590,10 +590,16 @@ async function uiTests() {
     ok("9. kirjoituskielto näkyy estetylle selkeästi (suora kirjoitus torjuttu)", banSeen && sql(`select count(*) from public.lk_messages where body = 'estetyn yritys'`) === "0");
     await admin("unban", { room: RA, message: mid });
     // uudelleenkirjautuminen: vanhentunut istunto → kirjautumisen tila näkyy
-    await p2b.evaluate(() => localStorage.setItem("futista-lk-auth", JSON.stringify({ access_token: "test-invalid", refresh_token: "r-invalid", expires_at: Date.now() + 3600_000 })));
-    await p2b.reload({ waitUntil: "load" });
-    const relog = await p2b.waitForFunction(() => document.querySelector(".lk-compose")?.textContent?.includes("testikäyttäjille"), null, { timeout: 10000 }).then(() => true).catch(() => false);
-    ok("9. vanhentunut istunto → kirjautumistila näkyy ymmärrettävästi", relog);
+    // (oma konteksti: kirjautumisen alustusskripti asettaisi kelvollisen tunnisteen uudelleen jokaisella latauksella)
+    const c3 = await mk();
+    await c3.addInitScript(() => { if (!sessionStorage.getItem("lk-relog")) { sessionStorage.setItem("lk-relog", "1"); localStorage.setItem("futista-lk-auth", JSON.stringify({ access_token: "test-invalid", refresh_token: "r-invalid", expires_at: Date.now() + 3600_000 })); } });
+    const p3 = await c3.newPage();
+    await p3.goto(APP + A.href + "?v=livekatsomo", { waitUntil: "load" });
+    const relog = await p3.waitForFunction(() => document.querySelector(".lk-compose")?.textContent?.includes("testikäyttäjille"), null, { timeout: 10000 }).then(() => true).catch(() => false);
+    ok("9. vanhentunut istunto → kirjautumistila näkyy ymmärrettävästi", relog, relog ? "" : (await p3.locator(".lk-compose").innerText().catch(() => "?")).slice(0, 160));
+    const cleared = await p3.evaluate(() => localStorage.getItem("futista-lk-auth"));
+    ok("  kelpaamaton istunto poistetaan laitteelta", !cleared, String(cleared).slice(0, 20));
+    await c3.close();
     await c2.close();
   }
 

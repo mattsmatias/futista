@@ -284,11 +284,17 @@ export function useChat(roomId: string, active: boolean) {
   const modeRef = useRef<SyncMode>("init");
   const setMode = (m: SyncMode) => { modeRef.current = m; setModeState(m); };
   const lastSeq = useRef(0);
+  /** Hakukohta: suurin palvelimen järjestyksessä toimittama tunniste (ei omia lähetyksiä, jotka voivat ohittaa
+   *  muiden samanaikaiset viestit). gapFloor: aukon havaitsemiskohta, josta seuraava haku aloitetaan. */
+  const cursor = useRef<number | null>(null), gapFloor = useRef<number | null>(null);
   const fetching = useRef(false), again = useRef(false), keepOldest = useRef(false);
   const offRef = useRef<() => void>(() => {});
 
-  const apply = useCallback((incoming: LkMessage[], del: { id: number; by: "self" | "mod" | null }[] = []) => {
-    for (const m of incoming) if (typeof m.seq === "number" && m.seq > lastSeq.current) lastSeq.current = m.seq;
+  const apply = useCallback((incoming: LkMessage[], del: { id: number; by: "self" | "mod" | null }[] = [], ordered = true) => {
+    for (const m of incoming) {
+      if (ordered && typeof m.seq === "number" && m.seq > lastSeq.current) lastSeq.current = m.seq;
+      if (ordered && (cursor.current === null || m.id > cursor.current)) cursor.current = m.id;
+    }
     let next = incoming.length ? mergeMessages(msgsRef.current, incoming, MAX_KEEP, keepOldest.current) : msgsRef.current;
     if (del.length) {
       const by = new Map(del.map((d) => [d.id, d.by ?? "mod"] as const));
@@ -316,11 +322,13 @@ export function useChat(roomId: string, active: boolean) {
     try {
       do {
         again.current = false;
-        const last = msgsRef.current.length ? msgsRef.current[msgsRef.current.length - 1].id : null;
+        const floor = gapFloor.current;
+        const last = floor !== null && (cursor.current === null || floor < cursor.current) ? floor : cursor.current;
         const r = await lkApi<{ messages: LkMessage[]; deleted: number[]; error?: string }>(`/room/${roomId}/messages${last ? `?after=${last}` : ""}`, { auth: false });
         if (r.status === 503 && r.j?.error === "off") { offRef.current(); return true; }
         if (r.status !== 200 || !r.j) { ok = false; setOnline(false); if (r.status === 404) setRoomError(true); break; }
         setOnline(true);
+        if (gapFloor.current === floor) gapFloor.current = null;
         apply(r.j.messages, (r.j.deleted ?? []).map((id) => ({ id, by: null })));
         if (!last && r.j.messages.length < 50) setOlderDone(true);
         if (r.j.messages.length >= 50) again.current = true; // katkon aikana kertyneet: haetaan loputkin (sivu kerrallaan)
@@ -349,18 +357,23 @@ export function useChat(roomId: string, active: boolean) {
     keepOldest.current = false;
     const next = msgsRef.current.slice(-MAX_KEEP);
     if (next.length !== msgsRef.current.length) { msgsRef.current = next; setMessages(next); }
+    // vanhoja luettaessa muistiraja on voinut pudottaa uusimpia → haetaan muistissa olevan viimeisen jälkeen
+    const lastHere = next.length ? next[next.length - 1].id : null;
+    if (lastHere !== null && cursor.current !== null && lastHere < cursor.current) gapFloor.current = Math.min(gapFloor.current ?? lastHere, lastHere);
     loadNew();
   }, [loadNew]);
 
-  const patch = useCallback((m: LkMessage) => apply([m]), [apply]);
+  // oma lähetys / muokkaus: näytetään heti, mutta hakukohta ei siirry sen yli
+  const patch = useCallback((m: LkMessage) => apply([m], [], false), [apply]);
 
   useEffect(() => {
     if (!active) return;
     let stop = false, paused = false;
     let pollT: ReturnType<typeof setTimeout> | null = null, roomT: ReturnType<typeof setTimeout> | null = null, hideT: ReturnType<typeof setTimeout> | null = null;
     let pollFails = 0, roomFails = 0, lastGap = 0;
+    let gapT: ReturnType<typeof setTimeout> | null = null;
     let rtOff: (() => void) | null = null;
-    const clear = () => { if (pollT) clearTimeout(pollT); if (roomT) clearTimeout(roomT); pollT = roomT = null; };
+    const clear = () => { if (pollT) clearTimeout(pollT); if (roomT) clearTimeout(roomT); if (gapT) clearTimeout(gapT); pollT = roomT = gapT = null; };
     const goOff = () => { stop = true; clear(); rtOff?.(); rtOff = null; setMode("off"); };
     offRef.current = goOff;
 
@@ -400,8 +413,13 @@ export function useChat(roomId: string, active: boolean) {
       if (b.room) { roomNow.current = b.room; setRoom(b.room); }
       // aukko järjestysnumeroissa (esim. lähetys jäi saamatta) → puuttuvat HTTP:llä, enintään 3 s välein
       const gap = b.msgs.length > 0 && lastSeq.current > 0 && b.from > lastSeq.current + 1;
+      if (gap && cursor.current !== null && (gapFloor.current === null || cursor.current < gapFloor.current)) gapFloor.current = cursor.current;
       apply(b.msgs, b.del);
-      if ((gap || b.to < b.seq) && Date.now() - lastGap > 3000) { lastGap = Date.now(); loadNew(); }
+      if (gap || b.to < b.seq) {
+        // enintään 3 s välein; hakukohta (gapFloor) säilyy, joten myös myöhempi haku täydentää aukon
+        const wait = Math.max(0, 3000 - (Date.now() - lastGap));
+        if (!gapT) gapT = setTimeout(() => { gapT = null; lastGap = Date.now(); if (!stop && !paused) loadNew(); }, wait);
+      }
     };
     const startRt = (r: LkRoom | null) => {
       const cfg = rtCfg.current;
