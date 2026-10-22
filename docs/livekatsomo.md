@@ -430,6 +430,7 @@ Tarkistukset:
 
 `tests/supabase-real/preview-ui.cjs` ajetaan Preview-käännöstä vastaan Vercelin jakolinkillä; suojausta ei
 kierretty. Taustana on edellisen kohdan testipino testiportin (`gate.cjs`) takana.
+Viimeisin ajo: commit `f4fad12`, käännös `futista-fofpbd40v-asunyt.vercel.app`, 15/15.
 
 Testattu kahdella testitunnuksella:
 - viestit kumpaankin suuntaan
