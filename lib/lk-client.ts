@@ -203,7 +203,7 @@ type RtState = "up" | "down" | "full" | "denied";
 export function connectRealtime(room: string, cfg: RtConfig, onBatch: (b: Batch) => void, onState: (s: RtState) => void): () => void {
   if (typeof WebSocket === "undefined") { onState("denied"); return () => {}; }
   let ws: WebSocket | null = null, hb: ReturnType<typeof setInterval> | null = null, retry: ReturnType<typeof setTimeout> | null = null;
-  let closed = false, ref = 0, fails = 0, full = false, denied = false, joinRef = "";
+  let closed = false, ref = 0, fails = 0, full = false, denied = false, joinRef = "", hbPending: string | null = null;
   const topic = `realtime:livekatsomo:${room}`;
   const open = async () => {
     retry = null;
@@ -217,10 +217,17 @@ export function connectRealtime(room: string, cfg: RtConfig, onBatch: (b: Batch)
       if (token) payload.access_token = token;
       joinRef = String(++ref);
       ws!.send(JSON.stringify({ topic, event: "phx_join", ref: joinRef, join_ref: joinRef, payload }));
-      hb = setInterval(() => ws?.readyState === 1 && ws.send(JSON.stringify({ topic: "phoenix", event: "heartbeat", payload: {}, ref: String(++ref) })), 25_000);
+      // syke 25 s välein; jos edelliseen ei tullut vastausta, yhteys on poikki (esim. verkko katkesi hiljaa)
+      hb = setInterval(() => {
+        if (ws?.readyState !== 1) return;
+        if (hbPending) { try { ws.close(); } catch {} return; }
+        hbPending = String(++ref);
+        ws.send(JSON.stringify({ topic: "phoenix", event: "heartbeat", payload: {}, ref: hbPending }));
+      }, 25_000);
     };
     ws.onmessage = (e) => {
       let m: any; try { m = JSON.parse(e.data); } catch { return; }
+      if (m.topic === "phoenix" && m.event === "phx_reply" && String(m.ref) === hbPending) { hbPending = null; return; }
       if (m.topic !== topic) return;
       if (m.event === "phx_reply" && String(m.ref) !== joinRef) return; // sykkeiden kuittaukset yms.
       if (m.event === "phx_reply" && m.payload?.status === "ok") { fails = 0; full = false; denied = false; onState("up"); return; }
@@ -235,6 +242,7 @@ export function connectRealtime(room: string, cfg: RtConfig, onBatch: (b: Batch)
       if (m.event === "system" && m.payload?.status === "error") { try { ws?.close(); } catch {} }
     };
     ws.onclose = (ev) => {
+      hbPending = null;
       if (hb) { clearInterval(hb); hb = null; }
       if (closed) return;
       if (/too_many|limit/i.test(ev.reason ?? "")) full = true;
@@ -248,8 +256,11 @@ export function connectRealtime(room: string, cfg: RtConfig, onBatch: (b: Batch)
     const wait = full ? jitter(180_000) : denied ? jitter(600_000) : backoff(1_000, fails++);
     retry = setTimeout(open, wait);
   };
+  // selain ilmoittaa verkon katkenneen → yhteys suljetaan heti (varatila ja uudelleenyritys kasvavalla odotuksella)
+  const offline = () => { try { ws?.close(); } catch {} };
+  window.addEventListener("offline", offline);
   open();
-  return () => { closed = true; if (retry) clearTimeout(retry); if (hb) clearInterval(hb); try { ws?.close(); } catch {} };
+  return () => { closed = true; window.removeEventListener("offline", offline); if (retry) clearTimeout(retry); if (hb) clearInterval(hb); try { ws?.close(); } catch {} };
 }
 
 // ---------------- Keskustelu ----------------
@@ -424,11 +435,13 @@ export function useChat(roomId: string, active: boolean) {
         if (paused) setTimeout(() => { if (!stop && paused) start(); }, Math.random() * 1500);
       }
     };
-    const online = () => { if (!stop && !paused) { loadNew(); } };
+    const online = () => { if (!stop && !paused) { setOnline(true); loadNew(); } };
+    const offline = () => setOnline(false);
     document.addEventListener("visibilitychange", vis);
     window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
     start();
-    return () => { stop = true; clear(); if (hideT) clearTimeout(hideT); rtOff?.(); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", online); };
+    return () => { stop = true; clear(); if (hideT) clearTimeout(hideT); rtOff?.(); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", online); window.removeEventListener("offline", offline); };
   }, [roomId, active, loadRoom, loadNew, apply]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goOffExternal = useCallback(() => offRef.current(), []);
