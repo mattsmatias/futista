@@ -139,6 +139,31 @@ const MIN = 60_000;
     await ctx.setOffline(false); await net(true); await ctx.close();
   }
 
+  // ---------- Sovellustila (kotivalikosta, alatunniste piilossa): sivun loppu ei jää alapalkin alle ----------
+  {
+    const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 664 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    await ctx.addInitScript(() => { document.addEventListener("DOMContentLoaded", () => document.documentElement.classList.add("app-mode")); });
+    const page = await ctx.newPage();
+    for (const p of ["/", "/joukkue/bundesliga/testiseura-kotka", MATCH, "/tietoa", "/sarjat/bundesliga", "/suosikit", "/joukkue/superlig/testispor-ankara"]) {
+      await page.goto(APP + p, { waitUntil: "networkidle" }).catch(() => {});
+      await page.waitForTimeout(400);
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(300);
+      const r = await page.evaluate(() => {
+        const nav = document.querySelector(".bottomnav")?.getBoundingClientRect();
+        const main = document.querySelector("main");
+        if (!nav || !main) return { ok: false, why: "ei mainia tai alapalkkia" };
+        // sisällön alin kohta (pois lukien mainin oma alareuna)
+        let bottom = 0;
+        for (const el of main.querySelectorAll("*")) { const b = el.getBoundingClientRect(); if (b.height > 0 && getComputedStyle(el).visibility !== "hidden") bottom = Math.max(bottom, b.bottom); }
+        const foot = document.querySelector(".foot"); const footShown = foot && getComputedStyle(foot).display !== "none";
+        return { ok: bottom <= nav.top + 1, bottom: Math.round(bottom), navTop: Math.round(nav.top), footShown };
+      });
+      ok(`sovellustila ${p}: sivun loppu näkyy alapalkin yläpuolella`, r.ok && !r.footShown, JSON.stringify(r));
+    }
+    await ctx.close();
+  }
+
   // ---------- Tulospalvelu: etusivu, päivät, suodattimet, haku, suosikit, paluu, vanhat linkit ----------
   {
     const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Helsinki" }).format(Date.now());

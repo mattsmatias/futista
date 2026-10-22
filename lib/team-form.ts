@@ -3,7 +3,7 @@
 // (koti/vieras) on tunnistettu ESPN:n joukkuetunnisteella.
 //  - Mukana vain pelatut ottelut, joilla on molempien joukkueiden maalit. Puuttuva tulos ≠ tasapeli: ottelu ohitetaan.
 //  - Tulevat, keskeytetyt, siirretyt ja käynnissä olevat ottelut eivät ole mukana.
-//  - Harjoitusottelut (club.friendly ym.) eivät ole virallisia otteluita.
+//  - Harjoitusottelut ja kesän kutsuturnaukset (club.friendly, Trofeo Joan Gamper ym.) eivät ole virallisia otteluita.
 //  - Rangaistuspotkuilla ratkennut ottelu on tilastoissa tasapeli (varsinaisen peliajan ja jatkoajan tulos);
 //    rangaistuspotkujen voittaja kerrotaan merkin selitteessä.
 import type { Game } from "./espn-parse";
@@ -17,7 +17,9 @@ export type FormItem = {
 };
 export type TeamForm = { last: FormItem[]; totals: { w: number; d: number; l: number }; from: string };
 
-export const isOfficial = (slug: string) => !!slug && !/friendly/i.test(slug);
+// Harjoitusottelut ja kesän kutsuturnaukset (esim. Trofeo Joan Gamper: ESPN:n tunnus esp.joan_gamper) eivät ole virallisia
+const UNOFFICIAL = /friendl|gamper|trofeo|troph[eé]e|audi[ _.-]?cup|emirates[ _.-]?cup|telekom|champions[ _.-]?cup|international[ _.-]?champions|icc\b/i;
+export const isOfficial = (slug: string, comp = "") => !!slug && !UNOFFICIAL.test(slug) && !UNOFFICIAL.test(comp);
 
 /** Kauden alkupäivä: syksy–kevät-sarjoissa 1.7., kalenterivuoden sarjoissa 1.1. (Suomen aikaa, YYYY-MM-DD) */
 export function seasonStart(today: string, calendarYear: boolean): string {
@@ -29,7 +31,7 @@ export function teamForm(games: (Game & { side?: "home" | "away" })[], from: str
   const played: FormItem[] = [];
   for (const g of games) {
     if (!g.side || g.kind !== "ft" || g.hs === null || g.as === null || !Number.isFinite(g.hs) || !Number.isFinite(g.as)) continue;
-    if (!isOfficial(g.slug) || g.epoch > now) continue;
+    if (!isOfficial(g.slug, g.comp) || g.epoch > now) continue;
     const home = g.side === "home";
     const gf = home ? g.hs : g.as, ga = home ? g.as : g.hs;
     const k: FormKind = gf > ga ? "w" : gf < ga ? "l" : "d";

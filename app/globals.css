@@ -992,7 +992,9 @@ div.match { cursor: default; }
   .bottomnav a.on { color: var(--fg); font-weight: 750; }
   .bottomnav a.on::before { content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--fg); }
   .bottomnav a.on svg { stroke-width: 2.4; }
-  main { padding-bottom: calc(var(--bottom-h) + 32px + env(safe-area-inset-bottom, 0px)); }
+  /* main[class]: voittaa sivukohtaiset alareunat (.entity, .legal, .status-page), joita alapalkki muuten peitti
+     sovellustilassa (alatunniste piilossa) → sivun loppua ei saanut näkyviin */
+  main, main[class] { padding-bottom: calc(var(--bottom-h) + 32px + env(safe-area-inset-bottom, 0px)); }
   .foot-in { padding-bottom: calc(var(--bottom-h) + 24px + env(safe-area-inset-bottom, 0px)); }
   .install { bottom: calc(var(--bottom-h) + 12px + env(safe-area-inset-bottom, 0px)); }
 }

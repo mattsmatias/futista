@@ -12,6 +12,7 @@ test("kunto: kaikki viralliset kilpailut, uusin oikealla, ei harjoitusotteluita 
   const now = Date.parse("2026-10-22T12:00:00Z");
   const games = [
     g("f1", "2026-08-15", "club.friendly", "home", 3, 1),         // harjoitusottelu → ei mukana
+    g("f2", "2026-08-19", "esp.joan_gamper", "home", 2, 1),       // kutsuturnaus (havaittu ESPN:ssä 22.10.2026) → ei mukana
     g("s1", "2026-08-22", "ger.super_cup", "away", 2, 2, "ft", [3, 4]), // rp-voitto → tasapeli tilastoissa
     g("p1", "2026-09-02", "ger.dfb_pokal", "home", 4, 0),
     g("l1", "2026-09-05", "ger.1", "away", 1, 0),                 // vieraana 1–0 tappio
@@ -31,6 +32,13 @@ test("kunto: kaikki viralliset kilpailut, uusin oikealla, ei harjoitusotteluita 
   const sc = teamForm(games as any, "2026-07-01", now, 10).last.find((x) => x.id === "s1")!;
   assert.equal(sc.k, "d"); assert.equal(sc.pensWon, true);
   assert.equal(f.last[4].href, "/ottelu/e/c2");
+});
+
+test("kunto: viralliset kilpailut tunnistetaan", async () => {
+  const { isOfficial } = await import("../lib/team-form");
+  for (const s of ["esp.1", "uefa.champions", "ger.dfb_pokal", "ger.super_cup", "esp.copa_del_rey", "eng.fa", "eng.league_cup", "uefa.europa.conf", "fifa.cwc"]) assert.ok(isOfficial(s), s);
+  for (const s of ["club.friendly", "esp.joan_gamper"]) assert.ok(!isOfficial(s), s);
+  assert.ok(!isOfficial("x.cup", "Audi Cup"));
 });
 
 test("kunto: kauden kokonaismäärät vain kuluvalta kaudelta", () => {
