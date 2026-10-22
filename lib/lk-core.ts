@@ -9,9 +9,11 @@ export type LkRoom = {
   kickoff: string; opens_at: string; closes_at: string; state: LkState; read_only: boolean;
   match_status: "postponed" | "cancelled" | null; slow_mode_s: number; pinned: string | null; featured: boolean;
   ft_confirmed: boolean; present: number | null;
+  seq?: number;       // viestien järjestysnumero (viimeisin)
+  rt_full?: boolean;  // Realtime-kapasiteettiraja täynnä → uudet lukijat harvalla kyselyllä
 };
 export type LkReply = { id: number; nick: string; body: string | null; deleted: "self" | "mod" | null } | null;
-export type LkMessage = { id: number; uid: string; nick: string; at: string; body: string | null; deleted: "self" | "mod" | null; reply: LkReply };
+export type LkMessage = { id: number; seq?: number | null; uid: string; nick: string; at: string; body: string | null; deleted: "self" | "mod" | null; reply: LkReply };
 
 const LINK = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(?:com|fi|net|org|io|ly|gg|tv|me|co|app|xyz|ru|info|link|shop|bet|casino)\b(?:\/\S*)?/gi;
 
@@ -70,6 +72,11 @@ export function roomFor<T extends { match_key: string; kickoff?: string; path?: 
     return h.some((w) => w.length >= 3 && hw.includes(w)) && a.some((w) => w.length >= 3 && aw.includes(w));
   });
 }
+
+/** Sallitut paluuosoitteet kirjautumisen jälkeen: vain ottelusivu (valinnaisesti Livekatsomo-välilehti) tai ylläpito.
+ *  Suhteellinen polku, ei //, ei \\, ei muuta kyselyä → ei avointa uudelleenohjausta. */
+export const safeNext = (v: unknown): string =>
+  typeof v === "string" && /^\/(ottelu\/[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+){1,2}(\?v=livekatsomo)?|livekatsomo\/hallinta)$/.test(v) ? v : "/";
 
 /** Nimimerkin muotoilu (palvelin tarkistaa lopullisesti) */
 export const nickOk = (s: string) => /^[\p{L}\p{N} _.-]{2,20}$/u.test(s.trim());

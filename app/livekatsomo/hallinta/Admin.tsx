@@ -122,6 +122,7 @@ export default function Admin({ today }: { today: string }) {
   const [rooms, setRooms] = useState<LkRoom[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [log, setLog] = useState<Log[]>([]);
+  const [status, setStatus] = useState<{ enabled: boolean; last_flush_at: string | null; last_purge_at: string | null; rt_max_readers: number; cron: { name: string; schedule: string }[] } | null>(null);
   const [msg, setMsg] = useState("");
   const call = useCallback(async (action: string, args: Record<string, unknown> = {}) => {
     const r = await lkApi<any>("/admin", { method: "POST", body: { action, args } });
@@ -131,8 +132,8 @@ export default function Admin({ today }: { today: string }) {
     return r;
   }, []);
   const load = useCallback(async () => {
-    const [a, b, c] = await Promise.all([call("rooms"), call("reports"), call("log")]);
-    if (a.j?.rooms) setRooms(a.j.rooms); if (b.j?.reports) setReports(b.j.reports); if (c.j?.log) setLog(c.j.log);
+    const [a, b, c, d] = await Promise.all([call("rooms"), call("reports"), call("log"), call("status")]);
+    if (a.j?.rooms) setRooms(a.j.rooms); if (b.j?.reports) setReports(b.j.reports); if (c.j?.log) setLog(c.j.log); if (d.j?.ok) setStatus(d.j);
   }, [call]);
   useEffect(() => { if (me?.admin) load(); }, [me?.admin, load]);
   const act = async (action: string, args: Record<string, unknown>) => { const r = await call(action, args); if (r.status === 200) setMsg("Tallennettu."); await load(); };
@@ -149,6 +150,21 @@ export default function Admin({ today }: { today: string }) {
     <main className="wrap lk-adm">
       <h1>Livekatsomon ylläpito</h1>
       {msg && <p className="lk-toast" role="status" onClick={() => setMsg("")}>{msg}</p>}
+      {status && (
+        <section className="panel">
+          <div className="panel-head"><h3>Tila ja ajastukset</h3>
+            <button className={`btn sm${status.enabled ? " ghost" : ""}`} onClick={() => act("set_enabled", { enabled: !status.enabled })}>
+              {status.enabled ? "Katkaise Livekatsomo (kaikki keskustelut)" : "Ota Livekatsomo takaisin käyttöön"}</button>
+          </div>
+          <dl className="facts pad">
+            <div><dt>Livekatsomo</dt><dd>{status.enabled ? "käytössä" : "KATKAISTU – lukeminen, kirjoittaminen ja tilaukset pysäytetty"}</dd></div>
+            <div><dt>Realtime-kooste viimeksi</dt><dd>{fmt(status.last_flush_at)}</dd></div>
+            <div><dt>Säilytysajan poisto viimeksi</dt><dd>{fmt(status.last_purge_at)}</dd></div>
+            <div><dt>Ajastukset (pg_cron)</dt><dd>{status.cron.length ? status.cron.map((j) => `${j.name} (${j.schedule})`).join(", ") : "ei asetettu"}</dd></div>
+            <div><dt>Realtime-raja / keskustelu</dt><dd>{status.rt_max_readers} lukijaa, sen jälkeen harva kysely</dd></div>
+          </dl>
+        </section>
+      )}
       <MatchPicker today={today} onCreate={(a) => act("create_room", a)} />
       <section className="panel">
         <div className="panel-head"><h3>Keskustelut</h3><button className="btn sm ghost" onClick={load}>Päivitä</button></div>

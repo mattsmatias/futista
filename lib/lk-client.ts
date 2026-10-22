@@ -1,17 +1,38 @@
 "use client";
-// Livekatsomo selaimessa: huoneluettelo, kirjautumisistunto, viestien haku, paikallaolon syke ja Realtime-ovikello.
+// Livekatsomo selaimessa: huoneluettelo, kirjautumisistunto, viestien välitys, paikallaolon syke.
 // Ominaisuus on kokonaan pois, ellei käännöksessä ole NEXT_PUBLIC_LIVEKATSOMO=1 (tuotanto: pois) → ei pyyntöjä.
 // Mitään keskusteluhistoriaa ei tallenneta laitteelle: vain kirjautumisistunto (localStorage), lyhytikäinen
 // paikallaolotunniste ja keskeneräinen luonnos (sessionStorage).
+//
+// Viestien välitys (ks. docs/livekatsomo.md, kohta 7):
+//  - Realtime (palvelimen LK_REALTIME_URL/KEY → huoneen vastauksessa rt): tietokanta lähettää keskustelun muutokset koosteena enintään 2 s välein
+//    yksityiseen Broadcast-kanavaan (viestit, poistot, huoneen tila). HTTP vain alkuhistoriaan, vanhempiin sivuihin,
+//    lähettämiseen, puuttuvien hakuun (järjestysnumeron aukko, yhteyden palautuminen) ja harvaan varmistukseen.
+//  - Ilman Realtimea / häiriössä: rajattu kysely (6 s / 15 s / kapasiteettitila 30 s), virheissä kasvava odotus
+//    satunnaisella hajonnalla (enintään 60 s). Piilotettu välilehti ei pidä yhteyksiä eikä ajastimia käynnissä.
+//  - Katkaisin (palvelin tai tietokanta): selain lopettaa tilaukset ja ajastimet.
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { roomFor, mergeMessages, type LkMessage, type LkRoom } from "./lk-core";
 
 export const LK_ON = process.env.NEXT_PUBLIC_LIVEKATSOMO === "1";
-// Realtime-ovikello on valinnainen (NEXT_PUBLIC_LK_REALTIME=1 + osoite ja julkinen avain). Ilman sitä kysely 5 s
-// välein (CDN jakaa vastauksen lukijoiden kesken). Ks. kapasiteettiarvio docs/livekatsomo.md.
-const RT_ON = process.env.NEXT_PUBLIC_LK_REALTIME === "1";
-const RT_URL = RT_ON ? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "" : "";
-const RT_KEY = RT_ON ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" : "";
+export type RtConfig = { url: string; key: string }; // palvelin antaa (LK_REALTIME_URL + julkinen LK_REALTIME_KEY)
+
+// Välitysvälit (ms)
+export const LK_TIMING = {
+  pollPrimary: 6_000,      // ei Realtimea käytössä
+  pollFallback: 15_000,    // Realtime käytössä mutta yhteys poikki
+  pollCapacity: 30_000,    // kapasiteettitila (paljon lukijoita / Realtime täynnä)
+  safetyRt: 120_000,       // Realtime-tilan varmistushaku (puuttuvat viestit)
+  roomPoll: 60_000,        // huoneen tila kyselytilassa
+  roomSafetyRt: 300_000,   // huoneen tila Realtime-tilassa (muutokset tulevat kanavasta)
+  maxBackoff: 60_000,
+  hiddenPause: 30_000,     // piilossa näin kauan → yhteydet ja ajastimet pois
+  presence: 30_000,        // paikallaolon syke (TTL palvelimella 75 s)
+};
+/** Satunnainen hajonta ±25 % (lukijat eivät hae samaan aikaan) */
+export const jitter = (ms: number) => Math.round(ms * (0.75 + Math.random() * 0.5));
+/** Kasvava odotus virheiden jälkeen, enintään maxBackoff, hajonnalla */
+export const backoff = (base: number, fails: number) => jitter(Math.min(LK_TIMING.maxBackoff, base * 2 ** Math.max(0, fails)));
 
 const store = {
   get: (k: string, s: Storage | null = typeof localStorage !== "undefined" ? localStorage : null) => { try { return s?.getItem(k) ?? null; } catch { return null; } },
@@ -19,7 +40,7 @@ const store = {
 };
 
 // ---------------- Huoneluettelo (yhteinen kaikille komponenteille) ----------------
-type RoomsSnap = { rooms: LkRoom[]; at: number } | null;
+type RoomsSnap = { rooms: LkRoom[]; login: string; at: number } | null;
 let roomsSnap: RoomsSnap = null;
 const roomSubs = new Set<() => void>();
 let roomsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -31,16 +52,17 @@ async function loadRooms() {
   try {
     const r = await fetch("/api/livekatsomo/rooms", { cache: "no-store" }); // CDN välimuistittaa (s-maxage), selain ei
     const j = await r.json();
-    if (r.ok && j.enabled) { roomsSnap = { rooms: j.rooms ?? [], at: Date.now() }; roomSubs.forEach((f) => f()); }
+    if (r.ok) { roomsSnap = { rooms: j.enabled ? j.rooms ?? [] : [], login: j.login ?? "off", at: Date.now() }; roomSubs.forEach((f) => f()); }
   } catch {} finally { roomsLoading = false; }
   if (roomsTimer) clearTimeout(roomsTimer);
-  // auki olevien paikallaolomäärä päivittyy listassa minuutin välein; muuten harvemmin
+  // luettelon määrät päivittyvät harvoin (2 min auki olevilla, muuten 10 min); piilossa ei haeta
   const open = roomsSnap?.rooms.some((x) => x.state === "open" || x.state === "paused");
-  roomsTimer = roomSubs.size ? setTimeout(() => { if (!document.hidden) loadRooms(); else roomsTimer = setTimeout(loadRooms, 30_000); }, open ? 60_000 : 300_000) : null;
+  const again = () => { if (!roomSubs.size) { roomsTimer = null; return; } if (document.hidden) roomsTimer = setTimeout(again, 60_000); else loadRooms(); };
+  roomsTimer = roomSubs.size ? setTimeout(again, jitter(open ? 120_000 : 600_000)) : null;
 }
 function subscribeRooms(f: () => void) {
   roomSubs.add(f);
-  if (!roomsSnap || Date.now() - roomsSnap.at > 60_000) loadRooms();
+  if (!roomsSnap || Date.now() - roomsSnap.at > 120_000) loadRooms();
   return () => { roomSubs.delete(f); };
 }
 export function useLkRooms(): LkRoom[] | null {
@@ -137,68 +159,94 @@ function presenceSess(): string {
   return id;
 }
 
-/** Syke 20 s välein vain, kun `visible` (Livekatsomo näkyvissä) ja välilehti näkyvissä.
- *  Palauttaa määrän tai null (= ei saatavilla: EI nolla). */
-export function usePresence(roomId: string | null, visible: boolean, initial: number | null): number | null {
+/** Syke 30 s välein vain, kun `visible` (Livekatsomo ruudulla) ja välilehti näkyvissä. Vastaus sisältää määrän
+ *  (palvelimen välimuisti 10 s) → erillistä luettelohakua ei tarvita. Taustalla sykkeet loppuvat ja läsnäolo vanhenee
+ *  palvelimella 75 s:ssa; sivulta poistuttaessa lähetetään poistuminen. Palauttaa määrän tai null (= ei saatavilla). */
+export function usePresence(roomId: string | null, visible: boolean, initial: number | null, onOff?: () => void): number | null {
   const [n, setN] = useState<number | null>(initial);
   const sess = useRef<string | null>(null);
+  const offRef = useRef(onOff); offRef.current = onOff;
+  useEffect(() => { if (initial !== null && n === null) setN(initial); }, [initial]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!roomId || !visible) return;
-    sess.current ??= presenceSess();
-    let stop = false, failures = 0;
+    let stop = false, failures = 0, t: ReturnType<typeof setTimeout> | null = null;
     const beat = async () => {
-      if (document.hidden || stop) return;
-      sess.current = presenceSess();
-      const r = await lkApi<{ ok: boolean; present: number }>(`/room/${roomId}/presence`, { method: "POST", body: { sess: sess.current } });
+      t = null;
       if (stop) return;
+      if (document.hidden) return; // jatketaan näkyviin tultaessa
+      sess.current = presenceSess();
+      const r = await lkApi<{ ok: boolean; present: number; error?: string }>(`/room/${roomId}/presence`, { method: "POST", body: { sess: sess.current } });
+      if (stop) return;
+      if (r.status === 503 && r.j?.error === "off") { offRef.current?.(); return; }
       if (r.status === 200 && typeof r.j?.present === "number") { failures = 0; setN(r.j.present); }
-      else if (++failures >= 2 || r.status === 0) setN(null);
+      else { failures++; setN(null); } // tuntematon, ei nolla
+      t = setTimeout(beat, failures ? backoff(LK_TIMING.presence, failures - 1) : jitter(LK_TIMING.presence));
     };
     beat();
-    const id = setInterval(beat, 20_000);
     const leave = () => {
       if (!sess.current) return;
       const body = JSON.stringify({ sess: sess.current, leave: true });
       try { navigator.sendBeacon?.(`/api/livekatsomo/room/${roomId}/presence`, new Blob([body], { type: "application/json" })); } catch {}
     };
-    const vis = () => { if (document.hidden) leave(); else beat(); };
+    const vis = () => { if (!document.hidden && !t && !stop) beat(); };
     document.addEventListener("visibilitychange", vis);
     window.addEventListener("pagehide", leave);
-    return () => { stop = true; clearInterval(id); leave(); document.removeEventListener("visibilitychange", vis); window.removeEventListener("pagehide", leave); };
+    return () => { stop = true; if (t) clearTimeout(t); leave(); document.removeEventListener("visibilitychange", vis); window.removeEventListener("pagehide", leave); };
   }, [roomId, visible]);
   return n;
 }
 
-// ---------------- Realtime-ovikello (Supabase Realtime, Broadcast, yksityinen kanava) ----------------
-// Vain tunniste: "uusi viesti / poisto / huoneen muutos". Sisältö haetaan aina palvelimelta.
-// Ei supabase-js-kirjastoa: kevyt Phoenix-protokolla. Jos yhteys ei onnistu → kysely 5 s välein.
-type Bell = (event: string) => void;
-function connectDoorbell(room: string, onBell: Bell, onState: (up: boolean) => void): () => void {
-  if (!RT_URL || !RT_KEY || typeof WebSocket === "undefined") { onState(false); return () => {}; }
+// ---------------- Realtime (Supabase Realtime, Broadcast, yksityinen kanava) ----------------
+// Kevyt Phoenix-protokolla ilman supabase-js-kirjastoa. Selain vain vastaanottaa (RLS-käytäntö estää lähettämisen).
+export type Batch = { from: number; to: number; seq: number; msgs: LkMessage[]; del: { id: number; by: "self" | "mod" | null }[]; room: LkRoom | null; off: boolean };
+type RtState = "up" | "down" | "full" | "denied";
+export function connectRealtime(room: string, cfg: RtConfig, onBatch: (b: Batch) => void, onState: (s: RtState) => void): () => void {
+  if (typeof WebSocket === "undefined") { onState("denied"); return () => {}; }
   let ws: WebSocket | null = null, hb: ReturnType<typeof setInterval> | null = null, retry: ReturnType<typeof setTimeout> | null = null;
-  let closed = false, ref = 0, tries = 0;
+  let closed = false, ref = 0, fails = 0, full = false, denied = false, joinRef = "";
   const topic = `realtime:livekatsomo:${room}`;
   const open = async () => {
+    retry = null;
     if (closed) return;
-    const token = (await accessToken()) ?? RT_KEY;
-    ws = new WebSocket(`${RT_URL.replace(/^http/, "ws")}/realtime/v1/websocket?apikey=${encodeURIComponent(RT_KEY)}&vsn=1.0.0`);
+    const token = await accessToken(); // vieras: ei käyttäjätunnistetta (rooli anon julkisella avaimella)
+    if (closed) return;
+    try { ws = new WebSocket(`${cfg.url.replace(/^http/, "ws")}/realtime/v1/websocket?apikey=${encodeURIComponent(cfg.key)}&vsn=1.0.0`); }
+    catch { schedule(); return; }
     ws.onopen = () => {
-      ws!.send(JSON.stringify({ topic, event: "phx_join", ref: String(++ref), payload: { config: { broadcast: { self: false, ack: false }, presence: { key: "" }, postgres_changes: [], private: true }, access_token: token } }));
+      const payload: Record<string, unknown> = { config: { broadcast: { self: false, ack: false }, presence: { key: "", enabled: false }, postgres_changes: [], private: true } };
+      if (token) payload.access_token = token;
+      joinRef = String(++ref);
+      ws!.send(JSON.stringify({ topic, event: "phx_join", ref: joinRef, join_ref: joinRef, payload }));
       hb = setInterval(() => ws?.readyState === 1 && ws.send(JSON.stringify({ topic: "phoenix", event: "heartbeat", payload: {}, ref: String(++ref) })), 25_000);
     };
     ws.onmessage = (e) => {
       let m: any; try { m = JSON.parse(e.data); } catch { return; }
       if (m.topic !== topic) return;
-      if (m.event === "phx_reply" && m.payload?.status === "ok") { tries = 0; onState(true); }
-      else if (m.event === "phx_reply" && m.payload?.status === "error") { onState(false); ws?.close(); }
-      else if (m.event === "broadcast" && typeof m.payload?.event === "string") onBell(m.payload.event);
-      else if (m.event === "phx_error" || m.event === "phx_close") onState(false);
+      if (m.event === "phx_reply" && String(m.ref) !== joinRef) return; // sykkeiden kuittaukset yms.
+      if (m.event === "phx_reply" && m.payload?.status === "ok") { fails = 0; full = false; denied = false; onState("up"); return; }
+      if (m.event === "phx_reply" && m.payload?.status === "error") {
+        const reason = JSON.stringify(m.payload?.response ?? "");
+        if (/too_many|limit|capacity|ConnectionRateLimit|TooMany/i.test(reason)) full = true;
+        else if (/unauthor|denied|policy|not allowed|jwt/i.test(reason)) denied = true;
+        try { ws?.close(); } catch {}
+        return;
+      }
+      if (m.event === "broadcast" && m.payload?.event === "batch" && m.payload?.payload) { onBatch(m.payload.payload as Batch); return; }
+      if (m.event === "system" && m.payload?.status === "error") { try { ws?.close(); } catch {} }
     };
-    ws.onclose = () => {
-      if (hb) clearInterval(hb);
-      onState(false);
-      if (!closed && tries < 6) retry = setTimeout(open, Math.min(30_000, 2000 * 2 ** tries++));
+    ws.onclose = (ev) => {
+      if (hb) { clearInterval(hb); hb = null; }
+      if (closed) return;
+      if (/too_many|limit/i.test(ev.reason ?? "")) full = true;
+      onState(full ? "full" : denied ? "denied" : "down");
+      schedule();
     };
+  };
+  // uusi yritys: kasvava odotus hajonnalla; kapasiteettitilassa / oikeusvirheessä harvoin
+  const schedule = () => {
+    if (closed || retry) return;
+    const wait = full ? jitter(180_000) : denied ? jitter(600_000) : backoff(1_000, fails++);
+    retry = setTimeout(open, wait);
   };
   open();
   return () => { closed = true; if (retry) clearTimeout(retry); if (hb) clearInterval(hb); try { ws?.close(); } catch {} };
@@ -206,53 +254,69 @@ function connectDoorbell(room: string, onBell: Bell, onState: (up: boolean) => v
 
 // ---------------- Keskustelu ----------------
 export type Pending = { client_id: string; body: string; reply: LkMessage | null; state: "sending" | "failed"; error?: string };
-export type ChatState = {
-  room: LkRoom | null; roomError: boolean; messages: LkMessage[]; olderDone: boolean; loadingOlder: boolean;
-  live: boolean; online: boolean; newCount: number;
-};
+export type SyncMode = "init" | "rt" | "poll" | "fallback" | "full" | "off";
 
 const MAX_KEEP = 300;
 
-/** Keskustelun tila. `active` = näkymä auki (tilaukset suljetaan, kun näkymästä poistutaan). */
+/** Keskustelun tila ja välitys. `active` = näkymä auki (tilaukset ja ajastimet suljetaan, kun näkymästä poistutaan). */
 export function useChat(roomId: string, active: boolean) {
   const [room, setRoom] = useState<LkRoom | null>(null);
+  const [login, setLogin] = useState<string>("off");
   const [roomError, setRoomError] = useState(false);
   const [messages, setMessages] = useState<LkMessage[]>([]);
   const [olderDone, setOlderDone] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [live, setLive] = useState(false);
+  const [mode, setModeState] = useState<SyncMode>("init");
   const [online, setOnline] = useState(true);
   const msgsRef = useRef<LkMessage[]>([]);
   msgsRef.current = messages;
+  const modeRef = useRef<SyncMode>("init");
+  const setMode = (m: SyncMode) => { modeRef.current = m; setModeState(m); };
+  const lastSeq = useRef(0);
   const fetching = useRef(false), again = useRef(false), keepOldest = useRef(false);
+  const offRef = useRef<() => void>(() => {});
 
-  const loadRoom = useCallback(async () => {
-    const r = await lkApi<{ room: LkRoom }>(`/room/${roomId}`, { auth: false });
-    if (r.status === 200 && r.j?.room) { setRoom(r.j.room); setRoomError(false); }
-    else if (r.status === 404) setRoomError(true);
+  const apply = useCallback((incoming: LkMessage[], del: { id: number; by: "self" | "mod" | null }[] = []) => {
+    for (const m of incoming) if (typeof m.seq === "number" && m.seq > lastSeq.current) lastSeq.current = m.seq;
+    let next = incoming.length ? mergeMessages(msgsRef.current, incoming, MAX_KEEP, keepOldest.current) : msgsRef.current;
+    if (del.length) {
+      const by = new Map(del.map((d) => [d.id, d.by ?? "mod"] as const));
+      next = next.map((m) => by.has(m.id) && m.body !== null ? { ...m, body: null, deleted: by.get(m.id)! }
+        : m.reply && by.has(m.reply.id) && m.reply.body !== null ? { ...m, reply: { ...m.reply, body: null, deleted: by.get(m.reply.id)! } } : m);
+    }
+    if (next !== msgsRef.current) { msgsRef.current = next; setMessages(next); }
+  }, []);
+
+  const roomNow = useRef<LkRoom | null>(null);
+  const rtCfg = useRef<RtConfig | null>(null);
+  const loadRoom = useCallback(async (): Promise<boolean> => {
+    const r = await lkApi<{ enabled: boolean; login?: string; rt?: RtConfig | null; room: LkRoom }>(`/room/${roomId}`, { auth: false });
+    if (r.status === 200 && r.j && r.j.enabled === false) { offRef.current(); return true; }
+    if (r.status === 200 && r.j?.room) { roomNow.current = r.j.room; rtCfg.current = r.j.rt ?? null; setRoom(r.j.room); setLogin(r.j.login ?? "off"); setRoomError(false); return true; }
+    if (r.status === 404) { setRoomError(true); return true; }
+    return false;
   }, [roomId]);
 
-  /** Uudet viestit viimeisimmän tunnisteen jälkeen (palautuminen ilman kaksoiskappaleita) */
-  const loadNew = useCallback(async () => {
-    if (fetching.current) { again.current = true; return; }
+  /** Uudet viestit viimeisimmän tunnisteen jälkeen (palautuminen ilman kaksoiskappaleita). true = onnistui. */
+  const loadNew = useCallback(async (): Promise<boolean> => {
+    if (fetching.current) { again.current = true; return true; }
     fetching.current = true;
+    let ok = true;
     try {
       do {
         again.current = false;
         const last = msgsRef.current.length ? msgsRef.current[msgsRef.current.length - 1].id : null;
-        const r = await lkApi<{ messages: LkMessage[]; deleted: number[] }>(`/room/${roomId}/messages${last ? `?after=${last}` : ""}`, { auth: false });
-        if (r.status !== 200 || !r.j) { setOnline(r.status !== 0 ? true : false); if (r.status === 404) setRoomError(true); break; }
+        const r = await lkApi<{ messages: LkMessage[]; deleted: number[]; error?: string }>(`/room/${roomId}/messages${last ? `?after=${last}` : ""}`, { auth: false });
+        if (r.status === 503 && r.j?.error === "off") { offRef.current(); return true; }
+        if (r.status !== 200 || !r.j) { ok = false; setOnline(false); if (r.status === 404) setRoomError(true); break; }
         setOnline(true);
-        const del = new Set(r.j.deleted ?? []);
-        let next = mergeMessages(msgsRef.current, r.j.messages, MAX_KEEP, keepOldest.current);
-        if (del.size) next = next.map((m) => (del.has(m.id) && m.body !== null ? { ...m, body: null, deleted: m.deleted ?? "mod" } : m.reply && del.has(m.reply.id) && m.reply.body !== null ? { ...m, reply: { ...m.reply, body: null, deleted: m.reply.deleted ?? "mod" } } : m));
-        msgsRef.current = next;
-        setMessages(next);
+        apply(r.j.messages, (r.j.deleted ?? []).map((id) => ({ id, by: null })));
         if (!last && r.j.messages.length < 50) setOlderDone(true);
-        if (r.j.messages.length >= 50) again.current = true; // katkon aikana kertyneet: haetaan loputkin
+        if (r.j.messages.length >= 50) again.current = true; // katkon aikana kertyneet: haetaan loputkin (sivu kerrallaan)
       } while (again.current);
     } finally { fetching.current = false; }
-  }, [roomId]);
+    return ok;
+  }, [roomId, apply]);
 
   const loadOlder = useCallback(async () => {
     if (loadingOlder || olderDone || !msgsRef.current.length) return;
@@ -277,41 +341,99 @@ export function useChat(roomId: string, active: boolean) {
     loadNew();
   }, [loadNew]);
 
-  const patch = useCallback((m: LkMessage) => {
-    const next = mergeMessages(msgsRef.current, [m], MAX_KEEP, keepOldest.current);
-    msgsRef.current = next; setMessages(next);
-  }, []);
+  const patch = useCallback((m: LkMessage) => apply([m]), [apply]);
 
   useEffect(() => {
     if (!active) return;
-    let stop = false;
-    loadRoom(); loadNew();
-    let bellT: ReturnType<typeof setTimeout> | null = null, tailT: ReturnType<typeof setTimeout> | null = null;
-    // ovikellot kootaan (enintään yksi haku sekunnissa, hajautettu lukijoiden kesken); tietokanta harventaa
-    // ovikellot 2 sekuntiin → jälkihaku 2,5 s myöhemmin poimii väliin jääneet
-    const bell = (ev: string) => {
-      if (ev === "room") { loadRoom(); return; }
-      if (!bellT) bellT = setTimeout(() => { bellT = null; if (!stop) loadNew(); }, 200 + Math.random() * 600);
-      if (tailT) clearTimeout(tailT);
-      tailT = setTimeout(() => { tailT = null; if (!stop) loadNew(); }, 2500 + Math.random() * 500);
-    };
-    let rtUp = false;
-    const off = connectDoorbell(roomId, bell, (up) => { if (up && !rtUp) loadNew(); rtUp = up; setLive(up); });
-    // varmistus: ilman Realtimea 5 s välein, sen kanssa 30 s välein; huoneen tila 30 s välein
-    let n = 0;
-    const id = setInterval(() => {
-      if (document.hidden) return;
-      n++;
-      if (!rtUp || n % 6 === 0) loadNew();
-      if (n % 6 === 0) loadRoom();
-    }, 5000);
-    const vis = () => { if (!document.hidden) { loadNew(); loadRoom(); } };
-    document.addEventListener("visibilitychange", vis);
-    window.addEventListener("online", vis);
-    return () => { stop = true; off(); clearInterval(id); if (bellT) clearTimeout(bellT); if (tailT) clearTimeout(tailT); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", vis); };
-  }, [roomId, active, loadRoom, loadNew]);
+    let stop = false, paused = false;
+    let pollT: ReturnType<typeof setTimeout> | null = null, roomT: ReturnType<typeof setTimeout> | null = null, hideT: ReturnType<typeof setTimeout> | null = null;
+    let pollFails = 0, roomFails = 0, lastGap = 0;
+    let rtOff: (() => void) | null = null;
+    const clear = () => { if (pollT) clearTimeout(pollT); if (roomT) clearTimeout(roomT); pollT = roomT = null; };
+    const goOff = () => { stop = true; clear(); rtOff?.(); rtOff = null; setMode("off"); };
+    offRef.current = goOff;
 
-  return { room, setRoom, roomError, messages, olderDone, loadingOlder, live, online, loadNew, loadOlder, loadRoom, atBottom, patch };
+    const pollBase = () => {
+      const m = modeRef.current;
+      return m === "rt" ? LK_TIMING.safetyRt : m === "full" ? LK_TIMING.pollCapacity : m === "fallback" ? LK_TIMING.pollFallback : LK_TIMING.pollPrimary;
+    };
+    const pollLoop = async () => {
+      pollT = null;
+      if (stop || paused) return;
+      const ok = await loadNew();
+      if (stop || paused) return;
+      pollFails = ok ? 0 : pollFails + 1;
+      pollT = setTimeout(pollLoop, ok ? jitter(pollBase()) : backoff(pollBase(), pollFails));
+    };
+    const roomLoop = async () => {
+      roomT = null;
+      if (stop || paused) return;
+      const ok = await loadRoom();
+      if (stop || paused) return;
+      // kapasiteettitila: kun tilaa vapautuu, yritetään Realtimea uudelleen (harvan huonehaun tahdissa)
+      if (ok && modeRef.current === "full" && !rtOff && rtCfg.current && !roomNow.current?.rt_full) startRt(roomNow.current);
+      roomFails = ok ? 0 : roomFails + 1;
+      const base = modeRef.current === "rt" ? LK_TIMING.roomSafetyRt : LK_TIMING.roomPoll;
+      roomT = setTimeout(roomLoop, ok ? jitter(base) : backoff(base, roomFails));
+    };
+    /** Ajastimet uudelleen nykyisen tilan välein (esim. Realtime yhdistyi → harvempi varmistus) */
+    const reschedule = () => {
+      if (stop || paused) return;
+      if (pollT) clearTimeout(pollT);
+      pollT = setTimeout(pollLoop, jitter(pollBase()));
+    };
+
+    const onBatch = (b: Batch) => {
+      if (stop) return;
+      if (b.off) { goOff(); return; }
+      if (b.room) { roomNow.current = b.room; setRoom(b.room); }
+      // aukko järjestysnumeroissa (esim. lähetys jäi saamatta) → puuttuvat HTTP:llä, enintään 3 s välein
+      const gap = b.msgs.length > 0 && lastSeq.current > 0 && b.from > lastSeq.current + 1;
+      apply(b.msgs, b.del);
+      if ((gap || b.to < b.seq) && Date.now() - lastGap > 3000) { lastGap = Date.now(); loadNew(); }
+    };
+    const startRt = (r: LkRoom | null) => {
+      const cfg = rtCfg.current;
+      if (!cfg) { setMode("poll"); return; }
+      if (r?.rt_full) { setMode("full"); return; } // kapasiteettiraja: ei avata uutta yhteyttä, harva kysely
+      rtOff = connectRealtime(roomId, cfg, onBatch, (st) => {
+        if (stop) return;
+        if (st === "up") { const was = modeRef.current; setMode("rt"); if (was !== "rt") { loadNew(); reschedule(); } }
+        else { setMode(st === "full" ? "full" : "fallback"); reschedule(); }
+      });
+      if (modeRef.current === "init") setMode("fallback"); // kunnes liittyminen onnistuu
+    };
+
+    const start = async () => {
+      paused = false;
+      const [okRoom] = await Promise.all([loadRoom(), loadNew()]);
+      if (stop || paused) return;
+      if (modeRef.current === "off") return;
+      startRt(okRoom ? roomNow.current : null);
+      pollT = setTimeout(pollLoop, jitter(pollBase()));
+      roomT = setTimeout(roomLoop, jitter(modeRef.current === "rt" ? LK_TIMING.roomSafetyRt : LK_TIMING.roomPoll));
+    };
+    const pause = () => { paused = true; clear(); rtOff?.(); rtOff = null; if (modeRef.current !== "off") setMode("init"); };
+
+    // piilotettu välilehti: 30 s jälkeen yhteydet ja ajastimet pois; näkyviin tultaessa jatketaan (hajonnalla)
+    const vis = () => {
+      if (stop) return;
+      if (document.hidden) { if (!hideT) hideT = setTimeout(() => { hideT = null; pause(); }, LK_TIMING.hiddenPause); }
+      else {
+        if (hideT) { clearTimeout(hideT); hideT = null; }
+        if (paused) setTimeout(() => { if (!stop && paused) start(); }, Math.random() * 1500);
+      }
+    };
+    const online = () => { if (!stop && !paused) { loadNew(); } };
+    document.addEventListener("visibilitychange", vis);
+    window.addEventListener("online", online);
+    start();
+    return () => { stop = true; clear(); if (hideT) clearTimeout(hideT); rtOff?.(); document.removeEventListener("visibilitychange", vis); window.removeEventListener("online", online); };
+  }, [roomId, active, loadRoom, loadNew, apply]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const goOffExternal = useCallback(() => offRef.current(), []);
+
+  return { room, login, setRoom, roomError, messages, olderDone, loadingOlder, mode, online, loadNew, loadOlder, loadRoom, atBottom, patch, goOff: goOffExternal };
 }
 
 /** Keskeneräinen luonnos tämän istunnon ajan (välilehteä vaihdettaessa säilyy) */

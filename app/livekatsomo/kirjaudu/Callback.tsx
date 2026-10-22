@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { saveSession } from "@/lib/lk-client";
+import { safeNext } from "@/lib/lk-core";
 
 /** Lukee Supabase Authin palauttaman istunnon osoitteen #-osasta, tallentaa sen ja palaa otteluun */
 export default function Callback() {
@@ -8,8 +9,7 @@ export default function Callback() {
   useEffect(() => {
     const h = new URLSearchParams(location.hash.slice(1));
     const q = new URLSearchParams(location.search);
-    const nextRaw = q.get("next") ?? "/";
-    const next = /^\/(?!\/)[A-Za-z0-9/_?=&.%-]*$/.test(nextRaw) ? nextRaw : "/";
+    const next = safeNext(q.get("next")); // vain ottelusivu tai ylläpito (ei avointa uudelleenohjausta)
     // tunnisteet pois osoiteriviltä ja historiasta heti
     history.replaceState(null, "", location.pathname + location.search);
     const at = h.get("access_token"), rt = h.get("refresh_token");

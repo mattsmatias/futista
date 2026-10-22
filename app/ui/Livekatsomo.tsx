@@ -23,7 +23,7 @@ const FI = {
   replyingTo: "Vastaus käyttäjälle", cancel: "Peru", placeholder: "Kirjoita viesti…", send: "Lähetä",
   sending: "Lähetetään…", failed: "Ei lähetetty", retry: "Yritä uudelleen", remove: "Poista",
   loginTitle: "Kirjaudu kirjoittaaksesi", loginInfo: "Lähetämme kirjautumislinkin sähköpostiisi. Sähköposti ei näy keskustelussa.",
-  email: "Sähköposti", sendLink: "Lähetä kirjautumislinkki", linkSent: "Kirjautumislinkki lähetetty. Avaa se tällä laitteella.",
+  email: "Sähköposti", sendLink: "Lähetä kirjautumislinkki", linkSent: "Jos osoitteella voi kirjautua, kirjautumislinkki on lähetetty. Avaa se tällä laitteella.",
   linkFail: "Kirjautumislinkin lähetys ei onnistunut juuri nyt. Yritä myöhemmin.", emailBad: "Tarkista sähköpostiosoite.", rate: "Liian monta yritystä. Odota hetki.",
   nickTitle: "Valitse nimimerkki", nickInfo: "2–20 merkkiä. Näkyy viestiesi yhteydessä.", save: "Tallenna",
   nick_invalid: "Nimimerkissä voi olla 2–20 kirjainta, numeroa, välilyöntiä tai merkkejä _ . -", nick_reserved: "Tätä nimimerkkiä ei voi käyttää.", nick_taken: "Nimimerkki on jo käytössä.",
@@ -34,6 +34,11 @@ const FI = {
   err_net: "Yhteysvirhe.", err_auth: "Kirjaudu uudelleen.", err_other: "Lähetys ei onnistunut.",
   admin: "Ylläpito", modDelete: "Poista (ylläpito)", ban24: "Kielto 24 h", banForever: "Kielto toistaiseksi", done: "Tehty.",
   pinned: "Kiinnitetty",
+  fallback: "Päivittyy 15 s välein (reaaliaikainen yhteys katkennut)", full: "Paljon lukijoita – päivittyy noin 30 s välein",
+  fullNote: "Livekatsomossa on nyt paljon lukijoita. Keskustelu päivittyy hetken harvemmin.",
+  offTitle: "Livekatsomo ei ole nyt käytössä.", connecting: "Yhdistetään…",
+  loginTest: "Kirjoittaminen on toistaiseksi vain kutsutuille testikäyttäjille. Voit lukea keskustelua.", testLogin: "Testikäyttäjä? Kirjaudu",
+  loginOff: "Kirjoittaminen ei ole vielä avoinna. Voit lukea keskustelua.",
 };
 const EN: typeof FI = {
   title: "Live lounge", here: "here", presenceNA: "Presence count unavailable",
@@ -49,7 +54,7 @@ const EN: typeof FI = {
   replyingTo: "Replying to", cancel: "Cancel", placeholder: "Write a message…", send: "Send",
   sending: "Sending…", failed: "Not sent", retry: "Retry", remove: "Remove",
   loginTitle: "Sign in to write", loginInfo: "We'll email you a sign-in link. Your email is never shown in the chat.",
-  email: "Email", sendLink: "Send sign-in link", linkSent: "Sign-in link sent. Open it on this device.",
+  email: "Email", sendLink: "Send sign-in link", linkSent: "If this address can sign in, a sign-in link has been sent. Open it on this device.",
   linkFail: "Couldn't send the sign-in link right now. Try again later.", emailBad: "Check the email address.", rate: "Too many attempts. Wait a moment.",
   nickTitle: "Choose a nickname", nickInfo: "2–20 characters. Shown with your messages.", save: "Save",
   nick_invalid: "Use 2–20 letters, digits, spaces or _ . -", nick_reserved: "This nickname can't be used.", nick_taken: "Nickname already taken.",
@@ -60,6 +65,11 @@ const EN: typeof FI = {
   err_net: "Connection error.", err_auth: "Sign in again.", err_other: "Sending failed.",
   admin: "Moderation", modDelete: "Remove (mod)", ban24: "Ban 24 h", banForever: "Ban indefinitely", done: "Done.",
   pinned: "Pinned",
+  fallback: "Updates every 15 s (real-time connection lost)", full: "Many readers – updates about every 30 s",
+  fullNote: "The live lounge has many readers right now. Updates arrive a little less often.",
+  offTitle: "The live lounge is not available right now.", connecting: "Connecting…",
+  loginTest: "Writing is currently limited to invited test users. You can read the chat.", testLogin: "Test user? Sign in",
+  loginOff: "Writing is not open yet. You can read the chat.",
 };
 const SV: typeof FI = {
   title: "Livekatsomo", here: "här", presenceNA: "Antal närvarande inte tillgängligt",
@@ -75,7 +85,7 @@ const SV: typeof FI = {
   replyingTo: "Svar till", cancel: "Avbryt", placeholder: "Skriv ett meddelande…", send: "Skicka",
   sending: "Skickas…", failed: "Inte skickat", retry: "Försök igen", remove: "Ta bort",
   loginTitle: "Logga in för att skriva", loginInfo: "Vi skickar en inloggningslänk till din e-post. E-postadressen visas aldrig i chatten.",
-  email: "E-post", sendLink: "Skicka inloggningslänk", linkSent: "Inloggningslänken har skickats. Öppna den på den här enheten.",
+  email: "E-post", sendLink: "Skicka inloggningslänk", linkSent: "Om adressen kan logga in har en inloggningslänk skickats. Öppna den på den här enheten.",
   linkFail: "Det gick inte att skicka länken just nu. Försök senare.", emailBad: "Kontrollera e-postadressen.", rate: "För många försök. Vänta en stund.",
   nickTitle: "Välj smeknamn", nickInfo: "2–20 tecken. Visas med dina meddelanden.", save: "Spara",
   nick_invalid: "Använd 2–20 bokstäver, siffror, mellanslag eller _ . -", nick_reserved: "Smeknamnet kan inte användas.", nick_taken: "Smeknamnet är upptaget.",
@@ -86,6 +96,11 @@ const SV: typeof FI = {
   err_net: "Anslutningsfel.", err_auth: "Logga in igen.", err_other: "Det gick inte att skicka.",
   admin: "Moderering", modDelete: "Radera (mod)", ban24: "Förbud 24 h", banForever: "Förbud tills vidare", done: "Klart.",
   pinned: "Fäst",
+  fallback: "Uppdateras var 15:e sekund (realtidsanslutningen bröts)", full: "Många läsare – uppdateras ungefär var 30:e sekund",
+  fullNote: "Livekatsomo har många läsare just nu. Chatten uppdateras lite mer sällan.",
+  offTitle: "Livekatsomo är inte tillgängligt just nu.", connecting: "Ansluter…",
+  loginTest: "Att skriva är tills vidare endast för inbjudna testanvändare. Du kan läsa chatten.", testLogin: "Testanvändare? Logga in",
+  loginOff: "Att skriva är inte öppet ännu. Du kan läsa chatten.",
 };
 export type Tx = typeof FI;
 export const lkText = (lang: string): Tx => (lang === "en" ? EN : lang === "sv" ? SV : FI);
@@ -122,7 +137,7 @@ export function Login({ x, next }: { x: Tx; next: string }) {
     setSt("sending");
     const r = await lkApi<{ ok: boolean; error?: string }>("/auth/link", { method: "POST", body: { email, next }, auth: false });
     if (r.status === 200) { setSt("sent"); return; }
-    setSt("error"); setMsg(r.j?.error === "email" ? x.emailBad : r.j?.error === "rate" ? x.rate : x.linkFail);
+    setSt("error"); setMsg(r.j?.error === "email" ? x.emailBad : r.j?.error === "rate" ? x.rate : r.j?.error === "login_off" ? x.loginOff : x.linkFail);
   };
   if (st === "sent") return <p className="lk-note" role="status">{x.linkSent}</p>;
   return (
@@ -227,6 +242,7 @@ export default function Livekatsomo({ roomId, active = true, testData = LK_TESTD
   const [toast, setToast] = useState("");
   const [inputErr, setInputErr] = useState("");
   const [typing, setTyping] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [spoilerOk, setSpoilerOk] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLElement>(null);
@@ -247,7 +263,7 @@ export default function Livekatsomo({ roomId, active = true, testData = LK_TESTD
     io.observe(node);
     return () => io.disconnect();
   }, [active]);
-  const presentLive = usePresence(room && (room.state === "open" || room.state === "paused") ? roomId : null, visible, room?.present ?? null);
+  const presentLive = usePresence(room && (room.state === "open" || room.state === "paused") && chat.mode !== "off" ? roomId : null, visible, room?.present ?? null, chat.goOff);
   const present = room && (room.state === "open" || room.state === "paused") ? presentLive : null;
   useTypingViewport(typing, rootRef);
 
@@ -335,6 +351,9 @@ export default function Livekatsomo({ roomId, active = true, testData = LK_TESTD
   const next = typeof location !== "undefined" ? location.pathname + location.search : "/";
 
   if (chat.roomError) return <section className="panel lk"><p className="muted pad">{x.purged}</p></section>;
+  if (chat.mode === "off") return <section className="panel lk" aria-label={x.title}><p className="pad lk-off" role="status">{x.offTitle}</p></section>;
+  const connCls = !chat.online ? "off" : chat.mode === "rt" ? "rt" : chat.mode === "full" || chat.mode === "fallback" ? "slow" : "poll";
+  const connText = !chat.online ? x.offline : chat.mode === "rt" ? x.rt : chat.mode === "full" ? x.full : chat.mode === "fallback" ? x.fallback : chat.mode === "init" ? x.connecting : x.poll;
 
   return (
     <section ref={rootRef} className={`panel lk${typing ? " typing" : ""}`} aria-label={x.title}>
@@ -345,9 +364,7 @@ export default function Livekatsomo({ roomId, active = true, testData = LK_TESTD
           {typing && <button type="button" className="lk-done" onMouseDown={(e) => e.preventDefault()} onClick={() => { taRef.current?.blur(); setTyping(false); }}>{x.close}</button>}
         </div>
         <div className="lk-status">
-          <span className={`lk-conn ${!chat.online ? "off" : chat.live ? "rt" : "poll"}`} title={!chat.online ? x.offline : chat.live ? x.rt : x.poll}>
-            <i aria-hidden="true" />{!chat.online ? x.offline : chat.live ? x.rt : x.poll}
-          </span>
+          <span className={`lk-conn ${connCls}`}><i aria-hidden="true" />{connText}</span>
           {room && (room.state === "open" || room.state === "paused") && <span className={`lk-present${present === null ? " na" : ""}`} aria-live="polite">{presenceLabel(present, x)}</span>}
         </div>
       </header>
@@ -391,12 +408,15 @@ export default function Livekatsomo({ roomId, active = true, testData = LK_TESTD
         {newCount > 0 && <button className="lk-new" onClick={toBottom}>{x.newMsgs}</button>}
       </div>
 
+      {chat.mode === "full" && <p className="lk-capacity" role="status">{x.fullNote}</p>}
       {toast && <p className="lk-toast" role="status">{toast}</p>}
       {muted.size > 0 && <button className="lk-unmute" onClick={() => [...muted].forEach((u) => setMuted(u, false))}>{x.unmute} ({muted.size})</button>}
 
       <footer className="lk-compose">
         {note ? <p className="lk-note">{note}</p>
-          : !session ? <Login x={x} next={next} />
+          : !session ? (chat.login === "open" || showLogin ? <Login x={x} next={next} />
+            : chat.login === "test" ? <p className="lk-note">{x.loginTest} <button type="button" className="lk-link" onClick={() => setShowLogin(true)}>{x.testLogin}</button></p>
+            : <p className="lk-note">{x.loginOff}</p>)
           : !me ? <p className="muted pad">{x.loading}</p>
           : !me.nick ? <NickForm x={x} onDone={reload} />
           : banned ? <p className="lk-note">{banned}</p>

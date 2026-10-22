@@ -16,15 +16,26 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if;
 end $$;
 grant usage on schema public to service_role;
+-- Supabase Realtimen korvike testikannassa: realtime.send → jono + pg_notify (tests/quota-mp/realtime-sim.cjs)
+create schema if not exists realtime;
+create table if not exists realtime.sim_queue (id bigserial primary key, data jsonb not null, at timestamptz default now());
+create or replace function realtime.send(payload jsonb, event text, topic text, private boolean default true)
+returns void language plpgsql as $f$
+declare v_id bigint;
+begin
+  insert into realtime.sim_queue (data) values (jsonb_build_object('topic', topic, 'event', event, 'payload', payload, 'private', private)) returning id into v_id;
+  perform pg_notify('lk_rt', v_id::text);
+end $f$;
 SQL
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_fd_quota.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_news_reactions.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261022_livekatsomo.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
+RT_PORT=9103 node tests/quota-mp/realtime-sim.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)
 export FOOTBALL_DATA_KEY=test-not-a-real-key FD_BASE_URL=http://127.0.0.1:9101/v4 ESPN_BASE_URL=http://127.0.0.1:9101/espn/
-export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_localtest FD_QUOTA_REQUIRED=1 NEXT_TELEMETRY_DISABLED=1 LIVEKATSOMO_ENABLED=1 CRON_SECRET=test-cron-secret
+export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_localtest FD_QUOTA_REQUIRED=1 NEXT_TELEMETRY_DISABLED=1 LIVEKATSOMO_ENABLED=1 CRON_SECRET=test-cron-secret LK_LOGIN=test LK_REALTIME_URL=http://127.0.0.1:9103 LK_REALTIME_KEY=sb_publishable_localtest
 [ -n "${FONTS_MOCK:-}" ] && export NEXT_FONT_GOOGLE_MOCKED_RESPONSES="$FONTS_MOCK"
 # Livekatsomo käännökseen (selainosat) testiympäristössä; tuotannossa ei asetettu → ominaisuus pois
 export NEXT_PUBLIC_LIVEKATSOMO=1 NEXT_PUBLIC_LK_TESTDATA=1
@@ -37,6 +48,10 @@ rc=0
 node tests/integration/chain.cjs || rc=1
 node tests/integration/ui.cjs || rc=1
 node tests/integration/livekatsomo.cjs || rc=1
+kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
+# Livekatsomo ilman Realtimea (kyselytila): perustoiminta ja liikennemittaus
+start env LK_REALTIME_URL= LK_REALTIME_KEY=
+LK_MODE=poll node tests/integration/livekatsomo.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1 LIVEKATSOMO_ENABLED=0
 node tests/integration/switches.cjs || rc=1

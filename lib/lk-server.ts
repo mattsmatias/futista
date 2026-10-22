@@ -3,10 +3,34 @@
 // käyttäjän; selaimen väittämää käyttäjätunnistetta ei koskaan käytetä).
 import { createHash } from "node:crypto";
 import { nodeFetch } from "./http";
-import { supabaseServer, supabaseHeaders } from "./supabase-rest";
+import { supabaseServer as defaultSupabase, supabaseHeaders } from "./supabase-rest";
 
-/** Ominaisuus päällä vain, kun omistaja on ottanut sen käyttöön (LIVEKATSOMO_ENABLED=1) ja Supabase on asetettu */
+/** Livekatsomon Supabase: oma testiprojekti (LK_SUPABASE_URL + LK_SUPABASE_SECRET_KEY, esim. vain Preview-haaralle)
+ *  tai muuten sama kuin muulla Futistalla (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY). Avain pysyy palvelimella. */
+export function supabaseServer(): { url: string; key: string } | null {
+  const url = process.env.LK_SUPABASE_URL, key = process.env.LK_SUPABASE_SECRET_KEY;
+  if (url && key) return { url: url.replace(/\/+$/, ""), key };
+  return defaultSupabase();
+}
+
+/** Ominaisuus päällä vain, kun omistaja on ottanut sen käyttöön (LIVEKATSOMO_ENABLED=1) ja Supabase on asetettu.
+ *  Lisäksi tietokannan katkaisin (lk_settings.enabled) estää kirjoitukset, luvun ja paikallaolon heti. */
 export const lkOn = () => process.env.LIVEKATSOMO_ENABLED === "1" && !!supabaseServer();
+
+/** Kirjautuminen: "open" = julkinen (oma SMTP asetettu), "test" = vain testi-/tiimitunnukset (lomake piilotettu
+ *  keskustelusta), "off" (oletus) = ei kirjautumista. Selain näyttää saatavuuden ennen yritystä. */
+/** Realtime-asetukset selaimelle (julkinen avain; ei koskaan salaista): LK_REALTIME_URL + LK_REALTIME_KEY.
+ *  Puuttuu → selain käyttää rajattua kyselyä. Ajonaikainen (ei vaadi uutta käännöstä). */
+export function realtimeConfig(): { url: string; key: string } | null {
+  const url = process.env.LK_REALTIME_URL, key = process.env.LK_REALTIME_KEY;
+  if (!url || !key || /^sb_secret_/.test(key) || /service_role/.test(key)) return null; // salainen avain ei koskaan selaimelle
+  return { url: url.replace(/\/+$/, ""), key };
+}
+
+export type LoginMode = "open" | "test" | "off";
+export const loginMode = (): LoginMode => (process.env.LK_LOGIN === "open" ? "open" : process.env.LK_LOGIN === "test" ? "test" : "off");
+
+export { safeNext } from "./lk-core";
 
 export class LkError extends Error { constructor(public status: number, public code: string) { super(code); } }
 
@@ -75,6 +99,9 @@ export const uuidOk = (s: unknown): s is string => typeof s === "string" && /^[0
 export function json(data: unknown, status = 200, cache = "no-store") {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Cache-Control": cache } });
 }
+
+/** Tiiviste rajoitusavaimeksi (ei tallenneta sähköpostia eikä IP-osoitetta) */
+export const keyHash = (s: string) => createHash("sha256").update(`${process.env.LK_IP_SALT || tokHash(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "lk")}|${s}`).digest("base64url").slice(0, 32);
 
 export function handle(fn: () => Promise<Response>): Promise<Response> {
   return fn().catch((e) => {

@@ -1,10 +1,15 @@
-// Livekatsomo: rajapinta- ja selaintestit paikallisesti (next start + Supabase-emulaattori + PostgreSQL).
-// Testikäyttäjät ovat keksittyjä tunnisteita ("test-<uuid>"); sähköpostia ei lähetetä (emulaattori vain tallentaa
-// pyynnön). Ei yhteyttä oikeaan Supabaseen, Realtimeen eikä tuotantoon.
+// Livekatsomo: rajapinta- ja selaintestit paikallisesti (next start + Supabase-emulaattori + PostgreSQL +
+// Realtime-SIMULAATIO tests/quota-mp/realtime-sim.cjs). Testikäyttäjät ovat keksittyjä tunnisteita ("test-<uuid>");
+// sähköpostia ei lähetetä (emulaattori vain tallentaa pyynnön). Ei yhteyttä oikeaan Supabaseen eikä tuotantoon.
+// Oikeaa Supabase-ohjelmistoa vastaan: tests/supabase-real/ (docs/livekatsomo.md).
+// LK_MODE=poll: palvelin ilman Realtime-asetuksia → kyselytilan testit ja liikennemittaus.
 //   APP=http://localhost:3100 REST=http://127.0.0.1:9102 PG_URL=... CHROME=... node tests/integration/livekatsomo.cjs
 const { execSync } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
-const APP = process.env.APP || "http://localhost:3100", REST = process.env.REST || "http://127.0.0.1:9102";
+const APP = process.env.APP || "http://localhost:3100", REST = process.env.REST || "http://127.0.0.1:9102", RT = process.env.RT || "http://127.0.0.1:9103";
+const MODE = process.env.LK_MODE === "poll" ? "poll" : "rt";
+const rt = async (path) => (await fetch(RT + path)).json().catch(() => null);
+const emu = async (path) => { const r = await fetch(REST + path, { headers: { apikey: "test" } }); try { return await r.json(); } catch { return null; } };
 const PG = process.env.PG_URL;
 const results = [];
 const ok = (name, cond, info = "") => { results.push({ name, ok: !!cond }); console.log(`${cond ? "OK  " : "VIRHE"} ${name}${info ? "  – " + info : ""}`); };
@@ -185,18 +190,24 @@ async function apiTests() {
   ok("syke palauttaa määrän", P.status === 200 && typeof P.j.present === "number");
   sql(`delete from public.lk_presence`);
   await beat(ROOM, "guestA_shared01"); await beat(ROOM, "guestA_shared01"); // kaksi välilehteä, sama istunto
-  r = await beat(ROOM, "guestA_shared01");
+  sql(`update public.lk_rooms set present_at = null`); r = await beat(ROOM, "guestA_shared01");
   ok("9. saman selaimen välilehdet (sama istunto) → 1", r.j.present === 1, String(r.j.present));
-  await beat(ROOM, "userSessTab1", U1); r = await beat(ROOM, "userSessTab2", U1);
+  const fresh10 = () => sql(`update public.lk_rooms set present_at = null`); // määrän välimuisti 10 s: simuloidaan ajan kulumista
+  await beat(ROOM, "userSessTab1", U1); fresh10(); r = await beat(ROOM, "userSessTab2", U1);
   ok("9. kirjautunut kahdella istunnolla lasketaan kerran → 2", r.j.present === 2, String(r.j.present));
   await beat(ROOM, "guestB_sess001", null, "198.51.100.7"); await beat(ROOM, "guestC_sess001", null, "198.51.100.7");
-  r = await beat(ROOM, "guestD_sess001", null, "198.51.100.7");
-  const r4 = await beat(ROOM, "guestE_sess001", null, "198.51.100.7");
+  fresh10(); r = await beat(ROOM, "guestD_sess001", null, "198.51.100.7");
+  fresh10(); const r4 = await beat(ROOM, "guestE_sess001", null, "198.51.100.7");
   ok("vieraiden uudet istunnot rajoitettu per IP (3 + 1 ei lasketa)", r.j.present === 5 && r4.j.counted === false && r4.j.present === 5, `${r.j.present}/${r4.j.present}`);
   r = await api(`/room/${ROOM}/presence`, { method: "POST", body: { sess: "guestA_shared01", leave: true } });
   ok("10. poistuminen vähentää määrää", (await api(`/room/${ROOM}`)).j.room.present === 4);
-  sql(`update public.lk_presence set last_seen = now() - interval '50 seconds' where sess = 'guestB_sess001'`);
-  ok("10. katkennut istunto vanhenee (TTL 45 s)", (await api(`/room/${ROOM}`)).j.room.present === 3);
+  sql(`update public.lk_presence set last_seen = now() - interval '80 seconds' where sess = 'guestB_sess001'; update public.lk_rooms set present_at = now() - interval '20 seconds' where id = '${ROOM}'`);
+  ok("10. katkennut istunto vanhenee (TTL 75 s)", (await api(`/room/${ROOM}`)).j.room.present === 3);
+  // määrä välimuistissa: 20 sykettä → enintään 1–2 laskentaa (ei koko huoneen laskentaa jokaisella sykkeellä)
+  sql(`update public.lk_rooms set present_at = now() where id = '${ROOM}'`);
+  const calcBefore = sql(`select present_at from public.lk_rooms where id = '${ROOM}'`);
+  for (let i = 0; i < 20; i++) await beat(ROOM, `cacheSess${String(i).padStart(4, "0")}`, randomUUID());
+  ok("paikallaolomäärä lasketaan välimuistista (ei jokaisella sykkeellä)", sql(`select present_at from public.lk_rooms where id = '${ROOM}'`) === calcBefore);
   r = await beat(LATER, "guestZ_sess001");
   ok("tulevaan keskusteluun ei lasketa paikallaoloa", r.j.counted === false && r.j.present === 0);
   ok("virheellinen istuntotunniste hylätään", (await api(`/room/${ROOM}/presence`, { method: "POST", body: { sess: "<x>" } })).status === 400);
@@ -222,8 +233,56 @@ async function apiTests() {
   const otp = await (await fetch(`${REST}/__lk/last-otp`, { headers: { apikey: "test" } })).json();
   ok("kirjautumislinkkipyyntö välitetään Supabase Authille, ei välimuistia", r.status === 200 && /no-store/.test(r.cc) && otp?.redirect?.includes("/livekatsomo/kirjaudu?next="));
   ok("virheellinen sähköposti hylätään", (await api("/auth/link", { method: "POST", body: { email: "ei-osoite" } })).status === 400);
+  r = await api("/auth/link", { method: "POST", body: { email: "notallowed@example.invalid", next: "/ottelu/pd/test-1" } });
+  ok("7. ei paljasta, onko osoite sallittu/rekisteröity (sama vastaus kuin onnistuneessa)", r.status === 200 && r.j?.ok === true && JSON.stringify(r.j) === '{"ok":true}');
+  for (const bad of ["https://evil.example/x", "//evil.example", "/\\evil.example", "/ottelu/x?next=https://evil.example", "javascript:alert(1)"]) {
+    await api("/auth/link", { method: "POST", body: { email: `redir${Math.random().toString(36).slice(2, 8)}@example.invalid`, next: bad } });
+    const o = await emu("/__lk/last-otp");
+    if (!o.redirect.endsWith("/livekatsomo/kirjaudu?next=%2F")) { ok("7. vieras paluuosoite ei kelpaa (avoin uudelleenohjaus estetty)", false, `${bad} → ${o.redirect}`); break; }
+  }
+  ok("7. vieraat/ulkoiset paluuosoitteet korvataan etusivulla", true);
+  const em = `raja${Date.now()}@example.invalid`;
+  const lr = [];
+  for (let i = 0; i < 4; i++) lr.push((await api("/auth/link", { method: "POST", body: { email: em }, headers: { "x-forwarded-for": `192.0.2.${10 + i}` } })).status);
+  ok("7. kirjautumislinkkien yhteinen raja: sama osoite 3 / 15 min (eri IP:t)", lr.join(",") === "200,200,200,429", lr.join(","));
+  ok("  rajoitustaulussa vain tiivisteitä (ei sähköpostia)", sql(`select count(*) from public.lk_auth_attempts where key like '%@%' or key like '%example%'`) === "0");
   const logTxt = require("node:fs").existsSync("/tmp/futista-it-server.log") ? require("node:fs").readFileSync("/tmp/futista-it-server.log", "utf8") : "";
   ok("palvelinlokissa ei sähköposteja, tunnisteita eikä viestejä", !logTxt.includes("example.invalid") && !logTxt.includes("test-") && !logTxt.includes("Vastaus ykköselle"));
+
+  // ---------- järjestysnumerot ja Realtime-kooste ----------
+  {
+    sql(`update public.lk_settings set msg_interval_s = 0 where id = 1`);
+    const seqs = sql(`select string_agg(seq::text, ',' order by seq) from public.lk_messages where room = '${ROOM}' and seq is not null`).split(",").map(Number);
+    ok("viesteillä keskustelukohtainen järjestysnumero ilman aukkoja", seqs.length > 5 && seqs.every((v, i) => i === 0 || v === seqs[i - 1] + 1), seqs.slice(-5).join(","));
+    const q0 = Number(sql(`select count(*) from realtime.sim_queue where data->>'topic' = 'livekatsomo:${ROOM}'`));
+    const t0 = Date.now(); const us = [];
+    for (let i = 0; i < 8; i++) us.push(await fresh(`Testi Kooste${i}`));
+    await Promise.all(us.map((u, i) => send(ROOM, u, `koosteviesti ${i} ${Math.random()}`)));
+    await sleep(4500);
+    const rows = sql(`select data::text from realtime.sim_queue where data->>'topic' = 'livekatsomo:${ROOM}' order by id offset ${q0}`).split("\n").filter(Boolean).map((x) => JSON.parse(x));
+    const got = rows.flatMap((x) => x.payload.msgs.map((m) => m.body)).filter((b) => b?.startsWith("koosteviesti"));
+    const secs = (Date.now() - t0) / 1000;
+    ok("Realtime-kooste: 8 viestiä → enintään yksi lähetys 2 s:ssa, kaikki viestit mukana kerran", got.length === 8 && new Set(got).size === 8 && rows.length <= Math.ceil(secs / 2) + 1, `${rows.length} lähetystä / ${secs.toFixed(1)} s, ${got.length} viestiä`);
+    const pubTxt = JSON.stringify(rows);
+    ok("Realtime-sisältö: ei käyttäjätunnisteita, sähköposteja, IP-tiivisteitä eikä ilmoittajia", !us.some((u) => pubTxt.includes(u)) && !/@|ip_hash|reporter|user_id|email/.test(pubTxt));
+    ok("Realtime-lähetykset yksityiseen kanavaan", rows.every((x) => x.private === true && x.topic === `livekatsomo:${ROOM}`));
+    setS(DEFAULTS);
+  }
+  // ---------- katkaisin ----------
+  {
+    const q0 = Number(sql(`select count(*) from realtime.sim_queue`));
+    r = await admin("set_enabled", { enabled: false });
+    const offs = sql(`select count(*) from (select * from realtime.sim_queue order by id offset ${q0}) x where (data->'payload'->>'off')::boolean`);
+    ok("katkaisin: ylläpito katkaisee → avoimille tilaajille 'off'", r.status === 200 && r.j.enabled === false && Number(offs) >= 1, offs);
+    const rr = await api("/rooms"), mm = await api(`/room/${ROOM}/messages`), ss = await send(ROOM, await fresh("Testi Katkaisu"), "katkaistu"), pp = await beat(ROOM, "killSess0001");
+    ok("katkaisin: luettelo tyhjä, luku 503, kirjoitus 503, paikallaolo 503", rr.j.enabled === false && mm.status === 503 && ss.status === 503 && pp.status === 503, `${rr.j.enabled} ${mm.status} ${ss.status} ${pp.status}`);
+    ok("  tavallinen käyttäjä ei voi käyttää katkaisinta", (await admin("set_enabled", { enabled: true }, U1)).status === 403);
+    await admin("set_enabled", { enabled: true });
+    ok("katkaisin: palautus toimii", (await api("/rooms")).j.enabled === true);
+    const st = await admin("status", {});
+    ok("ajastusten tila näkyy ylläpidolle (Realtime-kooste ajettu < 10 s sitten)", st.status === 200 && Date.now() - Date.parse(st.j.last_flush_at) < 10_000, st.j?.last_flush_at);
+    ok("  tila ei ole tavallisen käyttäjän luettavissa", (await admin("status", {}, U1)).status === 403);
+  }
 
   // ---------- 14. sulkeminen ja säilytysajan poisto ----------
   await admin("update_room", { room: ROOM, ft_confirmed_at: iso(-61 * 60_000) });
@@ -239,11 +298,101 @@ async function apiTests() {
   r = await purge();
   ok("14. poistoajo ei poista ennen 7 päivää", r.rooms_purged === 0 && (await page(ROOM)).messages.length > 0);
   sql(`update public.lk_rooms set closed_at = now() - interval '7 days 1 minute' where id = '${ROOM}'`);
+  const otherMsgs = sql(`select count(*) from public.lk_messages where room <> '${ROOM}'`);
+  sql(`insert into public.lk_bans (user_id, until, created_by, created_at) values ('${U4}', now() - interval '40 days', '${ADMIN}', now() - interval '41 days'), ('${U4}', null, '${ADMIN}', now())`);
+  sql(`insert into public.lk_auth_attempts (key, at) values ('e:vanha', now() - interval '2 days')`);
+  sql(`insert into public.lk_reports (room, reporter, excerpt, created_at) values ('${LATER}', '${U1}', 'vanha ote', now() - interval '31 days')`);
+  sql(`insert into public.lk_mod_log (actor, action, created_at) values ('${ADMIN}', 'vanha', now() - interval '181 days')`);
   r = await purge();
   const left = sql(`select count(*) from public.lk_messages where room = '${ROOM}'`);
   ok("14. 7 päivän jälkeen viestit poistetaan, tila 'purged'", r.rooms_purged === 1 && left === "0" && (await api(`/room/${ROOM}`)).j.room.state === "purged", `${JSON.stringify(r)} jäljellä ${left}`);
   ok("  poistetun keskustelun viestihaku → 404", (await api(`/room/${ROOM}/messages`)).status === 404);
+  ok("8. poisto koskee vain tarkoitettuja: muiden keskustelujen viestit, voimassa oleva kielto säilyvät",
+    sql(`select count(*) from public.lk_messages where room <> '${ROOM}'`) === otherMsgs && sql(`select count(*) from public.lk_bans where user_id = '${U4}' and until is null and lifted_at is null`) === "1");
+  ok("8. vanhat ilmoitukset (30 vrk), loki (180 vrk), päättyneet kiellot (30 vrk), kirjautumisrajat (1 vrk) poistuvat",
+    r.reports_deleted >= 1 && r.modlog_deleted >= 1 && r.bans_deleted >= 1 && r.auth_attempts_deleted >= 1, JSON.stringify(r));
+  r = await purge();
+  ok("8. poistoajo uudelleen: ei poistettavaa, ei virhettä", r.rooms_purged === 0 && r.messages_deleted === 0 && r.reports_deleted === 0, JSON.stringify(r));
+  ok("  ajastuksen viimeisin ajo näkyy", Date.now() - Date.parse((await admin("status", {})).j.last_purge_at) < 10_000);
   return { LATER };
+}
+
+// ======================= Selaintestien apurit =======================
+const fsx = require("node:fs");
+const FILLER = new Set(JSON.parse("[" + fsx.readFileSync("lib/live-core.ts", "utf8").match(/const FILLER = new Set\(\[([^\]]*)\]\)/)[1] + "]"));
+const wordsOf = (s) => s.replace(/ø/gi, "o").replace(/æ/gi, "ae").replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w && !FILLER.has(w));
+const dateOfRow = (r) => r.href.split("/")[3];
+const keyOf = (r) => `${dateOfRow(r)}|${wordsOf(r.names[0]).join("-")}|${wordsOf(r.names[1]).join("-")}`;
+const kickOf = (r) => { const [h, m] = r.time.split(":").map(Number); const d = dateOfRow(r); const g = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10), h, m); const off = (t) => { const p = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Helsinki", hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" }).formatToParts(t); const v = (k) => +p.find((q) => q.type === k).value; return Date.UTC(v("year"), v("month") - 1, v("day"), v("hour"), v("minute")) - t; }; return new Date(g - off(g - off(g))).toISOString(); };
+async function pickRows(page) {
+  await page.goto(APP + "/", { waitUntil: "load" });
+  await page.waitForSelector(".cgroup a.mrow-link", { timeout: 20000 });
+  await page.waitForTimeout(1500);
+  const rows = await page.locator(".cgroup .mrow:has(a.mrow-link)").evaluateAll((els) => els.map((e) => ({
+    href: e.querySelector("a.mrow-link").getAttribute("href"), time: e.querySelector(".mrow-st span")?.textContent ?? "", names: [...e.querySelectorAll(".mrow-tm .nm")].map((n) => n.textContent) })));
+  return rows.filter((r) => /^\/ottelu\/[a-z0-9]+\/\d{4}-\d{2}-\d{2}\//.test(r.href) && /^\d{1,2}:\d{2}$/.test(r.time));
+}
+async function openRoomFor(row) {
+  const x = await admin("create_room", { match_key: keyOf(row), path: row.href, source: "fd", home: row.names[0], away: row.names[1], kickoff: kickOf(row) });
+  await admin("update_room", { room: x.j.room.id, manual_state: "open", read_only: false, fallback_close_at: iso(6 * 3600_000) });
+  return x.j.room.id;
+}
+
+/** MITTAUS: yksi lukija, 120 s, toinen käyttäjä lähettää viestin 10 s välein (12 viestiä). Lasketaan selaimen
+ *  pyynnöt tyypeittäin, palvelimen tietokantafunktiokutsut (emulaattori) ja Realtime-tapahtumat (simulaatio). */
+async function measure(browser, row, label) {
+  const room = await openRoomFor(row);
+  setS("msg_interval_s=0");
+  const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await page.goto(APP + row.href + "?v=livekatsomo", { waitUntil: "load" });
+  await page.waitForSelector(".lk-head", { timeout: 20000 });
+  await page.waitForTimeout(MODE === "rt" ? 6000 : 3000); // alkuhaku ja liittyminen ennen mittausta
+  const req = {};
+  page.on("request", (q) => { const u = new URL(q.url()); if (!u.pathname.startsWith("/api/livekatsomo")) return; const k = `${q.method()} ${u.pathname.replace(/[0-9a-f-]{36}/, ":id").replace(/\/\d+$/, "/:mid")}`; req[k] = (req[k] || 0) + 1; });
+  let bytes = 0; page.on("response", async (r) => { if (r.url().includes("/api/livekatsomo")) { try { bytes += (await r.body()).length; } catch {} } });
+  await emu("/__lk/reset"); await fetch(RT + "/__rt/reset");
+  const poster = await fresh(`Mittaus ${label}`);
+  const T = 120_000, t0 = Date.now();
+  for (let i = 0; i < 12; i++) { await send(room, poster, `mittausviesti ${i} ${Date.now()}`); await sleep(10_000); }
+  await sleep(Math.max(0, T - (Date.now() - t0)));
+  const db = await emu("/__lk/stats"), rts = await rt("/__rt/stats");
+  const seen = await page.locator(".lk-body", { hasText: "mittausviesti" }).count();
+  await ctx.close();
+  setS(DEFAULTS);
+  const out = { label, mode: MODE, seconds: Math.round((Date.now() - t0) / 1000), messages: 12, seen, browserRequests: req, browserBytes: bytes, dbRpc: db?.rpc, authChecks: db?.authUser, realtime: rts };
+  fsx.writeFileSync(`${process.env.MEASURE_DIR || "/tmp"}/lk-mittaus-${label}.json`, JSON.stringify(out, null, 2));
+  console.log("MITTAUS", JSON.stringify(out));
+  ok(`mittaus (${label}): kaikki 12 viestiä näkyivät kerran`, seen === 12, String(seen));
+  return out;
+}
+
+// ======================= Kyselytila (palvelin ilman Realtime-asetuksia) =======================
+async function pollTests() {
+  const { chromium } = require("playwright-core");
+  const browser = await chromium.launch({ executablePath: process.env.CHROME });
+  sql(`delete from public.lk_admins; insert into public.lk_admins (user_id) values ('${ADMIN}')`);
+  await api("/me", { method: "POST", user: ADMIN, body: { nick: "Testi Valvoja" } });
+  const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const rows = await pickRows(page);
+  const row = rows[2] ?? rows[0];
+  const room = await openRoomFor(row);
+  await page.goto(APP + row.href + "?v=livekatsomo", { waitUntil: "load" }); await page.waitForSelector(".lk-head");
+  const conn = await page.waitForFunction(() => document.querySelector(".lk-conn")?.textContent?.includes("muutaman sekunnin"), null, { timeout: 10000 }).then(() => true).catch(() => false);
+  ok("kyselytila: ilman Realtimea yhteystila 'Päivittyy muutaman sekunnin välein'", conn, await page.locator(".lk-conn").innerText());
+  const u = await fresh("Testi Kysely");
+  await send(room, u, "kyselytilan viesti");
+  const seen = await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent === "kyselytilan viesti"), null, { timeout: 12000 }).then(() => true).catch(() => false);
+  ok("kyselytila: uusi viesti näkyy ≤ 8 s", seen);
+  // virheissä kasvava odotus: 60 s aikana enintään ~6 hakua (ei 10)
+  let n = 0; await page.route("**/api/livekatsomo/room/*/messages*", (r) => { n++; r.abort("failed"); });
+  await page.waitForTimeout(60000);
+  await page.unroute("**/api/livekatsomo/room/*/messages*");
+  ok("kyselytila: virheissä kasvava odotus (≤ 6 hakua / 60 s)", n <= 6, `${n} hakua`);
+  await ctx.close();
+  await measure(browser, row, "kysely");
+  await browser.close();
 }
 
 // ======================= Selaintestit =======================
@@ -264,20 +413,9 @@ async function uiTests() {
 
   // otteluiden valinta etusivulta (tämän päivän simuloidut ottelut)
   let ctx = await mk(), page = await ctx.newPage();
-  await page.goto(APP + "/", { waitUntil: "load" });
-  await page.waitForSelector(".cgroup a.mrow-link", { timeout: 20000 });
-  await page.waitForTimeout(1500);
-  const rows = await page.locator(".cgroup .mrow:has(a.mrow-link)").evaluateAll((els) => els.map((e) => ({
-    href: e.querySelector("a.mrow-link").getAttribute("href"), time: e.querySelector(".mrow-st span")?.textContent ?? "", names: [...e.querySelectorAll(".mrow-tm .nm")].map((n) => n.textContent) })));
-  if (!rows.length) console.log("rivit puuttuvat:", (await page.locator("main").innerText()).slice(0, 500));
-  const fdRows = rows.filter((r) => /^\/ottelu\/[a-z0-9]+\/\d{4}-\d{2}-\d{2}\//.test(r.href) && /^\d{1,2}:\d{2}$/.test(r.time));
+  const fdRows = await pickRows(page);
   const A = fdRows[0], B = fdRows[1];
-  const dateOf = (r) => r.href.split("/")[3];
-  // tunniste kuten lib/lk-core.ts matchKey (yksinkertaistettu sanajako; roomFor täsmää myös yhteisellä sanalla)
-  const FILLER = new Set(JSON.parse("[" + fs.readFileSync("lib/live-core.ts", "utf8").match(/const FILLER = new Set\(\[([^\]]*)\]\)/)[1] + "]"));
-  const words = (s) => s.replace(/ø/gi, "o").replace(/æ/gi, "ae").replace(/ß/g, "ss").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w && !FILLER.has(w));
-  const key = (r) => `${dateOf(r)}|${words(r.names[0]).join("-")}|${words(r.names[1]).join("-")}`;
-  const kick = (r) => { const [h, m] = r.time.split(":").map(Number); const d = dateOf(r); const g = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10), h, m); const off = (t) => { const p = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Helsinki", hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" }).formatToParts(t); const v = (k) => +p.find((q) => q.type === k).value; return Date.UTC(v("year"), v("month") - 1, v("day"), v("hour"), v("minute")) - t; }; return new Date(g - off(g - off(g))).toISOString(); };
+  const key = keyOf, kick = kickOf;
   let x = await admin("create_room", { match_key: key(A), path: A.href, source: "fd", home: A.names[0], away: A.names[1], kickoff: kick(A) });
   const RA = x.j.room.id;
   await admin("update_room", { room: RA, featured: true, manual_state: "open", fallback_close_at: iso(6 * 3600_000) });
@@ -307,7 +445,10 @@ async function uiTests() {
 
   // ---------- 1. vieras: lukee, ei kirjoituskenttää ----------
   const body = await page.locator(".lk").innerText();
-  ok("1. vieras: kirjautumislomake, ei kirjoituskenttää", (await page.locator(".lk textarea").count()) === 0 && body.includes("Kirjaudu kirjoittaaksesi"));
+  ok("1. vieras: ei kirjoituskenttää; kirjautumisen saatavuus kerrotaan ennen yritystä (testitila)", (await page.locator(".lk textarea").count()) === 0 && body.includes("vain kutsutuille testikäyttäjille") && (await page.locator(".lk-form").count()) === 0);
+  await page.locator(".lk-compose .lk-link", { hasText: "Testikäyttäjä? Kirjaudu" }).click();
+  ok("  testikäyttäjän kirjautumislomake avautuu erikseen", (await page.locator(".lk-form input[type=email]").count()) === 1);
+  ok("Realtime-tila: yhteystila 'Reaaliaikainen'", await page.waitForFunction(() => document.querySelector(".lk-conn")?.textContent?.includes("Reaaliaikainen"), null, { timeout: 10000 }).then(() => true).catch(() => false));
   ok("säännöt näkyvissä", body.includes("Keskustele asiallisesti. Ei rasismia, uhkailua, henkilötietoja tai mainontaa."));
   ok("spoileri-huomautus ensimmäisellä avaamisella", body.includes("Keskustelu voi paljastaa ottelutapahtumia ennen omaa lähetystäsi."));
   await page.locator(".lk-spoiler .lk-x").click();
@@ -383,17 +524,95 @@ async function uiTests() {
 
   // ---------- 7. yhteyden katkeaminen ja palautuminen ----------
   await page.locator(".lk-list").evaluate((el) => { el.scrollTop = el.scrollHeight; el.dispatchEvent(new Event("scroll")); });
+  // verkko poikki: Realtime katkeaa ja HTTP-haut epäonnistuvat
   await page.route("**/api/livekatsomo/room/*/messages*", (route) => route.abort("internetdisconnected"));
-  await page.waitForTimeout(5500);
-  ok("7. katkon aikana yhteystila 'Ei yhteyttä'", (await page.locator(".lk-conn").innerText()).includes("Ei yhteyttä"));
+  await rt("/__rt/down?on=1");
+  await page.waitForFunction(() => document.querySelector(".lk-conn")?.textContent?.includes("Ei yhteyttä"), null, { timeout: 40000 }).catch(() => {});
+  ok("7. katkon aikana yhteystila 'Ei yhteyttä'", (await page.locator(".lk-conn").innerText()).includes("Ei yhteyttä"), await page.locator(".lk-conn").innerText());
+  // uudelleenyritykset harvenevat (kasvava odotus) – ei ryöppyä
+  const a0 = (await rt("/__rt/stats")).attempts; await page.waitForTimeout(30000); const a1 = (await rt("/__rt/stats")).attempts;
+  ok("7. Realtime-uudelleenyritykset harvenevat (≤ 6 / 30 s)", a1 - a0 <= 6, `${a1 - a0} yritystä`);
   const s2 = await fresh("Testi Neljäs"), s3 = await fresh("Testi Viides");
   await send(RA, s2, "viesti katkon aikana A"); await send(RA, s3, "viesti katkon aikana B");
   await page.unroute("**/api/livekatsomo/room/*/messages*");
-  await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent.includes("katkon aikana B")), null, { timeout: 15000 });
-  await page.waitForTimeout(5500);
+  await rt("/__rt/down?on=0");
+  await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent.includes("katkon aikana B")), null, { timeout: 70000 });
+  await page.waitForTimeout(4000);
   const ids = await page.locator(".lk-msg[data-id]").evaluateAll((els) => els.map((e) => e.getAttribute("data-id")));
   const texts = await page.locator(".lk-body").allInnerTexts();
   ok("7. palautuessa puuttuvat viestit tulevat, ei kaksoiskappaleita", new Set(ids).size === ids.length && texts.filter((t) => t.includes("katkon aikana A")).length === 1 && texts.filter((t) => t.includes("katkon aikana B")).length === 1);
+
+  // ---------- Realtime korvaa tiheän kyselyn ----------
+  {
+    // uudelleenyhdistys katkon jälkeen: kasvava odotus (enintään 60 s + hajonta)
+    const rtBack = await page.waitForFunction(() => document.querySelector(".lk-conn")?.textContent?.includes("Reaaliaikainen"), null, { timeout: 80000 }).then(() => true).catch(() => false);
+    ok("7. Realtime palautuu katkon jälkeen (≤ 80 s)", rtBack);
+    let httpMsgs = 0;
+    const onReq = (q) => { if (/\/api\/livekatsomo\/room\/[^/]+\/messages/.test(q.url()) && q.method() === "GET") httpMsgs++; };
+    page.on("request", onReq);
+    const w = await fresh("Testi Reaali"), w2 = await fresh("Testi Reaali2");
+    const t0 = Date.now();
+    await send(RA, w, "reaaliaikainen viesti 1");
+    await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent === "reaaliaikainen viesti 1"), null, { timeout: 8000 });
+    const lat = Date.now() - t0;
+    await send(RA, w2, "reaaliaikainen viesti 2");
+    await page.waitForTimeout(20000);
+    page.off("request", onReq);
+    ok("Realtime: uusi viesti näkyy ilman kyselyä (≤ 3,5 s)", lat <= 3500, `${lat} ms`);
+    ok("Realtime: 22 s aikana ei tiheää viestikyselyä (≤ 1 HTTP-haku)", httpMsgs <= 1, `${httpMsgs} hakua`);
+    // menetetty lähetys (aukko järjestysnumeroissa) → puuttuva haetaan HTTP:llä
+    sql(`with r as (update public.lk_rooms set seq = seq + 1 where id = '${RA}' returning seq)
+         insert into public.lk_messages (room, user_id, nickname, body, norm, has_link, client_id, seq) select '${RA}', '${w}', 'Testi Reaali', 'kadonnut lähetys', 'kadonnut', false, gen_random_uuid(), seq from r;
+         update public.lk_rooms set sent_seq = seq where id = '${RA}'`);
+    await sleep(2500);
+    await send(RA, w2, "aukon jälkeinen viesti");
+    const gapOk = await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent === "kadonnut lähetys"), null, { timeout: 10000 }).then(() => true).catch(() => false);
+    ok("Realtime: aukko järjestysnumeroissa → puuttuva viesti haetaan, ei kaksoiskappaleita", gapOk && (await page.locator(".lk-body", { hasText: "aukon jälkeinen viesti" }).count()) === 1);
+  }
+
+  // ---------- poisto, kirjoituskielto ja sulkeminen näkyvät toisessa selaimessa ----------
+  {
+    const c2 = await mk(); const UC = randomUUID(); await login(c2, UC);
+    const p2b = await c2.newPage();
+    await p2b.goto(APP + A.href + "?v=livekatsomo", { waitUntil: "load" });
+    await p2b.waitForSelector(".lk-form input", { timeout: 15000 });
+    await p2b.locator(".lk-form input").fill("Testi Toinen Selain"); await p2b.locator(".lk-form button").click();
+    await p2b.waitForSelector(".lk textarea");
+    await p2b.locator(".lk textarea").fill("viesti toisesta selaimesta"); await p2b.keyboard.press("Enter");
+    await page.waitForFunction(() => [...document.querySelectorAll(".lk-body")].some((e) => e.textContent === "viesti toisesta selaimesta"), null, { timeout: 8000 });
+    ok("9. kaksi testitunnusta: viesti näkyy toisessa selaimessa", true);
+    const mid = Number(sql(`select max(id) from public.lk_messages where body = 'viesti toisesta selaimesta'`));
+    await admin("delete_message", { room: RA, message: mid });
+    const delSeen = await page.waitForFunction((id) => document.querySelector(`.lk-msg[data-id="${id}"] .lk-gone`)?.textContent?.includes("Ylläpito poisti"), mid, { timeout: 6000 }).then(() => true).catch(() => false);
+    ok("9. ylläpidon poisto näkyy toisessa selaimessa (Realtime)", delSeen);
+    await admin("ban", { room: RA, message: mid, until: iso(3600_000) });
+    await p2b.waitForTimeout(5200);
+    await p2b.locator(".lk textarea").fill("estetyn yritys"); await p2b.keyboard.press("Enter");
+    const banSeen = await p2b.waitForFunction(() => document.querySelector(".lk-compose")?.textContent?.includes("kirjoituskielto"), null, { timeout: 8000 }).then(() => true).catch(() => false);
+    ok("9. kirjoituskielto näkyy estetylle selkeästi (suora kirjoitus torjuttu)", banSeen && sql(`select count(*) from public.lk_messages where body = 'estetyn yritys'`) === "0");
+    await admin("unban", { room: RA, message: mid });
+    // uudelleenkirjautuminen: vanhentunut istunto → kirjautumisen tila näkyy
+    await p2b.evaluate(() => localStorage.setItem("futista-lk-auth", JSON.stringify({ access_token: "test-invalid", refresh_token: "r-invalid", expires_at: Date.now() + 3600_000 })));
+    await p2b.reload({ waitUntil: "load" });
+    const relog = await p2b.waitForFunction(() => document.querySelector(".lk-compose")?.textContent?.includes("testikäyttäjille"), null, { timeout: 10000 }).then(() => true).catch(() => false);
+    ok("9. vanhentunut istunto → kirjautumistila näkyy ymmärrettävästi", relog);
+    await c2.close();
+  }
+
+  // ---------- piilotettu välilehti ei pidä liikennettä käynnissä ----------
+  {
+    const open0 = (await rt("/__rt/stats")).open;
+    await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" }); document.dispatchEvent(new Event("visibilitychange")); });
+    await page.waitForTimeout(33000);
+    let reqs = 0; const onReq = (q) => { if (q.url().includes("/api/livekatsomo/")) reqs++; }; page.on("request", onReq);
+    const open1 = (await rt("/__rt/stats")).open;
+    await page.waitForTimeout(20000);
+    page.off("request", onReq);
+    ok("piilossa (> 30 s): Realtime-yhteys suljettu ja ei rajapintapyyntöjä", open1 < open0 && reqs === 0, `yhteydet ${open0}→${open1}, pyyntöjä ${reqs}`);
+    await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, get: () => false }); Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" }); document.dispatchEvent(new Event("visibilitychange")); });
+    const back = await page.waitForFunction(() => document.querySelector(".lk-conn")?.textContent?.includes("Reaaliaikainen"), null, { timeout: 15000 }).then(() => true).catch(() => false);
+    ok("  näkyviin palattaessa yhteys palaa", back);
+  }
 
   // ---------- 9. välilehdet + 11. tuntematon määrä ----------
   sql(`delete from public.lk_presence`);
@@ -473,6 +692,40 @@ async function uiTests() {
     await c2.close();
   }
 
+  // ---------- kapasiteettiraja, katkaisin ja sulkeminen käyttöliittymässä ----------
+  {
+    // Realtime-raja täynnä → uusi lukija ei avaa yhteyttä, harva kysely ja selkeä ilmoitus
+    setS("rt_max_readers=0");
+    const c3 = await mk(); const p4 = await c3.newPage();
+    const att0 = (await rt("/__rt/stats")).attempts;
+    let polls = 0; p4.on("request", (q) => { if (/\/messages/.test(q.url()) && q.method() === "GET") polls++; });
+    await p4.goto(APP + A.href + "?v=livekatsomo", { waitUntil: "load" }); await p4.waitForSelector(".lk-head");
+    await p4.waitForTimeout(35000);
+    const capTxt = await p4.locator(".lk").innerText();
+    ok("10. kapasiteettiraja: selkeä ilmoitus, ei Realtime-yhteyttä", capTxt.includes("paljon lukijoita") && (await rt("/__rt/stats")).attempts === att0, capTxt.match(/Paljon[^\n]*/)?.[0]);
+    ok("10. kapasiteettitilassa rajattu kysely (≤ 3 hakua / 35 s)", polls <= 3, `${polls} hakua`);
+    setS("rt_max_readers=150");
+    await c3.close();
+    // sulkeminen näkyy avoimessa selaimessa
+    const c4 = await mk(); const p5 = await c4.newPage();
+    await p5.goto(APP + A.href + "?v=livekatsomo", { waitUntil: "load" });
+    await p5.waitForFunction(() => document.querySelector(".lk-conn")?.textContent?.includes("Reaaliaikainen"), null, { timeout: 15000 }).catch(() => {});
+    await admin("update_room", { room: RA, manual_state: "paused" });
+    const pausedSeen = await p5.waitForFunction(() => document.querySelector(".lk-note")?.textContent?.includes("keskeytetty"), null, { timeout: 6000 }).then(() => true).catch(() => false);
+    ok("9. keskeytys näkyy avoimessa keskustelussa (Realtime)", pausedSeen);
+    await admin("update_room", { room: RA, manual_state: "open" });
+    // katkaisin: avoin keskustelu sulkeutuu hallitusti, tilaus ja ajastimet loppuvat
+    await admin("set_enabled", { enabled: false });
+    const offSeen = await p5.waitForFunction(() => document.body.innerText.includes("Livekatsomo ei ole nyt käytössä"), null, { timeout: 8000 }).then(() => true).catch(() => false);
+    let after = 0; p5.on("request", (q) => { if (q.url().includes("/api/livekatsomo/")) after++; });
+    await p5.waitForTimeout(15000);
+    ok("10. katkaisin: avoin keskustelu näyttää 'ei käytössä' ja liikenne loppuu", offSeen && after === 0, `pyyntöjä ${after}`);
+    const rest = await p5.locator("main .match-hero").count();
+    ok("10. muu Futista toimii chatin ollessa pois (ottelusivu näkyy)", rest === 1);
+    await admin("set_enabled", { enabled: true });
+    await c4.close();
+  }
+
   // ---------- suljettu / tuleva keskustelu käyttöliittymässä ----------
   ctx = await mk(); await login(ctx, UA); page = await ctx.newPage();
   await page.goto(APP + B.href + "?v=livekatsomo", { waitUntil: "load" }); await page.waitForSelector(".lk-note");
@@ -504,10 +757,17 @@ async function uiTests() {
   const r = await fetch(APP + "/livekatsomo/kirjaudu");
   ok("  paluusivua ei välimuistiteta", /no-store|no-cache/.test(r.headers.get("cache-control") ?? ""), r.headers.get("cache-control"));
   await ctx.close();
+  await measure(browser, fdRows[2] ?? fdRows[0], "realtime");
   await browser.close();
 }
 
 (async () => {
+  if (MODE === "poll") {
+    try { await pollTests(); } catch (e) { ok("testiajo ilman poikkeusta (kyselytila)", false, String(e?.stack || e)); }
+    const bad = results.filter((r) => !r.ok).length;
+    console.log(`TULOS: ${results.length - bad}/${results.length} OK`);
+    process.exit(bad ? 1 : 0);
+  }
   try {
     await apiTests();
   } catch (e) { ok("testiajo ilman poikkeusta (rajapinta)", false, String(e?.stack || e)); }

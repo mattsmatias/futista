@@ -17,6 +17,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!localLimit(`pres:${ip}`, 30, 60_000)) return json({ error: "rate" }, 429);
     const user = await authUser(req);
     const r = await rpc<any>("lk_presence_beat", { p_room: params.id, p_sess: sess, p_user: user, p_ip_hash: ip });
-    return json(r, r?.ok ? 200 : 404);
+    return json(r, r?.ok ? 200 : r?.error === "off" ? 503 : 404);
   });
 }

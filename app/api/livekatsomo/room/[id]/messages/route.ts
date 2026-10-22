@@ -16,6 +16,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const after = num(u.searchParams.get("after")), before = num(u.searchParams.get("before"));
   return handle(async () => {
     const r = await rpc<any>("lk_messages_page", { p_room: params.id, p_after: after, p_before: before, p_limit: 50 });
+    if (r?.error === "off") return json({ enabled: false, error: "off" }, 503, "public, s-maxage=30");
     if (!r?.ok) return json({ error: "room" }, 404, "public, s-maxage=30");
     // vanhemmat sivut eivät muutu juuri → pidempi välimuisti; uusimmat lyhyt (kaikki lukijat jakavat vastauksen)
     return json(r, 200, before !== null ? "public, s-maxage=30" : "public, s-maxage=1, stale-while-revalidate=2");
@@ -34,7 +35,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (c.ok === false) return json({ ok: false, error: c.error }, 400);
     const reply = typeof b?.reply_to === "number" && Number.isInteger(b.reply_to) && b.reply_to > 0 ? b.reply_to : null;
     const r = await rpc<any>("lk_send", { p_room: params.id, p_user: user, p_client_id: b.client_id, p_body: c.body, p_norm: c.norm, p_has_link: c.hasLink, p_reply_to: reply });
-    const status = r?.ok ? 200 : r?.error === "rate" ? 429 : r?.error === "banned" ? 403 : String(r?.error ?? "").startsWith("state_") || r?.error === "read_only" ? 409 : 400;
+    const status = r?.ok ? 200 : r?.error === "rate" ? 429 : r?.error === "banned" ? 403 : r?.error === "off" ? 503 : String(r?.error ?? "").startsWith("state_") || r?.error === "read_only" ? 409 : 400;
     return json(r, status);
   });
 }

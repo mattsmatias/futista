@@ -1,4 +1,4 @@
-import { lkOn, rpc, json, handle, uuidOk } from "@/lib/lk-server";
+import { lkOn, rpc, json, handle, uuidOk, loginMode, realtimeConfig } from "@/lib/lk-server";
 import { getEspnLive } from "@/lib/espn";
 import { sameTeam } from "@/lib/live-core";
 
@@ -12,6 +12,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!uuidOk(params.id)) return json({ error: "room" }, 404);
   return handle(async () => {
     let room = await rpc<any>("lk_room_get", { p_room: params.id });
+    if (room?.error === "off") return json({ enabled: false }, 200, "public, s-maxage=30");
     if (room?.error) return json({ error: "room" }, 404, "public, s-maxage=30");
     if ((room.state === "open" || room.state === "paused") && !room.ft_confirmed && Date.now() > Date.parse(room.kickoff) + 95 * 60_000) {
       const live = await getEspnLive().catch(() => null);
@@ -19,6 +20,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
         && sameTeam(room.home, m.home) && sameTeam(room.away, m.away));
       if (hit) { await rpc("lk_confirm_ft", { p_room: params.id, p_at: new Date(live!.at ?? Date.now()).toISOString() }); room = await rpc<any>("lk_room_get", { p_room: params.id }); }
     }
-    return json({ enabled: true, room }, 200, "public, s-maxage=5, stale-while-revalidate=5");
+    return json({ enabled: true, login: loginMode(), rt: realtimeConfig(), room }, 200, "public, s-maxage=5, stale-while-revalidate=5");
   });
 }

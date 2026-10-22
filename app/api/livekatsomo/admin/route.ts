@@ -4,7 +4,7 @@ import { lkOn, rpc, json, handle, requireUser } from "@/lib/lk-server";
 // selaimen pyynnön muokkaus ei anna oikeuksia.
 export const dynamic = "force-dynamic";
 
-const ACTIONS = new Set(["create_room", "update_room", "delete_message", "ban", "unban", "resolve_report", "reports", "log", "rooms"]);
+const ACTIONS = new Set(["create_room", "update_room", "delete_message", "ban", "unban", "resolve_report", "reports", "log", "rooms", "status", "set_enabled"]);
 
 export async function POST(req: Request) {
   if (!lkOn()) return json({ error: "off" }, 503);
