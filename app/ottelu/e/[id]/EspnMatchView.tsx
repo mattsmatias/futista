@@ -1,4 +1,5 @@
 "use client";
+import { CompMark } from "../../../ui/CompMark";
 import type { EspnMatch } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { AutoRefresh, Num } from "@/lib/fresh";
@@ -31,7 +32,7 @@ export default function EspnMatchView({ m, at }: { m: EspnMatch; at: number }) {
       <main className="wrap entity">
         <section className="match-hero mh-generic">
           <div className="mh-meta">
-            <span className={`chip g-comp ${compClass(g.slug)}`}>{compName(g, i.lang)}</span>
+            <span className={`chip g-comp ${compClass(g.slug)}`}><CompMark slug={g.slug} small />{compName(g, i.lang)}</span>
             <span suppressHydrationWarning>{i.day(g.date)} · {g.time}</span>
           </div>
           <div className="mh-row">

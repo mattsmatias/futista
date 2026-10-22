@@ -1,4 +1,5 @@
 "use client";
+import { CompMark } from "../../ui/CompMark";
 import SafeImg from "../../SafeImg";
 import type { Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
@@ -61,7 +62,7 @@ export default function PlayerView({ p }: { p: PlayerData }) {
           {p.matches.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
           {p.matches.map((m, n) => (
             <div className="mrow-wrap" key={n}>
-              <span className="mrow-comp">{m.source ? i.league(m.source, m.comp) : m.comp} · {i.day(m.date)}</span>
+              <span className="mrow-comp">{m.source && <CompMark id={m.source} small />}{m.source ? i.league(m.source, m.comp) : m.comp} · {i.day(m.date)}</span>
               {m.href
                 ? <MatchRow href={m.href} home={m.home} away={m.away} time={m.time} s={m.hs != null ? { kind: "ft", hs: m.hs, as: m.as } : { kind: "upcoming" }} />
                 : <div className="mrow"><span className="mrow-link nolink">

@@ -40,3 +40,18 @@ export const COMP_EMBLEM: Record<SourceId, { light: string; dark?: string }> = {
 
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));
 export const hasNews = (id: string) => !!SOURCES.find((s) => s.id === id)?.feeds.length;
+
+/** Kilpailun logo ESPN:n kilpailutunnuksella (joukkue- ja maajoukkuesivujen ottelulistat, joissa on myös cupit).
+ *  Osoitteet ESPN:n omista kilpailutiedoista 22.10.2026 (scoreboard → leagues[0].logos). Kilpailut, joille ESPN antaa
+ *  vain yleiskuvan (esim. Saksan Supercup, Community Shield), jätetään pois → näytetään neutraali merkki. */
+const ESPN_LIGHT = (n: number) => ({ light: `https://a.espncdn.com/i/leaguelogos/soccer/500/${n}.png` });
+export const SLUG_EMBLEM: Record<string, { light: string; dark?: string }> = {
+  "uefa.champions": espn(2), "esp.1": espn(15), "eng.1": espn(23), "ger.1": espn(10), "ita.1": espn(12), "fra.1": espn(9),
+  "ned.1": espn(11), "por.1": espn(14), "eng.2": espn(24), "tur.1": espn(18), "usa.1": espn(19),
+  "uefa.europa": espn(2310), "uefa.europa.conf": espn(20296), "uefa.super_cup": espn(1272), "fifa.cwc": espn(1932),
+  "ger.dfb_pokal": espn(2061), "eng.fa": espn(40), "eng.league_cup": espn(41), "esp.copa_del_rey": espn(80),
+  "esp.super_cup": ESPN_LIGHT(431), "ita.coppa_italia": ESPN_LIGHT(2192), "fra.coupe_de_france": espn(182),
+  "ned.cup": espn(2196), "usa.open": ESPN_LIGHT(69), "concacaf.leagues.cup": espn(2410),
+};
+/** Karsinnat käyttävät pääkilpailun logoa (esim. uefa.champions_qual → Mestarien liiga) */
+export const emblemForSlug = (slug: string) => SLUG_EMBLEM[slug] ?? SLUG_EMBLEM[slug.replace(/_qual$/, "")];

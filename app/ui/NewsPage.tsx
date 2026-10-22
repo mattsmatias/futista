@@ -1,5 +1,6 @@
 "use client";
 // Uutiset: pääuutinen, tuoreimmat, kilpailusuodatin ja siirtouutiset omana suodattimenaan. Jokainen juttu kerran.
+import { CompMark } from "./CompMark";
 import { useMemo, useState } from "react";
 import type { Article } from "@/lib/feed";
 import { SOURCES, isMain } from "@/lib/sources";
@@ -32,7 +33,7 @@ export default function NewsPage({ articles: first }: { articles: Article[] }) {
             <button type="button" aria-pressed={comp === "all"} className={`fbtn${comp === "all" ? " on" : ""}`} onClick={() => { setComp("all"); setN(PAGE); }}>{t("all")}</button>
             {SOURCES.filter((s) => isMain(s.id)).map((s) => (
               <button key={s.id} type="button" aria-pressed={comp === s.id} className={`fbtn${comp === s.id ? " on" : ""}`} onClick={() => { setComp(s.id); setN(PAGE); }}>
-                <i className={`dot dot-${s.id}`} aria-hidden="true" />{i.league(s.id, s.league)}
+                <CompMark id={s.id} small />{i.league(s.id, s.league)}
               </button>
             ))}
           </div>

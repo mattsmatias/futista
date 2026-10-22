@@ -1,4 +1,5 @@
 "use client";
+import { CompMark } from "../../../ui/CompMark";
 import { useEffect, useRef, useState } from "react";
 import { usePersistentState } from "@/lib/persist";
 import type { Article } from "@/lib/feed";
@@ -250,7 +251,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
             const on = g.kind === "live" || g.kind === "ht";
             const inner = (
               <>
-                <span className="nc-label"><span className={`g-comp ${compClass(g.slug)}`}>{compName(g, i.lang)}</span> {on ? "" : `${t("nextMatch")} · ${i.day(g.date)} ${g.time}`}</span>
+                <span className="nc-label"><span className={`g-comp ${compClass(g.slug)}`}><CompMark slug={g.slug} small />{compName(g, i.lang)}</span> {on ? "" : `${t("nextMatch")} · ${i.day(g.date)} ${g.time}`}</span>
                 <span className="nc-row">
                   <span className="nc-team"><GBadge t={g.home} size={44} /><b>{g.home.name}</b></span>
                   <span className={`nc-vs${on ? " nc-live" : ""}`}>{on && g.hs !== null ? `${g.hs}–${g.as}` : g.time}</span>

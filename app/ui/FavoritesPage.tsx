@@ -1,5 +1,6 @@
 "use client";
 // Suosikit: suosikkien seuraavat ottelut (myös tämän päivän), seuratut joukkueet, ilmoitukset, uutiset.
+import { CompMark } from "./CompMark";
 import { useEffect, useMemo, useState } from "react";
 import type { Article } from "@/lib/feed";
 import type { LeagueStats, Team } from "@/lib/stats";
@@ -92,7 +93,7 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
               <div className="cg-list panel-list">
                 {next.map(({ f, source }) => (
                   <div className="mrow-wrap" key={source + f.date + f.home.name}>
-                    <span className="mrow-comp">{i.day(f.date)} · {i.league(source, source)}</span>
+                    <span className="mrow-comp"><CompMark id={source} small />{i.day(f.date)} · {i.league(source, source)}</span>
                     <MatchRow href={matchHref(source, f.date, f.home.name, f.away.name)} home={f.home} away={f.away} time={f.time}
                       s={matchState({ ...f, source }, live, now)} highlight={isFav} />
                   </div>

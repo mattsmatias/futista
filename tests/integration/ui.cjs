@@ -281,6 +281,10 @@ const MIN = 60_000;
     const lastHref = await fa.locator(".fp").last().getAttribute("href");
     ok("  merkki avaa ottelun", !!lastHref && lastHref.startsWith("/ottelu/"), String(lastHref));
     ok("  värit: voitto vihreä, tasapeli harmaa, häviö punainen", (await fa.locator(".fp-w").count()) === 2 && (await fa.locator(".fp-d").count()) === 2 && (await fa.locator(".fp-l").count()) === 1);
+    // kilpailujen logot värineliön tilalla (ESPN:n kilpailulogot; testiympäristössä kuvat eivät lataudu → neutraali piste)
+    const teamHtml = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
+    ok("kilpailulogot: Eurooppa-liigan ja Süper Ligin logo ottelulistassa", teamHtml.includes("leaguelogos/soccer/500/2310.png") && teamHtml.includes("leaguelogos/soccer/500/18.png"));
+    ok("  ei värineliötä kilpailun nimen edessä", await page.evaluate(() => [...document.querySelectorAll(".g-comp")].every((e) => getComputedStyle(e, "::before").content === "none" || getComputedStyle(e, "::before").content === "normal")));
     // uutisten reaktiot (Supabase-emulaattori + migraatio)
     let rr = await fetch(`${APP}/api/reactions?a=testi/2026/10/21/juttu`); let rj = await rr.json();
     ok("reaktiot: haku palauttaa summat (käytössä)", rr.status === 200 && rj.enabled === true && rj.up === 0 && rj.down === 0, JSON.stringify(rj));

@@ -787,7 +787,7 @@ details.fold[open] > summary::after { transform: rotate(180deg); }
   @keyframes slidein { from { opacity: 0; transform: translateY(-10px) scale(.98); } to { opacity: 1; transform: none; } }
   .card, .mini, .score-card, .match, .hero { transition: transform .2s ease, box-shadow .25s ease, background-color .2s ease, border-color .2s ease; }
 }
-.is-new::before { content: ""; position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #e5484d; z-index: 3; box-shadow: 0 0 0 3px color-mix(in srgb, #e5484d 25%, transparent); }
+/* uuden jutun punainen piste poistettu 22.10.2026 (käyttäjän pyyntö); luettu juttu himmenee edelleen (.is-read) */
 .card.is-new, .mini.is-new, .hero.is-new { position: relative; }
 .mh-score.mh-live b { opacity: 1; }
 a { -webkit-tap-highlight-color: transparent; }
@@ -859,7 +859,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .c-cup { --gc: #c2255c; } .c-fr { --gc: var(--muted); }
 .g-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .g-comp { display: inline-flex; align-items: center; gap: 6px; color: var(--gc); letter-spacing: .04em; }
-.g-comp::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--gc); flex: none; }
+
 .g-label > span:last-child { white-space: nowrap; }
 .nc-label .g-comp { margin-right: 4px; }
 .nc-vs.nc-live { color: var(--live, #e03131); }
@@ -1462,3 +1462,14 @@ html { touch-action: manipulation; }
 .form-totals { margin: 0; }
 .form-totals b { color: var(--fg); font-weight: 600; }
 .form-all .fp { width: 28px; height: 28px; }
+
+/* Kilpailun pieni logo tekstirivin alussa (korvaa värineliön) */
+.cmark.cmark-logo.cm-sm { width: 18px; height: 18px; padding: 0; border-radius: 4px; margin-right: 6px; vertical-align: -4px; }
+h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm { margin-right: 6px; }
+.cm-dot { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; margin-right: 6px; vertical-align: 2px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cmark.cmark-logo.cm-sm:not(.has-dark) { padding: 1px; } }
+:root[data-theme="dark"] .cmark.cmark-logo.cm-sm:not(.has-dark) { background: #fff; padding: 1px; }
+.g-comp .cmark.cm-sm, .g-comp .cm-dot { margin-right: 0; }
+.match-hero .cmark.has-dark .cl-light { display: none; }
+.match-hero .cmark.has-dark .cl-dark { display: block; }
+.match-hero .cmark.cmark-logo.cm-sm:not(.has-dark) { background: #fff; padding: 1px; }

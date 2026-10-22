@@ -1,4 +1,5 @@
 "use client";
+import { CompMark } from "./ui/CompMark";
 import { useEffect, useState } from "react";
 import type { Fixture, LeagueStats, Result, Team } from "@/lib/stats";
 import { SOURCES, clubByName } from "@/lib/sources";
@@ -107,7 +108,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
   return (
     <div className="panel">
       <div className="panel-head">
-        <h3><i className={`bar-${s.source}`} />{i.league(s.source, s.league)}</h3>
+        <h3><CompMark id={s.source} small />{i.league(s.source, s.league)}</h3>
         <span className="muted">{t("standing")}{s.season ? ` · ${s.season}` : ""}</span>
       </div>
       {rows.length === 0 ? <p className="muted pad">{s.failed?.includes("table") ? t("sourceDown") : t("noTable")}</p> : (
@@ -161,7 +162,7 @@ function UpcomingCard({ f }: { f: Fixture & { s: string; league: string } }) {
   const live = st.kind === "live" || st.kind === "ht";
   return (
     <a className={`score-card up${live ? " is-live" : ""}`} href={matchHref(f.s, f.date, f.home.name, f.away.name)}>
-      <div className="sc-top"><span className={`dot-${f.s}`} />{i.league(f.s, f.league)}
+      <div className="sc-top"><CompMark id={f.s} small />{i.league(f.s, f.league)}
         <span className="ft">{st.kind === "upcoming" ? `${i.day(f.date)} · ${f.time}` : <StatusPill s={st} />}</span>
       </div>
       <div className="sc-row"><Badge t={f.home} /><span>{f.home.name}</span>{hasScore(st) && <Num v={st.hs} />}</div>
@@ -191,7 +192,7 @@ export function Results({ stats }: { stats: LeagueStats[] }) {
           return (
             <div className="panel" key={s.source}>
               <div className="panel-head">
-                <h3><i className={`bar-${s.source}`} />{i.league(s.source, s.league)}</h3>
+                <h3><CompMark id={s.source} small />{i.league(s.source, s.league)}</h3>
                 <span className="muted">{tab === "up" ? t("upcomingMatches") : t("results")}</span>
               </div>
               {days.length === 0 && <p className="muted pad">{s.failed?.includes(tab === "up" ? "fixtures" : "results") ? t("sourceDown") : tab === "up" ? t("noUpcoming") : t("noPlayed")}</p>}
@@ -229,7 +230,7 @@ export function ScoreRail({ stats, onMore }: { stats: LeagueStats[]; onMore: () 
       <div className="rail scores">
         {items.map((r) => (
           <a key={r.s + r.date + r.home.name} className="score-card" href={matchHref(r.s, r.date, r.home.name, r.away.name)}>
-            <div className="sc-top"><span className={`dot-${r.s}`} />{i.league(r.s, r.league)}<span className="ft">{t("ft")} · {i.day(r.date)}</span></div>
+            <div className="sc-top"><CompMark id={r.s} small />{i.league(r.s, r.league)}<span className="ft">{t("ft")} · {i.day(r.date)}</span></div>
             <div className={`sc-row${r.hs > r.as ? " win" : ""}`}><Badge t={r.home} /><span>{r.home.name}</span><b>{r.hs}</b></div>
             <div className={`sc-row${r.as > r.hs ? " win" : ""}`}><Badge t={r.away} /><span>{r.away.name}</span><b>{r.as}</b></div>
           </a>
@@ -291,7 +292,7 @@ export function LeaguePicker({ value, onChange, intl }: { value: string; onChang
       <button className={value === "main" ? "on" : ""} onClick={() => onChange("main")}>{i.t("mainLeagues")}</button>
       {SOURCES.filter((s) => enabled || s.feeds.length).map((s) => (
         <button key={s.id} className={value === s.id ? `on on-${s.id}` : ""} onClick={() => onChange(s.id)}>
-          <i className={`dot-${s.id}`} />{i.league(s.id, s.league)}
+          <CompMark id={s.id} small />{i.league(s.id, s.league)}
         </button>
       ))}
       {intl && <button className={value === "intl" ? "on on-intl" : ""} onClick={() => onChange("intl")}><i className="dot-intl" />{i.t("nationalTeams")}</button>}
@@ -307,7 +308,7 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
   return (
     <div className="panel">
       <div className="panel-head">
-        <h3><i className={`bar-${source}`} />{i.league(source, league)}</h3>
+        <h3><CompMark id={source} small />{i.league(source, league)}</h3>
         <span className="muted">{t("scorers")}{data?.season ? ` · ${data.season}` : ""}</span>
       </div>
       {list.length === 0 ? <p className="muted pad">{t("noScorers")}</p> : (

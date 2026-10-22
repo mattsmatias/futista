@@ -1,4 +1,5 @@
 "use client";
+import { CompMark } from "../../ui/CompMark";
 import { usePersistentState } from "@/lib/persist";
 import type { Game, GameTeam } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
@@ -46,7 +47,7 @@ export default function NationView({ id, team, games }: { id: string; team: Game
 
         {next && (
           <a className="next-card" href={`/ottelu/e/${next.id}`}>
-            <span className="nc-label"><span className={`g-comp ${compClass(next.slug)}`}>{compName(next, i.lang)}</span> {isOn(next) ? "" : `${t("nextMatch")} · ${i.day(next.date)} ${next.time}`}</span>
+            <span className="nc-label"><span className={`g-comp ${compClass(next.slug)}`}><CompMark slug={next.slug} small />{compName(next, i.lang)}</span> {isOn(next) ? "" : `${t("nextMatch")} · ${i.day(next.date)} ${next.time}`}</span>
             <span className="nc-row">
               <span className="nc-team"><GBadge t={next.home} size={44} /><b>{nm(next.home)}</b></span>
               <span className={`nc-vs${isOn(next) ? " nc-live" : ""}`}>{isOn(next) && next.hs !== null ? `${next.hs}–${next.as}` : next.time}</span>
