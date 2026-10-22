@@ -173,7 +173,21 @@ const MIN = 60_000;
     const pick = addD(today, 2);
     await page.locator(".dp-input").fill(pick); await page.waitForTimeout(800);
     ok("  päivän valinta kalenterista vaihtaa päivän", new URL(page.url()).searchParams.get("pv") === pick, page.url());
-    await page.locator(".daypick button[aria-label='Seuraava päivä']").click(); await page.waitForTimeout(300);
+    // "Huomenna · la 24.10." + "Tähän päivään" -painike kapealla näytöllä: teksti ei mene nuolten alle
+    await page.locator(".dp-input").fill(addD(today, 1)); await page.waitForTimeout(600);
+    for (const w of [320, 360, 390]) {
+      await page.setViewportSize({ width: w, height: 844 }); await page.waitForTimeout(150);
+      const r = await page.evaluate(() => {
+        const q = (s) => document.querySelector(s).getBoundingClientRect();
+        const lab = document.querySelector(".dp-label"), parts = [...lab.children].map((e) => e.getBoundingClientRect());
+        const L = Math.min(...parts.map((p) => p.left)), R = Math.max(...parts.map((p) => p.right));
+        const prev = q(".daypick button[aria-label='Edellinen päivä']"), next = q(".daypick button[aria-label='Seuraava päivä']");
+        const cut = [...lab.children].some((e) => e.scrollWidth > e.clientWidth + 1);
+        return { ok: L >= prev.right - 1 && R <= next.left + 1, cut, txt: lab.innerText.replace(/\n/g, " | "), L, R, pr: prev.right, nl: next.left };
+      });
+      ok(`  ${w} px: päivän nimi ja päivämäärä mahtuvat nuolten väliin kokonaan`, r.ok && !r.cut, JSON.stringify(r));
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.locator(".daypick .dp-today").click().catch(() => {}); await page.waitForTimeout(300);
     for (let i = 0; i < 5; i++) await page.locator(".daypick button[aria-label='Seuraava päivä']").click();
     await page.waitForTimeout(1200);

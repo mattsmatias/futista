@@ -17,10 +17,10 @@ export default function DayPicker({ date, today, onChange, min, max }: { date: s
   const { t } = i;
   const l = dayLabel(date, today, i.lang, t);
   return (
-    <div className="daypick" role="group" aria-label={t("pickDate")}>
+    <div className={"daypick" + (date !== today ? " dp-stack" : "")} role="group" aria-label={t("pickDate")}>
       <button type="button" className="icon-btn" onClick={() => onChange(addDays(date, -1))} aria-label={t("prevDay")} disabled={!!min && date <= min}>{Icon.prev}</button>
       <div className="dp-mid">
-        <span className="dp-label" aria-live="polite"><b>{l.rel ?? l.main}</b>{l.rel && <span> · {l.main}</span>}</span>
+        <span className="dp-label" aria-live="polite"><b>{l.rel ?? l.main}</b>{l.rel && <span className="dp-date"><span className="dp-sep"> · </span>{l.main}</span>}</span>
       </div>
       <button type="button" className="icon-btn" onClick={() => onChange(addDays(date, 1))} aria-label={t("nextDay")} disabled={!!max && date >= max}>{Icon.next}</button>
       {/* Kalenteri: oikea päivämääräkenttä on näkymättömänä kuvakkeen päällä, joten napautus osuu suoraan siihen.

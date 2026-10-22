@@ -1021,8 +1021,14 @@ div.match { cursor: default; }
 .mh-controls { display: grid; gap: 10px; position: sticky; top: calc(var(--appbar-h) + env(safe-area-inset-top, 0px)); z-index: 20; background: var(--bg); padding: 6px 0 8px; margin: -6px 0 0; }
 .mh-controls .fresh-line { margin: 0; font-size: 12px; }
 .daypick { display: flex; align-items: center; gap: 4px; }
-.dp-mid { flex: 1; min-width: 0; text-align: center; }
+.dp-mid { flex: 1; min-width: 0; text-align: center; overflow: hidden; }
 .dp-label { font-size: 15px; white-space: nowrap; }
+.dp-label > * { overflow: hidden; text-overflow: ellipsis; }
+/* muu kuin tämä päivä ("Tähän päivään" -painike vie tilaa): päivän nimi ja päivämäärä allekkain, ei mene nuolten alle */
+.dp-stack .dp-label { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.dp-stack .dp-label > * { max-width: 100%; }
+.dp-stack .dp-sep { display: none; }
+.dp-stack .dp-date { font-size: 13px; }
 .dp-label b { font-weight: 750; }
 .dp-label span { color: var(--muted); }
 .dp-cal { position: relative; }
