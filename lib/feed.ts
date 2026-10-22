@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { stableCache } from "./stable-cache";
+import { nodeFetch } from "./http";
 import { isPromo } from "./promo";
 import { SOURCES, siteName, type Source, type SourceId } from "./sources";
 
@@ -64,7 +65,7 @@ async function fetchFeed(src: Source, feedUrl: string): Promise<Article[]> {
   const to = setTimeout(() => ctl.abort(), 20_000);
   let xml: string;
   try {
-    const res = await fetch(feedUrl, { cache: "no-store", headers: { "User-Agent": "Futista/1.0" }, signal: ctl.signal });
+    const res = await nodeFetch(feedUrl, { headers: { "User-Agent": "Futista/1.0" }, signal: ctl.signal });
     if (!res.ok) throw new Error(`http ${res.status}`);
     xml = await res.text();
   } finally {
@@ -99,11 +100,16 @@ async function fetchFeed(src: Source, feedUrl: string): Promise<Article[]> {
   });
 }
 
-/** Uutiset kaikista syötteistä; käsitelty lista tallennetaan kolmeksi minuutiksi */
-export const getArticles = stableCache(readAll, ["articles-v3"], { revalidate: 180 });
+/** Uutiset kaikista syötteistä; käsitelty lista tallennetaan kolmeksi minuutiksi. Tyhjää listaa ei tallenneta
+ *  (kaikki syötteet epäonnistuivat): edellinen onnistunut lista jää voimaan. */
+const cachedArticles = stableCache(readAll, ["articles-v4"], { revalidate: 180 });
+export async function getArticles(): Promise<Article[]> {
+  try { return await cachedArticles(); } catch (e) { console.warn("uutiset", (e as Error)?.message); return []; }
+}
 
 async function readAll(): Promise<Article[]> {
   const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, f))))).flat();
+  if (!all.length) throw new Error("yksikään uutissyöte ei vastannut");
   // sama juttu voi tulla kahdesta syötteestä
   const seen = new Set<string>();
   const unique = all.filter((a) => {

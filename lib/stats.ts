@@ -1,5 +1,6 @@
 import { parseHTML } from "linkedom";
 import { stableCache } from "./stable-cache";
+import { nodeFetch } from "./http";
 import { SOURCES, type SourceId } from "./sources";
 import { crestLookup } from "./crests";
 import { fdMeta } from "./fd";
@@ -30,13 +31,13 @@ async function getHtml(url: string): Promise<{ html: string; at: number }> {
   const ctl = new AbortController();
   const to = setTimeout(() => ctl.abort(), 20_000);
   try {
-    const res = await fetch(url, { cache: "no-store", headers: UA, signal: ctl.signal });
+    const res = await nodeFetch(url, { headers: UA, signal: ctl.signal });
     if (!res.ok) throw new Error(`http ${res.status}`);
     const html = await res.text();
     const d = Date.parse(res.headers.get("date") ?? "");
     return { html, at: Number.isFinite(d) ? d : Date.now() };
   } catch (e) {
-    const msg = (e as Error)?.name === "AbortError" ? "aikakatkaisu 20 s" : (e as Error)?.message;
+    const msg = (e as Error)?.name === "AbortError" || (e as Error)?.message === "aborted" ? "aikakatkaisu 20 s" : (e as Error)?.message;
     throw new Error(`lähdesivu ${url}: ${msg}`);
   } finally {
     clearTimeout(to);

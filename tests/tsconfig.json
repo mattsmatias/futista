@@ -13,6 +13,7 @@
     ]
   },
   "files": [
+    "http.test.ts",
     "next-fetch.d.ts",
     "data.test.ts",
     "quota.test.ts",
