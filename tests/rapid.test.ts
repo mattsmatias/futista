@@ -192,3 +192,20 @@ test("pelaajan juoksumatka ja huippunopeus vain, kun lähde antaa ne; arvosanan 
   assert.deepEqual([parseLineup(fx("ll_h.json"))!.starters[0].distance, parseLineup(fx("ll_h.json"))!.starters[0].topSpeed], [null, null]);
   assert.deepEqual([8.7, 7.3, 6.7, 6.1, 5.7, null].map(ratingTier), ["top", "good", "ok", "mid", "low", "none"]);
 });
+
+test("findEvent: tuntematon kilpailutunniste → yhdistetään vain, jos molemmat joukkueet ja aika täsmäävät yksiselitteisesti", () => {
+  const T = (id: number, ...names: string[]) => ({ id, names });
+  const k = Date.parse("2026-10-21T19:00:00Z");
+  const m = (id: number, leagueId: number, h: any, a: any, utc = k) => ({ id, leagueId, utc, home: h, away: a, started: true, finished: true, cancelled: false, reason: null });
+  const ours = { source: "ucl", date: "2026-10-21", kickoff: k, home: { name: "FC Bayern München", id: 5 }, away: { name: "Arsenal FC", id: 57 } };
+  const list = [m(1, 999001, T(9, "Bayern München"), T(8, "Arsenal")), m(2, 999001, T(7, "Real Madrid"), T(6, "RB Leipzig"))];
+  const r = findEvent(list as any, ours);
+  assert.equal(r.status, "ok"); assert.equal((r as any).match.id, 1); assert.equal((r as any).via, "teams");
+  // väärä aika → ei osumaa
+  assert.equal(findEvent([m(1, 999001, T(9, "Bayern München"), T(8, "Arsenal"), k + 5 * 3600_000)] as any, ours).status, "none");
+  // kaksi ehdokasta → ei yhdistetä
+  assert.equal(findEvent([...list, m(3, 999002, T(9, "Bayern München"), T(8, "Arsenal"))] as any, ours).status, "ambiguous");
+  // oikea sarjatunniste voittaa
+  const r2 = findEvent([m(4, 42, T(9, "Bayern München"), T(8, "Arsenal")), m(5, 999001, T(9, "Bayern München"), T(8, "Arsenal"))] as any, ours);
+  assert.equal((r2 as any).match.id, 4); assert.equal((r2 as any).via, undefined);
+});

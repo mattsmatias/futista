@@ -116,6 +116,8 @@ const PEEK = new AsyncLocalStorage<boolean>();
 class Miss extends Error {}
 const parsers: Record<string, (j: any) => unknown> = {
   day: (j) => parseDay(j),
+  // kaikki päivän ottelut (myös tuntemattomat kilpailutunnisteet) → ks. findEvent, joukkueilla ja ajalla yhdistäminen
+  dayall: (j) => parseDay(j, null),
   lineup: (j) => parseLineup(j),
   stats: (j) => parseStats(j),
 };
@@ -170,9 +172,10 @@ export async function rapidEvent(ours: { source: string; date: string; kickoff: 
   let last: FindResult = { status: "none" }, at = 0;
   for (const d of dates) {
     const past = Date.parse(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T19:00:00Z`) < Date.now() - 6 * 3600_000;
-    const r = await withFallback<RapidMatch[]>("day", `/football-get-matches-by-date?date=${d}`, "d", past ? 7 * 86400 : 6 * 3600);
+    const r = await withFallback<RapidMatch[]>("dayall", `/football-get-matches-by-date?date=${d}`, "d", past ? 7 * 86400 : 6 * 3600);
     if (r.status !== "ok") return r;
     last = findEvent(r.data, ours); at = r.at;
+    if (last.status === "ok" && last.via === "teams") console.info("rapidapi: kilpailun tunniste lähteessä", ours.source, last.match.leagueId);
     if (last.status !== "none") break;
   }
   return { status: "ok", find: last, at };

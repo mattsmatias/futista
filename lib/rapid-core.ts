@@ -53,14 +53,14 @@ const num = (v: unknown): number | null => {
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
 /** Päivän ottelulista (/football-get-matches-by-date). Vastaus on {response:{matches:[…]}} tai {response:[…]}. */
-export function parseDay(json: any, leagues: number[] = Object.values(RAPID_LEAGUE)): RapidMatch[] | null {
+export function parseDay(json: any, leagues: number[] | null = Object.values(RAPID_LEAGUE)): RapidMatch[] | null {
   if (!json || typeof json !== "object" || json.status !== "success") return null;
   const r = json.response;
   const list: any[] | null = Array.isArray(r) ? r : Array.isArray(r?.matches) ? r.matches : null;
   if (!list) return null;
   const team = (t: any): RapidTeam => ({ id: num(t?.id), names: [...new Set([str(t?.name), str(t?.shortName), str(t?.longName)].filter(Boolean) as string[])] });
   return list
-    .filter((m) => leagues.includes(Number(m?.leagueId)) && num(m?.id) !== null)
+    .filter((m) => (!leagues || leagues.includes(Number(m?.leagueId))) && num(m?.id) !== null)
     .map((m) => {
       const t = Date.parse(m?.status?.utcTime ?? "");
       return {
@@ -92,20 +92,25 @@ export function sameClub(ours: { name: string; id?: number }, theirs: RapidTeam)
   return our.some((n) => their.includes(n));
 }
 
-export type FindResult = { status: "ok"; match: RapidMatch } | { status: "none" } | { status: "ambiguous" } | { status: "cancelled" };
+export type FindResult = { status: "ok"; match: RapidMatch; via?: "league" | "teams" } | { status: "none" } | { status: "ambiguous" } | { status: "cancelled" };
 
 /** Etsi meidän ottelua vastaava lähteen ottelu: sama sarja, molemmat joukkueet ja alkamisaika.
  *  Aika: jos meidän aloitusaika tiedetään, ero enintään 2 h; muuten sama päivä Suomen ajassa. Epäselvä → ei yhdistetä. */
 export function findEvent(list: RapidMatch[], ours: { source: string; date: string; kickoff: number | null; home: { name: string; id?: number }; away: { name: string; id?: number } }): FindResult {
   const league = RAPID_LEAGUE[ours.source];
   if (!league) return { status: "none" };
-  const hits = list.filter((m) => {
-    if (m.leagueId !== league || m.utc === null) return false;
-    if (!sameClub(ours.home, m.home) || !sameClub(ours.away, m.away)) return false;
-    return ours.kickoff !== null ? Math.abs(m.utc - ours.kickoff) <= 2 * 3600_000 : helsinkiParts(m.utc).date === ours.date;
-  });
+  const same = (m: RapidMatch) => m.utc !== null && sameClub(ours.home, m.home) && sameClub(ours.away, m.away)
+    && (ours.kickoff !== null ? Math.abs(m.utc - ours.kickoff) <= 2 * 3600_000 : helsinkiParts(m.utc).date === ours.date);
+  let hits = list.filter((m) => m.leagueId === league && same(m));
+  // Lähde voi käyttää kilpailulle kausikohtaista tunnistetta (havaittu: Eredivisie 937276, MLS 913550). Jos sarjan
+  // tunnisteella ei löydy, hyväksytään ottelu, jossa MOLEMMAT joukkueet ja aika täsmäävät – vain yksiselitteinen osuma,
+  // ja vain kilpailusta, jonka tunniste EI ole jonkin toisen tunnetun sarjan (esim. La Ligan ottelu ei käy Valioliigaksi).
+  const known = new Set(Object.values(RAPID_LEAGUE));
+  let via: "league" | "teams" = "league";
+  if (!hits.length) { hits = list.filter((m) => !known.has(m.leagueId) && same(m)); via = "teams"; }
   if (hits.length > 1) return { status: "ambiguous" };
   if (!hits.length) return { status: "none" };
+  if (via === "teams") return hits[0].cancelled ? { status: "cancelled" } : { status: "ok", match: hits[0], via };
   if (hits[0].cancelled) return { status: "cancelled" };
   return { status: "ok", match: hits[0] };
 }
