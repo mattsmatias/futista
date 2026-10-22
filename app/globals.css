@@ -39,6 +39,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .appbar-space { height: calc(var(--appbar-h) + env(safe-area-inset-top, 0px)); }
 .appbar-in { display: flex; align-items: center; gap: 16px; height: var(--appbar-h); }
 .logo { display: flex; align-items: center; gap: 10px; font: 700 19px/1 var(--display); letter-spacing: -0.035em; }
+.beta { font: 700 9.5px/1 var(--mono); font-style: normal; letter-spacing: .08em; padding: 3px 5px; border-radius: 5px; background: var(--fg); color: var(--bg); margin-left: -4px; align-self: flex-start; margin-top: -2px; }
+.foot-beta { display: block; margin-top: 6px; font-size: 13px; color: var(--muted); }
 .seg { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--surface-2); margin-left: auto; }
 .seg button { padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: var(--muted); transition: background .2s, color .2s; white-space: nowrap; }
 .seg button.on { background: var(--surface); color: var(--fg); box-shadow: 0 2px 10px -4px rgba(0,0,0,.35); }

@@ -115,6 +115,7 @@ const D = {
   conf_East: ["Itäinen konferenssi", "Östra konferensen", "Eastern Conference"],
   conf_West: ["Läntinen konferenssi", "Västra konferensen", "Western Conference"],
   tagline: ["Euroopan jalkapallo suomeksi", "Europeisk fotboll på finska", "European football in Finnish"],
+  betaNote: ["Futista on beta-vaiheessa: uusia ominaisuuksia lisätään jatkuvasti, ja osa tiedoista voi vielä puuttua.", "Futista är i betaversion: nya funktioner läggs till hela tiden och vissa uppgifter kan saknas.", "Futista is in beta: new features are added all the time and some data may still be missing."],
   about: ["Tietoa ja lähteet", "Om och källor", "About and sources"],
   privacy: ["Tietosuoja", "Integritet", "Privacy"],
   footerNav: ["Sivuston tiedot", "Om webbplatsen", "Site information"],

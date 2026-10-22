@@ -9,6 +9,7 @@ export default function Footer() {
         <div className="foot-brand">
           <a href="/" className="logo">Futista</a>
           <span>{t("tagline")}</span>
+          <span className="foot-beta">{t("betaNote")}</span>
         </div>
         <nav className="foot-links" aria-label={t("footerNav")}>
           <a href="/maajoukkueet">{t("nationalTeams")}</a>
