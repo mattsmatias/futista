@@ -33,6 +33,14 @@ export function namesFor(team: string): string[] {
   return [n, ...(ALIASES[n] ?? [])];
 }
 
+/** Saman seuran kaikki tunnetut nimet molempiin suuntiin (nimi voi olla pää- tai rinnakkaisnimi) */
+export function aliasGroup(team: string): string[] {
+  const n = norm(team);
+  const out = new Set<string>([n, ...(ALIASES[n] ?? [])]);
+  for (const [k, v] of Object.entries(ALIASES)) if (v.includes(n)) { out.add(k); v.forEach((x) => out.add(x)); }
+  return [...out];
+}
+
 /** Koskeeko uutinen (tunnisteet) suosikkijoukkuetta? */
 export function storyIsAbout(team: string, tags: string[]): boolean {
   const names = namesFor(team);

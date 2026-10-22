@@ -12,8 +12,9 @@ import { useMatchState, StatusPill } from "@/lib/live";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
+import { LineupsTab, StatsTab } from "../../../../MatchExtras";
 
-type Tab = "summary" | "h2h" | "table";
+type Tab = "summary" | "lineups" | "mstats" | "h2h" | "table";
 
 function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number; b: number; lowerBetter?: boolean; noBar?: boolean }) {
   const total = a + b || 1;
@@ -109,7 +110,8 @@ function Info({ e }: { e: MatchExtra }) {
   );
 }
 
-export default function MatchView({ s, result, fixture, extra = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null }) {
+/** extras = kokoonpano- ja tilastovälilehdet käytössä tälle ottelulle (palvelin päättää: katkaisin ja kilpailu-/otteluraja) */
+export default function MatchView({ s, result, fixture, extra = null, extras = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string } | null }) {
   // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
   //  ok + [] = "ei aiempia kohtaamisia"; error = "tietoja ei saada" + uudelleenyritys (ei koko sivun latausta)
   const [history, setHistory] = useState<Meeting[] | null>(null);
@@ -140,7 +142,11 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
   const liveScore = !result && st.hs != null && st.as != null ? { hs: st.hs, as: st.as } : null;
   const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
 
-  const tabs: { id: Tab; label: Key }[] = [{ id: "summary", label: "summary" }, { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" }];
+  const tabs: { id: Tab; label: Key }[] = [
+    { id: "summary", label: "summary" },
+    ...(extras ? [{ id: "lineups" as Tab, label: "tab_lineups" as Key }, { id: "mstats" as Tab, label: "tab_mstats" as Key }] : []),
+    { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" },
+  ];
 
   return (
     <>
@@ -204,9 +210,12 @@ export default function MatchView({ s, result, fixture, extra = null }: { s: Lea
                 </div>
               </div>
             )}
-            <p className="muted note">{t("lineupsNA")}</p>
+            {!extras && <p className="muted note">{t("lineupsNA")}</p>}
           </>
         )}
+
+        {tab === "lineups" && extras && <LineupsTab w={extras} home={m.home} away={m.away} />}
+        {tab === "mstats" && extras && <StatsTab w={extras} home={m.home} away={m.away} />}
 
         {tab === "h2h" && (
           <>

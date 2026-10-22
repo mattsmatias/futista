@@ -5,6 +5,7 @@ import { getStatsWith } from "@/lib/stats";
 import { teamSlug, findTeam } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
+import { rapidAllowed } from "@/lib/rapid";
 
 export const revalidate = 120;
 export const maxDuration = 60;
@@ -48,5 +49,7 @@ export default async function MatchPage({ params }: Props) {
   if (!d) notFound();
   const m = (d.result ?? d.fixture)!;
   const extra = await getMatchExtra(d.s.source, m.date, m.home, m.away);
-  return <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} />;
+  const pair = decodeURIComponent(params.pair);
+  const extras = rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
+  return <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />;
 }

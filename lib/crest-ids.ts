@@ -118,3 +118,9 @@ export function staticCrest(name: string): string | undefined {
   const id = IDS[n] ?? IDS[strip(n)];
   return id ? `https://crests.football-data.org/${id}.png` : undefined;
 }
+
+/** Seuran football-data-tunniste varmistetusta nimiluettelosta (täsmällinen nimi, ei osittaista vertailua) */
+export function fdIdFor(name: string): number | undefined {
+  const n = norm(name);
+  return IDS[n] ?? IDS[strip(n)];
+}
