@@ -30,7 +30,11 @@ kiintiömigraatio ajetaan. `FD_QUOTA_REQUIRED=1`, joten yhteinen kiintiö on pak
 - `livekatsomo.cjs`: Livekatsomon rajapinta (oikeudet, rajat rinnakkain, kaksoislähetys, poistot, ilmoitukset,
   paikallaolo, sulkeminen ja säilytysajan poisto) ja selain (nosto, merkit, keskustelu, vieritys, katko,
   mobiilin näppäimistö, teemat, näppäimistökäyttö, ylläpito). Testikäyttäjät ovat keksittyjä; sähköpostia ei
-  lähetetä. Kuvakaappaukset: `SHOTS=<kansio>`. Ks. docs/livekatsomo.md.
+  lähetetä. Kuvakaappaukset: `SHOTS=<kansio>`. Realtime-simulaatio `tests/quota-mp/realtime-sim.cjs`;
+  ajo toistetaan kyselytilassa, ja `MEASURE_DIR=<kansio>` tallentaa liikennemittauksen. Ks. docs/livekatsomo.md.
+- `tests/supabase-real/`: Livekatsomo oikeaa Supabase-ohjelmistoa (Auth, Realtime, PostgREST, PostgreSQL) vastaan
+  (`real.cjs`) ja Preview-käännöksen selaintesti (`preview-ui.cjs`). Ei tuotantokantaa vastaan.
+- `tests/load/livekatsomo-arvio.cjs`: Livekatsomon laskennallinen kuormitusarvio (ei mittaus).
 - `switches.cjs`: `FD_OFF=1` ja `ESPN_OFF=1` → 0 lähdehakua, hallittu virhe, ei välimuistissa olevaa dataa.
 Suljetussa ympäristössä, jossa Google Fonts ei vastaa, käännös tehdään Nextin testitilalla
 `FONTS_MOCK=<tiedosto>` (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`; fonttitiedostot korvataan). Tämä ei ole
