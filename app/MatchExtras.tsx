@@ -260,6 +260,8 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
     { key: "goals", title: "ps_goals", value: (p) => p.goals, fmt: (p) => n(p.goals), positive: true },
     { key: "assists", title: "ps_assists", value: (p) => p.assists, fmt: (p) => n(p.assists), positive: true },
     { key: "cards", title: "ps_cards", value: (p) => p.red * 10 + p.yellow, fmt: (p) => <Marks p={{ ...p, goals: 0, ownGoals: 0, assists: 0, subIn: null, subOut: null }} />, positive: true },
+    { key: "shots", title: "ps_shots", value: (p) => p.shots ?? null, fmt: (p) => p.shotsOnTarget != null ? `${n(p.shots!)} (${n(p.shotsOnTarget)})` : n(p.shots!), positive: true },
+    { key: "saves", title: "ps_saves", value: (p) => p.saves ?? null, fmt: (p) => n(p.saves!), positive: true },
   ] : [
     { key: "distance", title: "ps_distance", value: (p) => p.distance, fmt: (p) => `${n(p.distance! / 1000, 1)} km` },
     { key: "speed", title: "ps_speed", value: (p) => p.topSpeed, fmt: (p) => `${n(p.topSpeed!, 1)} km/h` },
@@ -278,9 +280,10 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
       </div>
       {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} />)}
       <div className="panel lu-legend">
-        {group === "key" && <p className="pad small muted">{t("lu_ratingNote")}</p>}
+        {group === "key" && (all.some((r) => r.p.rating !== null) ? <p className="pad small muted">{t("lu_ratingNote")}</p> : <p className="pad small muted">{t("ps_noRatings")}</p>)}
+        {all.some((r) => r.p.shots != null) && <p className="pad small muted">{t("ps_shotsNote")}</p>}
         {group === "phys" && <p className="pad small muted">{t("ps_unitNote")}</p>}
-        <p className="pad small muted">{t("ps_missing")}</p>
+        <p className="pad small muted">{t(all.some((r) => r.p.shots != null) ? "ps_missingEspn" : "ps_missing")}</p>
         <SourceLine m={data} />
       </div>
     </>

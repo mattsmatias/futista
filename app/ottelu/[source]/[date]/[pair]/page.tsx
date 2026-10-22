@@ -50,6 +50,8 @@ export default async function MatchPage({ params }: Props) {
   const m = (d.result ?? d.fixture)!;
   const extra = await getMatchExtra(d.s.source, m.date, m.home, m.away);
   const pair = decodeURIComponent(params.pair);
-  const extras = rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
+  // kokoonpanot/tilastot: RapidAPI-sarjat (kiintiö ja rajaus) tai ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS)
+  const espnSrc = !!SOURCES.find((x) => x.id === d.s.source)?.espn && process.env.ESPN_OFF !== "1";
+  const extras = espnSrc || rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
   return <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />;
 }

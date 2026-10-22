@@ -52,12 +52,12 @@ export function parseEspnEvents(events: any[], now = Date.now()): { results: Res
     const h = teamOf(c.find((x: any) => x.homeAway === "home")?.team), a = teamOf(c.find((x: any) => x.homeAway === "away")?.team);
     if (g.kind === "ft") {
       if (g.hs === null || g.hs === undefined || g.as === null || g.as === undefined) continue; // puuttuva tulos ei ole 0–0
-      const r: Result = { date: g.date, time: g.time, home: h, away: a, hs: g.hs, as: g.as };
+      const r: Result = { date: g.date, time: g.time, home: h, away: a, hs: g.hs, as: g.as, eid: g.id };
       if (g.pens) { r.note = "pens"; r.pens = g.pens; } else if (g.aet) r.note = "aet";
       results.push(r);
     } else if (g.kind === "upcoming" || g.kind === "live" || g.kind === "ht" || g.kind === "unconfirmed") {
       if (g.epoch < now - 6 * 3600_000 && g.kind === "upcoming") continue; // vanha, tilaton ottelu ei ole "tuleva"
-      fixtures.push({ date: g.date, time: g.time, home: h, away: a });
+      fixtures.push({ date: g.date, time: g.time, home: h, away: a, eid: g.id });
     }
   }
   results.sort((x, y) => (y.date + (y.time ?? "")).localeCompare(x.date + (x.time ?? "")));
@@ -94,7 +94,7 @@ const load = (id: SourceId, slug: string, calendarYear = false) =>
     const failed: Part[] = [...(table.length ? [] : ["table" as const]), ...(evOk ? [] : ["results" as const, "fixtures" as const])];
     if (!table.length && !results.length && !fixtures.length) throw new Error("espn league unavailable");
     return { source: id, league: "", table, results, fixtures, season, updated: Date.now(), failed, ...(groups ? { groups } : {}) };
-  }, ["espn-league-v3", id, slug], { revalidate: 600 })();
+  }, ["espn-league-v4", id, slug], { revalidate: 600 })();
 
 export async function fromEspnLeague(id: SourceId, slug: string, league: string, calendarYear = false): Promise<LeagueStats | null> {
   if (process.env.ESPN_OFF === "1") return null;

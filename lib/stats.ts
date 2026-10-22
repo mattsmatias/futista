@@ -10,8 +10,8 @@ import { fromEspnLeague } from "./espn-league";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
-export type Result = { date: string; time?: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null }; // time vain, jos lähde kertoo alkamisajan
-export type Fixture = { date: string; time: string; home: Team; away: Team };
+export type Result = { date: string; time?: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null; eid?: string }; // eid = ESPN:n ottelutunniste (ESPN-sarjat); time vain, jos lähde kertoo alkamisajan
+export type Fixture = { date: string; time: string; home: Team; away: Team; eid?: string };
 export type Part = "table" | "results" | "fixtures";
 export type LeagueStats = {
   source: SourceId; league: string; table: Row[]; results: Result[]; fixtures: Fixture[];

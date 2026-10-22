@@ -128,6 +128,8 @@ export type LPlayer = {
   /** Juoksumatka ja huippunopeus, kun lähde antaa ne (havaittu vain osassa otteluita). Yksikköä ei dokumentoida:
    *  arvot vastaavat metrejä (esim. 11295) ja km/h (esim. 31,9). */
   distance: number | null; topSpeed: number | null;
+  /** Laukaukset, laukaukset maalia kohti ja torjunnat, kun lähde antaa ne (ESPN) */
+  shots?: number | null; shotsOnTarget?: number | null; saves?: number | null;
 };
 export type Lineup = {
   team: string; formation: string | null; starters: LPlayer[]; subs: LPlayer[]; coach: string | null;

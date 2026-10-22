@@ -253,6 +253,22 @@ const MIN = 60_000;
     ok("  Sarjat-hakemistossa Eurooppa-liiga ja Konferenssiliiga", dir.includes("Eurooppa-liiga") && dir.includes("Konferenssiliiga"));
     await page.goto(APP + "/sarjat/uel?v=taulukko", { waitUntil: "networkidle" });
     ok("  sarjasivu näyttää taulukon", (await page.locator("main").innerText()).includes("Eurokaupunki FC"));
+    // kokoonpanot ja ottelutilastot ESPN:n otteluyhteenvedosta (oikea vastaus 22.10.2026, karsittu)
+    const elR = (await (await fetch(`${APP}/api/league/uel`)).json()).stats.results.find((r) => r.home.name === "Eurokaupunki FC");
+    const elQ = `l=uel&d=${elR.date}&p=eurokaupunki-fc--mannerseura`;
+    const elL = await (await fetch(`${APP}/api/kokoonpanot?${elQ}`)).json();
+    ok("Eurooppa-liiga: kokoonpanot ESPN:stä (11 + 11, kenttäsijainnit, ei arvosanoja)", elL.state === "ok" && elL.home.starters.length === 11 && elL.away.starters.length === 11 && elL.home.positioned && elL.home.starters.every((p) => p.rating === null) && elL.source === "ESPN", JSON.stringify(elL).slice(0, 160));
+    const elS = await (await fetch(`${APP}/api/ottelutilastot?${elQ}`)).json();
+    const poss = elS.rows?.find((r) => r.key === "possession");
+    ok("  ottelutilastot ESPN:stä (pallonhallinta 39,2 / 60,8)", elS.state === "ok" && poss?.home?.n === 39.2 && poss?.away?.n === 60.8, JSON.stringify(elS).slice(0, 160));
+    await page.goto(`${APP}/ottelu/uel/${elR.date}/eurokaupunki-fc--mannerseura`, { waitUntil: "networkidle" });
+    await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
+    await page.waitForSelector(".pitch-full .pp", { timeout: 15000 }).catch(() => {});
+    ok("  ottelusivulla kenttä (22 pelaajaa)", (await page.locator(".pitch-full .pp").count()) === 22);
+    await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
+    await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {});
+    const psT = await page.locator("main").innerText();
+    ok("  pelaajatilastot: laukaukset, torjunnat; kerrotaan ettei arvosanoja ole", psT.includes("Laukaukset") && psT.includes("Torjunnat") && psT.includes("ei anna pelaajille arvosanoja"), psT.slice(0, 200).replace(/\n/g, " "));
     // joukkueen kunto kaikista kilpailuista (ESPN:n otteluohjelma, simuloitu: sarja, Eurooppa-liiga, cup, harjoitus, siirretty, tuleva)
     await page.goto(APP + "/joukkue/superlig/testispor-ankara", { waitUntil: "networkidle" });
     const fa = page.locator(".form-all");

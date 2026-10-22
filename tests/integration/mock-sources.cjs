@@ -142,6 +142,14 @@ function espn(path, res) {
     }
     if (path.startsWith("uefa.europa/statistics")) return json(res, 200, { season: { year: 2026 }, stats: [{ name: "goalsLeaders", leaders: [{ value: 4, displayValue: "Matches: 3, Goals: 4", shortDisplayValue: "M: 3, G: 4: A: 0", athlete: { id: "2", displayName: "Euro Maalintekijä", team: A } }] }] });
     if (path === "uefa.europa/teams") return json(res, 200, { sports: [{ leagues: [{ teams: [A, B].map((team) => ({ team })) }] }] });
+    // kauden ottelut: eilen pelattu ottelu (kokoonpanot ja tilastot ESPN:n yhteenvedosta) ja tuleva ottelu
+    if (path.startsWith("uefa.europa/scoreboard?dates=")) {
+      const y = Number(path.match(/dates=(\d{4})/)[1]), now = Date.now();
+      const ev = (id, t, h, a, done, hs, as) => ({ id: String(id), date: new Date(t).toISOString(), league: { slug: "uefa.europa" }, competitions: [{ status: { type: done ? { name: "STATUS_FULL_TIME", state: "post", completed: true } : { name: "STATUS_SCHEDULED", state: "pre" } }, competitors: [{ homeAway: "home", team: h, score: done ? String(hs) : undefined }, { homeAway: "away", team: a, score: done ? String(as) : undefined }] }] });
+      const list = [ev(81001, now - 26 * 3600_000, A, B, true, 0, 4), ev(81002, now + 5 * 86400_000, B, A, false)];
+      return json(res, 200, { leagues: [{ season: {} }], events: list.filter((e) => new Date(e.date).getUTCFullYear() === y) });
+    }
+    if (path === "uefa.europa/summary?event=81001") return json(res, 200, require("../fixtures/espn-summary-uel.json"));
   }
   if (path.includes("/scoreboard")) return json(res, 200, { events: [] });
   if (path.endsWith("/teams")) return json(res, 200, { sports: [{ leagues: [{ teams: [] }] }] });

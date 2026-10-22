@@ -2,7 +2,10 @@
 import { NextResponse } from "next/server";
 import { resolve, isBusy } from "./rapid-match";
 import { rapidLineups, rapidStats, type RapidOutcome } from "./rapid";
-import type { Lineup, StatRow } from "./rapid-core";
+import { phaseOf, type Lineup, type StatRow } from "./rapid-core";
+import { ourMatch } from "./rapid-match";
+import { SOURCES } from "./sources";
+import { espnExtras, ESPN_SOURCE } from "./espn-lineups";
 
 export const RAPID_SOURCE = "Free API Live Football Data (RapidAPI)";
 
@@ -36,7 +39,32 @@ const meta = (o: RapidOutcome<unknown>[]) => {
   return { fetchedAt: ok.length ? Math.min(...ok.map((x) => x.at)) : null, stale: ok.some((x) => x.stale), source: RAPID_SOURCE };
 };
 
+/** ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS): kokoonpanot ja tilastot ESPN:n otteluyhteenvedosta.
+ *  Ei kuukausikiintiötä; haetaan, kun alkuun on alle tunti tai ottelu on alkanut/päättynyt. */
+const espnSlug = (l: string) => SOURCES.find((s) => s.id === l)?.espn ?? null;
+async function espnResponse(kind: "lineups" | "stats", req: Request) {
+  const { l, d, p } = params(req);
+  const slug = espnSlug(l)!;
+  const ours = await ourMatch(l, d, p);
+  if (ours === null) return json({ state: "notfound" }, 404, 600);
+  if (ours === "unavailable") return json({ state: "unavailable" }, 503, 0);
+  const phase = phaseOf(ours.kickoff, Date.now(), ours.finished);
+  if (phase === "far" || (kind === "stats" && phase === "pre")) return json({ state: "wait", phase }, 200, phase === "far" ? 900 : 300);
+  if (!ours.eid) return json({ state: "nodata", phase, why: "none" }, 200, 900);
+  const r = await espnExtras(slug, ours.eid, phase);
+  if (!r) return json({ state: "unavailable" }, 503, 0);
+  const meta = { fetchedAt: r.at, stale: false, source: ESPN_SOURCE };
+  const age = phase === "final" ? 3600 : 60;
+  if (kind === "lineups") {
+    if (!r.data.home || !r.data.away) return json({ state: phase === "pre" ? "notpublished" : "nodata", phase, ...meta }, 200, 120);
+    return json({ state: "ok", phase, kickoff: ours.kickoff, home: r.data.home, away: r.data.away, ...meta }, 200, age);
+  }
+  if (!r.data.stats.length) return json({ state: "nodata", phase, ...meta }, 200, 120);
+  return json({ state: "ok", phase, aet: ours.aet, rows: r.data.stats, ...meta }, 200, age);
+}
+
 export async function lineupsResponse(req: Request) {
+  if (espnSlug(params(req).l)) return espnResponse("lineups", req);
   const b = await base("lineups", req);
   if (b.done) return b.done;
   const r = b.r!;
@@ -52,6 +80,7 @@ export async function lineupsResponse(req: Request) {
 }
 
 export async function statsResponse(req: Request) {
+  if (espnSlug(params(req).l)) return espnResponse("stats", req);
   const b = await base("stats", req);
   if (b.done) return b.done;
   const r = b.r!;
