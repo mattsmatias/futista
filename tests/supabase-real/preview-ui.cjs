@@ -71,7 +71,8 @@ let ctxReq;
   const pa = await A.newPage(), pb = await B.newPage();
   for (const [p, nick] of [[pa, "Testi Mobiili"], [pb, "Testi Työpöytä"]]) {
     await p.goto(`${BASE}${row.href}?v=livekatsomo`, { waitUntil: "load" });
-    await p.waitForSelector(".lk-form input, .lk textarea", { timeout: 30000 });
+    const got = await p.waitForSelector(".lk-form input, .lk textarea", { timeout: 30000 }).then(() => true).catch(() => false);
+    if (!got) { console.log("DEBUG", nick, (await p.locator("main").innerText()).slice(0, 700)); throw new Error("ei kirjoituskenttää"); }
     if (await p.locator(".lk-form input").count()) { await p.locator(".lk-form input").fill(`${nick} ${String(Date.now()).slice(-3)}`); await p.locator(".lk-form button").click(); }
     await p.waitForSelector(".lk textarea", { timeout: 15000 });
   }
