@@ -18,7 +18,8 @@ function genComp(code) {
   const k = GEN[code];
   const teams = CITIES.map((c, i) => T(k * 1000 + i, `${c} ${["FC", "United", "SK", "AC", "Athletic"][k - 1]}`, (c.slice(0, 2) + code.slice(0, 1)).toUpperCase()));
   const matches = [];
-  const day0 = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), new Date(now).getUTCDate());
+  // päivä Suomen ajan mukaan (sovellus näyttää päivät Helsingin ajassa; UTC-päivä erosi klo 00–03)
+  const day0 = Date.parse(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Helsinki" }).format(now) + "T00:00:00Z");
   for (let d = -9; d <= 9; d += 3) {
     const shift = (((d / 3 + k) % 5) + 5) % 5;
     for (let m = 0; m < 5; m++) {
