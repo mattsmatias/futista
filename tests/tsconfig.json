@@ -19,6 +19,7 @@
     "fixes.test.ts",
     "ui.test.ts",
     "flags.test.ts",
+    "team-form.test.ts",
     "rapid.test.ts"
   ]
 }

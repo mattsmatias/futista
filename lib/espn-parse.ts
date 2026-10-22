@@ -64,6 +64,7 @@ export type Game = {
   home: GameTeam; away: GameTeam; hs: number | null; as: number | null;
   kind: Kind; clock?: string; href?: string;
   phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
+  side?: "home" | "away"; // joukkueen sivulla: kummalla puolella sivun joukkue on (ESPN-tunnisteella)
 };
 
 export function toGame(e: any, slug?: string, compName?: string): Game | null {

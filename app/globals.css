@@ -1456,3 +1456,7 @@ html { touch-action: manipulation; }
 .ms-bar .h { background: var(--cl); }
 .ms-bar .a { background: color-mix(in srgb, var(--gold) 85%, var(--fg)); }
 .ms p { margin: 0; }
+.form-all { display: grid; gap: 4px; }
+.form-totals { margin: 0; }
+.form-totals b { color: var(--fg); font-weight: 600; }
+.form-all .fp { width: 28px; height: 28px; }

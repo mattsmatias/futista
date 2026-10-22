@@ -92,7 +92,28 @@ const espnTeams = {
 function espn(path, res) {
   if (mode.espn === "down") return json(res, 503, {});
   let m;
-  if ((m = path.match(/^all\/teams\/(\d+)\/schedule/))) return json(res, 200, { events: [] });
+  if ((m = path.match(/^all\/teams\/(\d+)\/schedule/))) {
+    // Testispor Ankara (70001): ottelut eri kilpailuista (sarja, Eurooppa-liiga, cup, harjoitusottelu), tuleva ja siirretty
+    if (m[1] !== "70001") return json(res, 200, { events: [] });
+    const T = (id, n, ab) => ({ id: String(id), displayName: n, shortDisplayName: n, abbreviation: ab, logos: [] });
+    const A = T(70001, "Testispor Ankara", "TSA"), B = T(70002, "Mittaspor Izmir", "MSI"), X = T(70100, "Eurooppa FC", "EFC"), Y = T(70101, "Cupspor", "CUP"), Z = T(70102, "Kesäseura", "KES");
+    const lg = { "tur.1": "Turkish Super Lig", "uefa.europa": "UEFA Europa League", "tur.cup": "Turkish Cup", "club.friendly": "Club Friendly" };
+    const D = 86400_000, now = Date.now();
+    const ev = (id, dt, slug, h, a, st, hs, as) => ({ id: String(id), date: new Date(now + dt).toISOString(), league: { slug, name: lg[slug] }, season: { year: 2026, displayName: "2026-27" },
+      competitions: [{ status: { type: st === "ft" ? { name: "STATUS_FULL_TIME", state: "post", completed: true } : st === "pp" ? { name: "STATUS_POSTPONED", state: "post" } : { name: "STATUS_SCHEDULED", state: "pre" } },
+        competitors: [{ homeAway: "home", team: h, score: st === "ft" ? String(hs) : undefined }, { homeAway: "away", team: a, score: st === "ft" ? String(as) : undefined }] }] });
+    const fix = path.includes("fixture=true");
+    const past = [
+      ev(9101, -40 * D, "club.friendly", A, Z, "ft", 5, 0),   // harjoitusottelu: ei mukana
+      ev(9102, -30 * D, "tur.1", A, B, "ft", 1, 1),           // T
+      ev(9103, -25 * D, "uefa.europa", X, A, "ft", 0, 2),     // V (vieraana)
+      ev(9104, -20 * D, "tur.cup", A, Y, "ft", 0, 1),         // H
+      ev(9105, -10 * D, "uefa.europa", A, X, "ft", 3, 0),     // V
+      ev(9106, -3 * D, "tur.1", B, A, "pp"),                  // siirretty: ei mukana
+      ev(9107, -2 * D, "tur.1", B, A, "ft", 2, 2),            // T
+    ];
+    return json(res, 200, { events: fix ? [ev(9108, 3 * D, "uefa.europa", X, A, "pre")] : past });
+  }
   if ((m = path.match(/^all\/teams\/(\d+)$/))) { const t = espnTeams[m[1]]; return json(res, 200, t ? { team: t } : {}); }
   if (path.startsWith("all/summary")) return json(res, 404, { code: 404 });
   // Süper Lig (koko sarja ESPN:stä): kuvitteelliset joukkueet
@@ -103,6 +124,7 @@ function espn(path, res) {
       const st = (t, rank, p, w, d, l, gf, ga, pts) => ({ team: t, stats: Object.entries({ rank, gamesPlayed: p, wins: w, ties: d, losses: l, pointsFor: gf, pointsAgainst: ga, points: pts }).map(([name, value]) => ({ name, value })) });
       return json(res, 200, { children: [{ name: "Testiliiga", standings: { seasonDisplayName: "2026/2027", entries: [st(A, 1, 2, 2, 0, 0, 5, 1, 6), st(B, 2, 2, 1, 0, 1, 3, 3, 3), st(C, 3, 2, 0, 0, 2, 1, 5, 0)] } }] });
     }
+    if (path === "tur.1/teams") return json(res, 200, { sports: [{ leagues: [{ teams: [A, B, C].map((team) => ({ team })) }] }] });
     if (path.startsWith("tur.1/statistics")) return json(res, 200, { season: { year: 2026 }, stats: [{ name: "goalsLeaders", leaders: [{ value: 3, displayValue: "Matches: 2, Goals: 3", shortDisplayValue: "M: 2, G: 3: A: 1", athlete: { id: "1", displayName: "Testi Maalintekijä", team: A } }] }] });
     if (path.startsWith("tur.1/scoreboard?dates=")) {
       const ev = (id, t, h, a, done, hs, as) => ({ id: String(id), date: new Date(t).toISOString(), competitions: [{ status: { type: done ? { name: "STATUS_FULL_TIME", state: "post", completed: true } : { name: "STATUS_SCHEDULED", state: "pre" } }, competitors: [{ homeAway: "home", team: h, score: done ? String(hs) : undefined }, { homeAway: "away", team: a, score: done ? String(as) : undefined }] }] });

@@ -21,6 +21,40 @@ import type { Key } from "@/lib/i18n";
 import type { Game } from "@/lib/espn";
 import { GameRow, GBadge, compName, compClass } from "../../../Games";
 import { StatusPill } from "@/lib/live";
+import { teamForm, seasonStart, type FormItem } from "@/lib/team-form";
+import { todayHel } from "@/lib/day";
+
+/** Kunto kaikista virallisista kilpailuista: 5 viimeisintä (uusin oikealla) ja kauden kokonaismäärät */
+function FormAll({ games, calendarYear, season }: { games: Game[]; calendarYear: boolean; season?: string | null }) {
+  const i = useI18n();
+  const { t } = i;
+  const f = teamForm(games, seasonStart(todayHel(), calendarYear), Date.now());
+  const label = (x: FormItem) => {
+    const res = t(x.k === "w" ? "formWin" : x.k === "d" ? "formDraw" : "formLoss");
+    const pens = x.pens ? ` (${t("pensShort")} ${x.pens[0]}–${x.pens[1]})` : "";
+    return `${res}: ${i.day(x.date)} · ${compName(x, i.lang)} · ${x.home} ${x.hs}–${x.as} ${x.away}${pens}`;
+  };
+  return (
+    <div className="form-all">
+      <div className="form-line">
+        <span className="muted">{t("form")} · {t("formScopeAll")}</span>
+        {f.last.length ? (
+          <span className="form" role="list" aria-label={t("formLast5")}>
+            {f.last.map((x) => (
+              <a key={x.id} role="listitem" className={`fp fp-${x.k}`} href={x.href} title={label(x)} aria-label={label(x)}>
+                {t(x.k === "w" ? "colW" : x.k === "d" ? "colD" : "colL")}
+              </a>
+            ))}
+          </span>
+        ) : <span className="muted">–</span>}
+      </div>
+      <p className="form-totals muted small">
+        {season ? `${t("seasonWord")} ${season}, ${t("formAllComps")}: ` : `${t("formAllComps")}: `}
+        <b>{t("formWins")} {f.totals.w}</b> · <b>{t("formDraws")} {f.totals.d}</b> · <b>{t("formLosses")} {f.totals.l}</b>
+      </p>
+    </div>
+  );
+}
 
 type Tab = "overview" | "matches" | "squad" | "news" | "table";
 const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", news: "teamNews", table: "table" };
@@ -205,7 +239,10 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
 
         <div className="tab-pane" key={tab}>
         {tab === "overview" && <>
-          {row && (
+          {games && games.length ? (
+            <FormAll games={games} calendarYear={!!SOURCES.find((x) => x.id === s.source)?.calendarYear} season={s.season} />
+          ) : row && (
+            // kaikkien kilpailujen otteluohjelmaa ei saatu: sarjan omat tulokset, otsikossa rajaus
             <div className="form-line"><span className="muted">{t("form")} · {t("formScope")}</span><FormPills team={team.name} results={s.results} source={s.source} /></div>
           )}
           {nextGame ? (() => {

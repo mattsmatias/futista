@@ -243,6 +243,19 @@ const MIN = 60_000;
     await page.goto(APP + "/sarjat/superlig?v=taulukko", { waitUntil: "networkidle" });
     const slBody = await page.locator("main").innerText();
     ok("Süper Lig: sarjasivu näyttää taulukon", /Süper Lig/.test(slBody) && /Testispor Ankara/.test(slBody), slBody.slice(0, 100).replace(/\n/g, " "));
+    // joukkueen kunto kaikista kilpailuista (ESPN:n otteluohjelma, simuloitu: sarja, Eurooppa-liiga, cup, harjoitus, siirretty, tuleva)
+    await page.goto(APP + "/joukkue/superlig/testispor-ankara", { waitUntil: "networkidle" });
+    const fa = page.locator(".form-all");
+    const faText = (await fa.innerText().catch(() => "")).replace(/\s+/g, " ");
+    const pills = await fa.locator(".fp").allInnerTexts();
+    ok("kunto: otsikko 'Kunto · Kaikki kilpailut'", faText.includes("Kunto · Kaikki kilpailut"), faText.slice(0, 80));
+    ok("  5 viimeisintä virallista, uusin oikealla (ei harjoitus- eikä siirrettyä ottelua)", pills.join("") === "TVHVT", pills.join(""));
+    const titles = await fa.locator(".fp").evaluateAll((els) => els.map((e) => e.getAttribute("title")));
+    ok("  mukana eri kilpailuja (Eurooppa-liiga, cup, sarja)", titles.some((x) => /Eurooppa-liiga|Europa/.test(x)) && titles.some((x) => /cup|Cup|Turkin/.test(x)) && titles.some((x) => /Süper Lig|Super Lig/.test(x)), titles.join(" | "));
+    ok("  kauden kokonaismäärät kaikista kilpailuista", /Voitot 2 · Tasapelit 2 · Häviöt 1/.test(faText), faText);
+    const lastHref = await fa.locator(".fp").last().getAttribute("href");
+    ok("  merkki avaa ottelun", !!lastHref && lastHref.startsWith("/ottelu/"), String(lastHref));
+    ok("  värit: voitto vihreä, tasapeli harmaa, häviö punainen", (await fa.locator(".fp-w").count()) === 2 && (await fa.locator(".fp-d").count()) === 2 && (await fa.locator(".fp-l").count()) === 1);
     // uutisten reaktiot (Supabase-emulaattori + migraatio)
     let rr = await fetch(`${APP}/api/reactions?a=testi/2026/10/21/juttu`); let rj = await rr.json();
     ok("reaktiot: haku palauttaa summat (käytössä)", rr.status === 200 && rj.enabled === true && rj.up === 0 && rj.down === 0, JSON.stringify(rj));

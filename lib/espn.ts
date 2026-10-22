@@ -118,6 +118,8 @@ export async function getTeamGames(source: string, name: string, stats: LeagueSt
       return k ? { ...t, name: k.name } : t;
     };
     for (const g of games) {
+      // sivun joukkueen puoli tunnisteella (ei nimellä): kuntorivi lib/team-form.ts
+      g.side = g.home.id === id ? "home" : g.away.id === id ? "away" : undefined;
       const target = g.slug === LEAGUE[source] ? source : g.slug === "uefa.champions" ? "ucl" : null;
       const st = target ? stats.find((x) => x.source === target) : undefined;
       if (st) link(g, st);
