@@ -183,9 +183,11 @@ const MIN = 60_000;
         const L = Math.min(...parts.map((p) => p.left)), R = Math.max(...parts.map((p) => p.right));
         const prev = q(".daypick button[aria-label='Edellinen päivä']"), next = q(".daypick button[aria-label='Seuraava päivä']");
         const cut = [...lab.children].some((e) => e.scrollWidth > e.clientWidth + 1);
-        return { ok: L >= prev.right - 1 && R <= next.left + 1, cut, txt: lab.innerText.replace(/\n/g, " | "), L, R, pr: prev.right, nl: next.left };
+        const tb = document.querySelector(".daypick .dp-today"), td = tb.getBoundingClientRect();
+        const fits = td.right <= document.documentElement.clientWidth - 8 && tb.scrollWidth <= tb.clientWidth + 1;
+        return { ok: L >= prev.right - 1 && R <= next.left + 1 && fits, cut, txt: lab.innerText.replace(/\n/g, " | ") + " / " + tb.innerText, L, R, pr: prev.right, nl: next.left, tr: Math.round(td.right) };
       });
-      ok(`  ${w} px: päivän nimi ja päivämäärä mahtuvat nuolten väliin kokonaan`, r.ok && !r.cut, JSON.stringify(r));
+      ok(`  ${w} px: päivän nimi ja päivämäärä mahtuvat nuolten väliin kokonaan, Tänään-painike näkyy`, r.ok && !r.cut, JSON.stringify(r));
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator(".daypick .dp-today").click().catch(() => {}); await page.waitForTimeout(300);

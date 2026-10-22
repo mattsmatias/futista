@@ -1506,3 +1506,17 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 }
 :root[data-theme="dark"] .fbtn.on .cmark.has-dark .cl-light { display: block; }
 :root[data-theme="dark"] .fbtn.on .cmark.has-dark .cl-dark { display: none; }
+
+/* "Tähän päivään" lyhyesti ("Tänään") kapeilla näytöillä, jotta päivän nimi mahtuu kokonaan nuolten väliin */
+.dp-today-short { display: none; }
+@media (max-width: 400px) {
+  .dp-today-long { display: none; }
+  .dp-today-short { display: inline; }
+  .daypick { gap: 2px; }
+  .dp-today { margin-left: 2px; padding: 0 10px; }
+}
+@media (max-width: 340px) {
+  .dp-stack .dp-label b { font-size: 13px; }
+  .dp-stack .dp-date { font-size: 12px; }
+  .dp-today { padding: 0 8px; }
+}

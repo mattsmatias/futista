@@ -32,7 +32,7 @@ export default function DayPicker({ date, today, onChange, min, max }: { date: s
           onClick={(e) => { try { (e.currentTarget as any).showPicker?.(); } catch {} }}
           onChange={(e) => { if (e.target.value) onChange(e.target.value); }} />
       </span>
-      {date !== today && <button type="button" className="chip-btn dp-today" onClick={() => onChange(today)}>{t("backToToday")}</button>}
+      {date !== today && <button type="button" className="chip-btn dp-today" onClick={() => onChange(today)} aria-label={t("backToToday")}><span className="dp-today-long">{t("backToToday")}</span><span className="dp-today-short" aria-hidden="true">{t("today")}</span></button>}
     </div>
   );
 }
