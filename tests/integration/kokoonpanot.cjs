@@ -16,7 +16,9 @@ const slug = (n) => n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().rep
 const api = async (kind, m) => { const r = await fetch(`${APP}/api/${kind}?l=${m.l}&d=${m.d}&p=${m.p}`); return { status: r.status, j: await r.json().catch(() => null), cc: r.headers.get("cache-control") }; };
 
 async function matches() {
-  const s = (await (await fetch(`${APP}/api/league/ligue1`)).json()).stats;
+  let s = null;
+  // palvelimen käynnistyksen jälkeen football-datan minuuttiraja voi olla hetken täynnä
+  for (let i = 0; i < 15 && !s; i++) { s = (await (await fetch(`${APP}/api/league/ligue1`)).json().catch(() => ({}))).stats; if (!s) await sleep(5000); }
   const m = (x) => ({ l: "ligue1", d: x.date, p: `${slug(x.home.name)}--${slug(x.away.name)}`, home: x.home.name, away: x.away.name, time: x.time });
   return { done: s.results.map(m).reverse(), upcoming: s.fixtures.map(m) };
 }
