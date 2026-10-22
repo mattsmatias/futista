@@ -11,7 +11,7 @@ const FX = path.join(__dirname, "..", "fixtures", "rapidapi");
 const fx = (f) => JSON.parse(fs.readFileSync(path.join(FX, f), "utf8"));
 const mode = { day: "ok", lineup: "ok", stats: "ok", remaining: 90 };
 let log = [];
-const LEAGUE = { PD: 87, PL: 47, CL: 42 };
+const LEAGUE = { PD: 87, PL: 47, CL: 42, FL1: 53 };
 
 const getJson = (u) => new Promise((ok, no) => http.get(u, { headers: { "X-Auth-Token": "x" } }, (r) => { let b = ""; r.on("data", (c) => (b += c)); r.on("end", () => { try { ok(JSON.parse(b)); } catch (e) { no(e); } }); }).on("error", no));
 

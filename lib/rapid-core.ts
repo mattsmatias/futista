@@ -5,8 +5,9 @@ import { aliasGroup } from "./teams";
 import { fdIdFor } from "./crest-ids";
 import { helsinkiParts } from "./live-core";
 
-/** Lähteen sarjatunnisteet (vahvistettu vastauksista: 87 La Liga, 47 Premier League, 42 Mestarien liiga) */
-export const RAPID_LEAGUE: Record<string, number> = { laliga: 87, valioliiga: 47, ucl: 42 };
+/** Lähteen sarjatunnisteet, vahvistettu oikeista vastauksista 22.10.2026: 87 La Liga, 47 Premier League,
+ *  42 Mestarien liiga, 53 Ligue 1 (Marseille päivän listassa). Muita sarjoja ei yhdistetä ennen vahvistusta. */
+export const RAPID_LEAGUE: Record<string, number> = { laliga: 87, valioliiga: 47, ucl: 42, ligue1: 53 };
 
 export type RapidTeam = { id: number | null; names: string[] };
 export type RapidMatch = {

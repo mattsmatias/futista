@@ -22,8 +22,11 @@ psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_news_reacti
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)
+node tests/integration/mock-rapid.cjs & pids+=($!)
 export FOOTBALL_DATA_KEY=test-not-a-real-key FD_BASE_URL=http://127.0.0.1:9101/v4 ESPN_BASE_URL=http://127.0.0.1:9101/espn/
 export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_localtest FD_QUOTA_REQUIRED=1 NEXT_TELEMETRY_DISABLED=1
+# kokoonpanot ja tilastot: simuloitu RapidAPI (mock-rapid.cjs), vain testisarja ligue1
+export RAPIDAPI_KEY=test-not-a-real-key RAPIDAPI_ON=1 RAPIDAPI_SCOPE=ligue1 RAPIDAPI_BASE_URL=http://127.0.0.1:9104 RAPIDAPI_PER_HOUR=40
 [ -n "${FONTS_MOCK:-}" ] && export NEXT_FONT_GOOGLE_MOCKED_RESPONSES="$FONTS_MOCK"
 [ "${SKIP_BUILD:-}" = 1 ] || npx next build
 rm -rf .next/cache/fetch-cache   # testit alkavat tyhjästä datavälimuistista
@@ -33,7 +36,11 @@ start env
 rc=0
 node tests/integration/chain.cjs || rc=1
 node tests/integration/ui.cjs || rc=1
+node tests/integration/kokoonpanot.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1
 node tests/integration/switches.cjs || rc=1
+kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
+start env RAPIDAPI_ON=0
+KOK_MODE=off node tests/integration/kokoonpanot.cjs || rc=1
 exit $rc

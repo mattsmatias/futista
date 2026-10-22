@@ -119,11 +119,23 @@ const parsers: Record<string, (j: any) => unknown> = {
   lineup: (j) => parseLineup(j),
   stats: (j) => parseStats(j),
 };
+// Saman instanssin samanaikaiset ja peräkkäiset haut yhdistetään myös välimuistin kirjoituksen ajaksi:
+// onnistunut tulos pidetään muistissa 60 s (välimuistiin kirjoitus on asynkroninen, ja toinen pyyntö ehtisi muuten hakea uudelleen)
+const recent = new Map<string, { p: Promise<{ at: number; data: unknown }>; until: number }>();
 async function loadParsed(kind: string, path: string): Promise<{ at: number; data: unknown }> {
   if (PEEK.getStore()) throw new Miss("peek");
-  const data = parsers[kind](await fetchJson(path));
-  if (data === null) throw new SourceError("parse", "unrecognised response");
-  return { at: Date.now(), data };
+  const now = Date.now();
+  const hit = recent.get(path);
+  if (hit && hit.until > now) return hit.p;
+  const p = (async () => {
+    const data = parsers[kind](await fetchJson(path));
+    if (data === null) throw new SourceError("parse", "unrecognised response");
+    return { at: Date.now(), data };
+  })();
+  recent.set(path, { p, until: now + 60_000 });
+  p.catch(() => recent.delete(path));
+  if (recent.size > 200) for (const [k, v] of recent) if (v.until <= now) recent.delete(k);
+  return p;
 }
 
 async function cached<T>(kind: string, path: string, slot: string, ttl: number, peek = false): Promise<{ at: number; data: T }> {

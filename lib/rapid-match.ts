@@ -20,7 +20,8 @@ export async function ourMatch(source: string, date: string, pair: string): Prom
   const hit = (x: { date: string; home: { name: string }; away: { name: string } }) => x.date === date && teamSlug(x.home.name) === h && teamSlug(x.away.name) === a;
   const r = s.results.find(hit), f = r ? undefined : s.fixtures.find(hit);
   const m = r ?? f;
-  if (!m) return null;
+  // lähde ei antanut kaikkia osia → ei voida sanoa, ettei ottelua ole
+  if (!m) return s.failed?.length ? "unavailable" : null;
   const time = (r?.time ?? f?.time) || "";
   return {
     source, date, pair,
