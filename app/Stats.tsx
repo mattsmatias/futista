@@ -317,7 +317,7 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
             <tbody>
               {list.map((p, n) => (
                 <tr key={p.id ?? n}>
-                  <td className="pos">{n > 0 && list[n - 1].goals === p.goals ? "" : n + 1}</td>
+                  <td className="pos">{list.findIndex((q) => q.goals === p.goals) + 1}</td>
                   <td className="l">
                     <a className="pl" href={p.id ? `/pelaaja/${p.id}` : undefined}>
                       <PlayerPhoto name={p.name} team={p.team.name} size={34} />

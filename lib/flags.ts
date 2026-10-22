@@ -24,8 +24,11 @@ function table() {
   try {
     const dn = new Intl.DisplayNames(["en"], { type: "region" });
     const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    // vanhentuneet ja varatut koodit, joilla on sama nimi kuin nykyisellä maalla (esim. FX = "France", YU = "Serbia")
+    const OLD = new Set(["AN", "BU", "CS", "DD", "DY", "FX", "HV", "NH", "RH", "SU", "TP", "UK", "VD", "YD", "YU", "ZR"]);
     for (const a of A) for (const b of A) {
       const code = a + b;
+      if (OLD.has(code)) continue;
       const n = dn.of(code);
       if (n && n !== code) byName.set(key(n), code);
     }

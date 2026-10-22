@@ -18,6 +18,7 @@
     "quota.test.ts",
     "fixes.test.ts",
     "ui.test.ts",
+    "flags.test.ts",
     "rapid.test.ts"
   ]
 }
