@@ -276,22 +276,36 @@ async function uiTests(M) {
     await ctx.close();
   }
 
-  // tuleva ottelu: "ei vielä julkaistu"
+  // tuleva ottelu: välilehdet piilossa, kunnes alkuun on tunti (selaimen kello siirretään: page.clock)
   {
-    const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
-    const page = await ctx.newPage();
     const u = M.upcoming.at(-1);
-    await page.goto(`${APP}/ottelu/${u.l}/${u.d}/${u.p}`, { waitUntil: "load" });
-    await page.locator(".subtabs button", { hasText: "Kokoonpanot" }).click();
-    await page.waitForSelector(".mx-empty", { timeout: 15000 });
-    ok("tuleva ottelu: 'Kokoonpanoja ei ole vielä julkaistu.'", (await page.locator(".mx-empty").innerText()) === "Kokoonpanoja ei ole vielä julkaistu.");
-    await page.locator(".subtabs button", { hasText: /^Tilastot$/ }).click();
-    await page.waitForSelector(".mx-empty", { timeout: 15000 });
-    ok("tuleva ottelu: tilastot näkyvät ottelun alettua", (await page.locator(".mx-empty").innerText()).includes("ottelun alettua"));
-    await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
-    await page.waitForSelector(".mx-empty", { timeout: 15000 });
-    ok("tuleva ottelu: pelaajatilastot näkyvät ottelun alettua", (await page.locator(".mx-empty").innerText()) === "Pelaajatilastot näkyvät ottelun alettua.");
-    await ctx.close();
+    const helEpoch = (d, t) => { const g = Date.parse(`${d}T${t}:00Z`); const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Helsinki", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(g).map((x) => [x.type, x.value])); return g - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - g); };
+    const kick = helEpoch(u.d, u.time);
+    const open = async (at) => {
+      const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
+      const page = await ctx.newPage();
+      if (at) await page.clock.install({ time: at });
+      await page.goto(`${APP}/ottelu/${u.l}/${u.d}/${u.p}`, { waitUntil: "load" });
+      await page.waitForTimeout(800);
+      const tabs = await page.locator(".subtabs button").allInnerTexts();
+      return { ctx, page, tabs };
+    };
+    let o = await open(null);
+    ok("tuleva ottelu (yli tunti alkuun): ei Kokoonpanot-, Tilastot- eikä Pelaajatilastot-välilehteä", !o.tabs.some((x) => /^(Kokoonpanot|Tilastot|Pelaajatilastot)$/.test(x.trim())), o.tabs.join("|"));
+    ok("  kerrotaan, milloin ne tulevat näkyviin", (await o.page.locator(".mx-soon").innerText()).includes("tuntia ennen"));
+    await o.ctx.close();
+    o = await open(kick - 61 * 60_000);
+    ok("  61 min ennen alkua: yhä piilossa", !o.tabs.some((x) => /^Kokoonpanot$/.test(x.trim())), o.tabs.join("|"));
+    await o.ctx.close();
+    o = await open(kick - 50 * 60_000);
+    ok("  50 min ennen alkua: välilehdet näkyvät", ["Kokoonpanot", "Tilastot", "Pelaajatilastot"].every((x) => o.tabs.some((y) => y.trim() === x)), o.tabs.join("|"));
+    await o.page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
+    await o.page.waitForSelector(".mx-empty", { timeout: 15000 });
+    ok("  kokoonpanoa ei vielä julkaistu → 'Kokoonpanoja ei ole vielä julkaistu.'", (await o.page.locator(".mx-empty").innerText()) === "Kokoonpanoja ei ole vielä julkaistu.");
+    await o.page.locator(".subtabs button", { hasText: /^Tilastot$/ }).click();
+    await o.page.waitForSelector(".mx-empty", { timeout: 15000 });
+    ok("  tilastot näkyvät ottelun alettua", (await o.page.locator(".mx-empty").innerText()).includes("ottelun alettua"));
+    await o.ctx.close();
   }
   await browser.close();
 }

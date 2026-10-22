@@ -9,6 +9,7 @@ import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
 import { useMatchState, StatusPill } from "@/lib/live";
+import { helsinkiEpoch } from "@/lib/live-core";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
@@ -142,9 +143,23 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
   const liveScore = !result && st.hs != null && st.as != null ? { hs: st.hs, as: st.as } : null;
   const hw = result && result.hs > result.as, aw = result && result.as > result.hs;
 
+  // Kokoonpano-, tilasto- ja pelaajatilastovälilehdet näkyvät vasta tuntia ennen alkua (lähde julkaisee kokoonpanot
+  // noin tunti ennen) tai kun ottelu on käynnissä/päättynyt; päättyneessä ottelussa ne pysyvät. Muuten piilossa.
+  const kick = fixture?.time ? helsinkiEpoch(m.date, fixture.time) : null;
+  // kellonaika vasta selaimessa (palvelimen välimuistiin tallennettu sivu voi olla vanha)
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => setNowMs(Date.now()), []);
+  const started = !!result || ["live", "ht", "ft", "unconfirmed"].includes(st.kind);
+  const showExtras = !!extras && (started || (kick !== null && nowMs !== null && nowMs >= kick - 3600_000));
+  useEffect(() => {
+    if (!extras || showExtras || kick === null) return;
+    const id = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, [extras, showExtras, kick]);
+
   const tabs: { id: Tab; label: Key }[] = [
     { id: "summary", label: "summary" },
-    ...(extras ? [{ id: "lineups" as Tab, label: "tab_lineups" as Key }, { id: "mstats" as Tab, label: "tab_mstats" as Key }, { id: "players" as Tab, label: "tab_players" as Key }] : []),
+    ...(showExtras ? [{ id: "lineups" as Tab, label: "tab_lineups" as Key }, { id: "mstats" as Tab, label: "tab_mstats" as Key }, { id: "players" as Tab, label: "tab_players" as Key }] : []),
     { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" },
   ];
 
@@ -211,12 +226,13 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
               </div>
             )}
             {!extras && <p className="muted note">{t("lineupsNA")}</p>}
+            {extras && !showExtras && <p className="muted note mx-soon">{t("lu_soon")}</p>}
           </>
         )}
 
-        {tab === "lineups" && extras && <LineupsTab w={extras} home={m.home} away={m.away} />}
-        {tab === "mstats" && extras && <StatsTab w={extras} home={m.home} away={m.away} />}
-        {tab === "players" && extras && <PlayersTab w={extras} home={m.home} away={m.away} />}
+        {tab === "lineups" && showExtras && <LineupsTab w={extras} home={m.home} away={m.away} />}
+        {tab === "mstats" && showExtras && <StatsTab w={extras} home={m.home} away={m.away} />}
+        {tab === "players" && showExtras && <PlayersTab w={extras} home={m.home} away={m.away} />}
 
         {tab === "h2h" && (
           <>
