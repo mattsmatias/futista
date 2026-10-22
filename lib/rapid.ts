@@ -102,7 +102,7 @@ function get(path: string, key: string): Promise<Fetched> {
 async function fetchJson(path: string): Promise<any> {
   const key = process.env.RAPIDAPI_KEY;
   if (!key || !hasRapid()) throw new SourceError("off", "off");
-  if (Date.now() < monthBlockUntil) throw new SourceError("paused", "monthly quota");
+  if (Date.now() < monthBlockUntil) throw new SourceError("limit", "monthly quota"); // hakuraja, ei vika
   return guard.run(path, () => get(path, key), (b) => JSON.parse(b), "high");
 }
 

@@ -111,8 +111,7 @@ async function apiTests(M) {
   const r429 = await api("kokoonpanot", e);
   const r429b = await api("kokoonpanot", e);
   const after = (await rlog()).total;
-  ok("429 → hallittu tila ja tauko (toinen pyyntö ei hae lähteestä)", (r429.status === 503 || r429.j?.state === "busy") && r429b.status === 200 && r429b.j?.state === "busy" && after - before <= 2, `${r429.status}/${r429b.j?.state} haut ${after - before}`);
-  ok("  tauon aikana 'haetaan hetken päästä' (busy), lyhyt välimuisti", /s-maxage=120/.test(r429b.cc ?? ""), r429b.cc);
+  ok("429 → hallittu virhe ja tauko (toinen pyyntö ei hae lähteestä)", r429.status === 503 && r429b.status === 503 && after - before <= 2, `haut ${after - before}`);
   await rmode("lineup=ok");
 
   // vanha kelvollinen tieto säilyy: jo haettu ottelu näkyy edelleen tauon aikana
@@ -130,7 +129,7 @@ async function quotaTest(M) {
   const n1 = (await rlog()).total;
   const second = await api("kokoonpanot", m);
   const n2 = (await rlog()).total;
-  ok("kiintiö lähes loppu → uudet lähdehaut pysähtyvät ('haetaan myöhemmin', ei hakua)", second.status === 200 && second.j?.state === "busy" && n2 === n1, `${first.j?.state} ${second.status} ${n1}→${n2}`);
+  ok("kiintiö lähes loppu → uudet lähdehaut pysähtyvät ('haetaan myöhemmin', ei hakua)", second.status === 200 && second.j?.state === "busy" && /s-maxage=120/.test(second.cc ?? "") && n2 === n1, `${first.j?.state} ${second.status} ${n1}→${n2}`);
   const old = await api("kokoonpanot", M.done[0]);
   ok("  aiemmin haettu tieto näkyy kiintiön loppuessa", old.j?.state === "ok");
   const page = await fetch(`${APP}/ottelu/${m.l}/${m.d}/${m.p}`);

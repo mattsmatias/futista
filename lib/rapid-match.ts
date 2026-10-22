@@ -38,8 +38,8 @@ export type Resolved =
   | { status: "ok"; ours: OurMatch; phase: Phase; slot: string; eventId: number; now: number };
 
 /** Ottelu → lähteen tunniste ja tämän hetken välimuistilokero (null = tässä vaiheessa ei haeta) */
-/** Hakuraja täynnä (tunti- tai kuukausikiintiö): ei vika, vaan odotus */
-export const isBusy = (reason?: string) => reason === "limit" || reason === "paused";
+/** Oma hakuraja täynnä (tunti- tai kuukausikiintiö): ei vika, vaan odotus. Lähteen häiriön tauko ("paused") on vika. */
+export const isBusy = (reason?: string) => reason === "limit";
 
 export async function resolve(kind: "lineups" | "stats", source: string, date: string, pair: string, now = Date.now()): Promise<Resolved> {
   if (!rapidAllowed(source, date, pair)) return { status: "off" };
