@@ -12,8 +12,8 @@ import { Badge } from "./Stats";
 
 type Where = { l: string; d: string; p: string };
 type Meta = { fetchedAt?: number | null; stale?: boolean; source?: string };
-type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound"; phase?: string; home?: Lineup; away?: Lineup };
-type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound"; phase?: string; aet?: boolean; rows?: StatRow[] };
+type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; home?: Lineup; away?: Lineup };
+type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[] };
 
 /** Hakee välilehden tiedot; virheessä säilytetään viimeisin kelvollinen vastaus. Päivitys vain näkyvissä ja ennen loppua. */
 function useExtra<T extends { state: string; phase?: string }>(path: string, w: Where) {
@@ -22,15 +22,21 @@ function useExtra<T extends { state: string; phase?: string }>(path: string, w: 
   const [loading, setLoading] = useState(false);
   const gate = useRef(createRetryGate<void>(3000));
   const url = `/api/${path}?l=${encodeURIComponent(w.l)}&d=${encodeURIComponent(w.d)}&p=${encodeURIComponent(w.p)}`;
+  const quiet = useRef(0);
   const load = useCallback(() => gate.current.run(async () => {
     setLoading(true);
     try {
       const r = await fetch(url);
       const j = (await r.json().catch(() => null)) as T | null;
       if (!r.ok || !j || j.state === "unavailable") throw new Error(String(r.status));
-      setData(j); setError(false);
-    } catch { setError(true); } finally { setLoading(false); }
-  }), [url]);
+      // hakuraja täynnä: jo näytetty tieto pidetään
+      setData((old) => (j.state === "busy" && old && old.state === "ok" ? old : j)); setError(false); quiet.current = 0;
+    } catch {
+      // ohimenevä häiriö: yksi hiljainen uusinta ennen virheilmoitusta
+      if (quiet.current < 1) { quiet.current++; setTimeout(() => { load(); }, 8000); return; }
+      setError(true);
+    } finally { setLoading(false); }
+  }), [url]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [load]);
   // päättynyttä ottelua ei päivitetä; muuten 5 min välein vain näkyvissä (palvelimen välimuisti päättää lähdehauista)
   const done = data?.phase === "final" || data?.state === "off" || data?.state === "nodata";
@@ -154,6 +160,7 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
   const { data, error, loading, retry } = useExtra<LuResp>("kokoonpanot", w);
   if (!data) return error ? <ErrorBox text={t("lu_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
   if (data.state === "wait" || data.state === "notpublished") return <Note text={t("lu_notYet")} sub={t("lu_notYetHint")} />;
+  if (data.state === "busy") return <Note text={t("mx_busy")} sub={t("mx_busyHint")} />;
   if (data.state !== "ok" || !data.home || !data.away) return <Note text={t("lu_none")} />;
   const h = data.home, a = data.away;
   const rated = started(data.phase) && hasRatings([h, a]);
@@ -242,6 +249,7 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
   const [group, setGroup] = useState<"key" | "phys">("key");
   if (!data) return error ? <ErrorBox text={t("lu_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
   if (data.state === "wait" || data.state === "notpublished" || (data.state === "ok" && !started(data.phase))) return <Note text={t("ps_wait")} />;
+  if (data.state === "busy") return <Note text={t("mx_busy")} sub={t("mx_busyHint")} />;
   if (data.state !== "ok" || !data.home || !data.away) return <Note text={t("ps_none")} />;
   const all: PRow[] = [...[...data.home.starters, ...data.home.subs].map((p) => ({ p, side: "h" as const })), ...[...data.away.starters, ...data.away.subs].map((p) => ({ p, side: "a" as const }))];
   const rows = who === "all" ? all : all.filter((r) => r.side === who);
@@ -309,6 +317,7 @@ export function StatsTab({ w, home, away }: { w: Where; home: Team; away: Team }
   const { data, error, loading, retry } = useExtra<StResp>("ottelutilastot", w);
   if (!data) return error ? <ErrorBox text={t("st_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
   if (data.state === "wait") return <Note text={t(data.phase === "live" ? "st_waitLive" : "st_waitPre")} />;
+  if (data.state === "busy") return <Note text={t("mx_busy")} sub={t("mx_busyHint")} />;
   if (data.state !== "ok" || !data.rows?.length) return <Note text={t("st_none")} />;
   return (
     <>

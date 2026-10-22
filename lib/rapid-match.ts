@@ -32,12 +32,15 @@ export async function ourMatch(source: string, date: string, pair: string): Prom
 }
 
 export type Resolved =
-  | { status: "notfound" } | { status: "off" } | { status: "unavailable" }
+  | { status: "notfound" } | { status: "off" } | { status: "unavailable"; busy?: boolean }
   | { status: "wait"; ours: OurMatch; phase: Phase }
   | { status: "nomatch"; ours: OurMatch; phase: Phase; why: "none" | "ambiguous" | "cancelled" }
   | { status: "ok"; ours: OurMatch; phase: Phase; slot: string; eventId: number; now: number };
 
 /** Ottelu → lähteen tunniste ja tämän hetken välimuistilokero (null = tässä vaiheessa ei haeta) */
+/** Hakuraja täynnä (tunti- tai kuukausikiintiö): ei vika, vaan odotus */
+export const isBusy = (reason?: string) => reason === "limit" || reason === "paused";
+
 export async function resolve(kind: "lineups" | "stats", source: string, date: string, pair: string, now = Date.now()): Promise<Resolved> {
   if (!rapidAllowed(source, date, pair)) return { status: "off" };
   const ours = await ourMatch(source, date, pair);
@@ -50,7 +53,7 @@ export async function resolve(kind: "lineups" | "stats", source: string, date: s
   if (slot === null) return { status: "wait", ours, phase };
   const ev = await rapidEvent(ours);
   if (ev.status === "off") return { status: "off" };
-  if (ev.status !== "ok") return { status: "unavailable" };
+  if (ev.status !== "ok") return { status: "unavailable", busy: isBusy(ev.reason) };
   if (ev.find.status !== "ok") return { status: "nomatch", ours, phase, why: ev.find.status };
   return { status: "ok", ours, phase, slot, eventId: ev.find.match.id, now };
 }

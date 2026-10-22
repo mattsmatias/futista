@@ -372,6 +372,8 @@ const D = {
   lu_pitchLabel2: ["Kenttäkaavio: {h} ({hf}) ylhäällä, {a} ({af}) alhaalla. Samat tiedot ovat listana alla.", "Planskiss: {h} ({hf}) överst, {a} ({af}) nederst. Samma information finns som lista nedan.", "Pitch view: {h} ({hf}) at the top, {a} ({af}) at the bottom. The same information is listed below."],
   lu_listAll: ["Kokoonpanot listana", "Laguppställningar som lista", "Line-ups as a list"],
   ps_all: ["Kaikki", "Alla", "All"],
+  mx_busy: ["Tiedot haetaan hetken päästä.", "Uppgifterna hämtas om en stund.", "The data will be fetched shortly."],
+  mx_busyHint: ["Ilmainen tietolähde rajoittaa hakujen määrää. Sivu päivittyy itsestään.", "Den kostnadsfria källan begränsar antalet sökningar. Sidan uppdateras automatiskt.", "The free data source limits the number of requests. The page updates automatically."],
   ps_key: ["Tärkeimmät", "Viktigast", "Key stats"],
   ps_phys: ["Fyysiset", "Fysiska", "Physical"],
   ps_goals: ["Maalit", "Mål", "Goals"],
