@@ -253,7 +253,7 @@ toiminto tarkistetaan palvelimella.
 - Edellisen raportin luku 204 000 syntyi kaavasta (720 viestihakua + 120 huonehakua + 180 sykettä) × 2 h × 100
   lukijaa. Siitä puuttuivat lähetykset, huoneluettelo ja koko aukioloaika.
 - Väite "Realtime ei vähennä kuormaa" oli liian ehdoton. Kun Realtime välittää sisällön itse (B), tiheä
-  kysely jää pois: mitatussa 2 min jaksossa selaimen pyyntöjä oli 6 vs. 25 (7.3), ja välien perusteella tunnissa noin 1/5.
+  kysely jää pois: mitatussa 2 min jaksossa selaimen pyyntöjä oli 6 vs. 24 (7.3), ja välien perusteella tunnissa noin 1/5.
 
 ### 7.2 Laskennallinen arvio (ei mittaus)
 
@@ -326,18 +326,18 @@ toiminto tarkistetaan palvelimella.
 Mitattu tuotantokäännöksellä selaimessa (`MEASURE_DIR=… bash tests/integration/run.sh`). Tietokanta on PostgreSQL
 ja PostgREST-emulaattori, Realtime simulaatio. Mittausjakso alkaa liittymisen jälkeen.
 
-| 120 s, 1 lukija | A: kysely | B: Realtime |
+| 120 s, 1 lukija (commit f4fad12) | A: kysely | B: Realtime |
 | --- | --- | --- |
-| Viestihaut (`GET …/messages`) | 20 | 1 |
+| Viestihaut (`GET …/messages`) | 19 | 1 |
 | Huonehaut (`GET …/room/:id`) | 1 | 1 |
-| Huoneluettelo (`GET …/rooms`) | 1 | 0 |
-| Paikallaolon sykkeet | 3 | 4 |
-| **Selaimen pyynnöt yhteensä** | **25** | **6** |
-| Vastausten koko (selain) | 5,0 kt | 0,8 kt |
-| Tietokantafunktiot (luku: `lk_messages_page` + `lk_room_get` + `lk_rooms_public`) | 22 | 2 |
+| Huoneluettelo (`GET …/rooms`) | 1 | 1 |
+| Paikallaolon sykkeet | 3 | 3 |
+| **Selaimen pyynnöt yhteensä** | **24** | **6** |
+| Vastausten koko (selain) | 5,1 kt | 2,3 kt |
+| Tietokantafunktiot (luku: `lk_messages_page` + `lk_room_get` + `lk_rooms_public`) | 21 | 3 |
 | Lähetykset (`lk_send`, toinen käyttäjä) | 12 | 12 |
 | Realtime-lähetykset / toimitetut / selaimen omat | – | 12 / 12 / 0 |
-| Realtime-data selaimelle | – | 5,2 kt |
+| Realtime-data selaimelle | – | 5,3 kt |
 | Näkyi kerran | 12/12 | 12/12 |
 
 - B:n ainoa viestihaku on liittymisen jälkeinen täydennys. 120 s:n varmistushaku osuu jakson rajalle
