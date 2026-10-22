@@ -19,6 +19,7 @@ export default function NewsPage({ articles: first }: { articles: Article[] }) {
   const [comp, setComp] = useUrlParam("sarja", "all", (v) => isMain(v));
   const [kind, setKind] = useUrlParam("tyyppi", "all", (v) => v === "siirrot");
   const [n, setN] = useState(PAGE);
+  const pick = (c: string, k: string) => { setComp(c); setKind(k); setN(PAGE); };
   const list = useMemo(() => articles
     .filter((a) => comp === "all" || a.source === comp)
     .filter((a) => kind === "all" || a.type === "Siirtouutiset"), [articles, comp, kind]);
@@ -28,16 +29,18 @@ export default function NewsPage({ articles: first }: { articles: Article[] }) {
     <>
       <main className="wrap newspage">
         <div className="page-title"><h1>{t("nav_news")}</h1></div>
-        <div className="nfilters">
-          <div className="chips-row" role="group" aria-label={t("newsFor")}>
-            <button type="button" aria-pressed={comp === "all"} className={`fbtn${comp === "all" ? " on" : ""}`} onClick={() => { setComp("all"); setN(PAGE); }}>{t("all")}</button>
+        {/* Yksi valinta kerrallaan: Kaikki · sarjat · Siirtouutiset. Sarjan valinta poistaa siirtouutisrajauksen ja
+            päinvastoin, joten valittu suodatin näyttää aina sen, mitä painikkeessa lukee. */}
+        <div className="nfilters" role="group" aria-label={t("newsFor")}>
+          <div className="chips-row">
+            <button type="button" aria-pressed={comp === "all" && kind === "all"} className={`fbtn${comp === "all" && kind === "all" ? " on" : ""}`} onClick={() => pick("all", "all")}>{t("all")}</button>
             {SOURCES.filter((s) => isMain(s.id)).map((s) => (
-              <button key={s.id} type="button" aria-pressed={comp === s.id} className={`fbtn${comp === s.id ? " on" : ""}`} onClick={() => { setComp(s.id); setN(PAGE); }}>
+              <button key={s.id} type="button" aria-pressed={comp === s.id && kind === "all"} className={`fbtn${comp === s.id && kind === "all" ? " on" : ""}`} onClick={() => pick(s.id, "all")}>
                 <CompMark id={s.id} small />{i.league(s.id, s.league)}
               </button>
             ))}
           </div>
-          <button type="button" aria-pressed={kind === "siirrot"} className={`fbtn${kind === "siirrot" ? " on" : ""}`} onClick={() => { setKind(kind === "siirrot" ? "all" : "siirrot"); setN(PAGE); }}>{t("newsTransfers")}</button>
+          <button type="button" aria-pressed={kind === "siirrot"} className={`fbtn${kind === "siirrot" ? " on" : ""}`} onClick={() => (kind === "siirrot" ? pick("all", "all") : pick("all", "siirrot"))}>{t("newsTransfers")}</button>
         </div>
         {i.lang !== "fi" && <p className="muted">{t("contentFi")}</p>}
         {!lead && <p className="empty-state">{articles.length ? t("noNews") : t("empty")}</p>}

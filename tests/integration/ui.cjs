@@ -191,6 +191,23 @@ const MIN = 60_000;
     await page.locator(".daypick .dp-today").click().catch(() => {}); await page.waitForTimeout(300);
     for (let i = 0; i < 5; i++) await page.locator(".daypick button[aria-label='Seuraava päivä']").click();
     await page.waitForTimeout(1200);
+    // uutiset: suodattimet yksi kerrallaan (Siirtouutiset ei jää päälle, kun valitaan sarja)
+    {
+      const c3 = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } }); await markTestTraffic(c3, APP);
+      const page = await c3.newPage();
+      await page.goto(APP + "/uutiset?tyyppi=siirrot", { waitUntil: "networkidle" });
+      const on = async () => (await page.locator(".nfilters .fbtn[aria-pressed=true]").allInnerTexts()).map((x) => x.trim());
+      const before = await on();
+      await page.locator(".nfilters .fbtn", { hasText: "Mestarien liiga" }).click(); await page.waitForTimeout(300);
+      const after = await on(), url1 = new URL(page.url());
+      ok("uutiset: sarjan valinta poistaa Siirtouutiset-rajauksen", before.join() === "Siirtouutiset" && after.join() === "Mestarien liiga" && url1.searchParams.get("sarja") === "ucl" && !url1.searchParams.get("tyyppi"), `${before} → ${after} ${url1.search}`);
+      await page.locator(".nfilters .fbtn", { hasText: "Siirtouutiset" }).click(); await page.waitForTimeout(300);
+      const after2 = await on(), url2 = new URL(page.url());
+      ok("  Siirtouutiset-valinta poistaa sarjarajauksen", after2.join() === "Siirtouutiset" && !url2.searchParams.get("sarja") && url2.searchParams.get("tyyppi") === "siirrot", `${after2} ${url2.search}`);
+      await page.locator(".nfilters .fbtn", { hasText: /^Kaikki$/ }).click(); await page.waitForTimeout(300);
+      ok("  Kaikki: ei rajauksia", (await on()).join() === "Kaikki" && new URL(page.url()).search === "", page.url());
+      await c3.close();
+    }
     // suosikit ilman joukkueita: "Lisää joukkueita" sopivan kokoinen
     {
       const c2 = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } }); await markTestTraffic(c2, APP);
