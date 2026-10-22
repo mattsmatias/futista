@@ -12,9 +12,9 @@ import { useMatchState, StatusPill } from "@/lib/live";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
-import { LineupsTab, StatsTab } from "../../../../MatchExtras";
+import { LineupsTab, StatsTab, PlayersTab } from "../../../../MatchExtras";
 
-type Tab = "summary" | "lineups" | "mstats" | "h2h" | "table";
+type Tab = "summary" | "lineups" | "mstats" | "players" | "h2h" | "table";
 
 function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number; b: number; lowerBetter?: boolean; noBar?: boolean }) {
   const total = a + b || 1;
@@ -144,7 +144,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
 
   const tabs: { id: Tab; label: Key }[] = [
     { id: "summary", label: "summary" },
-    ...(extras ? [{ id: "lineups" as Tab, label: "tab_lineups" as Key }, { id: "mstats" as Tab, label: "tab_mstats" as Key }] : []),
+    ...(extras ? [{ id: "lineups" as Tab, label: "tab_lineups" as Key }, { id: "mstats" as Tab, label: "tab_mstats" as Key }, { id: "players" as Tab, label: "tab_players" as Key }] : []),
     { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" },
   ];
 
@@ -216,6 +216,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
 
         {tab === "lineups" && extras && <LineupsTab w={extras} home={m.home} away={m.away} />}
         {tab === "mstats" && extras && <StatsTab w={extras} home={m.home} away={m.away} />}
+        {tab === "players" && extras && <PlayersTab w={extras} home={m.home} away={m.away} />}
 
         {tab === "h2h" && (
           <>

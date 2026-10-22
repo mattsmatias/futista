@@ -6,7 +6,7 @@ import { useI18n, LOCALE, type Key } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
 import { createRetryGate } from "@/lib/retry";
 import type { Lineup, LPlayer, StatRow, StatValue } from "@/lib/rapid-core";
-import { startersAverage } from "@/lib/rapid-core";
+import { startersAverage, ratingTier } from "@/lib/rapid-core";
 import type { Team } from "@/lib/stats";
 import { Badge } from "./Stats";
 
@@ -71,7 +71,19 @@ const Note = ({ text, sub }: { text: string; sub?: string }) => (
 
 // ---------------- Kokoonpanot ----------------
 const fmtRating = (r: number | null, lang: string) => (r === null ? "–" : r.toLocaleString(LOCALE[lang as "fi"], { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
-const lastName = (n: string) => { const w = n.split(" "); return w.length > 1 && n.length > 12 ? w.slice(1).join(" ") : n; };
+const lastName = (n: string) => { const w = n.split(" "); return w.length > 1 && n.length > 11 ? w.slice(1).join(" ") : n; };
+const started = (phase?: string) => phase === "live" || phase === "final";
+const hasRatings = (ls: Lineup[]) => ls.some((l) => [...l.starters, ...l.subs].some((p) => p.rating !== null));
+
+/** Arvosana väriluokkineen; ottelun pelaaja tähdellä */
+function RatingBadge({ r, motm }: { r: number | null; motm?: boolean }) {
+  const { t, lang } = useI18n();
+  return (
+    <span className={`rb rb-${motm ? "motm" : ratingTier(r)}`} title={motm ? t("lu_motm") : undefined}>
+      {fmtRating(r, lang)}{motm && <i className="rb-star" aria-label={t("lu_motm")} role="img">★</i>}
+    </span>
+  );
+}
 
 /** Tapahtumamerkit (maalit, syötöt, kortit, vaihdot) – teksti ruudunlukijalle */
 function Marks({ p, compact }: { p: LPlayer; compact?: boolean }) {
@@ -82,97 +94,185 @@ function Marks({ p, compact }: { p: LPlayer; compact?: boolean }) {
   for (let i = 0; i < p.assists; i++) items.push({ c: "as", label: t("lu_assist"), txt: "A" });
   for (let i = 0; i < p.yellow; i++) items.push({ c: "yc", label: t("lu_yellow"), txt: "" });
   for (let i = 0; i < p.red; i++) items.push({ c: "rc", label: t("lu_red"), txt: "" });
-  if (!compact && p.subOut !== null) items.push({ c: "so", label: `${t("lu_subOut")} ${p.subOut}'`, txt: `↓${p.subOut}'` });
-  if (!compact && p.subIn !== null) items.push({ c: "si", label: `${t("lu_subIn")} ${p.subIn}'`, txt: `↑${p.subIn}'` });
+  if (p.subOut !== null) items.push({ c: "so", label: `${t("lu_subOut")} ${p.subOut}'`, txt: compact ? "⇄" : `↓${p.subOut}'` });
+  if (p.subIn !== null) items.push({ c: "si", label: `${t("lu_subIn")} ${p.subIn}'`, txt: `↑${p.subIn}'` });
   if (!items.length) return null;
   return <span className="lu-marks">{items.map((x, i) => <i key={i} className={`mk mk-${x.c}`} title={x.label} aria-label={x.label} role="img">{x.txt}</i>)}</span>;
 }
 
-function Pitch({ lu, side, showRatings }: { lu: Lineup; side: "h" | "a"; showRatings: boolean }) {
+/** Yksi kenttä molemmille: kotijoukkue ylhäällä (maali yläreunassa), vieras alhaalla. Sijainnit lähteen koordinaateista;
+ *  kotijoukkueen vaakasijainti peilataan, koska se pelaa alaspäin. */
+function FullPitch({ h, a, home, away, rated, label }: { h: Lineup; a: Lineup; home: Team; away: Team; rated: boolean; label: string }) {
   const { t, lang } = useI18n();
+  const avg = (l: Lineup) => (rated ? startersAverage(l) : null);
+  const ah = avg(h), aa = avg(a);
+  const node = (p: LPlayer, side: "h" | "a", i: number) => {
+    if (!p.pos) return null;
+    const v = Math.min(46, Math.max(4, p.pos.y * 50));
+    const style = side === "h" ? { left: `${(1 - p.pos.x) * 100}%`, top: `${v}%` } : { left: `${p.pos.x * 100}%`, bottom: `${v}%` };
+    return (
+      <div key={side + (p.id ?? i)} className={`pp pp-${side}`} style={style}>
+        <span className="pp-shirt">{p.number ?? ""}{p.captain && <em className="pp-c">C</em>}</span>
+        {rated && p.rating !== null && <span className="pp-r"><RatingBadge r={p.rating} motm={p.motm} /></span>}
+        <span className="pp-ev"><Marks p={p} compact /></span>
+        <span className="pp-name"><b>{p.number}</b> {lastName(p.name)}</span>
+      </div>
+    );
+  };
   return (
-    <div className={`pitch pitch-${side}`} role="img" aria-label={t("lu_pitchLabel").replace("{t}", lu.team).replace("{f}", lu.formation ?? "–")}>
-      <div className="pitch-lines" aria-hidden="true"><i className="pl-half" /><i className="pl-circle" /><i className="pl-box" /><i className="pl-box6" /></div>
-      {lu.starters.map((p, i) => p.pos && (
-        <div key={p.id ?? i} className="pp" style={{ left: `${p.pos.x * 100}%`, bottom: `${Math.min(92, Math.max(6, p.pos.y * 100))}%` }} aria-hidden="true">
-          <span className="pp-shirt">{p.number ?? ""}{p.captain && <em className="pp-c">C</em>}</span>
-          {showRatings && p.rating !== null && <span className="pp-r">{fmtRating(p.rating, lang)}</span>}
-          <span className="pp-name">{lastName(p.name)}</span>
-          <Marks p={p} compact />
-        </div>
-      ))}
+    <div className="panel lu-pitch-panel">
+      <div className="lu-forms" aria-hidden="true"><b>{h.formation ?? "–"}</b><span>{t("lu_formation")}</span><b>{a.formation ?? "–"}</b></div>
+      <div className="pitch pitch-full" role="img" aria-label={label}>
+        <div className="pitch-lines" aria-hidden="true"><i className="pl-mid" /><i className="pl-circle" /><i className="pl-box pl-top" /><i className="pl-box6 pl-top" /><i className="pl-box pl-bot" /><i className="pl-box6 pl-bot" /></div>
+        <span className="pitch-team pt-h" aria-hidden="true"><Badge t={home} size={26} />{ah && <span className="pt-avg">⌀ {ah.avg.toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>}</span>
+        <span className="pitch-team pt-a" aria-hidden="true">{aa && <span className="pt-avg">⌀ {aa.avg.toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>}<Badge t={away} size={26} /></span>
+        {h.starters.map((p, i) => node(p, "h", i))}
+        {a.starters.map((p, i) => node(p, "a", i))}
+      </div>
     </div>
   );
 }
 
 function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   return (
     <li className="lu-row">
       <span className="lu-num" aria-hidden="true">{p.number ?? "–"}</span>
       <span className="lu-name">
         <span className="sr-only">{p.number ? `#${p.number} ` : ""}</span>{p.name}
         {p.captain && <small className="lu-tag"> ({t("lu_captain")})</small>}
-        {p.motm && <small className="lu-tag lu-motm"> · {t("lu_motm")}</small>}
         <Marks p={p} />
       </span>
       <abbr className="lu-role" title={p.role !== null ? t(`roleL_${p.role}` as Key) : undefined}>{p.role !== null ? t(`role_${p.role}` as Key) : "–"}</abbr>
-      {showRating && <span className="lu-rating" aria-label={`${t("lu_rating")} ${fmtRating(p.rating, lang)}`}>{fmtRating(p.rating, lang)}</span>}
+      {showRating && <span className="lu-rating"><RatingBadge r={p.rating} motm={p.motm} /></span>}
     </li>
   );
 }
 
-function TeamLineup({ lu, team, side, phase, hidden }: { lu: Lineup; team: Team; side: "h" | "a"; phase: string; hidden: boolean }) {
+export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team }) {
   const { t, lang } = useI18n();
-  const started = phase === "live" || phase === "final";
-  const rated = started && [...lu.starters, ...lu.subs].some((p) => p.rating !== null);
-  const avg = started ? startersAverage(lu) : null;
+  const { data, error, loading, retry } = useExtra<LuResp>("kokoonpanot", w);
+  if (!data) return error ? <ErrorBox text={t("lu_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
+  if (data.state === "wait" || data.state === "notpublished") return <Note text={t("lu_notYet")} sub={t("lu_notYetHint")} />;
+  if (data.state !== "ok" || !data.home || !data.away) return <Note text={t("lu_none")} />;
+  const h = data.home, a = data.away;
+  const rated = started(data.phase) && hasRatings([h, a]);
+  const label = t("lu_pitchLabel2").replace("{h}", home.name).replace("{hf}", h.formation ?? "–").replace("{a}", away.name).replace("{af}", a.formation ?? "–");
+  const subsRow = (l: Lineup) => <ul className="lu-list lu-subs">{l.subs.map((p, i) => <PlayerRow key={p.id ?? i} p={p} showRating={rated} />)}</ul>;
+  const avgText = (l: Lineup) => { const v = rated ? startersAverage(l) : null; return v ? t("lu_avg").replace("{a}", v.avg.toLocaleString(LOCALE[lang], { maximumFractionDigits: 2 })).replace("{n}", String(v.n)).replace("{m}", String(v.of)) : null; };
   return (
-    <section className={`panel lu-team${hidden ? " lu-hide" : ""}`} aria-label={team.name} id={`lu-${side}`}>
-      <div className="panel-head">
-        <h3 className="ph-team"><Badge t={team} size={22} />{team.name}</h3>
-        {lu.formation && <span className="chip lu-form" title={t("lu_formation")}>{lu.formation}</span>}
+    <>
+      {error && <ErrorBox text={t("lu_error")} retry={retry} loading={loading} />}
+      <p className="mx-label">{data.phase === "pre" ? t("lu_pre") : t("lu_started")}</p>
+      {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} /> : <Note text={t("lu_noPitch")} />}
+      <div className="panel">
+        <div className="panel-head"><h3>{t("lu_subs")}</h3></div>
+        <div className="lu-cols">
+          <section aria-label={home.name}><h4 className="lu-h"><Badge t={home} size={18} /> {home.name}</h4>{subsRow(h)}</section>
+          <section aria-label={away.name}><h4 className="lu-h"><Badge t={away} size={18} /> {away.name}</h4>{subsRow(a)}</section>
+        </div>
+        {(h.coach || a.coach) && (
+          <div className="lu-cols lu-coach">
+            <p className="pad"><span className="muted">{t("lu_coach")}:</span> {h.coach ?? "–"}</p>
+            <p className="pad"><span className="muted">{t("lu_coach")}:</span> {a.coach ?? "–"}</p>
+          </div>
+        )}
+        {(h.unavailable.length > 0 || a.unavailable.length > 0) && (
+          <div className="lu-cols lu-out small">
+            {[h, a].map((l, i) => <p key={i} className="pad">{l.unavailable.length ? <><span className="muted">{t("lu_out")}:</span> {l.unavailable.map((u) => `${u.name} (${t(u.reason === "injury" ? "lu_injury" : u.reason === "suspension" ? "lu_suspension" : "lu_absent")})`).join(", ")}</> : null}</p>)}
+          </div>
+        )}
       </div>
-      {lu.positioned ? <Pitch lu={lu} side={side} showRatings={rated} /> : <p className="muted pad small">{t("lu_noPitch")}</p>}
-      <h4 className="lu-h">{t("lu_list")}</h4>
-      <ol className="lu-list">{lu.starters.map((p, i) => <PlayerRow key={p.id ?? i} p={p} showRating={rated} />)}</ol>
-      {avg && <p className="muted small pad lu-avg">{t("lu_avg").replace("{a}", avg.avg.toLocaleString(LOCALE[lang], { maximumFractionDigits: 2 })).replace("{n}", String(avg.n)).replace("{m}", String(avg.of))}</p>}
-      {lu.subs.length > 0 && <>
-        <h4 className="lu-h">{t("lu_subs")}</h4>
-        <ul className="lu-list lu-subs">{lu.subs.map((p, i) => <PlayerRow key={p.id ?? i} p={p} showRating={rated} />)}</ul>
-      </>}
-      {lu.coach && <p className="pad lu-coach"><span className="muted">{t("lu_coach")}:</span> {lu.coach}</p>}
-      {lu.unavailable.length > 0 && (
-        <p className="pad lu-out small"><span className="muted">{t("lu_out")}:</span> {lu.unavailable.map((u) => `${u.name} (${t(u.reason === "injury" ? "lu_injury" : u.reason === "suspension" ? "lu_suspension" : "lu_absent")})`).join(", ")}</p>
-      )}
+      <details className="panel lu-details">
+        <summary className="pad">{t("lu_listAll")}</summary>
+        <div className="lu-cols">
+          {[{ l: h, tm: home }, { l: a, tm: away }].map(({ l, tm }, i) => (
+            <section key={i} className="lu-team" aria-label={tm.name}>
+              <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
+              <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated} />)}</ol>
+              {avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
+            </section>
+          ))}
+        </div>
+      </details>
+      <div className="panel lu-legend">
+        {rated && <p className="pad small muted">{t("lu_ratingNote")}</p>}
+        <p className="pad small muted">{t("lu_roleNote")}</p>
+        <SourceLine m={data} />
+      </div>
+    </>
+  );
+}
+
+// ---------------- Pelaajatilastot ----------------
+type PRow = { p: LPlayer; side: "h" | "a" };
+type Cat = { key: string; title: Key; value: (p: LPlayer) => number | null; fmt: (p: LPlayer) => React.ReactNode; positive?: boolean };
+
+function PlayerTop({ cat, rows, home, away }: { cat: Cat; rows: PRow[]; home: Team; away: Team }) {
+  const { t } = useI18n();
+  const [all, setAll] = useState(false);
+  const list = rows.filter((r) => { const v = cat.value(r.p); return v !== null && (!cat.positive || v > 0); })
+    .sort((x, y) => (cat.value(y.p)! - cat.value(x.p)!) || x.p.name.localeCompare(y.p.name));
+  if (!list.length) return null;
+  const shown = all ? list : list.slice(0, 3);
+  // tasatilanteessa sama sija (1., 2., 2.)
+  const rank = (i: number) => { let r = i; while (r > 0 && cat.value(list[r - 1].p) === cat.value(list[i].p)) r--; return r + 1; };
+  return (
+    <section className="panel ps-sec" aria-label={t(cat.title)}>
+      <div className="panel-head"><h3>{t(cat.title)}</h3></div>
+      <ol className="ps-list">
+        {shown.map((r, i) => (
+          <li key={r.side + (r.p.id ?? r.p.name)} className="ps-row">
+            <span className="ps-rank">{rank(i)}.</span>
+            <span className={`ps-num ps-${r.side}`} aria-hidden="true">{r.p.number ?? "–"}</span>
+            <span className="ps-who"><b>{r.p.name}</b><small>{(r.side === "h" ? home : away).name}{r.p.role !== null ? ` · ${t(`roleL_${r.p.role}` as Key)}` : ""}</small></span>
+            <span className="ps-val">{cat.fmt(r.p)}</span>
+          </li>
+        ))}
+      </ol>
+      {list.length > 3 && <button className="ps-more" aria-expanded={all} onClick={() => setAll(!all)}>{all ? t("ps_showLess") : t("ps_showAll").replace("{n}", String(list.length))}</button>}
     </section>
   );
 }
 
-export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team }) {
-  const { t } = useI18n();
+export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team }) {
+  const { t, lang } = useI18n();
   const { data, error, loading, retry } = useExtra<LuResp>("kokoonpanot", w);
-  const [side, setSide] = useState<"h" | "a">("h");
+  const [who, setWho] = useState<"all" | "h" | "a">("all");
+  const [group, setGroup] = useState<"key" | "phys">("key");
   if (!data) return error ? <ErrorBox text={t("lu_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
-  if (data.state === "wait" || data.state === "notpublished") return <Note text={t("lu_notYet")} sub={t("lu_notYetHint")} />;
-  if (data.state !== "ok" || !data.home || !data.away) return <Note text={t("lu_none")} />;
-  const phase = data.phase ?? "";
-  const rated = (phase === "live" || phase === "final") && [...data.home.starters, ...data.away.starters].some((p) => p.rating !== null);
+  if (data.state === "wait" || data.state === "notpublished" || (data.state === "ok" && !started(data.phase))) return <Note text={t("ps_wait")} />;
+  if (data.state !== "ok" || !data.home || !data.away) return <Note text={t("ps_none")} />;
+  const all: PRow[] = [...[...data.home.starters, ...data.home.subs].map((p) => ({ p, side: "h" as const })), ...[...data.away.starters, ...data.away.subs].map((p) => ({ p, side: "a" as const }))];
+  const rows = who === "all" ? all : all.filter((r) => r.side === who);
+  const phys = all.some((r) => r.p.distance !== null || r.p.topSpeed !== null);
+  const n = (v: number, d = 0) => v.toLocaleString(LOCALE[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
+  const cats: Cat[] = group === "key" ? [
+    { key: "rating", title: "lu_rating", value: (p) => p.rating, fmt: (p) => <RatingBadge r={p.rating} motm={p.motm} /> },
+    { key: "goals", title: "ps_goals", value: (p) => p.goals, fmt: (p) => n(p.goals), positive: true },
+    { key: "assists", title: "ps_assists", value: (p) => p.assists, fmt: (p) => n(p.assists), positive: true },
+    { key: "cards", title: "ps_cards", value: (p) => p.red * 10 + p.yellow, fmt: (p) => <Marks p={{ ...p, goals: 0, ownGoals: 0, assists: 0, subIn: null, subOut: null }} />, positive: true },
+  ] : [
+    { key: "distance", title: "ps_distance", value: (p) => p.distance, fmt: (p) => `${n(p.distance! / 1000, 1)} km` },
+    { key: "speed", title: "ps_speed", value: (p) => p.topSpeed, fmt: (p) => `${n(p.topSpeed!, 1)} km/h` },
+  ];
+  const seg = (val: string, set: (v: string) => void, opts: [string, string][], label: string) => (
+    <div className="seg ps-seg" role="group" aria-label={label}>
+      {opts.map(([v, txt]) => <button key={v} aria-pressed={val === v} className={val === v ? "on" : ""} onClick={() => set(v)}>{txt}</button>)}
+    </div>
+  );
   return (
     <>
       {error && <ErrorBox text={t("lu_error")} retry={retry} loading={loading} />}
-      <p className="mx-label">{phase === "pre" ? t("lu_pre") : t("lu_started")}</p>
-      <div className="lu-switch seg" role="group" aria-label={t("lu_team")}>
-        <button aria-pressed={side === "h"} className={side === "h" ? "on" : ""} onClick={() => setSide("h")}>{home.name}</button>
-        <button aria-pressed={side === "a"} className={side === "a" ? "on" : ""} onClick={() => setSide("a")}>{away.name}</button>
+      <div className="ps-filters">
+        {phys && seg(group, (v) => setGroup(v as "key" | "phys"), [["key", t("ps_key")], ["phys", t("ps_phys")]], t("tab_players"))}
+        {seg(who, (v) => setWho(v as "all" | "h" | "a"), [["all", t("ps_all")], ["h", home.name], ["a", away.name]], t("lu_team"))}
       </div>
-      <div className="lu-duo">
-        <TeamLineup lu={data.home} team={home} side="h" phase={phase} hidden={side !== "h"} />
-        <TeamLineup lu={data.away} team={away} side="a" phase={phase} hidden={side !== "a"} />
-      </div>
+      {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} />)}
       <div className="panel lu-legend">
-        {rated && <p className="pad small muted">{t("lu_ratingNote")}</p>}
-        <p className="pad small muted">{t("lu_roleNote")}</p>
+        {group === "key" && <p className="pad small muted">{t("lu_ratingNote")}</p>}
+        {group === "phys" && <p className="pad small muted">{t("ps_unitNote")}</p>}
+        <p className="pad small muted">{t("ps_missing")}</p>
         <SourceLine m={data} />
       </div>
     </>

@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { dayCandidates, parseDay, findEvent, sameClub, parseLineup, parseStats, statValue, startersAverage, phaseOf, slotKey, earlierKeys } from "../lib/rapid-core";
+import { ratingTier, dayCandidates, parseDay, findEvent, sameClub, parseLineup, parseStats, statValue, startersAverage, phaseOf, slotKey, earlierKeys } from "../lib/rapid-core";
 
 const FX = path.join(__dirname, "..", "..", "tests", "fixtures", "rapidapi");
 const fx = (f: string) => JSON.parse(fs.readFileSync(path.join(FX, f), "utf8"));
@@ -179,4 +179,14 @@ test("päivälistat: iltaottelu seuraavan päivän listasta, tuntematon aika →
   assert.deepEqual(dayCandidates("2026-10-17", Date.parse("2026-10-17T19:00:00Z")), ["20261018", "20261017"]);
   assert.deepEqual(dayCandidates("2026-10-18", Date.parse("2026-10-18T14:15:00Z")), ["20261018"]);
   assert.deepEqual(dayCandidates("2026-10-21", null), ["20261021", "20261022"]);
+});
+
+test("pelaajan juoksumatka ja huippunopeus vain, kun lähde antaa ne; arvosanan väriluokka", () => {
+  const j = fx("ll_h.json");
+  // Valioliiga-vastauksessa (22.10.2026) oli esim. totalDistanceCovered 11295 ja topSpeed 31.899999618530273
+  j.response.lineup.starters[0].performance = { rating: 7, totalDistanceCovered: 11295, topSpeed: 31.899999618530273 };
+  const p = parseLineup(j)!.starters[0];
+  assert.deepEqual([p.distance, p.topSpeed], [11295, 31.9]);
+  assert.deepEqual([parseLineup(fx("ll_h.json"))!.starters[0].distance, parseLineup(fx("ll_h.json"))!.starters[0].topSpeed], [null, null]);
+  assert.deepEqual([8.7, 7.3, 6.7, 6.1, 5.7, null].map(ratingTier), ["top", "good", "ok", "mid", "low", "none"]);
 });

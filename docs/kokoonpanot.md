@@ -121,12 +121,20 @@ Dokumentaatiosivua ei saatu luettua (sivu vaatii JavaScriptin).
 ## 4. Näkymät
 
 **Kokoonpanot**
-- Kenttä: sijainnit lähteen omista koordinaateista. Jos yksikin avauspelaajan sijainti puuttuu, näytetään vain
-  lista; sijoittelua ei arvata.
+- Yksi yhteinen kenttä (22.10.2026 alkaen): kotijoukkue yläpuoliskolla, vierasjoukkue alapuoliskolla,
+  muodostelmat otsikkorivillä. Sijainnit lähteen omista koordinaateista; kotijoukkueen vaakasijainti peilataan,
+  koska se pelaa alaspäin. Jos yksikin avauspelaajan sijainti puuttuu, kenttää ei näytetä; sijoittelua ei arvata.
+- Pelaajamerkki: pelinumero ympyrässä (koti valkoinen, vieras tumma), nimi alla, arvosanamerkki oikealla
+  yläkulmassa, tapahtumat (maali, syöttö, kortti, vaihto) vasemmalla, kapteeni C. Ottelun pelaaja ★ (lähteen
+  playerOfTheMatch).
+- Arvosanan väri: alle 6 punainen, 6–6,4 oranssi, 6,5–6,9 kulta, 7–7,9 vihreä, 8+ sininen. Luku näkyy aina,
+  joten väri ei ole ainoa tieto; kaikkien merkkien kontrasti ≥ 4,5 (testattu).
+- Joukkueen keskiarvo (⌀) kentän päädyssä vain alkaneessa ottelussa.
+- Kentän alla: vaihtopelaajat kahdessa sarakkeessa, valmentajat, poissaolot ja "Kokoonpanot listana"
+  (avattava, ruudunlukijalle sama tieto kuin kentässä).
 - Lista: pelinumero, nimi, pelipaikka (pelaajan tavallinen pelipaikka lähteen mukaan: MV/P/KK/H), arvosana.
   Lisäksi merkit: maali, oma maali, syöttö, kortit, vaihtominuutit.
 - Muut tiedot: muodostelma, vaihtopelaajat, valmentaja, poissa (loukkaantunut/pelikielto).
-- Mobiili: joukkuevalinta, yksi kenttä kerrallaan. Työpöytä: joukkueet vierekkäin.
 - Tilat:
   - "Kokoonpanoja ei ole vielä julkaistu."
   - Ennen alkua: "Lähteen ilmoittama kokoonpano. Lähde ei kerro, onko se vahvistettu." Ennakoitu tai
@@ -140,6 +148,15 @@ Dokumentaatiosivua ei saatu luettua (sivu vaatii JavaScriptin).
 - Kuvat: ei pelaajakuvia; pelinumero ympyrässä. Lähteen kuvaendpointia ei käytetä, koska jokainen kuva maksaa
   yhden haun eikä käyttöehtoja löytynyt. Futistan nykyinen kuvajärjestelmä yhdistää kuvat nimen perusteella,
   joten sitäkään ei käytetä.
+
+**Pelaajatilastot**
+- Sama /api/kokoonpanot-vastaus kuin kokoonpanoissa → ei yhtään lisähakua.
+- Suodatin: Kaikki / koti / vieras. Osiot vain, jos dataa on: Arvosana, Maalit, Maalisyötöt, Kortit
+  (top 3, "Näytä kaikki"). Tasapisteissä sama sija.
+- "Fyysiset" (juoksumatka, huippunopeus) näytetään vain, jos lähde antaa ne (nähty Valioliigassa). Lähde ei kerro
+  yksiköitä; arvot vastaavat metrejä ja km/h, ja tämä kerrotaan selitteessä.
+- Laukauksia, xG:tä ja syöttöjä pelaajittain lähde ei tarjoa → selite kertoo sen; niitä ei arvata.
+- Ennen alkua: "Pelaajatilastot näkyvät ottelun alettua."
 
 **Tilastot**
 - Asettelu: koti vasemmalla, vieras oikealla, nimi keskellä. Neutraalit värit, ei "parempi joukkue"

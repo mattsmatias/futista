@@ -107,6 +107,9 @@ export type LPlayer = {
   rating: number | null; captain: boolean; motm: boolean;
   goals: number; ownGoals: number; assists: number; yellow: number; red: number;
   subIn: number | null; subOut: number | null;
+  /** Juoksumatka ja huippunopeus, kun lähde antaa ne (havaittu vain osassa otteluita). Yksikköä ei dokumentoida:
+   *  arvot vastaavat metrejä (esim. 11295) ja km/h (esim. 31,9). */
+  distance: number | null; topSpeed: number | null;
 };
 export type Lineup = {
   team: string; formation: string | null; starters: LPlayer[]; subs: LPlayer[]; coach: string | null;
@@ -135,6 +138,8 @@ function player(p: any): LPlayer | null {
     goals: count("goal"), ownGoals: count("ownGoal"), assists: count("assist"),
     yellow: count("yellowCard"), red: count("redCard") + count("yellowRedCard"),
     subIn: sub("subIn"), subOut: sub("subOut"),
+    distance: (() => { const d = num(perf.totalDistanceCovered); return d !== null && d > 0 && d < 20000 ? d : null; })(),
+    topSpeed: (() => { const v = num(perf.topSpeed); return v !== null && v > 0 && v < 45 ? Math.round(v * 10) / 10 : null; })(),
   };
 }
 
@@ -248,4 +253,10 @@ export function dayCandidates(date: string, kickoff: number | null): string[] {
   const ymd = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
   const noon = Date.parse(date + "T12:00:00Z");
   return [...new Set(kickoff !== null ? [ymd(kickoff + 5 * 3600_000), date.replace(/-/g, "")] : [date.replace(/-/g, ""), ymd(noon + 24 * 3600_000)])];
+}
+
+/** Arvosanan väriluokka näyttöä varten (ei "parempi joukkue" -vertailua, vain arvon taso) */
+export function ratingTier(r: number | null): "none" | "low" | "mid" | "ok" | "good" | "top" {
+  if (r === null) return "none";
+  return r >= 8 ? "top" : r >= 7 ? "good" : r >= 6.5 ? "ok" : r >= 6 ? "mid" : "low";
 }

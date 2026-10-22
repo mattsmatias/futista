@@ -154,34 +154,62 @@ async function uiTests(M) {
     await page.locator(".subtabs button", { hasText: "Kokoonpanot" }).click();
     await page.waitForSelector(".lu-list .lu-row", { timeout: 15000 });
     const tag = `${w}-${scheme}`;
-    ok(`${tag}: kokoonpano näkyy (kenttä + lista)`, (await page.locator(".pitch").first().isVisible()) && (await page.locator(".lu-team:visible .lu-list").first().locator(".lu-row").count()) === 11);
-    ok(`${tag}: muodostelma ja valmentaja`, (await page.locator(".lu-team:visible .lu-form").first().innerText()) === "3-4-3" && (await page.locator(".lu-team:visible .lu-coach").first().innerText()).includes("Claudio Giráldez"));
+    await page.waitForSelector(".pitch-full .pp", { timeout: 15000 });
+    ok(`${tag}: yksi yhteinen kenttä, 22 pelaajaa`, (await page.locator(".pitch-full:visible").count()) === 1 && (await page.locator(".pitch-full .pp").count()) === 22 && (await page.locator(".pitch-full .pp-h").count()) === 11);
+    const forms = (await page.locator(".lu-forms").innerText()).replace(/\s+/g, " ").trim();
+    ok(`${tag}: muodostelmat otsikossa (koti vasemmalla, vieras oikealla)`, forms === "3-4-3 MUODOSTELMA 5-3-2" || forms === "3-4-3 Muodostelma 5-3-2", forms);
+    ok(`${tag}: kenttä ruudunlukijalle kuvattu`, ((await page.locator(".pitch-full").getAttribute("aria-label")) || "").includes("ylhäällä"));
+    const geo = await page.evaluate(() => {
+      const b = document.querySelector(".pitch-full").getBoundingClientRect(), mid = b.top + b.height / 2;
+      const sh = (sel) => [...document.querySelectorAll(sel)].map((e) => e.getBoundingClientRect());
+      const H = sh(".pp-h .pp-shirt"), A = sh(".pp-a .pp-shirt"), all = [...H, ...A];
+      const inside = [...document.querySelectorAll(".pitch-full .pp")].map((e) => e.getBoundingClientRect()).every((r) => r.left >= b.left - 2 && r.right <= b.right + 2 && r.top >= b.top - 2 && r.bottom <= b.bottom + 2);
+      let overlap = 0; for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) { const p = all[i], q = all[j]; if (p.left < q.right && q.left < p.right && p.top < q.bottom && q.top < p.bottom) overlap++; }
+      return { inside, overlap, homeTop: H.every((r) => r.bottom <= mid + 1), awayBottom: A.every((r) => r.top >= mid - 1) };
+    });
+    ok(`${tag}: koti yläpuoliskolla, vieras alapuoliskolla`, geo.homeTop && geo.awayBottom);
+    ok(`${tag}: pelaajat mahtuvat kenttään`, geo.inside);
+    ok(`${tag}: pelaajamerkit eivät mene päällekkäin`, geo.overlap === 0, `päällekkäin ${geo.overlap}`);
+    const badges = await page.locator(".pitch-full .rb").allInnerTexts();
+    ok(`${tag}: arvosanat kentällä numeroina (väri ei ainoa tieto)`, badges.length >= 15 && badges.every((x) => /^\d+,\d★?$/.test(x.trim())), badges.slice(0, 4).join("|"));
+    ok(`${tag}: joukkueen keskiarvo kentällä`, (await page.locator(".pt-avg").count()) === 2);
+    ok(`${tag}: vaihtopelaajat kahdessa sarakkeessa ja valmentajat`, (await page.locator(".lu-subs").count()) === 2 && (await page.locator(".lu-subs").first().locator(".lu-row").count()) > 0 && (await page.locator(".lu-coach").innerText()).includes("Claudio Giráldez"));
     const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
     ok(`${tag}: ei vaakavieritystä`, noOverflow);
-    if (w < 500) {
-      ok(`${tag}: mobiilissa joukkuevalinta, yksi kenttä kerrallaan`, (await page.locator(".lu-switch").isVisible()) && (await page.locator(".pitch:visible").count()) === 1);
-      await page.locator(".lu-switch button").nth(1).click();
-      ok(`${tag}: vierasjoukkueen kokoonpano valinnalla (5-3-2)`, (await page.locator(".lu-team:visible .lu-form").first().innerText()) === "5-3-2");
-      if (scheme === "light") await shot(page, "kokoonpanot-mobiili-vaalea");
-      else await shot(page, "kokoonpanot-mobiili-tumma");
-      await page.locator(".lu-switch button").nth(0).click();
-      // kenttänimet luettavissa: kaikki nimet näkyvät kentän sisällä
-      const inside = await page.evaluate(() => { const p = document.querySelector(".pitch:not(.lu-hide *)"); const pr = [...document.querySelectorAll(".lu-team:not(.lu-hide) .pp")].map((e) => e.getBoundingClientRect()); const b = document.querySelector(".lu-team:not(.lu-hide) .pitch").getBoundingClientRect(); return pr.every((r) => r.left >= b.left - 2 && r.right <= b.right + 2); });
-      ok(`${tag}: pelaajat mahtuvat kenttään`, inside);
-    } else {
-      ok(`${tag}: työpöydällä molemmat joukkueet vierekkäin`, (await page.locator(".pitch:visible").count()) === 2 && !(await page.locator(".lu-switch").isVisible()));
-      await shot(page, `kokoonpanot-tyopoyta-${scheme === "light" ? "vaalea" : "tumma"}`);
-    }
-    ok(`${tag}: arvosanat lähteen nimellä ja puuttuva '–'`, (await page.locator(".lu-legend").innerText()).includes("Free API Live Football Data") && (await page.locator(".lu-team:visible .lu-subs .lu-rating", { hasText: "–" }).count()) > 0);
-    // kontrasti: nimi kentällä ja listan teksti
+    await shot(page, `kokoonpanot-${w < 500 ? "mobiili" : "tyopoyta"}-${scheme === "light" ? "vaalea" : "tumma"}`);
+    await page.locator(".lu-details > summary").click();
+    ok(`${tag}: lista avautuu: molemmat joukkueet, 11 + 11`, (await page.locator(".lu-team:visible").count()) === 2 && (await page.locator(".lu-team:visible").nth(0).locator("ol .lu-row").count()) === 11 && (await page.locator(".lu-team:visible").nth(1).locator("ol .lu-row").count()) === 11 && (await page.locator(".lu-team:visible .lu-h").nth(1).innerText()).includes("5-3-2"));
+    ok(`${tag}: arvosanat lähteen nimellä ja puuttuva '–'`, (await page.locator(".lu-legend").innerText()).includes("Free API Live Football Data") && (await page.locator(".lu-subs .lu-rating", { hasText: "–" }).count()) > 0);
+    // kontrasti: listan teksti paneelin taustaa vasten ja arvosanamerkit
     const contrast = await page.evaluate(() => {
       const lum = (c) => { const v = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
       const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-      const row = document.querySelector(".lu-team:not(.lu-hide) .lu-name"), panel = document.querySelector(".lu-team:not(.lu-hide)");
-      return ratio(getComputedStyle(row).color, getComputedStyle(panel).backgroundColor);
+      const row = document.querySelector(".lu-subs .lu-name"), panel = row.closest(".panel");
+      const rb = [...document.querySelectorAll(".pitch-full .rb")].map((e) => ratio(getComputedStyle(e).color, getComputedStyle(e).backgroundColor));
+      return { list: ratio(getComputedStyle(row).color, getComputedStyle(panel).backgroundColor), badge: Math.min(...rb) };
     });
-    ok(`${tag}: listan kontrasti ≥ 4.5`, contrast >= 4.5, contrast.toFixed(1));
-    await page.locator(".subtabs button", { hasText: "Tilastot" }).click();
+    ok(`${tag}: listan kontrasti ≥ 4.5`, contrast.list >= 4.5, contrast.list.toFixed(1));
+    ok(`${tag}: arvosanamerkkien kontrasti ≥ 4.5`, contrast.badge >= 4.5, contrast.badge.toFixed(1));
+    // pelaajatilastot samasta datasta
+    await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
+    await page.waitForSelector(".ps-row", { timeout: 15000 });
+    const secs = await page.locator(".ps-sec h3").allInnerTexts();
+    ok(`${tag}: pelaajatilastot: arvosana ensin, top 3`, secs[0] === "Arvosana" && (await page.locator(".ps-sec").first().locator(".ps-row").count()) === 3, secs.join("|"));
+    const r3 = await page.locator(".ps-sec").first().locator(".ps-val").allInnerTexts();
+    const nums = r3.map((x) => parseFloat(x.replace(",", ".")));
+    ok(`${tag}:   järjestys laskeva`, nums.every((v, i) => i === 0 || v <= nums[i - 1]), r3.join("|"));
+    ok(`${tag}:   ei fyysisiä arvoja, kun lähde ei anna niitä`, (await page.locator(".ps-seg button", { hasText: "Fyysiset" }).count()) === 0);
+    ok(`${tag}:   puuttuvista tilastoista kerrotaan`, (await page.locator(".lu-legend").innerText()).includes("Laukaukset, xG ja syötöt pelaajittain eivät ole saatavilla"));
+    await page.locator(".ps-sec").first().locator(".ps-more").click();
+    ok(`${tag}:   Näytä kaikki laajentaa listan`, (await page.locator(".ps-sec").first().locator(".ps-row").count()) > 3);
+    const awayName = await page.locator(".ps-seg").last().locator("button").nth(2).innerText();
+    await page.locator(".ps-seg").last().locator("button").nth(2).click();
+    const teams = await page.locator(".ps-who small").allInnerTexts();
+    ok(`${tag}:   suodatus joukkueella`, teams.length > 0 && teams.every((x) => x.startsWith(awayName)), awayName);
+    ok(`${tag}:   ei vaakavieritystä`, await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+    await page.locator(".ps-seg").last().locator("button").nth(0).click();
+    await shot(page, `pelaajatilastot-${w < 500 ? "mobiili" : "tyopoyta"}-${scheme === "light" ? "vaalea" : "tumma"}`);
+    await page.locator(".subtabs button", { hasText: /^Tilastot$/ }).click();
     await page.waitForSelector(".ms-row", { timeout: 15000 });
     const labels = await page.locator(".ms-top span").allInnerTexts();
     ok(`${tag}: tilastot – koti vasemmalla, vieras oikealla, nimi keskellä`, labels[0] === "Pallonhallinta" && (await page.locator(".ms-top").first().innerText()).replace(/\s+/g, " ").startsWith("48 % Pallonhallinta 52 %"), labels.slice(0, 3).join("|"));
@@ -193,18 +221,19 @@ async function uiTests(M) {
   }
 
   // näppäimistö ja kielet
-  for (const [lang, tab, stats] of [["sv", "Laguppställningar", "Statistik"], ["en", "Line-ups", "Stats"]]) {
+  for (const [lang, tab, stats, ps] of [["sv", "Laguppställningar", "Statistik", "Spelarstatistik"], ["en", "Line-ups", "Stats", "Player stats"]]) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     await ctx.addInitScript((l) => { try { localStorage.setItem("futista-kieli", l); } catch {} }, lang);
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "load" });
     await page.waitForTimeout(500);
-    ok(`kieli ${lang}: välilehdet '${tab}' ja '${stats}'`, (await page.locator(".subtabs button", { hasText: tab }).count()) === 1 && (await page.locator(".subtabs button", { hasText: stats }).count()) === 1);
+    const ex = (x) => new RegExp(`^${x}$`);
+    ok(`kieli ${lang}: välilehdet '${tab}', '${stats}' ja '${ps}'`, (await page.locator(".subtabs button", { hasText: ex(tab) }).count()) === 1 && (await page.locator(".subtabs button", { hasText: ex(stats) }).count()) === 1 && (await page.locator(".subtabs button", { hasText: ex(ps) }).count()) === 1);
     // näppäimistö: välilehti fokukseen ja Enter
     await page.locator(".subtabs button", { hasText: tab }).focus();
     await page.keyboard.press("Enter");
     await page.waitForSelector(".lu-row", { timeout: 15000 });
-    ok(`kieli ${lang}: näppäimistöllä avautuu, tekstit käännetty`, (await page.locator(".lu-h").first().innerText()).length > 0 && !(await page.locator("main").innerText()).includes("Avauskokoonpano listana"));
+    ok(`kieli ${lang}: näppäimistöllä avautuu, tekstit käännetty`, (await page.locator(".lu-h").first().innerText()).length > 0 && !/Kokoonpanot listana|Vaihtopelaajat|Muodostelma/.test(await page.locator("main").innerText()));
     await ctx.close();
   }
 
@@ -213,12 +242,16 @@ async function uiTests(M) {
     const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 360, height: 760 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "load" });
+    await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).tap();
+    await page.waitForSelector(".ps-seg button");
+    const hts = await page.locator(".ps-seg button, .ps-more").evaluateAll((b) => b.map((x) => x.getBoundingClientRect().height));
+    ok("kosketus: joukkuevalinta ja Näytä kaikki ≥ 40 px", hts.every((x) => x >= 40), hts.join(","));
+    await page.locator(".ps-seg").last().locator("button").nth(1).tap();
+    ok("kosketus: valinta suodattaa joukkueen", (await page.locator(".ps-seg").last().locator("button").nth(1).getAttribute("aria-pressed")) === "true");
     await page.locator(".subtabs button", { hasText: "Kokoonpanot" }).tap();
-    await page.waitForSelector(".lu-switch button");
-    const hts = await page.locator(".lu-switch button").evaluateAll((b) => b.map((x) => x.getBoundingClientRect().height));
-    ok("kosketus: joukkuevalinta ≥ 40 px", hts.every((x) => x >= 40), hts.join(","));
-    await page.locator(".lu-switch button").nth(1).tap();
-    ok("kosketus: valinta vaihtaa joukkueen", (await page.locator(".lu-team:visible .lu-form").first().innerText()) === "5-3-2");
+    await page.waitForSelector(".lu-details > summary");
+    const sh = await page.locator(".lu-details > summary").evaluate((e) => e.getBoundingClientRect().height);
+    ok("kosketus: 'Kokoonpanot listana' ≥ 40 px", sh >= 40, String(sh));
     await ctx.close();
   }
 
@@ -252,9 +285,12 @@ async function uiTests(M) {
     await page.locator(".subtabs button", { hasText: "Kokoonpanot" }).click();
     await page.waitForSelector(".mx-empty", { timeout: 15000 });
     ok("tuleva ottelu: 'Kokoonpanoja ei ole vielä julkaistu.'", (await page.locator(".mx-empty").innerText()) === "Kokoonpanoja ei ole vielä julkaistu.");
-    await page.locator(".subtabs button", { hasText: "Tilastot" }).click();
+    await page.locator(".subtabs button", { hasText: /^Tilastot$/ }).click();
     await page.waitForSelector(".mx-empty", { timeout: 15000 });
     ok("tuleva ottelu: tilastot näkyvät ottelun alettua", (await page.locator(".mx-empty").innerText()).includes("ottelun alettua"));
+    await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
+    await page.waitForSelector(".mx-empty", { timeout: 15000 });
+    ok("tuleva ottelu: pelaajatilastot näkyvät ottelun alettua", (await page.locator(".mx-empty").innerText()) === "Pelaajatilastot näkyvät ottelun alettua.");
     await ctx.close();
   }
   await browser.close();
