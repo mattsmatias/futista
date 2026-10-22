@@ -45,8 +45,35 @@ server.on("upgrade", (req, sock, head) => {
   const up = net.connect(Number(UP.port), UP.hostname, () => {
     const lines = [`${req.method} ${req.url} HTTP/1.1`];
     for (const [k, v] of Object.entries({ ...req.headers, host: UP.host })) lines.push(`${k}: ${v}`);
-    up.write(lines.join("\r\n") + "\r\n\r\n"); if (head?.length) up.write(head);
-    sock.pipe(up); up.pipe(sock);
+    up.write(lines.join("\r\n") + "\r\n\r\n");
+    // selaimelta tulevat kehykset suodatetaan: ei omia broadcast/presence-lähetyksiä, ei liittymistä muulla kuin
+    // anon/authenticated-roolilla (paikallisen pinon tunnettu JWT-salaisuus ei anna service_role-pääsyä)
+    let buf = head?.length ? Buffer.from(head) : Buffer.alloc(0);
+    const pump = () => {
+      while (buf.length >= 2) {
+        let len = buf[1] & 0x7f, off = 2;
+        if (len === 126) { if (buf.length < 4) return; len = buf.readUInt16BE(2); off = 4; }
+        else if (len === 127) { if (buf.length < 10) return; len = Number(buf.readBigUInt64BE(2)); off = 10; }
+        const masked = buf[1] & 0x80; const hdr = off + (masked ? 4 : 0);
+        if (buf.length < hdr + len) return;
+        const frameBytes = buf.subarray(0, hdr + len); const op = buf[0] & 0x0f;
+        let pass = true;
+        if (op === 1) {
+          const mask = masked ? buf.subarray(off, off + 4) : null; const pl = Buffer.from(buf.subarray(hdr, hdr + len));
+          if (mask) for (let i = 0; i < pl.length; i++) pl[i] ^= mask[i % 4];
+          try {
+            const m = JSON.parse(pl.toString());
+            if (m.event === "broadcast" || m.event === "presence") { pass = false; n.dropped = (n.dropped || 0) + 1; }
+            if (m.event === "phx_join" && m.payload?.access_token && !["authenticated", "anon"].includes(role(m.payload.access_token))) { sock.destroy(); up.destroy(); return; }
+          } catch { pass = false; }
+        }
+        if (pass) up.write(frameBytes);
+        buf = buf.subarray(hdr + len);
+      }
+    };
+    pump();
+    sock.on("data", (d) => { buf = Buffer.concat([buf, d]); pump(); });
+    up.pipe(sock);
   });
   up.on("error", () => sock.destroy()); sock.on("error", () => up.destroy());
 });

@@ -48,7 +48,24 @@ test_() {
     PSQL="docker exec -i supabase_db_sb psql -U postgres -d postgres -qAt" OUT=/tmp/lk-real.json node tests/supabase-real/real.cjs
 }
 
+# Julkinen testiportti Preview-ympäristöä varten: Kong siirretään porttiin 54331, portti 54321 (julkinen
+# reitti) → gate.cjs (vain porttiavain palvelimelle, selaimelle vain Realtime ja Auth-vahvistuslinkki).
+gate() {
+  : "${GATE_KEY:?GATE_KEY puuttuu}"
+  cd $SB
+  if ! grep -q '^port = 54331' supabase/config.toml; then
+    sed -i '0,/^port = 54321/s//port = 54331/' supabase/config.toml
+    npx supabase stop > /dev/null 2>&1 || true
+    npx supabase start -x studio,imgproxy,vector,logflare,storage-api,edge-runtime,postgres-meta,supavisor > /tmp/sbstart.log 2>&1
+    npx supabase status -o env > $SB/status.env
+  fi
+  set -a; . $SB/status.env; set +a
+  pkill -f '[g]ate.cjs' || true
+  (GATE_PORT=54321 UPSTREAM="$API_URL" GATE_KEY="$GATE_KEY" LOCAL_SECRET="$SECRET_KEY" LOCAL_PUBLISHABLE="$PUBLISHABLE_KEY" setsid node "$REPO/tests/supabase-real/gate.cjs" > /tmp/gate.log 2>&1 &)
+  sleep 1; cat /tmp/gate.log
+}
+
 case $step in
-  setup) setup ;; app) app ;; test) test_ ;;
+  setup) setup ;; app) app ;; test) test_ ;; gate) gate ;;
   all) setup; app; test_ ;;
 esac
