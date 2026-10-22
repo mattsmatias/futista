@@ -27,6 +27,9 @@ kiintiömigraatio ajetaan. `FD_QUOTA_REQUIRED=1`, joten yhteinen kiintiö on pak
   Tulospalvelu: navigaatio ja aktiivinen kohta, ≥44 px kosketusalueet, kilpailuryhmät, nopeat päivänvaihdot
   (viimeisin valinta jää voimaan), paluu palauttaa päivän ja vierityskohdan, Live-suodatin osoitteessa, haku
   näppäimistöllä (Escape palauttaa kohdistuksen), suosikkien siirto vanhasta muodosta, vanhat linkit, kilpailusivu.
+- `kokoonpanot.cjs`: kokoonpanot ja ottelutilastot simuloitua RapidAPI:a vastaan (`mock-rapid.cjs`, oikeat tallennetut
+  vastaukset): yhdistäminen, kiintiö, välimuisti, virheet, näkymät 360/390/1280 px, teemat, kielet. `KOK_MODE=off`:
+  katkaisin pois. Yksikkötestit `tests/rapid.test.ts`. Ks. docs/kokoonpanot.md.
 - `switches.cjs`: `FD_OFF=1` ja `ESPN_OFF=1` → 0 lähdehakua, hallittu virhe, ei välimuistissa olevaa dataa.
 Suljetussa ympäristössä, jossa Google Fonts ei vastaa, käännös tehdään Nextin testitilalla
 `FONTS_MOCK=<tiedosto>` (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`; fonttitiedostot korvataan). Tämä ei ole
