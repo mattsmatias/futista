@@ -16,7 +16,7 @@ const VERSION = "v7";
 const STATIC = `futista-static-${VERSION}`;
 const PAGES = `futista-pages-${VERSION}`;
 const OFFLINE = "/offline.html";
-const PRECACHE = [OFFLINE, "/icons/icon-192.png", "/icons/icon-512.png"];
+const PRECACHE = [OFFLINE, "/icons/icon-192.png?v=2", "/icons/icon-512.png?v=2"];
 const MAX_PAGES = 30;
 const MAX_STATIC = 200;
 const MAX_AGE_MS = 3 * 86400_000;
@@ -185,8 +185,8 @@ self.addEventListener("push", (e) => {
   e.waitUntil(
     self.registration.showNotification(d.title || "Futista", {
       body: d.body || "",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/badge-96.png",
+      icon: "/icons/icon-192.png?v=2",
+      badge: "/icons/badge-96.png?v=2",
       tag: d.tag,                 // sama asia ei tule kahdesti
       data: { url: d.url || "/" },
       lang: d.lang || "fi",

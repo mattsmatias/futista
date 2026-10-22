@@ -120,7 +120,7 @@ export default function InstallApp() {
 
   return (
     <div className="install" role="dialog" aria-label={t("appTitle")}>
-      <img className="install-icon" src="/icons/icon-192.png" alt="" width={48} height={48} />
+      <img className="install-icon" src="/icons/icon-192.png?v=2" alt="" width={48} height={48} />
       <div className="install-txt">
         <strong>{t("appTitle")}</strong>
         {mode === "prompt" && <span>{t("appPrompt")}</span>}

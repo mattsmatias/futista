@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Futista", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {
-    icon: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/icons/favicon-32.png", sizes: "32x32" }, { url: "/icons/icon-192.png", sizes: "192x192" }],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [{ url: "/logo.svg?v=2", type: "image/svg+xml" }, { url: "/icons/favicon-32.png?v=2", sizes: "32x32" }, { url: "/icons/icon-192.png?v=2", sizes: "192x192" }],
+    apple: [{ url: "/icons/apple-touch-icon.png?v=2", sizes: "180x180" }],
   },
 };
 
