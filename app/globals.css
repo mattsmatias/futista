@@ -1590,3 +1590,7 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .set-menu .notify.in-menu { grid-template-columns: auto 1fr auto; row-gap: 6px; }
 .set-menu .notify.in-menu .notify-head strong { font-size: 14px; }
 .switch:focus-visible { outline: 3px solid var(--pl, #6c5ce7); outline-offset: 2px; }
+
+/* Lippu ei kutistu pitkän nimen vieressä (esim. Pierre-Emerick Aubameyang: lippu puristui ohueksi viivaksi) */
+.flag { flex: none; }
+.flag img, .flag-none { flex: none; min-width: 20px; }

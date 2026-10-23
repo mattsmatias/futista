@@ -402,6 +402,12 @@ const MIN = 60_000;
         wrap.remove(); return out;
       });
       ok("  seuran tunnus ei ole ympyräksi rajattu", st.r === "0px", JSON.stringify(st));
+      const fl = await page.evaluate(() => {
+        const t = document.createElement("table"); t.className = "tbl scorers"; t.style.width = "300px";
+        t.innerHTML = '<tr><td class="l"><a class="pl"><span><b><span class="flag"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="14"></span> Pierre-Emerick Aubameyang Pierre-Emerick</b></span></a></td></tr>';
+        document.body.appendChild(t); const w = t.querySelector(".flag img").getBoundingClientRect().width; t.remove(); return w;
+      });
+      ok("  lippu ei kutistu pitkän nimen vieressä (20 px)", Math.round(fl) === 20, String(fl));
       // ilmoituskytkin asetusvalikossa: valikon painiketyylit eivät saa ohittaa kytkintä (ennen: aina harmaa, nuppi oikealla)
       const sw = await page.evaluate(() => {
         const m = document.createElement("div"); m.className = "set-menu";
