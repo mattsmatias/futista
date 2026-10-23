@@ -38,9 +38,9 @@ function FormAll({ games, calendarYear, season }: { games: Game[]; calendarYear:
   return (
     <div className="form-all">
       <div className="form-line">
-        <span className="muted">{t("form")} · {t("formScopeAll")}</span>
+        {/* ei näkyvää otsikkoa: pelkät V/T/H-merkit; ruudunlukijalle kerrotaan, mitä ne ovat */}
         {f.last.length ? (
-          <span className="form" role="list" aria-label={t("formLast5")}>
+          <span className="form" role="list" aria-label={`${t("form")} · ${t("formScopeAll")} · ${t("formLast5")}`}>
             {f.last.map((x) => (
               <a key={x.id} role="listitem" className={`fp fp-${x.k}`} href={x.href} title={label(x)} aria-label={label(x)}>
                 {t(x.k === "w" ? "colW" : x.k === "d" ? "colD" : "colL")}
@@ -240,7 +240,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
             <FormAll games={games} calendarYear={!!SOURCES.find((x) => x.id === s.source)?.calendarYear} season={s.season} />
           ) : row && (
             // kaikkien kilpailujen otteluohjelmaa ei saatu: sarjan omat tulokset, otsikossa rajaus
-            <div className="form-line"><span className="muted">{t("form")} · {t("formScope")}</span><FormPills team={team.name} results={s.results} source={s.source} /></div>
+            <div className="form-line" aria-label={`${t("form")} · ${t("formScope")}`}><FormPills team={team.name} results={s.results} source={s.source} /></div>
           )}
           {nextGame ? (() => {
             const g = nextGame;

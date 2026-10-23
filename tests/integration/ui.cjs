@@ -344,7 +344,7 @@ const MIN = 60_000;
     const fa = page.locator(".form-all");
     const faText = (await fa.innerText().catch(() => "")).replace(/\s+/g, " ");
     const pills = await fa.locator(".fp").allInnerTexts();
-    ok("kunto: otsikko 'Kunto · Kaikki kilpailut'", faText.includes("Kunto · Kaikki kilpailut"), faText.slice(0, 80));
+    ok("kunto: ei otsikkotekstiä, vain V/T/H-merkit (ruudunlukijalle nimi)", !faText.includes("Kunto ·") && /Kaikki kilpailut/.test(await fa.locator(".form").getAttribute("aria-label")), faText.slice(0, 80));
     ok("  5 viimeisintä virallista, uusin oikealla (ei harjoitus- eikä siirrettyä ottelua)", pills.join("") === "TVHVT", pills.join(""));
     const titles = await fa.locator(".fp").evaluateAll((els) => els.map((e) => e.getAttribute("title")));
     ok("  mukana eri kilpailuja (Eurooppa-liiga, cup, sarja)", titles.some((x) => /Eurooppa-liiga|Europa/.test(x)) && titles.some((x) => /cup|Cup|Turkin/.test(x)) && titles.some((x) => /Süper Lig|Super Lig/.test(x)), titles.join(" | "));
