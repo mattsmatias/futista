@@ -1484,9 +1484,7 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cmark.cmark-logo.cm-sm:not(.has-dark) { padding: 1px; } }
 :root[data-theme="dark"] .cmark.cmark-logo.cm-sm:not(.has-dark) { background: #fff; padding: 1px; }
 .g-comp .cmark.cm-sm, .g-comp .cm-dot { margin-right: 0; }
-.match-hero .cmark.has-dark .cl-light { display: none; }
-.match-hero .cmark.has-dark .cl-dark { display: block; }
-.match-hero .cmark.cmark-logo.cm-sm:not(.has-dark) { background: #fff; padding: 1px; }
+/* Ottelun yläosa on vaalea pinta vaaleassa teemassa → logo valitaan teeman mukaan (ei pakotettua valkoista versiota) */
 
 /* Eurooppa-liiga ja Konferenssiliiga (ESPN) */
 :root { --lg-uel: #ea8a0c; --c-uel: #f26b0f; --lg-uecl: #0d9488; --c-uecl: #10b981; }

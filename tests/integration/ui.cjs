@@ -221,6 +221,17 @@ const MIN = 60_000;
       }, theme);
       const lightOn = await vis("light"), darkOn = await vis("dark");
       ok("  valitussa painikkeessa logon käänteinen versio (vaalea teema: valkoinen logo, tumma: tavallinen)", lightOn === "cl-dark" && darkOn === "cl-light", `${lightOn} / ${darkOn}`);
+      // ottelun yläosa: vaaleassa teemassa tavallinen (värillinen) logo, tummassa tumman pohjan versio
+      const heroVis = (theme) => page.evaluate((th) => {
+        if (th) document.documentElement.setAttribute("data-theme", th); else document.documentElement.removeAttribute("data-theme");
+        const h = document.createElement("section"); h.className = "match-hero mh-valioliiga";
+        h.innerHTML = '<div class="mh-meta"><span class="chip chip-logo"><span class="cmark cmark-logo has-dark"><img class="cl-light" alt=""><img class="cl-dark" alt=""></span></span></div>';
+        document.body.appendChild(h);
+        const r = [...h.querySelectorAll("img")].filter((x) => getComputedStyle(x).display !== "none").map((x) => x.className).join();
+        h.remove(); document.documentElement.removeAttribute("data-theme"); return r;
+      }, theme);
+      const heroLight = await heroVis("light"), heroDark = await heroVis("dark");
+      ok("ottelun yläosa: sarjan logo näkyy värillisenä vaaleassa teemassa (ei valkoinen valkoisella)", heroLight === "cl-light" && heroDark === "cl-dark", `${heroLight} / ${heroDark}`);
       await c3.close();
     }
     // suosikit ilman joukkueita: "Lisää joukkueita" sopivan kokoinen
