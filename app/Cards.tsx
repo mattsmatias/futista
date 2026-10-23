@@ -1,4 +1,5 @@
 "use client";
+import { CompLogoChip } from "./ui/CompMark";
 import type { Article } from "@/lib/feed";
 import { toLocal } from "@/lib/links";
 import { useI18n } from "@/lib/i18n";
@@ -8,7 +9,7 @@ export function Chips({ a }: { a: Article }) {
   const i = useI18n();
   return (
     <div className="chips">
-      <span className={`chip chip-${a.source}`}>{i.league(a.source, a.league)}</span>
+      <CompLogoChip id={a.source} name={i.league(a.source, a.league)} />
       {a.type !== "Uutiset" && (
         <span className={`chip chip-${a.type.toLowerCase()}`}>
           {a.type === "Tulokset" && <i className="live" />}{i.type(a.type)}

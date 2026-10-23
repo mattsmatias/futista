@@ -1,4 +1,5 @@
 "use client";
+import { CompLogoChip } from "./CompMark";
 // Uutislistan osat: pääuutinen (maltillinen kuva) ja tiivis uutisrivi. Lähde näkyy jokaisessa.
 import type { Article } from "@/lib/feed";
 import { toLocal } from "@/lib/links";
@@ -13,7 +14,7 @@ export function NewsLead({ a, isNew }: { a: Article; isNew?: boolean }) {
     <a className={`nlead${isNew ? " is-new" : ""}${read ? " is-read" : ""}`} href={toLocal(a.link)}>
       <Art image={a.image} seed={a.id} tags={a.tags} source={a.source} big />
       <div className="nlead-txt">
-        <span className={`chip chip-${a.source}`}>{i.league(a.source, a.league)}</span>
+        <CompLogoChip id={a.source} name={i.league(a.source, a.league)} />
         <h2>{a.title}</h2>
         {a.excerpt && <p>{a.excerpt}</p>}
         <NewsMeta a={a} read={read} />

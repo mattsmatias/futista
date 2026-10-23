@@ -361,6 +361,24 @@ const MIN = 60_000;
     // kilpailujen logot värineliön tilalla (ESPN:n kilpailulogot; testiympäristössä kuvat eivät lataudu → neutraali piste)
     const teamHtml = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
     ok("kilpailulogot: Eurooppa-liigan ja Süper Ligin logo ottelulistassa", teamHtml.includes("leaguelogos/soccer/500/2310.png") && teamHtml.includes("leaguelogos/soccer/500/18.png"));
+    {
+      // ottelun yläosassa kilpailun logo nimen tilalla (nimi ruudunlukijalle); Bundesligan logo ESPN:ltä (10)
+      const mh = await (await fetch(APP + MATCH)).text();
+      const meta = mh.slice(mh.indexOf("mh-meta"), mh.indexOf("mh-meta") + 1500);
+      ok("ottelusivu: kilpailun logo nimen tilalla (aria-label = nimi)", /chip-logo/.test(meta) && meta.includes("leaguelogos/soccer/500/10.png") && /aria-label="Bundesliga"/.test(meta), meta.slice(0, 200));
+      // seuran tunnusta ei rajata ympyräksi; suosikkisydän on SVG eikä tekstimerkki
+      const st = await page.evaluate(() => {
+        const wrap = document.createElement("div");
+        wrap.innerHTML = '<a class="mh-team"><img class="crest" alt=""></a><span class="mrow-tm fav"><span class="nm">X</span></span>';
+        document.body.appendChild(wrap);
+        const r = getComputedStyle(wrap.querySelector(".crest")).borderRadius;
+        const af = getComputedStyle(wrap.querySelector(".nm"), "::after");
+        const out = { r, content: af.content, bg: af.backgroundImage.slice(0, 30), w: af.width };
+        wrap.remove(); return out;
+      });
+      ok("  seuran tunnus ei ole ympyräksi rajattu", st.r === "0px", JSON.stringify(st));
+      ok("  suosikkisydän: sama SVG-sydän kuin Suosikit-painikkeessa (ei ♥-merkkiä)", st.content === '""' && st.bg.startsWith('url("data:image/svg+xml') && st.w === "13px", JSON.stringify(st));
+    }
     ok("  ei värineliötä kilpailun nimen edessä", await page.evaluate(() => [...document.querySelectorAll(".g-comp")].every((e) => getComputedStyle(e, "::before").content === "none" || getComputedStyle(e, "::before").content === "normal")));
     // joukkuesivu: osiot erillään, välilehti Sarjataulukko + maalintekijät, Ottelut: Otteluohjelma / Tulokset, kilpailujen järjestys
     {

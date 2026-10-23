@@ -1,3 +1,4 @@
+import { CompLogoChip } from "@/app/ui/CompMark";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getFullArticle, type FullArticle } from "@/lib/article";
@@ -10,7 +11,7 @@ import { NewsItem } from "../../ui/News";
 import SafeImg from "../../SafeImg";
 import StoryActions from "../../ui/StoryActions";
 import { MarkRead } from "@/lib/read-news";
-import { T, LeagueName, TypeName, LocalDate } from "@/lib/i18n";
+import { T, TypeName, LocalDate } from "@/lib/i18n";
 
 export const revalidate = 3600;
 
@@ -57,7 +58,7 @@ export default async function ArticlePage({ params }: Props) {
       {/* otsikko ja ingressi ensin, sitten maltillisen kokoinen kuva */}
       <header className="wrap story-head">
         <div className="chips">
-          <span className={`chip chip-${a.sourceId}`}><LeagueName source={a.sourceId} fallback={a.league} /></span>
+          <CompLogoChip id={a.sourceId} name={a.league} />
           {a.type !== "Uutiset" && <span className="chip"><TypeName type={a.type} /></span>}
         </div>
         <h1>{a.title}</h1>

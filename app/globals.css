@@ -1091,7 +1091,9 @@ div.match { cursor: default; }
 .mrow-tm { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; line-height: 1.25; color: var(--fg); }
 .mrow-tm .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mrow-tm.win { font-weight: 750; }
-.mrow-tm.fav .nm::after { content: "♥"; margin-left: 6px; font-size: 10px; color: #ff3d6e; vertical-align: 1px; }
+/* suosikkijoukkue: sama sydän kuin Suosikit-painikkeessa (SVG), ei tekstimerkkiä ♥; keskitetty nimen kanssa */
+.mrow-tm.fav .nm::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 6px; vertical-align: -1px;
+  background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z' fill='%23ff3d6e'/%3E%3C/svg%3E"); }
 .mrow-tm .crest, .mrow-tm .badge { width: 20px; height: 20px; }
 .mrow-tm .badge { font-size: 7px; }
 .mrow-sc { display: grid; gap: 5px; justify-items: end; font: 700 15px/1.25 var(--mono); font-variant-numeric: tabular-nums; min-width: 2.2ch; }
@@ -1550,3 +1552,14 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .nationpage { display: flex; flex-direction: column; gap: 18px; }
 .nationpage > * { margin-top: 0; margin-bottom: 0; }
 .nationpage .comp-filter { padding-bottom: 2px; }
+
+/* Seuran tunnusta ei koskaan rajata ympyräksi (esim. Barcelonan kilven yläreuna leikkautui ottelusivulla).
+   Pyöreä tausta vain kirjainmerkille (.badge), kun tunnusta ei ole. */
+.crest, .mh-team .crest { border-radius: 0 !important; object-fit: contain; }
+/* Kilpailun logo nimen tilalla (ottelun yläosa, uutiskortit) */
+.chip.chip-logo { padding: 3px 8px; background: var(--surface-2); line-height: 0; }
+.chip-logo .cmark.cmark-logo { width: 24px; height: 24px; margin: 0; }
+.chip-logo .cmark.cmark-logo img { width: 24px; height: 24px; object-fit: contain; }
+.match-hero .chip.chip-logo { background: rgba(255,255,255,.92); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .match-hero .chip.chip-logo { background: rgba(255,255,255,.08); } }
+:root[data-theme="dark"] .match-hero .chip.chip-logo { background: rgba(255,255,255,.08); }

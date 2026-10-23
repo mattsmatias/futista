@@ -42,3 +42,21 @@ export function CompMark({ id = "", slug, small }: { id?: string; slug?: string;
   if (small) return <span className="cm-dot" aria-hidden="true" />;
   return <span className={`cmark cm-${id}`} aria-hidden="true">{m?.mark ?? (id === "intl" ? "MJ" : id.slice(0, 2).toUpperCase())}</span>;
 }
+
+/** Kilpailun logo nimen tilalla (otteluiden yläosa, uutiskortit). Nimi ruudunlukijalle ja vihjeenä (title).
+ *  Jos logoa ei ole tai se ei lataudu, näytetään nimi tekstinä (ei keksittyä lyhennettä). */
+export function CompLogoChip({ id = "", slug, name }: { id?: string; slug?: string; name: string }) {
+  const e = slug ? emblemForSlug(slug) : COMP_EMBLEM[id as keyof typeof COMP_EMBLEM];
+  const [failed, setFailed] = useState(false);
+  const ref = useBrokenImage(() => setFailed(true), [failed, e?.light]);
+  const darkRef = useBrokenImage(() => setFailed(true), [failed, e?.dark]);
+  if (!e || failed) return <span className={`chip chip-${id || "x"}`}>{name}</span>;
+  return (
+    <span className="chip chip-logo" role="img" aria-label={name} title={name}>
+      <span className={`cmark cmark-logo cm-${id || "x"}${e.dark ? " has-dark" : ""}`} aria-hidden="true">
+        <img className="cl-light" src={e.light} alt="" width={24} height={24} decoding="async" ref={ref} onError={() => setFailed(true)} />
+        {e.dark && <img className="cl-dark" src={e.dark} alt="" width={24} height={24} decoding="async" ref={darkRef} onError={() => setFailed(true)} />}
+      </span>
+    </span>
+  );
+}

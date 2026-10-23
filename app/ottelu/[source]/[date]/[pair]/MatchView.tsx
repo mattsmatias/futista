@@ -1,4 +1,5 @@
 "use client";
+import { CompLogoChip } from "@/app/ui/CompMark";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRetryGate } from "@/lib/retry";
 import type { Fixture, LeagueStats, Result, Row, Team } from "@/lib/stats";
@@ -170,7 +171,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
       <main className="wrap entity">
         <section className={`match-hero mh-${s.source}`}>
           <div className="mh-meta">
-            <span className={`chip chip-${s.source}`}>{i.league(s.source, s.league)}</span>
+            <CompLogoChip id={s.source} name={i.league(s.source, s.league)} />
             <span>{i.day(m.date)}{fixture?.time ? ` · ${fixture.time}` : ""}</span>
           </div>
           <div className="mh-row">

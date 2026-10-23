@@ -1,11 +1,11 @@
 "use client";
-import { CompMark } from "../../../ui/CompMark";
+import { CompLogoChip } from "../../../ui/CompMark";
 import type { EspnMatch } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { AutoRefresh, Num } from "@/lib/fresh";
 import { StatusPill } from "@/lib/live";
 import Footer from "../../../Footer";
-import { GBadge, compName, compClass, useTeamName } from "../../../Games";
+import { GBadge, compName, useTeamName } from "../../../Games";
 import { SrcLine } from "../../../Stats";
 
 const NATIONAL = /^(uefa\.nations|uefa\.euro|fifa\.|concacaf\.nations|caf\.nations)/;
@@ -32,7 +32,7 @@ export default function EspnMatchView({ m, at }: { m: EspnMatch; at: number }) {
       <main className="wrap entity">
         <section className="match-hero mh-generic">
           <div className="mh-meta">
-            <span className={`chip g-comp ${compClass(g.slug)}`}><CompMark slug={g.slug} small />{compName(g, i.lang)}</span>
+            <CompLogoChip slug={g.slug} name={compName(g, i.lang)} />
             <span suppressHydrationWarning>{i.day(g.date)} · {g.time}</span>
           </div>
           <div className="mh-row">
