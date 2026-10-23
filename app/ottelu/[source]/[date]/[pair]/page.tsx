@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
 import { teamSlug, findTeam, matchHref } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
+import { getTeamGames } from "@/lib/espn";
+import { teamForm, type FormItem } from "@/lib/team-form";
 import MatchView from "./MatchView";
 import { rapidAllowed } from "@/lib/rapid";
 import JsonLd from "../../../../JsonLd";
@@ -58,7 +60,15 @@ export default async function MatchPage({ params }: Props) {
   const d = await load(params);
   if (!d) notFound();
   const m = (d.result ?? d.fixture)!;
-  const extra = await getMatchExtra(d.s.source, m.date, m.home, m.away);
+  // kunto kaikista kilpailuista (ESPN:n joukkueen otteluohjelma); jos jommankumman haku ei onnistu → sarjan oma kunto
+  const [extra, hg, ag] = await Promise.all([
+    getMatchExtra(d.s.source, m.date, m.home, m.away),
+    getTeamGames(d.s.source, m.home.name, [d.s]).catch(() => null),
+    getTeamGames(d.s.source, m.away.name, [d.s]).catch(() => null),
+  ]);
+  const now = Date.now();
+  const formAll: { home: FormItem[]; away: FormItem[] } | null = hg && ag
+    ? { home: teamForm(hg, "", now).last, away: teamForm(ag, "", now).last } : null;
   const pair = decodeURIComponent(params.pair);
   // kokoonpanot/tilastot: RapidAPI-sarjat (kiintiö ja rajaus) tai ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS)
   const espnSrc = !!SOURCES.find((x) => x.id === d.s.source)?.espn && process.env.ESPN_OFF !== "1";
@@ -68,7 +78,7 @@ export default async function MatchPage({ params }: Props) {
     <>
       <JsonLd data={matchLd({ url, league: d.s.league, date: m.date, time: d.fixture?.time || d.result?.time || null, home: m.home.name, away: m.away.name,
         hs: d.result?.hs ?? null, as: d.result?.as ?? null, finished: !!d.result })} />
-      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />
+      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} formAll={formAll} />
     </>
   );
 }

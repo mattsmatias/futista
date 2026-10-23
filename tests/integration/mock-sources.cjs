@@ -95,7 +95,7 @@ function espn(path, res) {
   let m;
   if ((m = path.match(/^all\/teams\/(\d+)\/schedule/))) {
     // Testispor Ankara (70001): ottelut eri kilpailuista (sarja, Eurooppa-liiga, cup, harjoitusottelu), tuleva ja siirretty
-    if (m[1] !== "70001") return json(res, 200, { events: [] });
+    if (m[1] !== "70001" && m[1] !== "70002") return json(res, 200, { events: [] });
     const T = (id, n, ab) => ({ id: String(id), displayName: n, shortDisplayName: n, abbreviation: ab, logos: [] });
     const A = T(70001, "Testispor Ankara", "TSA"), B = T(70002, "Mittaspor Izmir", "MSI"), X = T(70100, "Eurooppa FC", "EFC"), Y = T(70101, "Cupspor", "CUP"), Z = T(70102, "Kesäseura", "KES");
     const lg = { "tur.1": "Turkish Super Lig", "uefa.europa": "UEFA Europa League", "tur.cup": "Turkish Cup", "club.friendly": "Club Friendly" };
@@ -113,6 +113,8 @@ function espn(path, res) {
       ev(9106, -3 * D, "tur.1", B, A, "pp"),                  // siirretty: ei mukana
       ev(9107, -2 * D, "tur.1", B, A, "ft", 2, 2),            // T
     ];
+    // Mittaspor Izmir (70002): vain sen omat ottelut samasta listasta (T, siirretty, T)
+    if (m[1] === "70002") return json(res, 200, { events: fix ? [] : past.filter((e) => e.competitions[0].competitors.some((c) => c.team.id === "70002")) });
     return json(res, 200, { events: fix ? [ev(9108, 3 * D, "uefa.europa", X, A, "pre")] : past });
   }
   if ((m = path.match(/^all\/teams\/(\d+)$/))) { const t = espnTeams[m[1]]; return json(res, 200, t ? { team: t } : {}); }

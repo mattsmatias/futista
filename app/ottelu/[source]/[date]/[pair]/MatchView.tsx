@@ -15,6 +15,8 @@ import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
 import { LineupsTab, StatsTab, PlayersTab } from "../../../../MatchExtras";
+import FormItems from "../../../../FormItems";
+import type { FormItem } from "@/lib/team-form";
 
 type Tab = "summary" | "lineups" | "mstats" | "players" | "h2h" | "table";
 
@@ -113,7 +115,7 @@ function Info({ e }: { e: MatchExtra }) {
 }
 
 /** extras = kokoonpano- ja tilastovälilehdet käytössä tälle ottelulle (palvelin päättää: katkaisin ja kilpailu-/otteluraja) */
-export default function MatchView({ s, result, fixture, extra = null, extras = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string } | null }) {
+export default function MatchView({ s, result, fixture, extra = null, extras = null, formAll = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string } | null; formAll?: { home: FormItem[]; away: FormItem[] } | null }) {
   // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
   //  ok + [] = "ei aiempia kohtaamisia"; error = "tietoja ei saada" + uudelleenyritys (ei koko sivun latausta)
   const [history, setHistory] = useState<Meeting[] | null>(null);
@@ -206,11 +208,19 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
           <>
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             <div className="panel">
-              <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScopeN").replace("{c}", s.league).replace("{n}", String(formN(s.results, m.home.name, m.away.name)))}</span></div>
-              <div className="form-duo">
-                <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
-                <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>
-              </div>
+              {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>
+                <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScopeN").replace("{c}", t("formScopeAll")).replace("{n}", String(Math.max(formAll.home.length, formAll.away.length)))}</span></div>
+                <div className="form-duo form-allcomps">
+                  <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormItems items={formAll.home} /></div>
+                  <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormItems items={formAll.away} /></div>
+                </div>
+              </> : <>
+                <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScopeN").replace("{c}", s.league).replace("{n}", String(formN(s.results, m.home.name, m.away.name)))}</span></div>
+                <div className="form-duo">
+                  <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
+                  <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>
+                </div>
+              </>}
             </div>
             {rh && ra && (
               <div className="panel">
