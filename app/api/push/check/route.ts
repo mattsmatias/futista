@@ -23,6 +23,7 @@ const T: Record<Lang, { ft: string; news: string }> = {
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    console.warn("ilmoitukset: tarkistus hylätty (väärä tai puuttuva tunniste)");
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const missing = pushMissing();
@@ -52,9 +53,12 @@ export async function GET(req: Request) {
   }
   try {
     const r = await runPushCheck(items, supabasePushStore, sendPush);
+    // ajon yhteenveto lokiin (vain lukumäärät, ei tilauksia eikä salaisuuksia): näkyy, että ajastus toimii
+    console.info("ilmoitukset: ajo", JSON.stringify({ items: items.length, ...r }));
     return NextResponse.json({ ok: true, ...r });
   } catch (e) {
     // varaus tai tilausten luku epäonnistui → ei lähetetty mitään (ei kaksoislähetyksiä)
+    console.warn("ilmoitukset: tietokanta ei vastannut", (e as Error)?.message ?? "");
     return NextResponse.json({ error: "store unavailable" }, { status: 503 });
   }
 }
