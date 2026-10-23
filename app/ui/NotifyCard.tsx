@@ -39,22 +39,25 @@ export default function NotifyCard({ inMenu }: { inMenu?: boolean } = {}) {
     : on ? (favs.length ? t("notifOn") : t("notifOnNoFavs"))
     : t("notifOff");
 
+  const canToggle = state === "on" || state === "off";
   return (
     <>{inMenu && <hr />}
     <div className={`notify${inMenu ? " in-menu" : ""}${on ? " is-on" : ""}${state === "unavailable" ? " is-off" : ""}`}>
       <span className="notify-ico"><Bell on={on} /></span>
+      <div className="notify-head">
+        <strong id="notify-title">{t("notifTitle")}</strong>
+        {canToggle && <span className="notify-state">{on ? t("notifStateOn") : t("notifStateOff")}</span>}
+      </div>
+      {canToggle && (
+        <button className={`switch${on ? " on" : ""}`} role="switch" aria-checked={on} aria-labelledby="notify-title" disabled={busy} onClick={toggle}>
+          <i />
+        </button>
+      )}
       <div className="notify-txt">
-        <strong>{t("notifTitle")}</strong>
         <span>{msg}</span>
         {err && <span className="notify-err">{t("notifError")}</span>}
         {state !== "unavailable" && <span className="notify-scope">{t("notifScope")}</span>}
       </div>
-      {(state === "on" || state === "off") && (
-        <button className={`switch${on ? " on" : ""}`} role="switch" aria-checked={on} aria-label={t("notifTitle")} disabled={busy} onClick={toggle}>
-          <i />
-        </button>
-      )}
     </div></>
   );
 }
-

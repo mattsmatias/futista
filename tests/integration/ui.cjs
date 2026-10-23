@@ -402,6 +402,17 @@ const MIN = 60_000;
         wrap.remove(); return out;
       });
       ok("  seuran tunnus ei ole ympyräksi rajattu", st.r === "0px", JSON.stringify(st));
+      // ilmoituskytkin asetusvalikossa: valikon painiketyylit eivät saa ohittaa kytkintä (ennen: aina harmaa, nuppi oikealla)
+      const sw = await page.evaluate(() => {
+        const m = document.createElement("div"); m.className = "set-menu";
+        m.innerHTML = '<div class="notify in-menu"><button class="switch"><i></i></button><button class="switch on"><i></i></button></div>';
+        document.body.appendChild(m);
+        const [off, on] = [...m.querySelectorAll(".switch")];
+        const knob = (b) => b.querySelector("i").getBoundingClientRect().left - b.getBoundingClientRect().left;
+        const o = { offBg: getComputedStyle(off).backgroundColor, onBg: getComputedStyle(on).backgroundColor, offX: Math.round(knob(off)), onX: Math.round(knob(on)), w: Math.round(on.getBoundingClientRect().width) };
+        m.remove(); return o;
+      });
+      ok("ilmoituskytkin valikossa: päällä vihreä ja nuppi oikealla, pois harmaa ja nuppi vasemmalla", sw.onBg !== sw.offBg && /rgb\(14, 165, 107\)|rgb\(52, 211, 153\)/.test(sw.onBg) && sw.offX <= 4 && sw.onX >= 20 && sw.w >= 50 && sw.w <= 56, JSON.stringify(sw));
       const tst = await page.evaluate(() => {
         const t = document.createElement("table"); t.className = "tbl"; t.innerHTML = '<tr class="fav"><td><a class="tm">X</a></td></tr>';
         document.body.appendChild(t); const af = getComputedStyle(t.querySelector(".tm"), "::after");
