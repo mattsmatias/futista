@@ -295,7 +295,7 @@ const MIN = 60_000;
     }
     await page.goto(APP + "/sarjat/bundesliga", { waitUntil: "networkidle" });
     const tabs = await page.locator(".etabs [role=tab], .etabs a, .etabs button").allTextContents();
-    ok("kilpailusivu: välilehdet (otteluohjelma ja tulokset erikseen)", ["Otteluohjelma", "Tulokset", "Taulukko", "Maalipörssi"].every((x) => tabs.some((t) => t.includes(x))), tabs.join("|"));
+    ok("kilpailusivu: välilehdet (otteluohjelma ja tulokset erikseen)", ["Otteluohjelma", "Tulokset", "Sarjataulukko", "Maalipörssi"].every((x) => tabs.some((t) => t.includes(x))) && !tabs.some((t) => t.trim() === "Taulukko"), tabs.join("|"));
     {
       const upN = await page.locator(".epane .mrow").count(), upFt = await page.locator(".epane .ms-ft").count();
       await page.locator(".etabs [role=tab]", { hasText: "Tulokset" }).click(); await page.waitForTimeout(400);
@@ -377,6 +377,12 @@ const MIN = 60_000;
         wrap.remove(); return out;
       });
       ok("  seuran tunnus ei ole ympyräksi rajattu", st.r === "0px", JSON.stringify(st));
+      const tst = await page.evaluate(() => {
+        const t = document.createElement("table"); t.className = "tbl"; t.innerHTML = '<tr class="fav"><td><a class="tm">X</a></td></tr>';
+        document.body.appendChild(t); const af = getComputedStyle(t.querySelector(".tm"), "::after");
+        const o = { content: af.content, bg: af.backgroundImage.slice(0, 30), w: af.width }; t.remove(); return o;
+      });
+      ok("  sarjataulukon suosikkisydän: sama SVG-sydän (ei ♥-merkkiä)", tst.content === '""' && tst.bg.startsWith('url("data:image/svg+xml') && tst.w === "13px", JSON.stringify(tst));
       ok("  suosikkisydän: sama SVG-sydän kuin Suosikit-painikkeessa (ei ♥-merkkiä)", st.content === '""' && st.bg.startsWith('url("data:image/svg+xml') && st.w === "13px", JSON.stringify(st));
     }
     ok("  ei värineliötä kilpailun nimen edessä", await page.evaluate(() => [...document.querySelectorAll(".g-comp")].every((e) => getComputedStyle(e, "::before").content === "none" || getComputedStyle(e, "::before").content === "normal")));

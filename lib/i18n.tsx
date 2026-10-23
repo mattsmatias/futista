@@ -12,7 +12,7 @@ export const LANGS: { id: Lang; name: string; short: string }[] = [
 const D = {
   news: ["Uutiset", "Nyheter", "News"],
   results: ["Tulokset", "Resultat", "Results"],
-  table: ["Taulukko", "Tabell", "Table"],
+  table: ["Sarjataulukko", "Serietabell", "Standings"],
   standingsTab: ["Sarjataulukko", "Serietabell", "Standings"],
   scorersTitle: ["Maalintekijät", "Målskyttar", "Goalscorers"],
   fixturesTab: ["Otteluohjelma", "Spelschema", "Fixtures"],
@@ -467,7 +467,7 @@ const D = {
   formLosses: ["Häviöt", "Förluster", "Losses"],
   formScopeN: ["{c}: viimeiset {n} ottelua, uusin oikealla", "{c}: senaste {n} matcherna, nyaste till höger", "{c}: last {n} matches, newest on the right"],
   tab_h2h: ["Keskinäiset", "Inbördes", "Head-to-head"],
-  tab_table: ["Taulukko", "Tabell", "Table"],
+  tab_table: ["Sarjataulukko", "Serietabell", "Standings"],
   gdFull: ["Maaliero", "Målskillnad", "Goal difference"],
   ptsFull: ["Pisteet", "Poäng", "Points"],
   abbr: ["Lyhenteet", "Förkortningar", "Abbreviations"],
