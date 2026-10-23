@@ -315,7 +315,7 @@ const MIN = 60_000;
         const cells = row ? [...row.querySelectorAll("td")].filter(vis).map((e) => e.textContent.trim()) : [];
         return { hs, cells };
       });
-      ok("  Maalintekijät: Syötöt- ja Maalit-sarakkeet näkyvät myös puhelimella (Testi Maalintekijä 3 maalia, 1 syöttö)", !!sc && sc.hs.includes("Syötöt") && sc.hs.includes("Maalit") && sc.cells.slice(-2).join("|") === "1|3", JSON.stringify(sc));
+      ok("  Maalintekijät: ensin M (maalit), sitten S (syötöt), myös puhelimella (Testi Maalintekijä 3 maalia, 1 syöttö)", !!sc && sc.hs.slice(-2).join("|") === "M|S" && sc.cells.slice(-2).join("|") === "3|1", JSON.stringify(sc));
       // välilehtirivi ei liiku pystysuunnassa (iPhone: rivi heilui pyyhkäistessä ja teksti leikkautui)
       await page.setViewportSize({ width: 360, height: 800 });
       await page.goto(APP + "/sarjat/bundesliga?v=maalit", { waitUntil: "domcontentloaded" }); await page.waitForTimeout(800);

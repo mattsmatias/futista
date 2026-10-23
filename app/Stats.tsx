@@ -314,7 +314,7 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
       {list.length === 0 ? <p className="muted pad">{t("noScorers")}</p> : (
         <div className="tbl-wrap">
           <table className="tbl scorers">
-            <thead><tr><th>#</th><th className="l">{t("player")}</th><th className="l opt">{t("team")}</th><th className="opt">{t("colP")}</th><th className="sc-n"><abbr title={t("colAssistsTitle")}>{t("colAssistsFull")}</abbr></th><th className="sc-n">{t("colGoalsFull")}</th></tr></thead>
+            <thead><tr><th>#</th><th className="l">{t("player")}</th><th className="l opt">{t("team")}</th><th className="opt">{t("colP")}</th><th className="sc-n"><abbr title={t("colGoalsFull")}>{t("goalsShort")}</abbr></th><th className="sc-n"><abbr title={t("colAssistsTitle")}>{t("assistsShort")}</abbr></th></tr></thead>
             <tbody>
               {list.map((p, n) => (
                 <tr key={p.id ?? n}>
@@ -327,8 +327,8 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
                   </td>
                   <td className="l opt"><a className="tm" href={teamHref(source, p.team.name)}><Badge t={p.team} />{p.team.name}</a></td>
                   <td className="opt">{p.played ?? "–"}</td>
-                  <td className="sc-n">{p.assists ?? "–"}</td>
                   <td className="pts sc-n">{p.goals ?? "–"}</td>
+                  <td className="sc-n">{p.assists ?? "–"}</td>
                 </tr>
               ))}
             </tbody>
