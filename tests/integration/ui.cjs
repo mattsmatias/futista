@@ -360,6 +360,8 @@ const MIN = 60_000;
     {
       const gap = await page.evaluate(() => { const a = document.querySelector(".form-all").getBoundingClientRect(), b = document.querySelector(".next-card").getBoundingClientRect(); return Math.round(b.top - a.bottom); });
       ok("joukkuesivu: kuntorivi ja seuraava ottelu erillään (väli ≥ 12 px)", gap >= 12, `${gap} px`);
+      const ovT = await page.locator(".tab-pane").innerText();
+      ok("  ei seuran tietoja (Seuran tiedot -osio poistettu)", !ovT.includes("Seuran tiedot") && (await page.locator(".tab-pane .facts").count()) === 0);
       const tabsT = (await page.locator(".ent-tabs [role=tab]").allInnerTexts()).map((x) => x.trim());
       ok("  välilehti 'Sarjataulukko' (ei 'Taulukko')", tabsT.includes("Sarjataulukko") && !tabsT.includes("Taulukko"), tabsT.join("|"));
       await page.locator(".ent-tabs [role=tab]", { hasText: "Ottelut" }).click(); await page.waitForTimeout(300);

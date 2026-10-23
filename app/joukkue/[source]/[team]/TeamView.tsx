@@ -14,7 +14,6 @@ import { Card } from "../../../Cards";
 import Footer from "../../../Footer";
 import Flag from "../../../Flag";
 import PlayerPhoto from "../../../PlayerPhoto";
-import SafeImg from "../../../SafeImg";
 import { AutoRefresh } from "@/lib/fresh";
 import { ageOf } from "@/lib/age";
 import type { TeamInfo, SquadPlayer } from "@/lib/team-info";
@@ -107,31 +106,6 @@ function Squad({ info, team }: { info: TeamInfo; team: string }) {
 }
 
 /** Seuran perustiedot */
-function ClubInfo({ info }: { info: TeamInfo }) {
-  const { t } = useI18n();
-  const items: [string, React.ReactNode][] = [];
-  if (info.venue) items.push([t("stadium"), info.venue]);
-  if (info.founded) items.push([t("founded"), info.founded]);
-  if (info.colors) items.push([t("colors"), info.colors]);
-  if (info.website) items.push([t("website"), <a key="w" href={info.website} target="_blank" rel="noopener nofollow">{info.website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</a>]);
-  if (!items.length && !info.competitions.length) return null;
-  return (
-    <section className="panel">
-      <div className="panel-head"><h3>{t("clubInfo")}</h3></div>
-      <dl className="facts">
-        {items.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-      </dl>
-      {info.competitions.length > 0 && (
-        <div className="comps">
-          <span className="day-label">{t("competitions")}</span>
-          <div>{info.competitions.map((c) => (
-            <span className="comp" key={c.code}>{c.emblem && <SafeImg src={c.emblem} alt="" width={18} height={18} loading="lazy" />}{c.name}</span>
-          ))}</div>
-        </div>
-      )}
-    </section>
-  );
-}
 
 /** Sarjan maalintekijät Sarjataulukko-välilehdellä (sama tieto kuin sarjasivun maalipörssissä) */
 function TeamScorers({ id, league }: { id: string; league: string }) {
@@ -298,7 +272,6 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
             <div className="sec-head"><h2>{t("teamNews")}</h2><button className="see-all" onClick={() => go("news")}>{t("seeAll")} →</button></div>
             <div className="grid">{news.slice(0, 3).map((a, k) => <Card key={a.id} a={a} wide={k === 0} />)}</div>
           </section>}
-          {info && <ClubInfo info={info} />}
         </>}
 
         {tab === "matches" && <>
