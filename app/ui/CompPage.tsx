@@ -19,7 +19,7 @@ import { CompMark } from "./CompMark";
 import { MatchRow } from "./MatchRow";
 import { NewsItem } from "./News";
 
-type Tab = "ottelut" | "taulukko" | "maalit" | "uutiset";
+type Tab = "ottelut" | "tulokset" | "taulukko" | "maalit" | "uutiset";
 
 export default function CompPage({ s, articles }: { s: LeagueStats; articles: Article[] }) {
   const i = useI18n();
@@ -27,7 +27,9 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
   const src = SOURCES.find((x) => x.id === s.source)!;
   const dataOn = useDataEnabled();
   const tabs: { id: Tab; label: Key }[] = [
-    { id: "ottelut", label: "tab_matches" },
+    // otteluohjelma ja tulokset omilla välilehdillään (selkeämpi kuin samalla sivulla allekkain)
+    { id: "ottelut", label: "fixturesTab" },
+    { id: "tulokset", label: "results" },
     ...(s.table.length ? [{ id: "taulukko" as Tab, label: "table" as Key }] : []),
     ...(dataOn ? [{ id: "maalit" as Tab, label: "scorers" as Key }] : []),
     ...(articles.length ? [{ id: "uutiset" as Tab, label: "nav_news" as Key }] : []),
@@ -53,7 +55,8 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
           ))}
         </div>
         <div role="tabpanel" id={`pane-${cur}`} aria-labelledby={`tab-${cur}`} className="epane">
-          {cur === "ottelut" && <CompMatches s={s} />}
+          {cur === "ottelut" && <CompMatches s={s} part="up" />}
+          {cur === "tulokset" && <CompMatches s={s} part="done" />}
           {cur === "taulukko" && <Standings s={s} />}
           {cur === "maalit" && <CompScorers id={s.source} league={src.league} />}
           {cur === "uutiset" && <div className="nlist">{articles.map((a) => <NewsItem key={a.id} a={a} />)}</div>}
@@ -64,15 +67,15 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
   );
 }
 
-function CompMatches({ s }: { s: LeagueStats }) {
+function CompMatches({ s, part }: { s: LeagueStats; part: "up" | "done" }) {
   const i = useI18n();
   const { t } = i;
   const { live, now } = useLiveData();
   const { isFav } = useFavorites();
   const extras = useLiveExtras([s]);
   const fixtures: Fixture[] = [...extras.filter((x) => x.s === s.source), ...s.fixtures];
-  const upDays = [...new Set(fixtures.map((f) => f.date))].sort().slice(0, 3);
-  const doneDays = [...new Set(s.results.map((r) => r.date))].sort().reverse().slice(0, 3);
+  const upDays = [...new Set(fixtures.map((f) => f.date))].sort().slice(0, 7);
+  const doneDays = [...new Set(s.results.map((r) => r.date))].sort().reverse().slice(0, 10);
   const dayBlock = (d: string, rows: JSX.Element[]) => (
     <div className="day-block" key={d}><h3 className="day-h">{i.day(d)}</h3><div className="cg-list panel-list">{rows}</div></div>
   );
@@ -82,16 +85,17 @@ function CompMatches({ s }: { s: LeagueStats }) {
   const src = SOURCES.find((x) => x.id === s.source)!;
   return (
     <>
-      <section aria-labelledby="cm-up">
-        <h2 id="cm-up" className="sub-h">{t("upcoming")}</h2>
-        {upDays.length ? upDays.map((d) => dayBlock(d, fixtures.filter((f) => f.date === d).sort((a, b) => a.time.localeCompare(b.time)).map(fRow)))
-          : <p className="muted">{s.failed?.includes("fixtures") ? t("sourceDown") : t("noUpcoming")}</p>}
-      </section>
-      <section aria-labelledby="cm-done">
-        <h2 id="cm-done" className="sub-h">{t("recentMatches")}</h2>
-        {doneDays.length ? doneDays.map((d) => dayBlock(d, s.results.filter((r) => r.date === d).map(rRow)))
-          : <p className="muted">{s.failed?.includes("results") ? t("sourceDown") : t("noPlayed")}</p>}
-      </section>
+      {part === "up" ? (
+        <section aria-label={t("fixturesTab")}>
+          {upDays.length ? upDays.map((d) => dayBlock(d, fixtures.filter((f) => f.date === d).sort((a, b) => a.time.localeCompare(b.time)).map(fRow)))
+            : <p className="muted">{s.failed?.includes("fixtures") ? t("sourceDown") : t("noUpcoming")}</p>}
+        </section>
+      ) : (
+        <section aria-label={t("results")}>
+          {doneDays.length ? doneDays.map((d) => dayBlock(d, s.results.filter((r) => r.date === d).map(rRow)))
+            : <p className="muted">{s.failed?.includes("results") ? t("sourceDown") : t("noPlayed")}</p>}
+        </section>
+      )}
       <SrcLine name={src.name} updated={s.updated} stale={s.stale} />
     </>
   );

@@ -295,7 +295,13 @@ const MIN = 60_000;
     }
     await page.goto(APP + "/sarjat/bundesliga", { waitUntil: "networkidle" });
     const tabs = await page.locator(".etabs [role=tab], .etabs a, .etabs button").allTextContents();
-    ok("kilpailusivu: välilehdet", ["Ottelut", "Taulukko", "Maalipörssi"].every((x) => tabs.some((t) => t.includes(x))), tabs.join("|"));
+    ok("kilpailusivu: välilehdet (otteluohjelma ja tulokset erikseen)", ["Otteluohjelma", "Tulokset", "Taulukko", "Maalipörssi"].every((x) => tabs.some((t) => t.includes(x))), tabs.join("|"));
+    {
+      const upN = await page.locator(".epane .mrow").count(), upFt = await page.locator(".epane .ms-ft").count();
+      await page.locator(".etabs [role=tab]", { hasText: "Tulokset" }).click(); await page.waitForTimeout(400);
+      const resN = await page.locator(".epane .mrow").count(), resFt = await page.locator(".epane .ms-ft").count();
+      ok("  Otteluohjelmassa ei pelattuja, Tulokset-välilehdellä pelatut", upN > 0 && upFt === 0 && resN > 0 && resFt === resN && new URL(page.url()).searchParams.get("v") === "tulokset", `${upN}/${upFt} → ${resN}/${resFt} ${page.url()}`);
+    }
     await page.goto(APP + "/sarjat/eiole", { waitUntil: "networkidle" });
     ok("kilpailusivu: tuntematon sarja → 404", /ei löytynyt/i.test(await page.locator("h1").first().innerText()));
     ok("tulospalvelu: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
