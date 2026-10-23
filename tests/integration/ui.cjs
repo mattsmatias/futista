@@ -483,6 +483,8 @@ const MIN = 60_000;
       await page.locator("text=Testi Maalintekijä").first().waitFor({ timeout: 10000 }).catch(() => {});
       const tbT = await page.locator(".tab-pane").innerText();
       ok("  Sarjataulukko-välilehdellä taulukko ja maalintekijät", tbT.includes("Maalintekijät") && tbT.includes("Testi Maalintekijä") && tbT.includes("Mittaspor Izmir"), tbT.slice(0, 160).replace(/\n/g, " "));
+      const tHead = (await page.locator(".tab-pane .panel-head .muted").first().innerText()).trim();
+      ok("  taulukon otsikossa vain kausi (ei 'Sarjataulukko ·')", !tHead.includes("Sarjataulukko") && !tHead.includes("·"), tHead);
     }
     // maajoukkuesivu: Otteluohjelma / Tulokset erikseen kuten joukkue- ja sarjasivuilla
     {

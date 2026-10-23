@@ -110,7 +110,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
     <div className="panel">
       <div className="panel-head">
         <h3><CompMark id={s.source} small />{i.league(s.source, s.league)}</h3>
-        <span className="muted">{t("standing")}{s.season ? ` · ${s.season}` : ""}</span>
+        {s.season && <span className="muted">{s.season}</span>}
       </div>
       {rows.length === 0 ? <p className="muted pad">{s.failed?.includes("table") ? t("sourceDown") : t("noTable")}</p> : (
         groups ? <>{shownGroups!.map((g) => (
