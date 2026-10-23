@@ -32,3 +32,4 @@ export async function getScorers(id: string): Promise<LeagueScorers | null> {
   });
   return { source: s.id, list, season: seasonLabel(data.season?.startDate, data.season?.endDate), updated: res.at };
 }
+

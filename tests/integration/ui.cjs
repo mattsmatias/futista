@@ -316,6 +316,10 @@ const MIN = 60_000;
         return { hs, cells };
       });
       ok("  Maalintekijät: ensin M (maalit), sitten S (syötöt), myös puhelimella (Testi Maalintekijä 3 maalia, 1 syöttö)", !!sc && sc.hs.slice(-2).join("|") === "M|S" && sc.cells.slice(-2).join("|") === "3|1", JSON.stringify(sc));
+      const ph = await page.evaluate(() => { const e = document.querySelector(".tbl.scorers .pphoto"); if (!e) return null; const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); return { br: cs.borderTopLeftRadius, w: Math.round(r.width), h: Math.round(r.height) }; });
+      ok("  pelaajakuva pyöristettynä neliönä (ei ympyrä), 40 px", !!ph && ph.br === "10px" && ph.w === 40 && ph.h === 40, JSON.stringify(ph));
+      const posT = await page.locator(".tbl.scorers td.pos").first().innerText().catch(() => "");
+      ok("  sijoitus muodossa '1.'", posT.trim() === "1.", posT);
       // välilehtirivi ei liiku pystysuunnassa (iPhone: rivi heilui pyyhkäistessä ja teksti leikkautui)
       await page.setViewportSize({ width: 360, height: 800 });
       await page.goto(APP + "/sarjat/bundesliga?v=maalit", { waitUntil: "domcontentloaded" }); await page.waitForTimeout(800);

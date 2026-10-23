@@ -1594,3 +1594,10 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 /* Lippu ei kutistu pitkän nimen vieressä (esim. Pierre-Emerick Aubameyang: lippu puristui ohueksi viivaksi) */
 .flag { flex: none; }
 .flag img, .flag-none { flex: none; min-width: 20px; }
+
+/* Maalintekijät: pelaajakuva pyöristettynä neliönä vaalealla pohjalla ja ohuella reunalla (kuten tulospalveluissa) */
+.tbl.scorers .pphoto { border-radius: 10px; background: #f4f6f9; box-shadow: inset 0 0 0 1px var(--line); }
+.tbl.scorers .pphoto img { object-fit: cover; object-position: center 15%; border-radius: 10px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tbl.scorers .pphoto { background: #e9edf3; } }
+:root[data-theme="dark"] .tbl.scorers .pphoto { background: #e9edf3; }
+.tbl.scorers td.pos { white-space: nowrap; }

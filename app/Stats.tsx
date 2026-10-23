@@ -9,6 +9,7 @@ import { teamHref, matchHref } from "@/lib/routes";
 import type { LeagueScorers } from "@/lib/scorers";
 import Flag from "./Flag";
 import PlayerPhoto from "./PlayerPhoto";
+import { rankScorers } from "@/lib/scorer-rank";
 import { norm } from "@/lib/teams";
 import { usePersistentState } from "@/lib/persist";
 import { useBrokenImage } from "@/lib/img";
@@ -316,12 +317,12 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
           <table className="tbl scorers">
             <thead><tr><th>#</th><th className="l">{t("player")}</th><th className="l opt">{t("team")}</th><th className="opt">{t("colP")}</th><th className="sc-n"><abbr title={t("colGoalsFull")}>{t("goalsShort")}</abbr></th><th className="sc-n"><abbr title={t("colAssistsTitle")}>{t("assistsShort")}</abbr></th></tr></thead>
             <tbody>
-              {list.map((p, n) => (
+              {rankScorers(list).map(({ p, rank }, n) => (
                 <tr key={p.id ?? n}>
-                  <td className="pos">{list.findIndex((q) => q.goals === p.goals) + 1}</td>
+                  <td className="pos">{rank}.</td>
                   <td className="l">
                     <a className="pl" href={p.id ? `/pelaaja/${p.id}` : undefined}>
-                      <PlayerPhoto name={p.name} team={p.team.name} size={34} />
+                      <PlayerPhoto name={p.name} team={p.team.name} size={40} />
                       <span><b><Flag nation={p.nationality} /> {p.name}</b><small className="mob-team">{p.team.name}</small></span>
                     </a>
                   </td>
