@@ -406,7 +406,8 @@ const MIN = 60_000;
     ok("  kauden kokonaismäärät kaikista kilpailuista", /Voitot 2 · Tasapelit 2 · Häviöt 1/.test(faText), faText);
     const lastHref = await fa.locator(".fp").last().getAttribute("href");
     ok("  merkki avaa ottelun", !!lastHref && lastHref.startsWith("/ottelu/"), String(lastHref));
-    ok("  värit: voitto vihreä, tasapeli harmaa, häviö punainen", (await fa.locator(".fp-w").count()) === 2 && (await fa.locator(".fp-d").count()) === 2 && (await fa.locator(".fp-l").count()) === 1);
+    const dBg = await fa.locator(".fp-d").first().evaluate((e) => getComputedStyle(e).backgroundColor);
+    ok("  värit: voitto vihreä, tasapeli oranssi, häviö punainen", (await fa.locator(".fp-w").count()) === 2 && (await fa.locator(".fp-d").count()) === 2 && (await fa.locator(".fp-l").count()) === 1 && dBg === "rgb(245, 163, 0)", dBg);
     // kilpailujen logot värineliön tilalla (ESPN:n kilpailulogot; testiympäristössä kuvat eivät lataudu → neutraali piste)
     const teamHtml = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
     ok("kilpailulogot: Eurooppa-liigan ja Süper Ligin logo ottelulistassa", teamHtml.includes("leaguelogos/soccer/500/2310.png") && teamHtml.includes("leaguelogos/soccer/500/18.png"));
