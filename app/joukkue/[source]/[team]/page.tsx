@@ -11,7 +11,7 @@ import { hasFd, fdFailingRecently } from "@/lib/fd";
 import TeamView from "./TeamView";
 import JsonLd from "../../../JsonLd";
 import { teamHref } from "@/lib/routes";
-import { SITE, teamLd, breadcrumbLd } from "@/lib/seo";
+import { SITE, teamLd, breadcrumbLd, og, OG_IMAGE } from "@/lib/seo";
 
 export const revalidate = 120;
 export const maxDuration = 60;
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!d) return { title: "Futista" };
   const title = `${d.team.name} – ottelut, tulokset ja uutiset – Futista`;
   const description = `${d.team.name}: kaikki ottelut, tulokset, kokoonpano, sarjataulukko (${d.s.league}) ja uusimmat uutiset suomeksi.`;
-  return { title, description, openGraph: { title, description } };
+  return { title, description, openGraph: og(title, description), twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] } };
 }
 
 export default async function TeamPage({ params }: Props) {

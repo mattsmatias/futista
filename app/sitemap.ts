@@ -7,7 +7,9 @@ import { teamHref, matchHref } from "@/lib/routes";
 // ottelusivut kahden viikon ajalta (tulevat ja pelatut) – juuri niitä haetaan ("Barcelona Real Madrid").
 // Tiedot sarjojen välimuistista (ei ylimääräisiä lähdehakuja). Ei mukana: pelaajasivut ja ESPN:n perusottelusivut
 // (robots.ts estää niiden läpikäynnin) eikä uutissivut (canonical osoittaa alkuperäiseen lähteeseen).
-export const revalidate = 3600;
+// Tehdään pyynnöstä (ei käännösvaiheessa, jolloin sarjojen tietoja ei ole → lähes tyhjä sivukartta tunnin ajan).
+// Tiedot tulevat sarjojen välimuistista, joten tämä ei lisää lähdehakuja.
+export const dynamic = "force-dynamic";
 
 const BASE = "https://www.futista.fi";
 const DAY = 86400_000;

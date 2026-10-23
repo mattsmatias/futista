@@ -493,10 +493,10 @@ const MIN = 60_000;
       const ev = ld.find((x) => x && x["@type"] === "SportsEvent");
       ok("SEO: ottelusivulla SportsEvent-tieto (joukkueet, alkamisaika) ja sivuston WebSite-tieto", !!ev && ev.homeTeam?.name === "Testiseura Kotka" && /^\d{4}-\d{2}-\d{2}/.test(ev.startDate) && ld.some((x) => x?.["@graph"]?.some((g) => g["@type"] === "WebSite")), JSON.stringify(ev).slice(0, 160));
       const desc = mh.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
-      ok("SEO: ottelusivulla kuvaus ja esikatselukuva", /Testiseura Kotka/.test(desc) && /Bundesliga/.test(desc) && /<meta property="og:image" content="[^"]*opengraph-image/.test(mh), desc);
+      ok("SEO: ottelusivulla kuvaus ja esikatselukuva", /Testiseura Kotka/.test(desc) && /Bundesliga/.test(desc) && /<meta property="og:image" content="https:\/\/www\.futista\.fi\/og\.png"/.test(mh) && (mh.match(/property="og:image"/g) || []).length === 1, desc);
       const th = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
       ok("SEO: joukkuesivulla SportsTeam- ja murupolkutieto", /"@type":"SportsTeam","name":"Testispor Ankara"/.test(th) && /"@type":"BreadcrumbList"/.test(th));
-      const og = await fetch(APP + "/opengraph-image.png");
+      const og = await fetch(APP + "/og.png");
       ok("SEO: esikatselukuva 1200×630 saatavilla", og.status === 200 && /image\/png/.test(og.headers.get("content-type") || ""), String(og.status));
     }
     // uutisten reaktiot (Supabase-emulaattori + migraatio)

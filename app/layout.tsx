@@ -1,6 +1,6 @@
 import "./globals.css";
 import JsonLd from "./JsonLd";
-import { siteLd } from "@/lib/seo";
+import { siteLd, OG_IMAGE } from "@/lib/seo";
 import type { Metadata, Viewport } from "next";
 import InstallApp from "./InstallApp";
 import OfflineBanner from "./OfflineBanner";
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   // www.futista.fi on ensisijainen osoite (Vercel ohjaa futista.fi → www): canonical-osoitteet ja jakamisen esikatselut osoittavat sinne
   metadataBase: new URL("https://www.futista.fi"),
   alternates: { canonical: "./" },
-  openGraph: { siteName: "Futista", locale: "fi_FI", type: "website" },
+  openGraph: { siteName: "Futista", locale: "fi_FI", type: "website", images: [OG_IMAGE] },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
   // Google Search Console -omistajuuden vahvistus: koodi ympäristömuuttujasta (ei versionhallintaan)

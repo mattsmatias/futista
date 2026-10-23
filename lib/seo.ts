@@ -64,3 +64,7 @@ export function fiDate(date: string): string {
   const d = new Date(`${date}T12:00:00Z`);
   return `${FI_DAYS[d.getUTCDay()]} ${d.getUTCDate()}.${d.getUTCMonth() + 1}.${d.getUTCFullYear()}`;
 }
+
+/** Jakamisen ja hakukoneiden esikatselutiedot (sama kuva kaikille sivuille; sivun oma otsikko ja kuvaus) */
+export const OG_IMAGE = { url: "/og.png", width: 1200, height: 630, alt: "Futista – jalkapallon tulokset, ottelut ja uutiset suomeksi" };
+export const og = (title: string, description: string) => ({ title, description, siteName: "Futista", locale: "fi_FI", type: "website" as const, images: [OG_IMAGE] });

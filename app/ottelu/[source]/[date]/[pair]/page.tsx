@@ -7,7 +7,7 @@ import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
 import { rapidAllowed } from "@/lib/rapid";
 import JsonLd from "../../../../JsonLd";
-import { SITE, matchLd, fiDate } from "@/lib/seo";
+import { SITE, matchLd, fiDate, og, OG_IMAGE } from "@/lib/seo";
 
 export const revalidate = 120;
 export const maxDuration = 60;
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = d?.result
     ? `${m.home.name} – ${m.away.name} päättyi ${d.result.hs}–${d.result.as} (${league}, ${fiDate(m.date)}). Maalit, kokoonpanot, tilastot ja sarjataulukko suomeksi.`
     : `${m.home.name} vastaan ${m.away.name}, ${league} ${when}. Ennakko, kokoonpanot, livetulos, keskinäiset ottelut ja sarjataulukko suomeksi.`;
-  return { title, description, openGraph: { title, description } };
+  return { title, description, openGraph: og(title, description), twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] } };
 }
 
 export default async function MatchPage({ params }: Props) {

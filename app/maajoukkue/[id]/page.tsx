@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getNation } from "@/lib/espn";
 import { country } from "@/lib/flags";
 import NationView from "./NationView";
+import { og, OG_IMAGE } from "@/lib/seo";
 
 export const revalidate = 120;
 export const maxDuration = 60;
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!name) return { title: "Maajoukkue – Futista" };
   const title = `${name} – maajoukkueen ottelut ja tulokset – Futista`;
   const description = `${name}: maajoukkueen otteluohjelma ja tulokset (Kansojen liiga, EM- ja MM-karsinnat, ystävyysottelut) suomeksi.`;
-  return { title, description, openGraph: { title, description } };
+  return { title, description, openGraph: og(title, description), twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE.url] } };
 }
 
 export default async function Page({ params }: Props) {
