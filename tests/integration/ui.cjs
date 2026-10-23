@@ -375,6 +375,8 @@ const MIN = 60_000;
         return { rowD: Math.round(rowD * 10) / 10, cardD: Math.round(cardD * 10) / 10, right: Math.round(right), fs };
       });
       ok("  ottelurivillä kilpailu ja päivä samalla linjalla", al.rowD <= 1.5, JSON.stringify(al));
+      const sep = await page.evaluate(() => [...document.querySelectorAll(".mrow-wrap + .mrow-wrap")].map((e) => getComputedStyle(e).borderTopWidth + " " + getComputedStyle(e).borderTopStyle));
+      ok("  ottelulistoissa erotinviiva otteluiden välissä", sep.length >= 1 && sep.every((x) => x === "1px solid"), sep.join("|"));
       ok("  Seuraava ottelu -teksti pienenä oikeassa yläkulmassa, samalla linjalla kilpailun kanssa", al.cardD <= 1.5 && al.right <= 1 && al.fs <= 10.5, JSON.stringify(al));
       const tabsT = (await page.locator(".ent-tabs [role=tab]").allInnerTexts()).map((x) => x.trim());
       ok("  välilehti 'Sarjataulukko' (ei 'Taulukko')", tabsT.includes("Sarjataulukko") && !tabsT.includes("Taulukko"), tabsT.join("|"));

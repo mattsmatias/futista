@@ -1542,3 +1542,6 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .nc-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 18px; }
 .nc-label .g-comp { margin-right: 0; min-width: 0; }
 .nc-when { margin-left: auto; font-size: 10px; letter-spacing: .06em; text-align: right; white-space: nowrap; line-height: 18px; }
+
+/* Ottelulistat (Seuraavat ottelut, Viimeisimmät tulokset, Otteluohjelma, Tulokset): ohut erotinviiva otteluiden välissä */
+.mrow-wrap + .mrow-wrap { border-top: 1px solid var(--line); }
