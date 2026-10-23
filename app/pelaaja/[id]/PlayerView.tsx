@@ -40,10 +40,8 @@ export default function PlayerView({ p }: { p: PlayerData }) {
           </div>
           <div className="ehead-txt">
             <h1>{p.name}</h1>
-            <p className="muted">
-              {p.club && (p.club.href ? <a className="ehead-comp" href={p.club.href}>{p.club.name}</a> : p.club.name)}
-              {[pos, age != null ? `${age} ${t("years")}` : null, p.shirtNumber != null ? `#${p.shirtNumber}` : null].filter(Boolean).map((x) => ` · ${x}`).join("")}
-            </p>
+            {/* nimen alla vain seura; pelipaikka, ikä ja numero ovat tietokortissa */}
+            {p.club && <p className="muted">{p.club.href ? <a className="ehead-comp" href={p.club.href}>{p.club.name}</a> : p.club.name}</p>}
           </div>
         </header>
 

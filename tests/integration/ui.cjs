@@ -283,6 +283,14 @@ const MIN = 60_000;
     const ph = await page.locator("[role=option]", { hasText: "Testi Pelaaja" }).first().getAttribute("href").catch(() => null);
     ok("haku: pelaaja löytyy nimellä → profiili", ph === "/pelaaja/7001", String(ph));
     await page.keyboard.press("Escape");
+    {
+      const pp = await browser.newPage();
+      await pp.goto(APP + "/pelaaja/7001", { waitUntil: "load" });
+      const sub = (await pp.locator(".player-head .ehead-txt p").innerText().catch(() => "")).trim();
+      const card = await pp.locator("main").innerText();
+      ok("pelaajaprofiili: nimen alla vain seura (ei pelipaikkaa, ikää, numeroa); tiedot kortissa", sub.length > 0 && !sub.includes("·") && !/#\d/.test(sub) && card.includes("Pelipaikka"), sub);
+      await pp.close();
+    }
     // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan
     await page.goto(APP + "/suosikit", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
     const v2 = await page.evaluate(() => JSON.parse(localStorage.getItem("futista-suosikit-v2") || "[]"));
