@@ -301,6 +301,16 @@ const MIN = 60_000;
       await page.locator(".etabs [role=tab]", { hasText: "Tulokset" }).click(); await page.waitForTimeout(400);
       const resN = await page.locator(".epane .mrow").count(), resFt = await page.locator(".epane .ms-ft").count();
       ok("  Otteluohjelmassa ei pelattuja, Tulokset-välilehdellä pelatut", upN > 0 && upFt === 0 && resN > 0 && resFt === resN && new URL(page.url()).searchParams.get("v") === "tulokset", `${upN}/${upFt} → ${resN}/${resFt} ${page.url()}`);
+      // välilehtirivi ei liiku pystysuunnassa (iPhone: rivi heilui pyyhkäistessä ja teksti leikkautui)
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.goto(APP + "/sarjat/bundesliga?v=maalit", { waitUntil: "domcontentloaded" }); await page.waitForTimeout(800);
+      const tr = await page.evaluate(() => {
+        const row = document.querySelector(".etabs"), on = row.querySelector("[aria-selected=true]");
+        const rr = row.getBoundingClientRect(), br = on.getBoundingClientRect();
+        return { oy: getComputedStyle(row).overflowY, visible: br.left >= rr.left - 1 && br.right <= rr.right + 1, scrollable: row.scrollWidth > row.clientWidth, on: on.textContent };
+      });
+      ok("  välilehtirivi: ei pystyvieritystä, valittu välilehti näkyvissä kapealla näytöllä", tr.oy === "hidden" && tr.visible, JSON.stringify(tr));
+      await page.setViewportSize({ width: 390, height: 844 });
     }
     await page.goto(APP + "/sarjat/eiole", { waitUntil: "networkidle" });
     ok("kilpailusivu: tuntematon sarja → 404", /ei löytynyt/i.test(await page.locator("h1").first().innerText()));

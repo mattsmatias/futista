@@ -1564,3 +1564,10 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .match-hero .chip.chip-logo { background: rgba(255,255,255,.92); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .match-hero .chip.chip-logo { background: rgba(255,255,255,.08); } }
 :root[data-theme="dark"] .match-hero .chip.chip-logo { background: rgba(255,255,255,.08); }
+
+/* Vaakasuunnassa vieritettävät rivit (välilehdet, kilpailuvalinnat, taulukot): ei pystyvieritystä.
+   overflow-x: auto tekee myös pystysuunnasta vieritettävän, ja aktiivisen välilehden alaviiva (margin-bottom: -1px)
+   teki sisällöstä hieman korkeamman → rivi liikkui pyyhkäistessä vinottain ja teksti leikkautui (iPhone). */
+.clubs, .rail, .tbl-wrap, .lpick, .ent-tabs, .comp-filter, .etabs, .subtabs.sticky, .ps-seg, .chips-row {
+  overflow-y: hidden; overscroll-behavior-x: contain;
+}

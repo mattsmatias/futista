@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 // Kilpailusivu: Ottelut · Taulukko (jos on) · Maalipörssi (football-data) · Uutiset (jos sarjasta on uutisia).
 // Tyhjää tai toimimatonta välilehteä ei näytetä. Valittu välilehti on osoitteessa (?v=taulukko).
 import type { Article } from "@/lib/feed";
@@ -36,6 +37,15 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
   ];
   const [tab, setTab] = useUrlParam("v", "ottelut", (v) => tabs.some((x) => x.id === v));
   const cur = (tabs.some((x) => x.id === tab) ? tab : "ottelut") as Tab;
+  // valittu välilehti näkyviin vaakasuunnassa (vain välilehtirivin sisällä; sivu ei vieritä)
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = tabsRef.current, btn = row?.querySelector<HTMLElement>(`#tab-${cur}`);
+    if (!row || !btn) return;
+    const l = btn.offsetLeft - row.offsetLeft, r = l + btn.offsetWidth;
+    if (l < row.scrollLeft) row.scrollLeft = Math.max(0, l - 12);
+    else if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth + 12;
+  }, [cur]);
   const country = t(`c_${COMP_META[s.source].country}` as Key);
 
   return (
@@ -49,7 +59,7 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
             <p className="muted">{country}{s.season ? ` · ${t("seasonWord")} ${s.season}` : ""}</p>
           </div>
         </header>
-        <div className="etabs" role="tablist" aria-label={i.league(s.source, s.league)}>
+        <div className="etabs" role="tablist" aria-label={i.league(s.source, s.league)} ref={tabsRef}>
           {tabs.map((x) => (
             <button key={x.id} role="tab" id={`tab-${x.id}`} aria-selected={cur === x.id} aria-controls={`pane-${x.id}`} className={cur === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>
           ))}
