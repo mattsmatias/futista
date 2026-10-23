@@ -1,11 +1,12 @@
 "use client";
+import { CompMark } from "./ui/CompMark";
 // Maajoukkueet: Huuhkajat + viimeisimmät ja tulevat maaottelut kaikista kilpailuista
 import { useEffect, useState } from "react";
 import type { Game } from "@/lib/espn";
 import { useI18n } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
 import { usePersistentState } from "@/lib/persist";
-import { GameRow, compName, compClass } from "./Games";
+import { GameRow, compName } from "./Games";
 import { SrcLine } from "./Stats";
 
 const FIN = "458";
@@ -64,7 +65,7 @@ export default function IntlBoard({ initial }: { initial?: IntlData | null }) {
           <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
           {comps.map((g) => (
             <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
-              <span className={`g-dot ${compClass(g.slug)}`} />{compName(g, i.lang)}
+              <CompMark slug={g.slug} small />{compName(g, i.lang)}
             </button>
           ))}
         </div>

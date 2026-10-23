@@ -401,6 +401,15 @@ const MIN = 60_000;
       const tbT = await page.locator(".tab-pane").innerText();
       ok("  Sarjataulukko-välilehdellä taulukko ja maalintekijät", tbT.includes("Maalintekijät") && tbT.includes("Testi Maalintekijä") && tbT.includes("Mittaspor Izmir"), tbT.slice(0, 160).replace(/\n/g, " "));
     }
+    // maajoukkuesivu: Otteluohjelma / Tulokset erikseen kuten joukkue- ja sarjasivuilla
+    {
+      await page.goto(APP + "/maajoukkue/458", { waitUntil: "domcontentloaded" });
+      await page.locator(".mx-switch [role=tab]").first().waitFor({ timeout: 15000 }).catch(() => {});
+      const segN = (await page.locator(".mx-switch [role=tab]").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
+      await page.locator(".mx-switch [role=tab]", { hasText: "Tulokset" }).click().catch(() => {}); await page.waitForTimeout(300);
+      const sel = (await page.locator(".mx-switch [aria-selected=true]").innerText().catch(() => "")).trim();
+      ok("maajoukkuesivu: Otteluohjelma ja Tulokset erikseen", segN.length === 2 && segN[0].startsWith("Otteluohjelma") && segN[1].startsWith("Tulokset") && sel.startsWith("Tulokset") && (await page.locator(".duo").count()) === 0, `${segN.join("|")} → ${sel}`);
+    }
     // uutisten reaktiot (Supabase-emulaattori + migraatio)
     let rr = await fetch(`${APP}/api/reactions?a=testi/2026/10/21/juttu`); let rj = await rr.json();
     ok("reaktiot: haku palauttaa summat (käytössä)", rr.status === 200 && rj.enabled === true && rj.up === 0 && rj.down === 0, JSON.stringify(rj));

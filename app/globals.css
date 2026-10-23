@@ -1545,3 +1545,8 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 
 /* Ottelulistat (Seuraavat ottelut, Viimeisimmät tulokset, Otteluohjelma, Tulokset): ohut erotinviiva otteluiden välissä */
 .mrow-wrap + .mrow-wrap { border-top: 1px solid var(--line); }
+
+/* Maajoukkuesivu: osiot erillään kuten joukkuesivulla */
+.nationpage { display: flex; flex-direction: column; gap: 18px; }
+.nationpage > * { margin-top: 0; margin-bottom: 0; }
+.nationpage .comp-filter { padding-bottom: 2px; }
