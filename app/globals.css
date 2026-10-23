@@ -1437,7 +1437,6 @@ html { touch-action: manipulation; }
 .rb-good { background: #137a40; } .rb-top { background: #1565c0; } .rb-motm { background: #1d4ed8; }
 .rb-star { font-style: normal; font-size: 10px; }
 .lu-rating .rb { font-size: 12.5px; }
-.lu-details > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 @media (max-width: 400px) {
   .pp { width: 60px; } .pp-name { font-size: 10px; max-width: 60px; } .pp-name b { display: none; }
   .pp-shirt { width: 28px; height: 28px; font-size: 11.5px; } .rb { font-size: 9.5px; padding: 2px 3px; }

@@ -177,8 +177,7 @@ async function uiTests(M) {
     const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
     ok(`${tag}: ei vaakavieritystä`, noOverflow);
     await shot(page, `kokoonpanot-${w < 500 ? "mobiili" : "tyopoyta"}-${scheme === "light" ? "vaalea" : "tumma"}`);
-    await page.locator(".lu-details > summary").click();
-    ok(`${tag}: lista avautuu: molemmat joukkueet, 11 + 11`, (await page.locator(".lu-team:visible").count()) === 2 && (await page.locator(".lu-team:visible").nth(0).locator("ol .lu-row").count()) === 11 && (await page.locator(".lu-team:visible").nth(1).locator("ol .lu-row").count()) === 11 && (await page.locator(".lu-team:visible .lu-h").nth(1).innerText()).includes("5-3-2"));
+    ok(`${tag}: ei erillistä "Kokoonpanot listana" -osiota, avauskokoonpanot vain kentällä`, (await page.locator(".lu-details").count()) === 0 && (await page.locator(".lu-starters").count()) === 0 && !(await page.locator("main").innerText()).includes("Kokoonpanot listana"));
     ok(`${tag}: arvosanat lähteen nimellä ja puuttuva '–'`, (await page.locator(".lu-legend").innerText()).includes("Free API Live Football Data") && (await page.locator(".lu-subs .lu-rating", { hasText: "–" }).count()) > 0);
     // kontrasti: listan teksti paneelin taustaa vasten ja arvosanamerkit
     const contrast = await page.evaluate(() => {
@@ -249,9 +248,8 @@ async function uiTests(M) {
     await page.locator(".ps-seg").last().locator("button").nth(1).tap();
     ok("kosketus: valinta suodattaa joukkueen", (await page.locator(".ps-seg").last().locator("button").nth(1).getAttribute("aria-pressed")) === "true");
     await page.locator(".subtabs button", { hasText: "Kokoonpanot" }).tap();
-    await page.waitForSelector(".lu-details > summary");
-    const sh = await page.locator(".lu-details > summary").evaluate((e) => e.getBoundingClientRect().height);
-    ok("kosketus: 'Kokoonpanot listana' ≥ 40 px", sh >= 40, String(sh));
+    await page.waitForSelector(".pitch-full .pp");
+    ok("kosketus: kokoonpanovälilehti avautuu kentälle ilman listaosiota", (await page.locator(".lu-details").count()) === 0);
     await ctx.close();
   }
 

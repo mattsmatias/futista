@@ -171,7 +171,20 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
     <>
       {error && <ErrorBox text={t("lu_error")} retry={retry} loading={loading} />}
       <p className="mx-label">{data.phase === "pre" ? t("lu_pre") : t("lu_started")}</p>
-      {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} /> : <Note text={t("lu_noPitch")} />}
+      {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} /> : (
+        <div className="panel lu-starters">
+          <div className="panel-head"><h3>{t("lu_starters")}</h3></div>
+          <div className="lu-cols">
+            {[{ l: h, tm: home }, { l: a, tm: away }].map(({ l, tm }, i) => (
+              <section key={i} className="lu-team" aria-label={tm.name}>
+                <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
+                <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated} />)}</ol>
+                {avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="panel">
         <div className="panel-head"><h3>{t("lu_subs")}</h3></div>
         <div className="lu-cols">
@@ -190,18 +203,6 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
           </div>
         )}
       </div>
-      <details className="panel lu-details">
-        <summary className="pad">{t("lu_listAll")}</summary>
-        <div className="lu-cols">
-          {[{ l: h, tm: home }, { l: a, tm: away }].map(({ l, tm }, i) => (
-            <section key={i} className="lu-team" aria-label={tm.name}>
-              <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
-              <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated} />)}</ol>
-              {avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
-            </section>
-          ))}
-        </div>
-      </details>
       <div className="panel lu-legend">
         {rated && <p className="pad small muted">{t("lu_ratingNote")}</p>}
         <p className="pad small muted">{t("lu_roleNote")}</p>
