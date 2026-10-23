@@ -1606,3 +1606,9 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .pphoto.is-cutout { background: #eef1f5; }
 .pphoto img.cutout { object-fit: cover; object-position: center top; }
 .pl-avatar .pphoto.big img.cutout { object-fit: contain; object-position: center bottom; }
+
+/* Sarjasivun esittely ja alatunnisteen sarjalinkit (hakukoneet ja käyttäjät) */
+.comp-intro { margin: -4px 0 12px; font-size: 13.5px; line-height: 1.5; max-width: 70ch; }
+.foot-leagues { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.foot-leagues a { color: var(--muted); }
+.foot-leagues a:hover { color: var(--fg); }

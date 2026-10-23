@@ -19,6 +19,8 @@ import Footer from "../Footer";
 import { CompMark } from "./CompMark";
 import { MatchRow } from "./MatchRow";
 import { NewsItem } from "./News";
+import { leagueIntro } from "@/lib/league-seo";
+import type { SourceId } from "@/lib/sources";
 
 type Tab = "ottelut" | "tulokset" | "taulukko" | "maalit" | "uutiset";
 
@@ -59,6 +61,7 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
             <p className="muted">{country}{s.season ? ` · ${t("seasonWord")} ${s.season}` : ""}</p>
           </div>
         </header>
+        {i.lang === "fi" && <p className="comp-intro muted">{leagueIntro(s.source as SourceId, s.league)}</p>}
         <div className="etabs" role="tablist" aria-label={i.league(s.source, s.league)} ref={tabsRef}>
           {tabs.map((x) => (
             <button key={x.id} role="tab" id={`tab-${x.id}`} aria-selected={cur === x.id} aria-controls={`pane-${x.id}`} className={cur === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>

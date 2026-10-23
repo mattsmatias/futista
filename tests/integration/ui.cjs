@@ -496,6 +496,11 @@ const MIN = 60_000;
       ok("SEO: ottelusivulla kuvaus ja esikatselukuva", /Testiseura Kotka/.test(desc) && /Bundesliga/.test(desc) && /<meta property="og:image" content="https:\/\/www\.futista\.fi\/og\.png"/.test(mh) && (mh.match(/property="og:image"/g) || []).length === 1, desc);
       const th = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
       ok("SEO: joukkuesivulla SportsTeam- ja murupolkutieto", /"@type":"SportsTeam","name":"Testispor Ankara"/.test(th) && /"@type":"BreadcrumbList"/.test(th));
+      const lh = await (await fetch(APP + "/sarjat/bundesliga")).text();
+      const ltitle = lh.match(/<title>(.*?)<\/title>/)?.[1] ?? "";
+      ok("SEO: sarjasivun otsikossa hakusanat ja sivulla esittely", /^Bundesliga \(Saksan Bundesliga\) – otteluohjelma, tulokset/.test(ltitle) && /on Saksan jalkapallon pääsarja/.test(lh) && /"@type":"SportsOrganization"[^<]*"Bundesliiga"/.test(lh), ltitle);
+      const fl = (lh.match(/class="foot-leagues"[\s\S]*?<\/nav>/)?.[0] ?? "").match(/href="\/sarjat\/[a-z0-9]+"/g) ?? [];
+      ok("SEO: alatunnisteessa linkit kaikkiin sarjoihin (La Liga, Valioliiga, Mestarien liiga …)", fl.length >= 13 && fl.includes('href="/sarjat/laliga"') && fl.includes('href="/sarjat/valioliiga"') && fl.includes('href="/sarjat/ucl"'), String(fl.length));
       const og = await fetch(APP + "/og.png");
       ok("SEO: esikatselukuva 1200×630 saatavilla", og.status === 200 && /image\/png/.test(og.headers.get("content-type") || ""), String(og.status));
     }

@@ -1,8 +1,12 @@
 "use client";
 import { useI18n } from "@/lib/i18n";
+import { SOURCES } from "@/lib/sources";
+import { COMP_ORDER } from "@/lib/comps";
 
 export default function Footer() {
-  const { t } = useI18n();
+  const i = useI18n();
+  const { t } = i;
+  const leagues = COMP_ORDER.map((id) => SOURCES.find((x) => x.id === id)).filter((x): x is NonNullable<typeof x> => !!x);
   return (
     <footer className="foot">
       <div className="wrap foot-in">
@@ -11,6 +15,10 @@ export default function Footer() {
           <span>{t("tagline")}</span>
           <span className="foot-beta">{t("betaNote")}</span>
         </div>
+        {/* kaikki sarjat jokaisen sivun alareunassa: hakukoneet ja käyttäjät löytävät sarjasivut ("laliiga", "valioliiga" …) */}
+        <nav className="foot-leagues" aria-label={t("nav_comps")}>
+          {leagues.map((x) => <a key={x.id} href={`/sarjat/${x.id}`}>{i.league(x.id, x.league)}</a>)}
+        </nav>
         <nav className="foot-links" aria-label={t("footerNav")}>
           <a href="/maajoukkueet">{t("nationalTeams")}</a>
           <a href="/tietoa">{t("about")}</a>
