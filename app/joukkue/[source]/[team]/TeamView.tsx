@@ -223,7 +223,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
           <Badge t={team} size={48} />
           <div className="ehead-txt">
             <h1>{team.name}</h1>
-            <p className="muted"><a className="ehead-comp" href={`/sarjat/${s.source}`}>{i.league(s.source, s.league)}</a>{row ? ` · ${row.pos}. · ${row.pts} ${t("pointsWord")}` : ""}</p>
+            <p className="muted"><a className="ehead-comp" href={`/sarjat/${s.source}`}>{i.league(s.source, s.league)}</a></p>
           </div>
           <HeartButton team={team} label={t("favToggle")} withText={t("nav_favs")} />
         </header>
@@ -247,7 +247,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
             const on = g.kind === "live" || g.kind === "ht";
             const inner = (
               <>
-                <span className="nc-label"><span className={`g-comp ${compClass(g.slug)}`}><CompMark slug={g.slug} small />{compName(g, i.lang)}</span> {on ? "" : `${t("nextMatch")} · ${i.day(g.date)} ${g.time}`}</span>
+                <span className="nc-label"><span className={`g-comp ${compClass(g.slug)}`}><CompMark slug={g.slug} small />{compName(g, i.lang)}</span>{!on && <span className="nc-when">{t("nextMatch")} · {i.day(g.date)} {g.time}</span>}</span>
                 <span className="nc-row">
                   <span className="nc-team"><GBadge t={g.home} size={44} /><b>{g.home.name}</b></span>
                   <span className={`nc-vs${on ? " nc-live" : ""}`}>{on && g.hs !== null ? `${g.hs}–${g.as}` : g.time}</span>
@@ -259,7 +259,7 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
             return <a className="next-card" href={g.href ?? `/ottelu/e/${g.id}`}>{inner}</a>;
           })() : next && (
             <a className="next-card" href={matchHref(s.source, next.date, next.home.name, next.away.name)}>
-              <span className="nc-label">{t("nextMatch")} · {i.day(next.date)} {next.time}</span>
+              <span className="nc-label"><span className="nc-when">{t("nextMatch")} · {i.day(next.date)} {next.time}</span></span>
               <span className="nc-row">
                 <span className="nc-team"><Badge t={next.home} size={44} /><b>{next.home.name}</b></span>
                 <span className="nc-vs">{next.time}</span>

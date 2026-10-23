@@ -1533,3 +1533,12 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .seg button.on .seg-n { color: inherit; opacity: .7; }
 .entity .comp-filter { padding-bottom: 2px; }
 .comp-filter button .cmark { flex: none; }
+
+/* Ottelurivin kilpailurivi: logo, kilpailun nimi ja päivä samalla linjalla */
+.mrow-comp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; line-height: 18px; }
+.mrow-comp .g-comp { line-height: 18px; }
+.mrow-comp .g-date { font-weight: 600; }
+/* Seuraava ottelu -kortti: kilpailu vasemmalla, "Seuraava ottelu · päivä aika" pienenä oikeassa yläkulmassa samalla linjalla */
+.nc-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 18px; }
+.nc-label .g-comp { margin-right: 0; min-width: 0; }
+.nc-when { margin-left: auto; font-size: 10px; letter-spacing: .06em; text-align: right; white-space: nowrap; line-height: 18px; }
