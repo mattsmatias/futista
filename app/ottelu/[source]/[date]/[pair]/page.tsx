@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { SOURCES } from "@/lib/sources";
 import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
-import { teamSlug, findTeam } from "@/lib/routes";
+import { teamSlug, findTeam, matchHref } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
 import { rapidAllowed } from "@/lib/rapid";
+import JsonLd from "../../../../JsonLd";
+import { SITE, matchLd, fiDate } from "@/lib/seo";
 
 export const revalidate = 120;
 export const maxDuration = 60;
@@ -40,8 +42,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const d = await load(params).catch(() => null);
   const m = d?.result ?? d?.fixture;
   if (!m) return { title: "Futista" };
-  const score = d?.result ? ` ${d.result.hs}–${d.result.as}` : "";
-  return { title: `${m.home.name}${score} ${m.away.name} – Futista` };
+  const league = d!.s.league;
+  const time = d?.fixture?.time || d?.result?.time || "";
+  const when = `${fiDate(m.date)}${time ? ` klo ${time.replace(":", ".")}` : ""}`;
+  const title = d?.result
+    ? `${m.home.name} ${d.result.hs}–${d.result.as} ${m.away.name} · ${league} ${fiDate(m.date)} – Futista`
+    : `${m.home.name} – ${m.away.name} · ${league} ${when} – Futista`;
+  const description = d?.result
+    ? `${m.home.name} – ${m.away.name} päättyi ${d.result.hs}–${d.result.as} (${league}, ${fiDate(m.date)}). Maalit, kokoonpanot, tilastot ja sarjataulukko suomeksi.`
+    : `${m.home.name} vastaan ${m.away.name}, ${league} ${when}. Ennakko, kokoonpanot, livetulos, keskinäiset ottelut ja sarjataulukko suomeksi.`;
+  return { title, description, openGraph: { title, description } };
 }
 
 export default async function MatchPage({ params }: Props) {
@@ -53,5 +63,12 @@ export default async function MatchPage({ params }: Props) {
   // kokoonpanot/tilastot: RapidAPI-sarjat (kiintiö ja rajaus) tai ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS)
   const espnSrc = !!SOURCES.find((x) => x.id === d.s.source)?.espn && process.env.ESPN_OFF !== "1";
   const extras = espnSrc || rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
-  return <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />;
+  const url = `${SITE}${matchHref(d.s.source, m.date, m.home.name, m.away.name)}`;
+  return (
+    <>
+      <JsonLd data={matchLd({ url, league: d.s.league, date: m.date, time: d.fixture?.time || d.result?.time || null, home: m.home.name, away: m.away.name,
+        hs: d.result?.hs ?? null, as: d.result?.as ?? null, finished: !!d.result })} />
+      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />
+    </>
+  );
 }

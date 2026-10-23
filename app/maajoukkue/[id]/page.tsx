@@ -20,7 +20,10 @@ async function load(id: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const r = await getNation(params.id).catch(() => null);
   const name = r?.status === "ok" ? country(r.team.name, "fi")?.name ?? r.team.name : null;
-  return { title: name ? `${name} – maajoukkueen ottelut – Futista` : "Maajoukkue – Futista" };
+  if (!name) return { title: "Maajoukkue – Futista" };
+  const title = `${name} – maajoukkueen ottelut ja tulokset – Futista`;
+  const description = `${name}: maajoukkueen otteluohjelma ja tulokset (Kansojen liiga, EM- ja MM-karsinnat, ystävyysottelut) suomeksi.`;
+  return { title, description, openGraph: { title, description } };
 }
 
 export default async function Page({ params }: Props) {

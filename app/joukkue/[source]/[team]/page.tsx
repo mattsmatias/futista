@@ -9,6 +9,9 @@ import { getTeamInfo } from "@/lib/team-info";
 import { getTeamGames } from "@/lib/espn";
 import { hasFd, fdFailingRecently } from "@/lib/fd";
 import TeamView from "./TeamView";
+import JsonLd from "../../../JsonLd";
+import { teamHref } from "@/lib/routes";
+import { SITE, teamLd, breadcrumbLd } from "@/lib/seo";
 
 export const revalidate = 120;
 export const maxDuration = 60;
@@ -47,5 +50,12 @@ export default async function TeamPage({ params }: Props) {
   // kokoonpanon haku epäonnistui (≠ joukkueelta ei ole kokoonpanoa): kerrotaan siitä välilehdellä
   // (joukkueen tunniste tulee myös football-datasta, joten sen puuttuminen lähteen ollessa alhaalla on sama tilanne)
   const infoFailed = hasFd() && !info && (!!d.team.id || fdFailingRecently());
-  return <TeamView s={d.s} team={d.team} news={news} info={info} infoFailed={infoFailed} games={games} />;
+  const url = `${SITE}${teamHref(d.s.source, d.team.name)}`;
+  return (
+    <>
+      <JsonLd data={teamLd({ url, name: d.team.name, league: d.s.league, logo: d.team.crest ?? null })} />
+      <JsonLd data={breadcrumbLd([{ name: "Futista", url: `${SITE}/` }, { name: d.s.league, url: `${SITE}/sarjat/${d.s.source}` }, { name: d.team.name, url }])} />
+      <TeamView s={d.s} team={d.team} news={news} info={info} infoFailed={infoFailed} games={games} />
+    </>
+  );
 }

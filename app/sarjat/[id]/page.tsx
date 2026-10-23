@@ -15,7 +15,9 @@ export function generateStaticParams() { return []; }
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const s = SOURCES.find((x) => x.id === params.id);
   if (!s) return {};
-  return { title: `${s.league} – ottelut, sarjataulukko ja maalipörssi – Futista`, alternates: { canonical: `/sarjat/${s.id}` } };
+  const title = `${s.league} – otteluohjelma, tulokset, sarjataulukko ja maalintekijät – Futista`;
+  const description = `${s.league} suomeksi: otteluohjelma, tulokset, sarjataulukko, maalintekijät ja uutiset. Livetulokset ja kokoonpanot.`;
+  return { title, description, alternates: { canonical: `/sarjat/${s.id}` }, openGraph: { title, description } };
 }
 
 export default async function Page({ params }: { params: { id: string } }) {

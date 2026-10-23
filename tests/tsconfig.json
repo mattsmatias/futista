@@ -13,6 +13,7 @@
     ]
   },
   "files": [
+    "seo.test.ts",
     "scorer-rank.test.ts",
     "app-update.test.ts",
     "http.test.ts",

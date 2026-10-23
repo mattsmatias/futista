@@ -482,6 +482,23 @@ const MIN = 60_000;
       const sel = (await page.locator(".mx-switch [aria-selected=true]").innerText().catch(() => "")).trim();
       ok("maajoukkuesivu: Otteluohjelma ja Tulokset erikseen", segN.length === 2 && segN[0].startsWith("Otteluohjelma") && segN[1].startsWith("Tulokset") && sel.startsWith("Tulokset") && (await page.locator(".duo").count()) === 0, `${segN.join("|")} → ${sel}`);
     }
+    // SEO: robots, sivukartta, rakenteinen tieto, kuvaukset ja esikatselukuva
+    {
+      const rb = await (await fetch(APP + "/robots.txt")).text();
+      ok("SEO: robots.txt avaa sarjojen ottelusivut, estää /ottelu/e/, /pelaaja/ ja /api/", /Disallow: \/ottelu\/e\//.test(rb) && /Disallow: \/pelaaja\//.test(rb) && /Disallow: \/api\//.test(rb) && !/Disallow: \/ottelu\/\n/.test(rb + "\n") && /Sitemap: https:\/\/www\.futista\.fi\/sitemap\.xml/.test(rb), rb.replace(/\n/g, " | "));
+      const sm = await (await fetch(APP + "/sitemap.xml")).text();
+      ok("SEO: sivukartassa ottelusivuja ja muidenkin sarjojen joukkueita", /\/ottelu\/bundesliga\/\d{4}-\d{2}-\d{2}\//.test(sm) && /\/joukkue\/superlig\//.test(sm) && /\/sarjat\/uel</.test(sm), `${(sm.match(/<url>/g) || []).length} osoitetta`);
+      const mh = await (await fetch(APP + MATCH)).text();
+      const ld = [...mh.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((x) => { try { return JSON.parse(x[1]); } catch { return null; } });
+      const ev = ld.find((x) => x && x["@type"] === "SportsEvent");
+      ok("SEO: ottelusivulla SportsEvent-tieto (joukkueet, alkamisaika) ja sivuston WebSite-tieto", !!ev && ev.homeTeam?.name === "Testiseura Kotka" && /^\d{4}-\d{2}-\d{2}/.test(ev.startDate) && ld.some((x) => x?.["@graph"]?.some((g) => g["@type"] === "WebSite")), JSON.stringify(ev).slice(0, 160));
+      const desc = mh.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
+      ok("SEO: ottelusivulla kuvaus ja esikatselukuva", /Testiseura Kotka/.test(desc) && /Bundesliga/.test(desc) && /<meta property="og:image" content="[^"]*opengraph-image/.test(mh), desc);
+      const th = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
+      ok("SEO: joukkuesivulla SportsTeam- ja murupolkutieto", /"@type":"SportsTeam","name":"Testispor Ankara"/.test(th) && /"@type":"BreadcrumbList"/.test(th));
+      const og = await fetch(APP + "/opengraph-image.png");
+      ok("SEO: esikatselukuva 1200×630 saatavilla", og.status === 200 && /image\/png/.test(og.headers.get("content-type") || ""), String(og.status));
+    }
     // uutisten reaktiot (Supabase-emulaattori + migraatio)
     let rr = await fetch(`${APP}/api/reactions?a=testi/2026/10/21/juttu`); let rj = await rr.json();
     ok("reaktiot: haku palauttaa summat (käytössä)", rr.status === 200 && rj.enabled === true && rj.up === 0 && rj.down === 0, JSON.stringify(rj));

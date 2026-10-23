@@ -1,4 +1,6 @@
 import "./globals.css";
+import JsonLd from "./JsonLd";
+import { siteLd } from "@/lib/seo";
 import type { Metadata, Viewport } from "next";
 import InstallApp from "./InstallApp";
 import OfflineBanner from "./OfflineBanner";
@@ -20,6 +22,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.futista.fi"),
   alternates: { canonical: "./" },
   openGraph: { siteName: "Futista", locale: "fi_FI", type: "website" },
+  twitter: { card: "summary_large_image" },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+  // Google Search Console -omistajuuden vahvistus: koodi ympäristömuuttujasta (ei versionhallintaan)
+  ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
+  keywords: ["jalkapallo", "tulokset", "livetulokset", "ottelut", "sarjataulukko", "La Liga", "Valioliiga", "Mestarien liiga", "maalintekijät", "jalkapallouutiset"],
   title: "Futista – jalkapallon tulokset, ottelut ja uutiset suomeksi",
   description: "Päivän ottelut, live-tilanteet, sarjataulukot ja uutiset: La Liga, Valioliiga, Mestarien liiga ja Euroopan sarjat suomeksi.",
   appleWebApp: { capable: true, title: "Futista", statusBarStyle: "black-translucent" },
@@ -48,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fi" className={`${display.variable} ${ui.variable} ${read.variable} ${mono.variable}`}>
       <body>
+        <JsonLd data={siteLd()} />
         <I18nProvider>
           <FavoritesProvider>
             <LiveProvider><AppShell>{children}</AppShell></LiveProvider>
