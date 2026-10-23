@@ -199,6 +199,8 @@ const MIN = 60_000;
       const page = await c3.newPage();
       await page.goto(APP + "/uutiset?tyyppi=siirrot", { waitUntil: "networkidle" });
       const on = async () => (await page.locator(".nfilters .fbtn[aria-pressed=true]").allInnerTexts()).map((x) => x.trim());
+      const order = await page.evaluate(() => { const bs = [...document.querySelectorAll(".nfilters .fbtn")]; const m = bs.find((b) => /Mestarien liiga/.test(b.textContent)), tr = bs.find((b) => /Siirtouutiset/.test(b.textContent)); return { next: bs.indexOf(tr) === bs.indexOf(m) + 1, same: m.parentElement === tr.parentElement }; });
+      ok("uutiset: Siirtouutiset-painike heti Mestarien liigan vieressä", order.next && order.same, JSON.stringify(order));
       const before = await on();
       await page.locator(".nfilters .fbtn", { hasText: "Mestarien liiga" }).click(); await page.waitForTimeout(300);
       const after = await on(), url1 = new URL(page.url());

@@ -39,8 +39,9 @@ export default function NewsPage({ articles: first }: { articles: Article[] }) {
                 <CompMark id={s.id} small />{i.league(s.id, s.league)}
               </button>
             ))}
+            {/* Siirtouutiset samassa rivissä heti Mestarien liigan perässä */}
+            <button type="button" aria-pressed={kind === "siirrot"} className={`fbtn${kind === "siirrot" ? " on" : ""}`} onClick={() => (kind === "siirrot" ? pick("all", "all") : pick("all", "siirrot"))}>{t("newsTransfers")}</button>
           </div>
-          <button type="button" aria-pressed={kind === "siirrot"} className={`fbtn${kind === "siirrot" ? " on" : ""}`} onClick={() => (kind === "siirrot" ? pick("all", "all") : pick("all", "siirrot"))}>{t("newsTransfers")}</button>
         </div>
         {i.lang !== "fi" && <p className="muted">{t("contentFi")}</p>}
         {!lead && <p className="empty-state">{articles.length ? t("noNews") : t("empty")}</p>}
