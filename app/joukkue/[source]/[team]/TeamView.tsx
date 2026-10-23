@@ -140,11 +140,18 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
     .sort((a, b) => compRank(a.slug, a.comp) - compRank(b.slug, b.comp) || compName(a, i.lang).localeCompare(compName(b, i.lang), "fi"));
   const pick = (l: Game[]) => (comp === "all" ? l : l.filter((g) => g.slug === comp));
   const nextGame = upcoming[0];
-  const upList = pick(upcoming), pastList = pick(played);
   const hasUp = games && games.length ? upcoming.length > 0 : fixtures.length > 0;
   // Ottelut-välilehti: Otteluohjelma (tulevat) ja Tulokset (pelatut) erikseen; oletuksena tulevat, jos niitä on
   const [view, setView] = useState<"fixtures" | "results">("fixtures");
   useEffect(() => { if (!hasUp) setView("results"); }, [hasUp]);
+  // kilpailuvalinnoissa vain ne kilpailut, joissa joukkueella on otteluita valitussa näkymässä
+  // (otteluohjelmassa tulevat, tuloksissa pelatut); muun kilpailun valinta ei rajaa tätä näkymää
+  const upSlugs = new Set(upcoming.map((g) => g.slug)), pastSlugs = new Set(played.map((g) => g.slug));
+  const pickIn = (l: Game[], slugs: Set<string>) => (comp === "all" || !slugs.has(comp) ? l : l.filter((g) => g.slug === comp));
+  const viewSlugs = view === "fixtures" ? upSlugs : pastSlugs;
+  const viewComps = comps.filter((g) => viewSlugs.has(g.slug));
+  const activeComp = viewSlugs.has(comp) ? comp : "all";
+  const upList = pickIn(upcoming, upSlugs), pastList = pickIn(played, pastSlugs);
   const anyLive = all.some((g) => g.kind === "live" || g.kind === "ht");
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
@@ -281,11 +288,11 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
               <button role="tab" aria-selected={view === "results"} className={view === "results" ? "on" : ""} onClick={() => setView("results")}>{t("results")} <span className="seg-n">{pastList.length}</span></button>
             </div>
           </div>
-          {comps.length > 1 && (
+          {viewComps.length > 1 && (
             <div className="comp-filter" role="group" aria-label={t("competition")}>
-              <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
-              {comps.map((g) => (
-                <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
+              <button aria-pressed={activeComp === "all"} className={activeComp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
+              {viewComps.map((g) => (
+                <button key={g.slug} aria-pressed={activeComp === g.slug} className={activeComp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
                   <CompMark slug={g.slug} small />{compName(g, i.lang)}
                 </button>
               ))}

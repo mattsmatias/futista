@@ -18,7 +18,6 @@ export default function NationView({ id, team, games }: { id: string; team: Game
   const { t } = i;
   const nm = useTeamName(true);
   const [comp, setComp] = usePersistentState("comp", "all");
-  const pick = (l: Game[]) => (comp === "all" ? l : l.filter((g) => g.slug === comp));
   const up = games.filter((g) => g.kind === "upcoming" || isOn(g) || g.kind === "postponed")
     .sort((a, b) => Number(isOn(b)) - Number(isOn(a)) || a.epoch - b.epoch);
   const played = games.filter((g) => g.kind === "ft" || g.kind === "suspended" || g.kind === "cancelled").sort((a, b) => b.epoch - a.epoch);
@@ -28,7 +27,14 @@ export default function NationView({ id, team, games }: { id: string; team: Game
   // Otteluohjelma (tulevat) ja Tulokset (pelatut) omina näkyminään, kuten joukkue- ja sarjasivuilla
   const [view, setView] = useState<"fixtures" | "results">("fixtures");
   const next = up[0];
-  const upList = pick(up).filter((g) => g !== next), pastList = pick(played);
+  // kilpailuvalinnoissa vain ne kilpailut, joissa joukkueella on otteluita valitussa näkymässä
+  // (otteluohjelmassa tulevat, tuloksissa pelatut); muun kilpailun valinta ei rajaa tätä näkymää
+  const upSlugs = new Set(up.filter((g) => g !== next).map((g) => g.slug)), pastSlugs = new Set(played.map((g) => g.slug));
+  const pickIn = (l: Game[], slugs: Set<string>) => (comp === "all" || !slugs.has(comp) ? l : l.filter((g) => g.slug === comp));
+  const viewSlugs = view === "fixtures" ? upSlugs : pastSlugs;
+  const viewComps = comps.filter((g) => viewSlugs.has(g.slug));
+  const activeComp = viewSlugs.has(comp) ? comp : "all";
+  const upList = pickIn(up, upSlugs).filter((g) => g !== next), pastList = pickIn(played, pastSlugs);
   useEffect(() => { if (up.length <= 1 && played.length) setView("results"); }, [up.length, played.length]);
   // vire: viimeiset 5 ottelua
   const form = played.filter((g) => g.kind === "ft").slice(0, 5).reverse().map((g) => {
@@ -72,11 +78,11 @@ export default function NationView({ id, team, games }: { id: string; team: Game
           </div>
         </div>
 
-        {comps.length > 1 && (
+        {viewComps.length > 1 && (
           <div className="comp-filter" role="group" aria-label={t("competition")}>
-            <button aria-pressed={comp === "all"} className={comp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
-            {comps.map((g) => (
-              <button key={g.slug} aria-pressed={comp === g.slug} className={comp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
+            <button aria-pressed={activeComp === "all"} className={activeComp === "all" ? "on" : ""} onClick={() => setComp("all")}>{t("allComps")}</button>
+            {viewComps.map((g) => (
+              <button key={g.slug} aria-pressed={activeComp === g.slug} className={activeComp === g.slug ? "on" : ""} onClick={() => setComp(g.slug)}>
                 <CompMark slug={g.slug} small />{compName(g, i.lang)}
               </button>
             ))}

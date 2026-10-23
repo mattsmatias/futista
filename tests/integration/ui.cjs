@@ -389,6 +389,8 @@ const MIN = 60_000;
       await page.locator(".ent-tabs [role=tab]", { hasText: "Ottelut" }).click(); await page.waitForTimeout(300);
       const segT = (await page.locator(".mx-switch [role=tab]").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
       ok("  Ottelut: Otteluohjelma ja Tulokset erikseen (oletuksena otteluohjelma)", segT[0] === "Otteluohjelma 2" && segT[1] === "Tulokset 6" && (await page.locator(".mx-switch [aria-selected=true]").innerText()).startsWith("Otteluohjelma") && (await page.locator(".mx-list .grow, .mx-list a").count()) >= 1, segT.join("|"));
+      const upChips = (await page.locator(".comp-filter button").allInnerTexts()).map((x) => x.trim());
+      ok("  otteluohjelmassa vain kilpailut, joissa joukkueella on tulevia otteluita (ei cupia eikä harjoitusotteluita)", upChips.length === 3 && !upChips.some((x) => /Harjoitus|cup|Cup/.test(x)) && upChips.some((x) => /Eurooppa-liiga/.test(x)), upChips.join("|"));
       const upTxt = await page.locator(".mx-list").innerText();
       await page.locator(".mx-switch [role=tab]", { hasText: "Tulokset" }).click(); await page.waitForTimeout(300);
       const resTxt = await page.locator(".mx-list").innerText();
