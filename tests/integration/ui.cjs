@@ -288,7 +288,7 @@ const MIN = 60_000;
       await pp.goto(APP + "/pelaaja/7001", { waitUntil: "load" });
       const sub = (await pp.locator(".player-head .ehead-txt p").innerText().catch(() => "")).trim();
       const card = await pp.locator("main").innerText();
-      ok("pelaajaprofiili: nimen alla vain seura (ei pelipaikkaa, ikää, numeroa); tiedot kortissa", sub.length > 0 && !sub.includes("·") && !/#\d/.test(sub) && card.includes("Pelipaikka"), sub);
+      ok("pelaajaprofiili: nimen alla vain seura (ei pelipaikkaa, ikää, numeroa); tiedot kortissa", sub.length > 0 && !sub.includes("·") && !/#\d/.test(sub) && /pelipaikka/i.test(card), sub);
       await pp.close();
     }
     // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan
