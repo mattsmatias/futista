@@ -1601,3 +1601,8 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tbl.scorers .pphoto { background: #e9edf3; } }
 :root[data-theme="dark"] .tbl.scorers .pphoto { background: #e9edf3; }
 .tbl.scorers td.pos { white-space: nowrap; }
+
+/* Profiilikuva (taustasta irrotettu kasvokuva): koko pää ja hartiat, alareunaan, vaalealla pohjalla */
+.pphoto.is-cutout { background: #eef1f5; }
+.pphoto img.cutout { object-fit: cover; object-position: center top; }
+.pl-avatar .pphoto.big img.cutout { object-fit: contain; object-position: center bottom; }

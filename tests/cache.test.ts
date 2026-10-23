@@ -16,6 +16,6 @@ test("stableCache-avainten etuliitteet ovat yksilöllisiä (avain = vain avainos
     for (const m of s.matchAll(/stableCache\([\s\S]*?\[\s*(?:[^\]"]*\?\s*)?"([a-z0-9-]+)"/g)) prefixes.push(m[1]);
   }
   assert.ok(prefixes.length >= 15, String(prefixes.length));
-  const dup = prefixes.filter((p, i) => prefixes.indexOf(p) !== i && p !== "photo-v2"); // photo-v2: sama haku kahdesta kohdasta
+  const dup = prefixes.filter((p, i) => prefixes.indexOf(p) !== i && p !== "photo-v2" && p !== "photo-v3"); // photo-v*: sama haku kahdesta kohdasta
   assert.deepEqual(dup, []);
 });

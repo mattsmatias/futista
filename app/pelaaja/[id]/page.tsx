@@ -73,7 +73,7 @@ async function load(id: string): Promise<PlayerData | null> {
     };
   }
 
-  const photo = await getPhoto(p.name, club?.name ?? "");
+  const photo = await getPhoto(p.name, club?.name ?? "", p.nationality ?? "");
   return {
     id: p.id, name: p.name, photo, dateOfBirth: p.dateOfBirth ?? null, nationality: p.nationality ?? null,
     position: p.position ?? p.section ?? null, shirtNumber: p.shirtNumber ?? null, club,

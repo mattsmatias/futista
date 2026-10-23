@@ -322,7 +322,7 @@ export function Scorers({ data, source, league }: { data?: LeagueScorers; source
                   <td className="pos">{rank}.</td>
                   <td className="l">
                     <a className="pl" href={p.id ? `/pelaaja/${p.id}` : undefined}>
-                      <PlayerPhoto name={p.name} team={p.team.name} size={40} />
+                      <PlayerPhoto name={p.name} team={p.team.name} nation={p.nationality} size={40} />
                       <span><b><Flag nation={p.nationality} /> {p.name}</b><small className="mob-team">{p.team.name}</small></span>
                     </a>
                   </td>

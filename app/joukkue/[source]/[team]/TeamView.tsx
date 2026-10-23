@@ -74,7 +74,7 @@ function Squad({ info, team }: { info: TeamInfo; team: string }) {
   })).filter((g) => g.list.length);
   const Row = ({ p }: { p: SquadPlayer }) => (
     <a className="sq-row" href={`/pelaaja/${p.id}`}>
-      <PlayerPhoto name={p.name} team={team} size={40} />
+      <PlayerPhoto name={p.name} team={team} nation={p.nationality} size={40} />
       <span className="sq-name"><Flag nation={p.nationality} /> {p.name}</span>
       <span className="sq-meta">{ageOf(p.dateOfBirth) ?? "–"} {t("years")}</span>
     </a>

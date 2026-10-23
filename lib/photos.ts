@@ -1,5 +1,5 @@
-// Pelaajien kuvat: ensin Wikipedia (Wikimedia Commons, avoimesti lisensoidut ja yleensä tuoreimmat kuvat),
-// varalla TheSportsDB (ilmainen avain "123"). Vain palvelimella.
+// Pelaajien kuvat: ensin TheSportsDB:n profiilikuva (taustasta irrotettu kasvokuva, ilmainen avain "123"),
+// varalla Wikipedia (Wikimedia Commons). Vain palvelimella.
 // Tulos (myös "kuvaa ei löytynyt") tallennetaan viikoksi; epäonnistunutta hakua ei tallenneta.
 import { stableCache } from "./stable-cache";
 import { words } from "./live-core";
@@ -38,34 +38,34 @@ async function wiki(name: string): Promise<string | null> {
   return null;
 }
 
-async function find(name: string, team: string): Promise<string | null> {
-  const w = await wiki(name).catch(() => null);
-  if (w) return w;
-  const list = (await search(name)).filter((p) => !String(p.strTeam ?? "").startsWith("_") && sameName(name, p.strPlayer ?? ""));
-  // sama seura ensin, muuten ainoa nimeä vastaava pelaaja
+/** Kuva: ensin TheSportsDB:n taustasta irrotettu profiilikuva (cutout; uusimmat kauden 2026–27 kuvat), varalla
+ *  Wikipedian artikkelikuva. TheSportsDB:n pelaaja hyväksytään vain, kun nimi TÄSMÄÄ JA lisäksi seura tai
+ *  kansallisuus täsmää – ei koskaan pelkän nimen perusteella. */
+const key = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]+/g, " ").trim();
+async function find(name: string, team: string, nation = ""): Promise<{ url: string; cutout: boolean } | null> {
+  const list = (await search(name).catch(() => [])).filter((p) => !String(p.strTeam ?? "").startsWith("_") && sameName(name, p.strPlayer ?? ""));
   const tw = words(team);
-  const byTeam = tw.length ? list.find((p) => words(p.strTeam ?? "").some((w) => w.length >= 4 && tw.includes(w))) : undefined;
-  const p = byTeam ?? (list.length === 1 ? list[0] : undefined);
-  const url = p?.strCutout || p?.strThumb || null;
-  return url ? `${url}/small` : null;
+  const teamOk = (p: any) => tw.length > 0 && [p.strTeam, p.strTeam2].some((t) => words(t ?? "").some((w) => w.length >= 4 && tw.includes(w)));
+  const natOk = (p: any) => !!nation && key(p.strNationality ?? "") === key(nation);
+  const p = list.find(teamOk) ?? list.find(natOk);
+  if (p?.strCutout) return { url: `${p.strCutout}/small`, cutout: true };
+  if (p?.strThumb) return { url: `${p.strThumb}/small`, cutout: false };
+  const w = await wiki(name).catch(() => null);
+  return w ? { url: w, cutout: false } : null;
 }
 
-export async function getPhoto(name: string, team = ""): Promise<string | null> {
+type Found = { url: string | null; cutout?: boolean };
+const cached = (name: string, team: string, nation: string) =>
+  stableCache(async (): Promise<Found> => { const r = await find(name, team, nation); return r ? { url: r.url, cutout: r.cutout } : { url: null }; },
+    ["photo-v3", name, team, nation], { revalidate: 7 * 86400 })();
+
+export async function getPhoto(name: string, team = "", nation = ""): Promise<string | null> {
   if (!name) return null;
-  try {
-    const r = await stableCache(async () => ({ url: await find(name, team) }), ["photo-v2", name, team], { revalidate: 7 * 86400 })();
-    return r.url;
-  } catch {
-    return null;
-  }
+  try { return (await cached(name, team, nation)).url; } catch { return null; }
 }
 
 /** Sama kuin getPhoto, mutta kertoo myös, oliko haku hetkellisesti mahdoton (ei tallenneta välimuistiin) */
-export async function lookupPhoto(name: string, team = ""): Promise<{ url: string | null; ok: boolean }> {
-  try {
-    const r = await stableCache(async () => ({ url: await find(name, team) }), ["photo-v2", name, team], { revalidate: 7 * 86400 })();
-    return { url: r.url, ok: true };
-  } catch {
-    return { url: null, ok: false };
-  }
+export async function lookupPhoto(name: string, team = "", nation = ""): Promise<{ url: string | null; cutout: boolean; ok: boolean }> {
+  try { const r = await cached(name, team, nation); return { url: r.url, cutout: !!r.cutout, ok: true }; }
+  catch { return { url: null, cutout: false, ok: false }; }
 }

@@ -36,7 +36,7 @@ export default function PlayerView({ p }: { p: PlayerData }) {
       <main className="wrap entity">
         <header className="ehead player-head">
           <div className={`pl-avatar sm${p.photo ? " has-photo" : ""}`}>
-            <PlayerPhoto name={p.name} team={p.club?.name ?? ""} initial={p.photo ?? null} size={56} />
+            <PlayerPhoto name={p.name} team={p.club?.name ?? ""} nation={p.nationality} initial={p.photo ?? null} size={56} />
           </div>
           <div className="ehead-txt">
             <h1>{p.name}</h1>
