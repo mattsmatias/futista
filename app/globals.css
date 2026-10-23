@@ -1571,3 +1571,8 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .clubs, .rail, .tbl-wrap, .lpick, .ent-tabs, .comp-filter, .etabs, .subtabs.sticky, .ps-seg, .chips-row {
   overflow-y: hidden; overscroll-behavior-x: contain;
 }
+
+/* Maalintekijät: maalit ja maalisyötöt näkyvät myös puhelimella */
+.tbl.scorers .sc-n { width: 56px; text-align: center; white-space: nowrap; }
+.tbl.scorers th.sc-n abbr { text-decoration: none; cursor: help; }
+@media (max-width: 360px) { .tbl.scorers .sc-n { width: 46px; font-size: 12px; } }

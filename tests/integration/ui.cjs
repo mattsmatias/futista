@@ -297,12 +297,25 @@ const MIN = 60_000;
     }
     await page.goto(APP + "/sarjat/bundesliga", { waitUntil: "networkidle" });
     const tabs = await page.locator(".etabs [role=tab], .etabs a, .etabs button").allTextContents();
-    ok("kilpailusivu: välilehdet (otteluohjelma ja tulokset erikseen)", ["Otteluohjelma", "Tulokset", "Sarjataulukko", "Maalipörssi"].every((x) => tabs.some((t) => t.includes(x))) && !tabs.some((t) => t.trim() === "Taulukko"), tabs.join("|"));
+    ok("kilpailusivu: välilehdet (otteluohjelma ja tulokset erikseen)", ["Otteluohjelma", "Tulokset", "Sarjataulukko", "Maalintekijät"].every((x) => tabs.some((t) => t.includes(x))) && !tabs.some((t) => t.trim() === "Taulukko" || t.trim() === "Maalipörssi"), tabs.join("|"));
     {
       const upN = await page.locator(".epane .mrow").count(), upFt = await page.locator(".epane .ms-ft").count();
       await page.locator(".etabs [role=tab]", { hasText: "Tulokset" }).click(); await page.waitForTimeout(400);
       const resN = await page.locator(".epane .mrow").count(), resFt = await page.locator(".epane .ms-ft").count();
       ok("  Otteluohjelmassa ei pelattuja, Tulokset-välilehdellä pelatut", upN > 0 && upFt === 0 && resN > 0 && resFt === resN && new URL(page.url()).searchParams.get("v") === "tulokset", `${upN}/${upFt} → ${resN}/${resFt} ${page.url()}`);
+      // Maalintekijät-välilehti: maalit ja maalisyötöt näkyvät myös kapealla näytöllä
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.goto(APP + "/sarjat/superlig?v=maalit", { waitUntil: "domcontentloaded" });
+      await page.locator(".tbl.scorers").waitFor({ timeout: 15000 }).catch(() => {});
+      const sc = await page.evaluate(() => {
+        const t = document.querySelector(".tbl.scorers"); if (!t) return null;
+        const vis = (e) => e && getComputedStyle(e).display !== "none";
+        const hs = [...t.querySelectorAll("thead th")].filter(vis).map((e) => e.textContent.trim());
+        const row = [...t.querySelectorAll("tbody tr")][0];
+        const cells = row ? [...row.querySelectorAll("td")].filter(vis).map((e) => e.textContent.trim()) : [];
+        return { hs, cells };
+      });
+      ok("  Maalintekijät: Syötöt- ja Maalit-sarakkeet näkyvät myös puhelimella (Testi Maalintekijä 3 maalia, 1 syöttö)", !!sc && sc.hs.includes("Syötöt") && sc.hs.includes("Maalit") && sc.cells.slice(-2).join("|") === "1|3", JSON.stringify(sc));
       // välilehtirivi ei liiku pystysuunnassa (iPhone: rivi heilui pyyhkäistessä ja teksti leikkautui)
       await page.setViewportSize({ width: 360, height: 800 });
       await page.goto(APP + "/sarjat/bundesliga?v=maalit", { waitUntil: "domcontentloaded" }); await page.waitForTimeout(800);

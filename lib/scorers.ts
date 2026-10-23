@@ -1,4 +1,4 @@
-// Maalipörssi sarjaan football-data.orgista (päivittyy tunnin välein).
+// Maalintekijät (maalit ja maalisyötöt) sarjaan football-data.orgista (päivittyy tunnin välein).
 import { SOURCES } from "./sources";
 import { fdMeta } from "./fd";
 import { seasonLabel } from "./score";

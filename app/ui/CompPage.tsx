@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
-// Kilpailusivu: Ottelut · Taulukko (jos on) · Maalipörssi (football-data) · Uutiset (jos sarjasta on uutisia).
+// Kilpailusivu: Otteluohjelma · Tulokset · Sarjataulukko (jos on) · Maalintekijät · Uutiset (jos sarjasta on uutisia).
 // Tyhjää tai toimimatonta välilehteä ei näytetä. Valittu välilehti on osoitteessa (?v=taulukko).
 import type { Article } from "@/lib/feed";
 import type { Fixture, LeagueStats, Result } from "@/lib/stats";

@@ -107,7 +107,7 @@ export async function fromEspnLeague(id: SourceId, slug: string, league: string,
   }
 }
 
-/** Maalipörssi ESPN:n tilastoista. Pelaajan tunnistetta ei anneta (id 0 = ei linkkiä pelaajasivulle, joka on
+/** Maalintekijät (maalit ja maalisyötöt) ESPN:n tilastoista. Pelaajan tunnistetta ei anneta (id 0 = ei linkkiä pelaajasivulle, joka on
  *  football-datan tunnisteille). Puuttuva syöttö- tai ottelumäärä on null, ei nolla. */
 export function parseEspnScorers(j: any, calendarYear = false): { list: { name: string; team: Team; goals: number | null; assists: number | null; played: number | null }[]; season: string | null } {
   const g = (j?.stats ?? []).find((x: any) => x.name === "goalsLeaders");
