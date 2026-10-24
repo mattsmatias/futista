@@ -2,7 +2,8 @@
 // Vain Futistan tuntemat ottelut (sarjan tulokset/otteluohjelma) hyväksytään: mielivaltaiset osoitteet eivät kuluta kiintiötä.
 import { getStatsWith } from "./stats";
 import { SOURCES } from "./sources";
-import { teamSlug } from "./routes";
+import { teamSlug, findTeam } from "./routes";
+import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
 import { isDate } from "./day";
 import { phaseOf, slotKey, type Phase } from "./rapid-core";
@@ -29,6 +30,18 @@ export async function ourMatch(source: string, date: string, pair: string): Prom
     finished: !!r, aet: !!r?.note, ...(m.eid ? { eid: m.eid } : {}), ...(m.afid ? { afid: m.afid } : {}),
     home: { name: m.home.name, id: m.home.id }, away: { name: m.away.name, id: m.away.id },
   };
+}
+
+/** Tämän päivän käynnissä oleva ottelu, joka on jo poistunut lähteen otteluohjelmasta (kuten ottelusivulla):
+ *  joukkueet sarjan tiedoista, alkamisaika tuntematon. Vain tälle päivälle; null = ei tunnistettu. */
+export async function liveOurMatch(source: string, date: string, pair: string): Promise<OurMatch | null> {
+  if (date !== todayHel() || !/^[a-z0-9-]+--[a-z0-9-]+$/.test(pair) || pair.length > 120) return null;
+  const s = (await getStatsWith([source]).catch(() => null))?.find((x) => x.source === source);
+  if (!s) return null;
+  const [h, a] = pair.split("--");
+  const home = findTeam(s, h), away = findTeam(s, a);
+  if (!home || !away || home.name === away.name) return null;
+  return { source, date, pair, kickoff: null, finished: false, aet: false, home: { name: home.name, id: home.id }, away: { name: away.name, id: away.id } };
 }
 
 export type Resolved =

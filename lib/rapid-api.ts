@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { resolve, isBusy } from "./rapid-match";
 import { rapidLineups, rapidStats, type RapidOutcome } from "./rapid";
 import { phaseOf, type Lineup, type StatRow } from "./rapid-core";
-import { ourMatch } from "./rapid-match";
+import { ourMatch, liveOurMatch } from "./rapid-match";
 import { SOURCES } from "./sources";
 import { espnExtras, ESPN_SOURCE } from "./espn-lineups";
 import { afMatchDetail, afBigOn, afFindFixture } from "./af-league";
@@ -70,10 +70,13 @@ export const AF_SOURCE = "API-Football";
 const isAf = (l: string) => !!SOURCES.find((s) => s.id === l)?.af;
 async function afResponse(kind: "lineups" | "stats", req: Request) {
   const { l, d, p } = params(req);
-  const ours = await ourMatch(l, d, p);
+  let ours = await ourMatch(l, d, p);
+  // muu sarja: käynnissä oleva ottelu ei ole enää lähteen otteluohjelmassa → tunnistetaan joukkueista (vain tänään)
+  const running = ours === null && afBigOn(l) ? await liveOurMatch(l, d, p) : null;
+  if (running) ours = running;
   if (ours === null) return json({ state: "notfound" }, 404, 600);
   if (ours === "unavailable") return json({ state: "unavailable" }, 503, 0);
-  const phase = phaseOf(ours.kickoff, Date.now(), ours.finished);
+  const phase = running ? "live" : phaseOf(ours.kickoff, Date.now(), ours.finished);
   if (phase === "far" || (kind === "stats" && phase === "pre")) return json({ state: "wait", phase }, 200, phase === "far" ? 900 : 300);
   // API-Football-kilpailu: tunniste omasta datasta; muu sarja (La Liga ym.): haetaan saman päivän listasta
   const afid = ours.afid ?? (afBigOn(l) ? await afFindFixture(l, d, ours.kickoff, ours.home.name, ours.away.name) : null);
