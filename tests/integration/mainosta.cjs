@@ -97,6 +97,9 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
       await page.waitForTimeout(400);
       ok(`ei mainospaikkaa sivulla ${p}`, (await page.locator(".adcard").count()) === 0);
     }
+    await page.goto(APP + "/", { waitUntil: "networkidle" });
+    const chrome = (await page.locator("header.appbar").innerText()) + " " + (await page.locator("footer").innerText());
+    ok("ei beta-merkkiä eikä beta-tekstiä (yläpalkki, alatunniste, logon nimi)", !/beta/i.test(chrome) && !/beta/i.test((await page.locator("header .logo").getAttribute("aria-label")) || "") && (await page.locator(".beta, .foot-beta").count()) === 0, chrome.slice(0, 80));
     await page.goto(APP + "/uutiset?sarja=valioliiga", { waitUntil: "networkidle" });
     const few = await page.evaluate(() => { const all = [...document.querySelectorAll(".nlead, .nitem, .adcard")]; return { n: all.length, last: all.at(-1)?.className, ads: document.querySelectorAll(".adcard").length }; });
     ok("alle kuusi uutista (Valioliiga, 3): kortti listan lopussa", few.ads === 1 && few.n === 4 && /adcard/.test(few.last), JSON.stringify(few));

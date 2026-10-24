@@ -100,7 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {fallback && (
             <button type="button" className="icon-btn back-btn" onClick={back} aria-label={t("back")}>{Icon.back}</button>
           )}
-          <a href="/" className="logo" aria-label="Futista (beta) – Ottelut"><span>Futista</span><em className="beta" aria-hidden="true">BETA</em></a>
+          <a href="/" className="logo" aria-label="Futista – Ottelut"><span>Futista</span></a>
           <nav className="topnav" aria-label={t("mainNav")}>
             {NAV.map((x) => (
               <a key={x.id} href={x.href} className={active === x.id ? "on" : ""} aria-current={active === x.id ? "page" : undefined}>

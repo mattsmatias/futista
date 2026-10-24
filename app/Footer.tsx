@@ -13,7 +13,6 @@ export default function Footer() {
         <div className="foot-brand">
           <a href="/" className="logo">Futista</a>
           <span>{t("tagline")}</span>
-          <span className="foot-beta">{t("betaNote")}</span>
         </div>
         {/* kaikki sarjat jokaisen sivun alareunassa: hakukoneet ja käyttäjät löytävät sarjasivut ("laliiga", "valioliiga" …) */}
         <nav className="foot-leagues" aria-label={t("nav_comps")}>
