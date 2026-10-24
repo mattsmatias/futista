@@ -124,8 +124,7 @@ const DAY = 86400_000;
   const kt = page.locator(".subtabs button", { hasText: "Kokoonpanot" });
   if (await kt.count()) { await kt.click(); await page.waitForTimeout(800); }
   ok("  kokoonpanot-välilehti: pelaajat näkyvät", (await page.locator("main").innerText()).includes("Pelaaja 2441-1"));
-  const leg = await page.locator(".lu-legend").innerText().catch(() => "");
-  ok("  arvosana nimetään oikean lähteen arvosanaksi (API-Football)", leg.includes("API-Football") && !leg.includes("Free API Live"), leg.slice(0, 120));
+  ok("  ei arvosana- eikä pelipaikkaselitettä kokoonpanon alla", !/Arvosana on lähteen|Pelipaikka on/.test(await page.locator("main").innerText()));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
 
   // ruudukoton kokoonpano (Ykkösliiga): pelaajalista, ei keksittyä kenttää

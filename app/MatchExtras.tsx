@@ -109,40 +109,48 @@ function Marks({ p, compact }: { p: LPlayer; compact?: boolean }) {
 }
 
 /** Yksi kenttä molemmille (Flashscoren tyyli): kotijoukkue ylhäällä, vieras alhaalla, pelaajakuva tai numero,
- *  arvosana kuvan kulmassa ja "numero sukunimi" -nimilappu. Sijainnit lähteen koordinaateista; kotijoukkueen
- *  vaakasijainti peilataan, koska se pelaa alaspäin. Kuva vain API-Footballin kokoonpanossa (pelaajan lähdetunniste);
+ *  arvosana kuvan kulmassa ja "numero sukunimi" -nimilappu. Rivit lähteen ruudukosta, pelaajat tasavälein omissa
+ *  sarakkeissaan (nimet eivät mene päällekkäin); kotijoukkueen vaakajärjestys peilataan, koska se pelaa alaspäin. Kuva vain API-Footballin kokoonpanossa (pelaajan lähdetunniste);
  *  jos kuvaa ei ole tai se ei lataudu, näytetään paitanumero. */
 function FullPitch({ h, a, home, away, rated, label, photos }: { h: Lineup; a: Lineup; home: Team; away: Team; rated: boolean; label: string; photos: boolean }) {
   const { t, lang } = useI18n();
   const avg = (l: Lineup) => (rated ? startersAverage(l) : null);
   const ah = avg(h), aa = avg(a);
   const fmtAvg = (v: number) => v.toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const node = (p: LPlayer, side: "h" | "a", i: number) => {
-    if (!p.pos) return null;
-    // vieraiden maalivahti alareunassa: nimilappu on kuvan alla, joten rivi nostetaan irti reunasta
-    const v = Math.min(45, Math.max(side === "a" ? 8 : 5, p.pos.y * 50));
-    const style = side === "h" ? { left: `${(1 - p.pos.x) * 100}%`, top: `${v}%` } : { left: `${p.pos.x * 100}%`, bottom: `${v}%` };
+  // Riveittäin (lähteen rivi = sama y), tasavälein: jokainen pelaaja saa oman sarakkeensa, jolloin nimilaput eivät
+  // mene päällekkäin. Kentän korkeus mitoitetaan rivien määrän mukaan (--row = yhden rivin korkeus: kuva + nimi).
+  const rowsOf = (l: Lineup) => {
+    const m = new Map<number, LPlayer[]>();
+    for (const p of l.starters) if (p.pos) { const k = Math.round(p.pos.y * 100); m.set(k, [...(m.get(k) ?? []), p]); }
+    return [...m.entries()].sort((x, y) => x[0] - y[0]).map(([, ps]) => ps.sort((x, y) => x.pos!.x - y.pos!.x));
+  };
+  const rh = rowsOf(h), ra = rowsOf(a);
+  const node = (p: LPlayer, side: "h" | "a", row: number, i: number, n: number) => {
+    const col = side === "h" ? n - 1 - i : i; // kotijoukkue pelaa alaspäin → vaakajärjestys peilataan
+    const v = `calc(var(--pad) + var(--row) * ${row + 0.5})`;
+    const style = { left: `${((col + 0.5) * 100) / n}%`, width: `calc(${100 / n}% - 4px)`, ...(side === "h" ? { top: v } : { bottom: v }) };
     return (
-      <div key={side + (p.id ?? i)} className={`pp pp-${side}`} style={style}>
+      <div key={side + (p.id ?? `${row}-${i}`)} className={`pp pp-${side}`} style={style}>
         <span className="pp-pic">
           <PitchFace p={p} photo={photos ? afPhoto(p.id) : null} />
           {p.captain && <em className="pp-c" title={t("lu_captain")}>C</em>}
           {rated && p.rating !== null && <span className="pp-r"><RatingBadge r={p.rating} motm={p.motm} /></span>}
           <span className="pp-ev"><Marks p={p} compact /></span>
         </span>
-        <span className="pp-name">{p.number && <b>{p.number}</b>}{surname(p.name)}</span>
+        <span className="pp-name">{p.number && <b>{p.number}</b>}<span className="pp-sn">{surname(p.name)}</span></span>
       </div>
     );
   };
+  const height = `calc(var(--row) * ${rh.length + ra.length} + var(--pad) * 2 + var(--mid))`;
   return (
     <div className="panel lu-pitch-panel">
       <div className="lu-forms" aria-hidden="true"><b>{h.formation ?? "–"}</b><span>{t("lu_formation")}</span><b>{a.formation ?? "–"}</b></div>
-      <div className="pitch pitch-full" role="img" aria-label={label}>
+      <div className="pitch pitch-full" role="img" aria-label={label} style={{ height }}>
         <div className="pitch-lines" aria-hidden="true"><i className="pl-mid" /><i className="pl-circle" /><i className="pl-spot" /><i className="pl-box pl-top" /><i className="pl-box6 pl-top" /><i className="pl-box pl-bot" /><i className="pl-box6 pl-bot" /></div>
         <span className="pitch-team pt-h" aria-hidden="true"><Badge t={home} size={26} />{ah && <span className="pt-avg">⌀ {fmtAvg(ah.avg)}</span>}</span>
         <span className="pitch-team pt-a" aria-hidden="true">{aa && <span className="pt-avg">⌀ {fmtAvg(aa.avg)}</span>}<Badge t={away} size={26} /></span>
-        {h.starters.map((p, i) => node(p, "h", i))}
-        {a.starters.map((p, i) => node(p, "a", i))}
+        {rh.map((ps, r) => ps.map((p, i) => node(p, "h", r, i, ps.length)))}
+        {ra.map((ps, r) => ps.map((p, i) => node(p, "a", r, i, ps.length)))}
       </div>
     </div>
   );
@@ -220,8 +228,6 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
         )}
       </div>
       <div className="panel lu-legend">
-        {rated && <p className="pad small muted">{t("lu_ratingNote").replace("{s}", data.source ?? "")}</p>}
-        <p className="pad small muted">{t("lu_roleNote")}</p>
         <SourceLine m={data} />
       </div>
     </>
@@ -297,7 +303,7 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
       </div>
       {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} />)}
       <div className="panel lu-legend">
-        {group === "key" && (all.some((r) => r.p.rating !== null) ? <p className="pad small muted">{t("lu_ratingNote").replace("{s}", data.source ?? "")}</p> : <p className="pad small muted">{t("ps_noRatings")}</p>)}
+        {group === "key" && !all.some((r) => r.p.rating !== null) && <p className="pad small muted">{t("ps_noRatings")}</p>}
         {all.some((r) => r.p.shots != null) && <p className="pad small muted">{t("ps_shotsNote")}</p>}
         {group === "phys" && <p className="pad small muted">{t("ps_unitNote")}</p>}
         <p className="pad small muted">{t(all.some((r) => r.p.shots != null) ? "ps_missingEspn" : "ps_missing")}</p>

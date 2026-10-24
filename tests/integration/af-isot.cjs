@@ -54,7 +54,24 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
   await page.waitForSelector(".pitch-full .pp", { timeout: 15000 }).catch(() => {});
   ok("  kokoonpanot kentällä (22 pelaajaa)", (await page.locator(".pitch-full .pp").count()) === 22);
-  ok("  arvosanan lähde API-Football", (await page.locator(".lu-legend").innerText().catch(() => "")).includes("API-Football"));
+  // nimilaput ja kuvat eivät mene päällekkäin eivätkä leikkaudu (käyttäjän havainto 25.10.2026), 390 ja 320 px
+  const lay = () => page.evaluate(() => {
+    const P = document.querySelector(".pitch-full").getBoundingClientRect();
+    const bx = [...document.querySelectorAll(".pitch-full .pp-name, .pitch-full .pp-pic")].map((e) => e.getBoundingClientRect());
+    let over = 0, clip = 0;
+    for (let i = 0; i < bx.length; i++) {
+      const a = bx[i];
+      if (a.top < P.top - 1 || a.bottom > P.bottom + 1 || a.left < P.left - 1 || a.right > P.right + 1) clip++;
+      for (let j = i + 1; j < bx.length; j++) { const b = bx[j]; if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) over++; }
+    }
+    return { over, clip };
+  });
+  const l390 = await lay();
+  await page.setViewportSize({ width: 320, height: 700 }); await page.waitForTimeout(300);
+  const l320 = await lay();
+  await page.setViewportSize({ width: 390, height: 844 });
+  ok("  nimet ja kuvat eivät mene päällekkäin eivätkä leikkaudu (390 ja 320 px)", l390.over === 0 && l390.clip === 0 && l320.over === 0 && l320.clip === 0, JSON.stringify({ l390, l320 }));
+  ok("  ei arvosana- eikä pelipaikkaselitettä (käyttäjän valinta 25.10.2026)", !/Arvosana on lähteen|Pelipaikka on/.test(await page.locator("main").innerText()));
   ok("  ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();
 
