@@ -18,24 +18,28 @@ export default function CompsDirectory() {
   const item = (id: string) => {
     const s = SOURCES.find((x) => x.id === id)!;
     const country = t(`c_${COMP_META[id as keyof typeof COMP_META].country}` as Key);
-    return { id, name: i.league(id, s.league), country: s.women ? `${country} · ${t("womenComp")}` : country, href: `/sarjat/${id}` };
+    // naisten kilpailut ovat omassa Naisten jalkapallo -ryhmässään → maan viereen ei "Naiset"-merkintää (käyttäjän valinta 24.10.2026);
+    // rajaus löytää ne silti sanalla "naiset"
+    return { id, name: i.league(id, s.league), country, extra: s.women ? t("womenComp") : "", href: `/sarjat/${id}` };
   };
   // API-Football-kilpailut ryhmittäin (sama kilpailu voi näkyä useassa ryhmässä; linkki ja sivu ovat yksi)
   const af = activeAfComps().filter((c) => !DIR_HIDDEN.includes(c.id));
   const afGroup = (g: AfGroup) => af.filter((c) => (c.groups as readonly string[]).includes(g)).map((c) => item(c.id)).filter(match);
-  const match = (x: { name: string; country: string }) => !q.trim() || fold(`${x.name} ${x.country}`).includes(fold(q));
+  const match = (x: { name: string; country: string; extra?: string }) => !q.trim() || fold(`${x.name} ${x.country} ${x.extra ?? ""}`).includes(fold(q));
   const popular = POPULAR.map(item).filter(match);
-  // Suomi-ryhmää ei näytetä (käyttäjän valinta 24.10.2026): sen kilpailut, joilla ei ole muuta ryhmää eikä paikkaa
-  // Suositut-listalla (Ykkösliiga), näytetään Muut sarjat -ryhmässä. Suomen Cup on Cupit-, Kansallinen Liiga Naiset-ryhmässä.
-  const fiOnly = af.filter((c) => c.groups.length === 1 && c.groups[0] === "fi" && !POPULAR.includes(c.id as never)).map((c) => c.id);
-  const other = [...COMP_ORDER.filter((id) => !POPULAR.includes(id)), ...fiOnly].map(item).filter(match);
+  // Suomi- ja Pohjoismaat-ryhmiä ei näytetä (käyttäjän valinta 24.10.2026): niiden kilpailut, joilla ei ole muuta ryhmää
+  // eikä paikkaa Suositut-listalla (Ykkösliiga, Allsvenskan, Eliteserien, Superliga), näytetään Muut sarjat -ryhmässä.
+  // Suomen Cup on Cupit-, Kansallinen Liiga Naisten jalkapallo -ryhmässä.
+  const MERGED: readonly AfGroup[] = ["fi", "nordic"];
+  const inOther = af.filter((c) => c.groups.every((g) => MERGED.includes(g as AfGroup)) && !POPULAR.includes(c.id as never)).map((c) => c.id);
+  const other = [...COMP_ORDER.filter((id) => !POPULAR.includes(id)), ...inOther].map(item).filter(match);
   const nations = [
     { id: "intl", name: t("nationalTeams"), country: t("intlGroup"), href: "/maajoukkueet" },
     { id: "fin", name: t("huuhkajat"), country: t("nationalTeamMen"), href: "/maajoukkue/458" },
     ...afGroup("nt"),
   ].filter(match);
   const GROUP_TITLE: Record<Exclude<AfGroup, "nt">, Key> = { fi: "grp_fi", cups: "grp_cups", nordic: "grp_nordic", women: "grp_women" };
-  const list = (title: Key, items: { id: string; name: string; country: string; href: string }[]) => items.length > 0 && (
+  const list = (title: Key, items: { id: string; name: string; country: string; extra?: string; href: string }[]) => items.length > 0 && (
     <section className="dir-sec" aria-labelledby={`d-${title}`}>
       <h2 id={`d-${title}`} className="sub-h">{t(title)}</h2>
       <ul className="dir-list">
@@ -62,7 +66,7 @@ export default function CompsDirectory() {
         {list("popularComps", popular)}
         {list("otherComps", other)}
         {list("nationalTeams", nations)}
-        {AF_GROUP_ORDER.filter((g): g is Exclude<AfGroup, "nt" | "fi"> => g !== "nt" && g !== "fi").map((g) => <div key={g}>{list(GROUP_TITLE[g], afGroup(g))}</div>)}
+        {AF_GROUP_ORDER.filter((g): g is Exclude<AfGroup, "nt" | "fi" | "nordic"> => g !== "nt" && !MERGED.includes(g)).map((g) => <div key={g}>{list(GROUP_TITLE[g], afGroup(g))}</div>)}
         {!popular.length && !other.length && !nations.length && !af.some((c) => match(item(c.id))) && <p className="empty-state">{t("noComps")}</p>}
       </main>
       <Footer />
