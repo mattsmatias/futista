@@ -98,6 +98,7 @@ const DAY = 86400_000;
   ok("  390 px: ei vaakavieritystä", !(await wide()));
   await page.locator(".etabs [role=tab]", { hasText: /taulukko/i }).click(); await page.waitForTimeout(300);
   ok("  sarjataulukossa 4 joukkuetta", (await page.locator(".epane").innerText()).includes("Länsiranta 244"));
+  ok("  sarjataulukon alla ei Lyhenteet-selitettä (otsikoissa title-selite)", !(await page.locator(".epane").innerText()).includes("Lyhenteet") && (await page.locator(".epane th abbr[title]").count()) >= 5);
 
   await go("/sarjat/facup");
   const ftabs = await page.locator(".etabs [role=tab]").allTextContents();

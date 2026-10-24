@@ -1196,7 +1196,6 @@ div.match { cursor: default; }
 .epane { display: grid; gap: 18px; min-width: 0; }
 .day-block { display: grid; gap: 6px; margin-bottom: 12px; }
 .day-h { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.legend.abbr { display: block; margin: 0; border-top: 1px solid var(--line); }
 
 @media (max-width: 640px) {
   .mhome { padding-top: 8px; }
@@ -1703,3 +1702,6 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .ev-txt { min-width: 0; overflow-wrap: anywhere; }
 .ev-team { font-size: 12.5px; white-space: nowrap; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 520px) { .ev { grid-template-columns: 42px 20px minmax(0, 1fr); row-gap: 2px; } .ev-team { grid-column: 3; max-width: none; } }
+
+/* Sarjataulukon otsikoiden lyhenteet: selitys title-attribuutissa (ei näkyvää lyhennelistaa, käyttäjän valinta 25.10.2026) */
+th abbr[title] { text-decoration: none; cursor: help; }

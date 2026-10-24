@@ -85,7 +85,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
-              <tr><th>#</th><th className="l">{t("team")}</th><th>{t("colP")}</th><th className="opt">{t("colW")}</th><th className="opt">{t("colD")}</th><th className="opt">{t("colL")}</th><th className="opt">{t("colG")}</th><th>+/-</th><th>{t("colPts")}</th></tr>
+              <tr><th>#</th><th className="l">{t("team")}</th><th><abbr title={t("played")}>{t("colP")}</abbr></th><th className="opt"><abbr title={t("won")}>{t("colW")}</abbr></th><th className="opt"><abbr title={t("drawn")}>{t("colD")}</abbr></th><th className="opt"><abbr title={t("lost")}>{t("colL")}</abbr></th><th className="opt">{t("colG")}</th><th><abbr title={t("gdFull")}>+/-</abbr></th><th><abbr title={t("ptsFull")}>{t("colPts")}</abbr></th></tr>
             </thead>
             <tbody>
               {list.map((r) => {
@@ -122,9 +122,6 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
         <div className="legend" aria-label={t("zonesTitle")}>
           {src.zones.map((z) => <span key={z.kind}><i className={`zk z-${z.kind}`} />{t(`zone_${z.kind}` as Key)}</span>)}
         </div>
-      )}
-      {!compact && (
-        <p className="legend abbr"><b>{t("abbr")}:</b> {t("colP")} = {t("played")} · {t("colW")} = {t("won")} · {t("colD")} = {t("drawn")} · {t("colL")} = {t("lost")} · +/- = {t("gdFull")} · {t("colPts")} = {t("ptsFull")}</p>
       )}
       {!compact && <SrcLine name={src.name} updated={s.updated} stale={s.stale} maxAgeMin={60} />}
     </div>
