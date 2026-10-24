@@ -77,7 +77,7 @@ const transfersCached = stableCache(async (teamId: number, from: string): Promis
   const t = parseTransfers(await once(`x${teamId}`, () => afGet(`/transfers?team=${teamId}`)), teamId, from);
   if (!t) throw new AfError("parse");
   return t;
-}, ["af-transfers-v1"], { revalidate: 12 * 3600 });
+}, ["af-transfers-v2"], { revalidate: 12 * 3600 });
 
 export type TransfersOutcome =
   | { state: "ok"; data: TeamTransfers; team: { id: number; name: string } }

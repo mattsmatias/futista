@@ -96,16 +96,40 @@ export function parseTransfers(j: any, teamId: number, from: string): TeamTransf
       if (seen.has(key)) continue;
       seen.add(key);
       const { kind, fee } = transferKind(x.type);
+      // lähteessä on rivejä, joissa "seurana" on pelaajan oma nimi (esim. "Godoy Alan") → seura tuntematon
+      const oName = o && typeof o.name === "string" ? o.name.trim() : "";
+      const junk = !!oName && !Number.isFinite(o?.id) && sameWords(oName, name);
       const t: Transfer = {
         playerId: pid, player: name, photo: pid ? `https://media.api-sports.io/football/players/${pid}.png` : null,
         date, kind, fee,
-        other: o && typeof o.name === "string" && o.name.trim() ? { id: Number.isFinite(o.id) ? o.id : null, name: o.name.trim(), logo: typeof o.logo === "string" ? o.logo : null } : null,
+        other: oName && !junk ? { id: Number.isFinite(o.id) ? o.id : null, name: oName, logo: typeof o.logo === "string" ? o.logo : null } : null,
       };
       (dir === "in" ? inn : out).push(t);
     }
   }
   const byDate = (a: Transfer, b: Transfer) => b.date.localeCompare(a.date) || a.player.localeCompare(b.player);
-  return { in: inn.sort(byDate), out: out.sort(byDate), from };
+  return { in: dedupe(inn).sort(byDate), out: dedupe(out).sort(byDate), from };
+}
+
+const sameWords = (a: string, b: string) => { const x = teamWords(a).sort().join(" "), y = teamWords(b).sort().join(" "); return !!x && x === y; };
+const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400_000;
+
+/** Lähteen toistot pois: sama pelaaja ja suunta, päivämäärät enintään 3 vrk erillään ja sama seura (tai toisella rivillä
+ *  seura ilman tunnistetta, esim. "Al Hilal" ↔ "Al-Hilal Saudi FC"). Säilytetään rivi, jossa seuralla on tunniste. */
+export function dedupe(list: Transfer[]): Transfer[] {
+  const out: Transfer[] = [];
+  const better = (a: Transfer, b: Transfer) => {
+    const ai = a.other?.id != null, bi = b.other?.id != null;
+    if (ai !== bi) return ai ? a : b;
+    if (a.kind !== b.kind && (a.kind === "unknown" || b.kind === "unknown")) return a.kind === "unknown" ? b : a;
+    return a.date >= b.date ? a : b;
+  };
+  for (const t of [...list].sort((a, b) => b.date.localeCompare(a.date))) {
+    const k = out.findIndex((x) => (x.playerId != null ? x.playerId === t.playerId : x.player === t.player) && dayDiff(x.date, t.date) <= 3 &&
+      (x.other?.id == null || t.other?.id == null || x.other.id === t.other.id));
+    if (k < 0) out.push(t); else out[k] = better(out[k], t);
+  }
+  return out;
 }
 
 /** Lähteen virheilmoitus vastauksen rungossa (API-Football vastaa usein 200 + errors) */
