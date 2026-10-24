@@ -69,9 +69,11 @@ const DAY = 86400_000;
   // ---------- Kilpailuhakemisto ----------
   await go("/sarjat");
   const heads = await page.locator(".dir-sec h2").allTextContents();
-  ok("hakemisto: ryhmät Suomi, Maajoukkueet, Cupit, Pohjoismaat, Naisten jalkapallo", ["Suomi", "Maajoukkueet", "Cupit", "Pohjoismaat", "Naisten jalkapallo"].every((h) => heads.includes(h)), heads.join(" | "));
-  const fin = await page.locator(".dir-sec", { has: page.locator("h2", { hasText: /^Suomi$/ }) }).locator(".dir-name").allTextContents();
-  ok("  Suomi: Veikkausliiga, Ykkösliiga, Suomen Cup, Kansallinen Liiga", ["Veikkausliiga", "Ykkösliiga", "Suomen Cup", "Kansallinen Liiga"].every((n) => fin.includes(n)), fin.join(", "));
+  ok("hakemisto: ryhmät Suositut, Muut sarjat, Maajoukkueet, Cupit, Pohjoismaat, Naisten jalkapallo; ei Suomi-ryhmää", ["Suositut", "Muut sarjat", "Maajoukkueet", "Cupit", "Pohjoismaat", "Naisten jalkapallo"].every((h) => heads.includes(h)) && !heads.includes("Suomi"), heads.join(" | "));
+  const grp = (h) => page.locator(".dir-sec", { has: page.locator("h2", { hasText: new RegExp(`^${h}$`) }) }).locator(".dir-name").allTextContents();
+  const other = await grp("Muut sarjat");
+  ok("  Ykkösliiga Muut sarjat -ryhmässä", other.includes("Ykkösliiga"), other.join(", "));
+  ok("  Suomen Cup Cupit-ryhmässä, Kansallinen Liiga Naisten jalkapallo -ryhmässä (eivät katoa listalta)", (await grp("Cupit")).includes("Suomen Cup") && (await grp("Naisten jalkapallo")).includes("Kansallinen Liiga"));
   const pop = await page.locator(".dir-sec", { has: page.locator("h2", { hasText: /^Suositut$/ }) }).locator(".dir-name").allTextContents();
   const want = ["La Liga", "Valioliiga", "Veikkausliiga", "Mestarien liiga", "Eurooppa-liiga", "Konferenssiliiga"];
   ok("  Suositut: La Liga, Valioliiga, Veikkausliiga, Mestarien liiga, Eurooppa-liiga, Konferenssiliiga (tässä järjestyksessä)", pop.join("|") === want.join("|"), pop.join(", "));
