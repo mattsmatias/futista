@@ -1,8 +1,9 @@
 "use client";
 // Sarjat-hakemisto: suositut, muut tuetut sarjat ja maajoukkueet; rajaus nimellä tai maalla.
+// Suositut-listan kilpailu voi näkyä myös omassa ryhmässään (esim. Veikkausliiga myös Suomi-ryhmässä).
 import { useState } from "react";
 import { SOURCES } from "@/lib/sources";
-import { COMP_META, COMP_ORDER, POPULAR } from "@/lib/comps";
+import { COMP_META, COMP_ORDER, POPULAR, DIR_HIDDEN } from "@/lib/comps";
 import { activeAfComps, AF_GROUP_ORDER, type AfGroup } from "@/lib/af-registry";
 import { useI18n, type Key } from "@/lib/i18n";
 import { fold } from "@/lib/search-core";
@@ -20,7 +21,7 @@ export default function CompsDirectory() {
     return { id, name: i.league(id, s.league), country: s.women ? `${country} · ${t("womenComp")}` : country, href: `/sarjat/${id}` };
   };
   // API-Football-kilpailut ryhmittäin (sama kilpailu voi näkyä useassa ryhmässä; linkki ja sivu ovat yksi)
-  const af = activeAfComps();
+  const af = activeAfComps().filter((c) => !DIR_HIDDEN.includes(c.id));
   const afGroup = (g: AfGroup) => af.filter((c) => (c.groups as readonly string[]).includes(g)).map((c) => item(c.id)).filter(match);
   const match = (x: { name: string; country: string }) => !q.trim() || fold(`${x.name} ${x.country}`).includes(fold(q));
   const popular = POPULAR.map(item).filter(match);

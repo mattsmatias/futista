@@ -4,7 +4,10 @@ import { AF_COMPS } from "./af-registry";
 
 /** Johdonmukainen järjestys otteluiden etusivulla ja Sarjat-hakemistossa */
 export const COMP_ORDER: SourceId[] = ["ucl", "uel", "uecl", "laliga", "valioliiga", "bundesliga", "seriea", "ligue1", "eredivisie", "primeira", "championship", "superlig", "mls"];
-export const POPULAR: SourceId[] = ["laliga", "valioliiga", "ucl"];
+// Sarjat-sivun Suositut-lista (käyttäjän valinta 24.10.2026)
+export const POPULAR: SourceId[] = ["laliga", "valioliiga", "veikkausliiga", "ucl", "uel", "uecl"];
+/** Piilotettu Sarjat-sivun listalta (käyttäjän valinta 24.10.2026); kilpailun sivu ja ottelut toimivat edelleen */
+export const DIR_HIDDEN: readonly string[] = ["mmkarsinnat", "emkisat", "mmkisat"];
 
 export type CompCountry = "es" | "en" | "eu" | "de" | "it" | "fr" | "nl" | "pt" | "tr" | "us" | "fi" | "se" | "no" | "dk" | "world";
 export const COMP_META: Record<SourceId, { mark: string; country: CompCountry }> = {
