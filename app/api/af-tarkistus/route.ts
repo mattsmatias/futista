@@ -8,7 +8,7 @@ import { stableCache } from "@/lib/stable-cache";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const ALLOWED = new Set([244, 245, 246, 640, 1, 4, 5, 32, 45, 48, 143, 81, 137, 66, 3, 848, 44, 525, 113, 103, 119]);
+const ALLOWED = new Set([244, 245, 246, 640, 1087, 1, 4, 5, 32, 45, 48, 143, 81, 137, 66, 3, 848, 44, 525, 113, 103, 119]);
 
 const summarize = (fx: any[]) => {
   const st: Record<string, number> = {};
