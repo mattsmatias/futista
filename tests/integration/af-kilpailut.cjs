@@ -144,6 +144,29 @@ const DAY = 86400_000;
   ok("selain: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();
 
+  // ---------- Sarja ilman ottelutietolähdettä (API-Football-lisätiedot pois, ei ESPN:ää) ----------
+  {
+    // simuloidun football-datan minuuttiraja voi olla hetken täynnä → odotetaan tuloksia (kuten aiempi kokoonpanot-testi)
+    let fl = null;
+    for (let i = 0; i < 24 && !fl?.results?.length; i++) { fl = (await (await fetch(`${APP}/api/league/ligue1`)).json().catch(() => ({}))).stats; if (!fl?.results?.length) await sleep(5000); }
+    const r = fl?.results?.[0];
+    const sl = (n) => n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/ /g, "-");
+    await mj("/__reset");
+    const q = r ? `l=ligue1&d=${r.date}&p=${sl(r.home.name)}--${sl(r.away.name)}` : "";
+    const k = r ? await (await fetch(`${APP}/api/kokoonpanot?${q}`)).json() : null;
+    const t = r ? await (await fetch(`${APP}/api/ottelutilastot?${q}`)).json() : null;
+    ok("ei lähdettä: kokoonpanot ja tilastot 'ei käytössä' ilman lähdehakuja (RapidAPI poistettu)", k?.state === "off" && t?.state === "off" && (await mj("/__log")).length === 0, `${k?.state}/${t?.state}`);
+    if (r) {
+      const b2 = await chromium.launch({ executablePath: process.env.CHROME });
+      const p2 = await (await b2.newContext({ locale: "fi-FI" })).newPage();
+      await p2.goto(`${APP}/ottelu/ligue1/${r.date}/${sl(r.home.name)}--${sl(r.away.name)}`, { waitUntil: "load" });
+      await p2.locator(".subtabs").waitFor({ timeout: 15000 }).catch(() => {});
+      const tb = await p2.locator(".subtabs [role=tab]").allTextContents();
+      ok("  ottelusivulla ei Kokoonpanot- eikä Tilastot-välilehteä", tb.length > 0 && !tb.includes("Kokoonpanot") && !tb.includes("Tilastot"), tb.join("|"));
+      await b2.close();
+    }
+  }
+
   // ---------- Avain ei selaimeen ----------
   const dir = path.join(__dirname, "../../.next/static");
   const hit = [];

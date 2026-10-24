@@ -1,13 +1,13 @@
 "use client";
-// Ottelusivun Kokoonpanot- ja Tilastot-välilehdet (Free API Live Football Data / RapidAPI palvelimen kautta).
+// Ottelusivun Kokoonpanot- ja Tilastot-välilehdet (API-Football tai ESPN palvelimen kautta).
 // Nämä EIVÄT muuta tulosta, ottelutilaa eivätkä peliminuuttia – ne tulevat edelleen Futistan nykyisistä lähteistä.
 import type { AfEvent } from "@/lib/af-league-core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n, LOCALE, type Key } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
 import { createRetryGate } from "@/lib/retry";
-import type { Lineup, LPlayer, StatRow, StatValue } from "@/lib/rapid-core";
-import { startersAverage, ratingTier } from "@/lib/rapid-core";
+import type { Lineup, LPlayer, StatRow, StatValue } from "@/lib/match-core";
+import { startersAverage, ratingTier } from "@/lib/match-core";
 import type { Team } from "@/lib/stats";
 import { Badge } from "./Stats";
 
@@ -205,7 +205,7 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
         )}
       </div>
       <div className="panel lu-legend">
-        {rated && <p className="pad small muted">{t("lu_ratingNote").replace("{s}", data.source ?? "Free API Live Football Data")}</p>}
+        {rated && <p className="pad small muted">{t("lu_ratingNote").replace("{s}", data.source ?? "")}</p>}
         <p className="pad small muted">{t("lu_roleNote")}</p>
         <SourceLine m={data} />
       </div>
@@ -282,7 +282,7 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
       </div>
       {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} />)}
       <div className="panel lu-legend">
-        {group === "key" && (all.some((r) => r.p.rating !== null) ? <p className="pad small muted">{t("lu_ratingNote").replace("{s}", data.source ?? "Free API Live Football Data")}</p> : <p className="pad small muted">{t("ps_noRatings")}</p>)}
+        {group === "key" && (all.some((r) => r.p.rating !== null) ? <p className="pad small muted">{t("lu_ratingNote").replace("{s}", data.source ?? "")}</p> : <p className="pad small muted">{t("ps_noRatings")}</p>)}
         {all.some((r) => r.p.shots != null) && <p className="pad small muted">{t("ps_shotsNote")}</p>}
         {group === "phys" && <p className="pad small muted">{t("ps_unitNote")}</p>}
         <p className="pad small muted">{t(all.some((r) => r.p.shots != null) ? "ps_missingEspn" : "ps_missing")}</p>

@@ -6,7 +6,7 @@
 //  - Ajat Suomen aikaan ottelun aikaleimasta (lähteen UTC-aika), ei lähteen merkkijonosta.
 //  - Naisten kilpailuissa joukkueen nimeen " W", jos lähde ei sitä anna (ei sekoitu miesten joukkueeseen).
 import type { Fixture, Result, Row, Team, AfLive } from "./stats";
-import type { Lineup, LPlayer, StatRow, StatKey, StatValue } from "./rapid-core";
+import type { Lineup, LPlayer, StatRow, StatKey, StatValue } from "./match-core";
 import { helsinkiParts, sameTeam, sameTeamStrict, words } from "./live-core";
 
 const num = (v: unknown): number | null => { const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v.replace("%", "")) : NaN; return Number.isFinite(n) ? n : null; };

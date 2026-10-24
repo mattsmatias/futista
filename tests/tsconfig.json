@@ -26,7 +26,6 @@
     "team-form.test.ts",
     "cache.test.ts",
     "espn-lineups.test.ts",
-    "rapid.test.ts",
     "af-league.test.ts",
     "apifootball.test.ts",
     "contact.test.ts"

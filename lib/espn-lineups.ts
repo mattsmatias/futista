@@ -7,7 +7,7 @@
 //  - Arvosanoja ESPN ei anna (rating = null). Puuttuva tilasto on null, ei nolla.
 import { stableCache } from "./stable-cache";
 import { getJson } from "./http";
-import type { Lineup, LPlayer, StatRow, StatKey, StatValue } from "./rapid-core";
+import type { Lineup, LPlayer, StatRow, StatKey, StatValue } from "./match-core";
 
 const SITE = (process.env.VERCEL_ENV !== "production" && process.env.ESPN_BASE_URL) || "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 export const ESPN_SOURCE = "ESPN";

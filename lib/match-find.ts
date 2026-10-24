@@ -1,13 +1,11 @@
-// Kokoonpano- ja tilastorajapinnan yhteinen osa (palvelin): meidän ottelu → lähteen ottelu → vaihe ja välimuistilokero.
-// Vain Futistan tuntemat ottelut (sarjan tulokset/otteluohjelma) hyväksytään: mielivaltaiset osoitteet eivät kuluta kiintiötä.
+// Kokoonpano- ja tilastorajapinnan yhteinen osa (palvelin): Futistan ottelu osoitteen sarjasta, päivästä ja joukkueista.
+// Vain Futistan tuntemat ottelut (sarjan tulokset/otteluohjelma) hyväksytään: mielivaltaiset osoitteet eivät tee lähdehakuja.
 import { getStatsWith } from "./stats";
 import { SOURCES } from "./sources";
 import { teamSlug, findTeam } from "./routes";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
 import { isDate } from "./day";
-import { phaseOf, slotKey, type Phase } from "./rapid-core";
-import { rapidAllowed, rapidConfig, rapidEvent } from "./rapid";
 
 export type OurMatch = { source: string; date: string; pair: string; kickoff: number | null; finished: boolean; aet: boolean; eid?: string; afid?: number; home: { name: string; id?: number }; away: { name: string; id?: number } };
 
@@ -42,31 +40,4 @@ export async function liveOurMatch(source: string, date: string, pair: string): 
   const home = findTeam(s, h), away = findTeam(s, a);
   if (!home || !away || home.name === away.name) return null;
   return { source, date, pair, kickoff: null, finished: false, aet: false, home: { name: home.name, id: home.id }, away: { name: away.name, id: away.id } };
-}
-
-export type Resolved =
-  | { status: "notfound" } | { status: "off" } | { status: "unavailable"; busy?: boolean }
-  | { status: "wait"; ours: OurMatch; phase: Phase }
-  | { status: "nomatch"; ours: OurMatch; phase: Phase; why: "none" | "ambiguous" | "cancelled" }
-  | { status: "ok"; ours: OurMatch; phase: Phase; slot: string; eventId: number; now: number };
-
-/** Ottelu → lähteen tunniste ja tämän hetken välimuistilokero (null = tässä vaiheessa ei haeta) */
-/** Oma hakuraja täynnä (tunti- tai kuukausikiintiö): ei vika, vaan odotus. Lähteen häiriön tauko ("paused") on vika. */
-export const isBusy = (reason?: string) => reason === "limit";
-
-export async function resolve(kind: "lineups" | "stats", source: string, date: string, pair: string, now = Date.now()): Promise<Resolved> {
-  if (!rapidAllowed(source, date, pair)) return { status: "off" };
-  const ours = await ourMatch(source, date, pair);
-  if (ours === null) return { status: "notfound" };
-  if (ours === "unavailable") return { status: "unavailable" };
-  const phase = phaseOf(ours.kickoff, now, ours.finished);
-  const slot = slotKey(kind, phase, ours.kickoff, now, rapidConfig().liveMin);
-  // tässä vaiheessa ei haeta (kaukainen ottelu; tilastot ennen alkua tai ottelun aikana, jos live-haut ovat pois):
-  // ei yhtään lähdehakua, ei edes tunnisteen etsintää
-  if (slot === null) return { status: "wait", ours, phase };
-  const ev = await rapidEvent(ours);
-  if (ev.status === "off") return { status: "off" };
-  if (ev.status !== "ok") return { status: "unavailable", busy: isBusy(ev.reason) };
-  if (ev.find.status !== "ok") return { status: "nomatch", ours, phase, why: ev.find.status };
-  return { status: "ok", ours, phase, slot, eventId: ev.find.match.id, now };
 }

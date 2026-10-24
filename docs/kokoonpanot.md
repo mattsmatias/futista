@@ -1,3 +1,9 @@
+> **POISTETTU 24.10.2026.** RapidAPI (Free API Live Football Data) ei ole enää käytössä eikä koodissa.
+> Kokoonpanot, tilastot ja tapahtumat tulevat API-Footballista (docs/af-kilpailut.md) ja ESPN:stä
+> (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS, jos API-Footballista ei löydy vastinetta).
+> Vercelin muuttujat RAPIDAPI_KEY, RAPIDAPI_ON ja RAPIDAPI_SCOPE ovat vaikutuksettomia ja voi poistaa
+> hallintapaneelista; mitätöi avain myös RapidAPI:ssa. Alla oleva teksti on historiaa.
+
 # Kokoonpanot ja ottelutilastot (Free API Live Football Data / RapidAPI)
 
 Ottelusivulle tulee kaksi uutta välilehteä, **Kokoonpanot** ja **Tilastot**. Tiedot haetaan palvelimella

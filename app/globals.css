@@ -1365,7 +1365,7 @@ main.storypage { display: block; padding-top: 0; }
 /* Ei zoomausta (kuten sovellus): kaksoisnapautus ei suurenna; iOS ei salli nipistyksen estoa kaikissa tiloissa, joten myös eleet estetään skriptillä */
 html { touch-action: manipulation; }
 
-/* Kokoonpanot ja ottelutilastot (Free API Live Football Data) */
+/* Kokoonpanot ja ottelutilastot */
 .subtabs.sticky { overflow-x: auto; scrollbar-width: none; }
 .subtabs.sticky::-webkit-scrollbar { display: none; }
 .subtabs button { white-space: nowrap; flex: none; }

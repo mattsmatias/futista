@@ -26,7 +26,9 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  toinen pyyntö välimuistista (ei uusia lähdehakuja)", (await afLog(/./)) === 2, String(await afLog(/./)));
 
   // ottelu, jota API-Footballin listassa ei ole → "ei saatavilla", ei keksittyä kokoonpanoa
-  const fl = (await (await fetch(`${APP}/api/league/ligue1`)).json()).stats;
+  // simuloidun football-datan minuuttiraja voi olla hetken täynnä → odotetaan tuloksia
+  let fl = null;
+  for (let i = 0; i < 24 && !fl?.results?.length; i++) { fl = (await (await fetch(`${APP}/api/league/ligue1`)).json().catch(() => ({}))).stats; if (!fl?.results?.length) await new Promise((r) => setTimeout(r, 5000)); }
   const r = fl?.results?.[0];
   const slug = (n) => n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/ /g, "-");
   if (r) {
