@@ -111,6 +111,17 @@ export function parseAfStandings(resp: any[], women: boolean): { table: Row[]; g
   return { table: groups.flatMap((x) => x.table), groups };
 }
 
+/** Jaettu sarja (esim. Veikkausliigan runkosarja + mestaruus- ja putoamisryhmä): uusin vaihe ensin, runkosarja viimeisenä.
+ *  Lähde nimeää runkosarjan kilpailun nimellä → "Regular Season" (näytössä "Runkosarja"). Turnausten lohkot pysyvät lähteen järjestyksessä. */
+export function splitStages<T extends { table: Row[]; groups?: AfGroupTable[] }>(r: T, kind: string): T {
+  if (kind !== "league" || !r.groups || r.groups.length < 2) return r;
+  const played = (g: NonNullable<T["groups"]>[number]) => Math.max(...g.table.map((x) => x.p));
+  const regular = (g: NonNullable<T["groups"]>[number]) => !/group/i.test(g.name);
+  const groups = r.groups.map((g) => (regular(g) ? { ...g, name: "Regular Season" } : g))
+    .sort((a, b) => Number(regular(a)) - Number(regular(b)) || played(b) - played(a));
+  return { ...r, groups };
+}
+
 /** Maalintekijät. Puuttuva syöttö- tai ottelumäärä on null, ei nolla. */
 export function parseAfScorers(resp: any[], women: boolean) {
   return (Array.isArray(resp) ? resp : []).slice(0, 20).map((x: any) => {
@@ -277,6 +288,7 @@ export function groupFi(g: string): string {
   if (/^Relegr?ation Group$/i.test(g)) return "Putoamisryhmä";
   if (/^Ranking of third-placed teams$/i.test(g)) return "Lohkokolmosten vertailu";
   if (/^Group Stage$/i.test(g)) return "Lohkovaihe (kaikki)";
+  if (/^Regular Season$/i.test(g)) return "Runkosarja";
   return g;
 }
 

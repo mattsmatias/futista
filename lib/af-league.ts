@@ -12,7 +12,7 @@ import { afGet, hasApiFootball, once } from "./apifootball";
 import { AF_COMPS, afCompOn, afComp } from "./af-registry";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
-import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, type AfDetail } from "./af-league-core";
+import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, type AfDetail } from "./af-league-core";
 import type { LeagueStats, Fixture, Part } from "./stats";
 import type { SourceId } from "./sources";
 
@@ -87,7 +87,7 @@ export async function fromAfLeague(id: SourceId, league: string): Promise<League
     let table: LeagueStats["table"] = [], groups: LeagueStats["groups"];
     if (c.data.standings) {
       const st = await standingsOf(c.af, season.year, hot || todays.length > 0).catch(() => null);
-      if (st) ({ table, groups } = parseAfStandings(st.response, women(id)));
+      if (st) ({ table, groups } = splitStages(parseAfStandings(st.response, women(id)), c.kind));
       else failed.push("table");
     }
     return {

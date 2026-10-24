@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { matchTeam, parseTransfers, transferKind, afSeason, transferFrom, parseTeams, afErrors } from "../lib/apifootball-core";
+import { matchTeam, parseTransfers, transferKind, afSeason, transferFrom, parseTeams, afErrors, afErrorPause } from "../lib/apifootball-core";
 
 const T = (id: number, name: string) => ({ id, name });
 
@@ -73,6 +73,12 @@ test("joukkuelista ja lähteen virheet", () => {
   assert.equal(afErrors({ errors: [] }), null);
   assert.equal(afErrors({ errors: { requests: "You have reached the request limit for the day" } }), "requests");
   assert.equal(afErrors({ errors: { token: "Error/Missing application key" } }), "token");
+  // minuuttiraja ei pysäytä hakuja koko päiväksi (havaittu oikeassa esikatselussa 24.10.2026)
+  const now = Date.UTC(2026, 9, 24, 5, 28);
+  assert.equal(afErrorPause(afErrors({ errors: { rateLimit: "Too many requests. Your rate limit is 300 requests per minute." } })!, now), 60_000);
+  assert.equal(afErrorPause("requests", now), Date.UTC(2026, 9, 25) - now);
+  assert.equal(afErrorPause("token", now), 3600_000);
+  assert.equal(afErrorPause("league", now), null);
 });
 
 test("siirrot: lähteen toistot yhdistetään (päivä erillään, seuran nimi ilman tunnistetta), pelaajan nimi seurana pois", () => {

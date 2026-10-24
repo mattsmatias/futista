@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, pickSeason, applyLive, afTeam, roundFi, groupFi, isKnockout } from "../lib/af-league-core";
+import { parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, pickSeason, applyLive, afTeam, roundFi, groupFi, isKnockout, splitStages } from "../lib/af-league-core";
 import { afMatchState, matchState } from "../lib/live-core";
 import { AF_COMPS } from "../lib/af-registry";
 
@@ -112,6 +112,16 @@ test("sarjataulukko: lohkot erikseen, puuttuva luku ei muutu nollaksi; cupilla e
   assert.equal(groupFi("League A - Group B"), "Liiga A, lohko B");
   assert.equal(groupFi("Relegration Group"), "Putoamisryhmä"); // lähteen kirjoitusvirhe
   assert.equal(groupFi("Champion Group"), "Mestaruusryhmä");
+});
+
+test("jaettu sarja (Veikkausliiga): mestaruus- ja putoamisryhmä ennen runkosarjaa; turnauksen lohkot ennallaan", () => {
+  const row = (name: string, p: number, pos = 1) => ({ rank: pos, team: { name }, points: 10, group: "", all: { played: p, win: 1, draw: 1, lose: 1, goals: { for: 1, against: 1 } } });
+  const g = (name: string, p: number, teams: string[]) => teams.map((t, k) => ({ ...row(t, p, k + 1), group: name }));
+  const parsed = parseAfStandings([{ league: { standings: [g("Veikkausliiga", 22, ["KuPS", "Inter Turku"]), g("Champion Group", 28, ["Inter Turku"]), g("Relegration Group", 27, ["Lahti"])] } }], false);
+  const r = splitStages(parsed, "league");
+  assert.deepEqual(r.groups!.map((x) => groupFi(x.name)), ["Mestaruusryhmä", "Putoamisryhmä", "Runkosarja"]);
+  const t = splitStages(parseAfStandings([{ league: { standings: [g("Group B", 3, ["A"]), g("Group A", 3, ["B"])] } }], false), "tournament");
+  assert.deepEqual(t.groups!.map((x) => x.name), ["Group B", "Group A"]);
 });
 
 test("kierrosten nimet ja cup-rakenne", () => {

@@ -133,6 +133,15 @@ export function dedupe(list: Transfer[]): Transfer[] {
 }
 
 /** Lähteen virheilmoitus vastauksen rungossa (API-Football vastaa usein 200 + errors) */
+/** Rungon virhekentän aiheuttama tauko (ms tästä hetkestä) – null = ei taukoa.
+ *  rateLimit = minuuttiraja → 60 s; requests = päiväkiintiö → seuraavaan UTC-vuorokauteen; avain/tilaus → 1 h. */
+export function afErrorPause(err: string, now = Date.now()): number | null {
+  if (/^rate ?limit$/i.test(err) || /per minute/i.test(err)) return 60_000;
+  if (/^requests$/i.test(err) || /for the day|daily/i.test(err)) { const d = new Date(now); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - now; }
+  if (/token|key|subscri|access|plan/i.test(err)) return 3600_000;
+  return null;
+}
+
 export function afErrors(j: any): string | null {
   const e = j?.errors;
   if (!e) return null;

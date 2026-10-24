@@ -2,7 +2,8 @@
 // Kotitekoista dataa, EI yhteyttä oikeisiin rajapintoihin. Tilaa ohjataan:
 //   GET /__mode?fd=ok|down|429&espn=ok|down&h2h=ok|empty|down   GET /__log   GET /__reset
 const http = require("node:http");
-const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", resend: "ok" };
+const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", afvar: "0", resend: "ok" };
+const afMock = require("./mock-af.cjs");
 const log = [];
 const json = (res, code, body, extra = {}) => { res.writeHead(code, { "content-type": "application/json", ...extra }); res.end(JSON.stringify(body)); };
 const now = Date.now();
@@ -184,6 +185,7 @@ function af(path, req, res) {
       { player: { id: 804, name: "Vapaa Keskikenttä" }, transfers: [tr(`${y}-07-01`, "Free", Y, A)] },
     ] });
   }
+  if (afMock.handle(u, send, mode, res, hdr)) return;
   return send({ errors: [], response: [] });
 }
 

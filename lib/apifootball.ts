@@ -9,7 +9,7 @@ import { stableCache } from "./stable-cache";
 import { nodeFetch } from "./http";
 import { SOURCES } from "./sources";
 import { todayHel } from "./day";
-import { AF_LEAGUE, afSeason, transferFrom, parseTeams, parseTransfers, matchTeam, afErrors, type AfTeam, type TeamTransfers } from "./apifootball-core";
+import { AF_LEAGUE, afSeason, transferFrom, parseTeams, parseTransfers, matchTeam, afErrors, afErrorPause, type AfTeam, type TeamTransfers } from "./apifootball-core";
 
 // Testejä varten osoitteen voi korvata, mutta EI koskaan tuotannossa
 const BASE = (process.env.VERCEL_ENV !== "production" && process.env.APIFOOTBALL_BASE_URL) || "https://v3.football.api-sports.io";
@@ -24,7 +24,20 @@ export const afQuotaSeen: { remaining: number | null; at: number | null } = { re
 
 export class AfError extends Error { constructor(public code: string) { super(code); } }
 
-export async function afGet(path: string): Promise<any> {
+// Enintään MAX_PARALLEL samanaikaista lähdehakua instanssia kohden: kylmän välimuistin purske (19 kilpailua × kausi,
+// ottelut, taulukko) ei ylitä lähteen minuuttirajaa kerralla.
+const MAX_PARALLEL = 4;
+let running = 0;
+const waiting: (() => void)[] = [];
+async function slot<T>(f: () => Promise<T>): Promise<T> {
+  if (running >= MAX_PARALLEL) await new Promise<void>((r) => waiting.push(r));
+  running++;
+  try { return await f(); } finally { running--; waiting.shift()?.(); }
+}
+
+export function afGet(path: string): Promise<any> { return slot(() => afGetNow(path)); }
+
+async function afGetNow(path: string): Promise<any> {
   const key = process.env.APIFOOTBALL_KEY;
   if (!key || !hasApiFootball()) throw new AfError("off");
   if (Date.now() < blockedUntil) throw new AfError("quota");
@@ -57,9 +70,10 @@ export async function afGet(path: string): Promise<any> {
   try { j = JSON.parse(await res.text()); } catch { throw new AfError("parse"); }
   const err = afErrors(j);
   if (err) {
-    // päiväraja tai avainongelma rungossa: tauko, ettei kiintiötä kuluteta turhaan
-    if (/request|limit|rate/i.test(err)) { const d = new Date(); blockedUntil = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1); }
-    if (/token|key|subscri|access/i.test(err)) blockedUntil = Math.max(blockedUntil, Date.now() + 3600_000);
+    // minuuttiraja, päiväraja tai avainongelma rungossa: tauko, ettei kiintiötä kuluteta turhaan
+    // (minuuttiraja EI saa pysäyttää hakuja koko päiväksi)
+    const pause = afErrorPause(err);
+    if (pause !== null) blockedUntil = Math.max(blockedUntil, Date.now() + pause);
     throw new AfError(`source: ${err}`);
   }
   return j;
