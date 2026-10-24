@@ -104,6 +104,10 @@ const MIN = 60_000;
     ok("kyselyt: piilotettu välilehti ei hae", calls === 0, `${calls} hakua / 20 min`);
     await page.evaluate(() => { Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true }); Object.defineProperty(document, "hidden", { value: false, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
     await page.clock.runFor(1500);
+    // haku lähtee heti, mutta pyyntö ehtii reitittimeen vasta oikeassa ajassa hetken päästä (ei virtuaalikellossa):
+    // odotetaan enintään 5 s oikeaa aikaa, sitten vielä 1 s, ettei tarkistuksia tule useampaa
+    for (let i = 0; i < 50 && calls < 1; i++) await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 1000));
     ok("kyselyt: näkyviin palattaessa yksi hallittu tarkistus", calls === 1, `${calls}`);
     await ctx.close();
   }
