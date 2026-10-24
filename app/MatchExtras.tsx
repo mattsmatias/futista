@@ -7,7 +7,7 @@ import { useI18n, LOCALE, type Key } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
 import { createRetryGate } from "@/lib/retry";
 import type { Lineup, LPlayer, StatRow, StatValue } from "@/lib/match-core";
-import { startersAverage, ratingTier } from "@/lib/match-core";
+import { startersAverage, ratingTier, surname } from "@/lib/match-core";
 import type { Team } from "@/lib/stats";
 import { Badge } from "./Stats";
 
@@ -78,7 +78,8 @@ const Note = ({ text, sub }: { text: string; sub?: string }) => (
 
 // ---------------- Kokoonpanot ----------------
 const fmtRating = (r: number | null, lang: string) => (r === null ? "–" : r.toLocaleString(LOCALE[lang as "fi"], { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
-const lastName = (n: string) => { const w = n.split(" "); return w.length > 1 && n.length > 11 ? w.slice(1).join(" ") : n; };
+/** API-Footballin pelaajakuva pelaajan lähdetunnisteella (lähteen oma kuva, ei nimen perusteella haettu) */
+const afPhoto = (id: number | null) => (id && id > 0 ? `https://media.api-sports.io/football/players/${id}.png` : null);
 const started = (phase?: string) => phase === "live" || phase === "final";
 const hasRatings = (ls: Lineup[]) => ls.some((l) => [...l.starters, ...l.subs].some((p) => p.rating !== null));
 
@@ -107,22 +108,29 @@ function Marks({ p, compact }: { p: LPlayer; compact?: boolean }) {
   return <span className="lu-marks">{items.map((x, i) => <i key={i} className={`mk mk-${x.c}`} title={x.label} aria-label={x.label} role="img">{x.txt}</i>)}</span>;
 }
 
-/** Yksi kenttä molemmille: kotijoukkue ylhäällä (maali yläreunassa), vieras alhaalla. Sijainnit lähteen koordinaateista;
- *  kotijoukkueen vaakasijainti peilataan, koska se pelaa alaspäin. */
-function FullPitch({ h, a, home, away, rated, label }: { h: Lineup; a: Lineup; home: Team; away: Team; rated: boolean; label: string }) {
+/** Yksi kenttä molemmille (Flashscoren tyyli): kotijoukkue ylhäällä, vieras alhaalla, pelaajakuva tai numero,
+ *  arvosana kuvan kulmassa ja "numero sukunimi" -nimilappu. Sijainnit lähteen koordinaateista; kotijoukkueen
+ *  vaakasijainti peilataan, koska se pelaa alaspäin. Kuva vain API-Footballin kokoonpanossa (pelaajan lähdetunniste);
+ *  jos kuvaa ei ole tai se ei lataudu, näytetään paitanumero. */
+function FullPitch({ h, a, home, away, rated, label, photos }: { h: Lineup; a: Lineup; home: Team; away: Team; rated: boolean; label: string; photos: boolean }) {
   const { t, lang } = useI18n();
   const avg = (l: Lineup) => (rated ? startersAverage(l) : null);
   const ah = avg(h), aa = avg(a);
+  const fmtAvg = (v: number) => v.toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const node = (p: LPlayer, side: "h" | "a", i: number) => {
     if (!p.pos) return null;
-    const v = Math.min(46, Math.max(4, p.pos.y * 50));
+    // vieraiden maalivahti alareunassa: nimilappu on kuvan alla, joten rivi nostetaan irti reunasta
+    const v = Math.min(45, Math.max(side === "a" ? 8 : 5, p.pos.y * 50));
     const style = side === "h" ? { left: `${(1 - p.pos.x) * 100}%`, top: `${v}%` } : { left: `${p.pos.x * 100}%`, bottom: `${v}%` };
     return (
       <div key={side + (p.id ?? i)} className={`pp pp-${side}`} style={style}>
-        <span className="pp-shirt">{p.number ?? ""}{p.captain && <em className="pp-c">C</em>}</span>
-        {rated && p.rating !== null && <span className="pp-r"><RatingBadge r={p.rating} motm={p.motm} /></span>}
-        <span className="pp-ev"><Marks p={p} compact /></span>
-        <span className="pp-name"><b>{p.number}</b> {lastName(p.name)}</span>
+        <span className="pp-pic">
+          <PitchFace p={p} photo={photos ? afPhoto(p.id) : null} />
+          {p.captain && <em className="pp-c" title={t("lu_captain")}>C</em>}
+          {rated && p.rating !== null && <span className="pp-r"><RatingBadge r={p.rating} motm={p.motm} /></span>}
+          <span className="pp-ev"><Marks p={p} compact /></span>
+        </span>
+        <span className="pp-name">{p.number && <b>{p.number}</b>}{surname(p.name)}</span>
       </div>
     );
   };
@@ -130,14 +138,21 @@ function FullPitch({ h, a, home, away, rated, label }: { h: Lineup; a: Lineup; h
     <div className="panel lu-pitch-panel">
       <div className="lu-forms" aria-hidden="true"><b>{h.formation ?? "–"}</b><span>{t("lu_formation")}</span><b>{a.formation ?? "–"}</b></div>
       <div className="pitch pitch-full" role="img" aria-label={label}>
-        <div className="pitch-lines" aria-hidden="true"><i className="pl-mid" /><i className="pl-circle" /><i className="pl-box pl-top" /><i className="pl-box6 pl-top" /><i className="pl-box pl-bot" /><i className="pl-box6 pl-bot" /></div>
-        <span className="pitch-team pt-h" aria-hidden="true"><Badge t={home} size={26} />{ah && <span className="pt-avg">⌀ {ah.avg.toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>}</span>
-        <span className="pitch-team pt-a" aria-hidden="true">{aa && <span className="pt-avg">⌀ {aa.avg.toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>}<Badge t={away} size={26} /></span>
+        <div className="pitch-lines" aria-hidden="true"><i className="pl-mid" /><i className="pl-circle" /><i className="pl-spot" /><i className="pl-box pl-top" /><i className="pl-box6 pl-top" /><i className="pl-box pl-bot" /><i className="pl-box6 pl-bot" /></div>
+        <span className="pitch-team pt-h" aria-hidden="true"><Badge t={home} size={26} />{ah && <span className="pt-avg">⌀ {fmtAvg(ah.avg)}</span>}</span>
+        <span className="pitch-team pt-a" aria-hidden="true">{aa && <span className="pt-avg">⌀ {fmtAvg(aa.avg)}</span>}<Badge t={away} size={26} /></span>
         {h.starters.map((p, i) => node(p, "h", i))}
         {a.starters.map((p, i) => node(p, "a", i))}
       </div>
     </div>
   );
+}
+
+/** Pelaajan kuva kentällä; puuttuva tai latautumaton kuva → paitanumero */
+function PitchFace({ p, photo }: { p: LPlayer; photo: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (photo && !failed) return <img className="pp-photo" src={photo} alt="" width={48} height={48} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+  return <span className="pp-shirt">{p.number ?? ""}</span>;
 }
 
 function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
@@ -172,7 +187,7 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
     <>
       {error && <ErrorBox text={t("lu_error")} retry={retry} loading={loading} />}
       <p className="mx-label">{data.phase === "pre" ? t("lu_pre") : t("lu_started")}</p>
-      {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} /> : (
+      {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} photos={data.source === "API-Football"} /> : (
         <div className="panel lu-starters">
           <div className="panel-head"><h3>{t("lu_starters")}</h3></div>
           <div className="lu-cols">

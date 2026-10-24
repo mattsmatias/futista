@@ -55,3 +55,14 @@ export function ratingTier(r: number | null): "none" | "low" | "mid" | "ok" | "g
   if (r === null) return "none";
   return r >= 8 ? "top" : r >= 7 ? "good" : r >= 6.5 ? "ok" : r >= 6 ? "mid" : "low";
 }
+
+/** Kenttänäkymän lyhyt nimi (Flashscoren tapaan sukunimi): "E. Horvath" → "Horvath", "Joao Costa" → "Costa",
+ *  "R. De Paul" → "De Paul", "Kevin De Bruyne" → "De Bruyne", "Padelford" → "Padelford". */
+const PARTICLES = new Set(["de", "da", "do", "dos", "das", "di", "del", "della", "van", "von", "der", "den", "ter", "ten", "la", "le", "st.", "mac", "al", "el", "bin", "ibn"]);
+export function surname(name: string): string {
+  const w = name.trim().split(/\s+/).filter(Boolean);
+  if (w.length <= 1) return name.trim();
+  if (/^\p{Lu}\.$/u.test(w[0])) return w.slice(1).join(" ");
+  const i = w.findIndex((x, k) => k >= 1 && PARTICLES.has(x.toLowerCase()));
+  return i >= 1 && i < w.length - 1 ? w.slice(i).join(" ") : w[w.length - 1];
+}

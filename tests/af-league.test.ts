@@ -225,3 +225,15 @@ test("live-ottelun joukkue: lähteen 'RCD Espanyol de Barcelona' on Espanyol, ei
   assert.equal(bestTeam(teams, words("FC Barcelona"))?.name, "Barcelona");
   assert.equal(bestTeam(teams, ["real", "racing", "santander", "san"])?.name, "Racing Santander");
 });
+
+test("kokoonpanon nimilappu: sukunimi Flashscoren tapaan", async () => {
+  const { surname } = await import("../lib/match-core");
+  assert.equal(surname("E. Horvath"), "Horvath");
+  assert.equal(surname("Joao Costa"), "Costa");
+  assert.equal(surname("R. De Paul"), "De Paul");
+  assert.equal(surname("Kevin De Bruyne"), "De Bruyne");
+  assert.equal(surname("Padelford"), "Padelford");
+  assert.equal(surname("Ayuub Ahmed-Nur"), "Ahmed-Nur");
+  assert.equal(surname("Virgil van Dijk"), "van Dijk");
+  assert.equal(surname("Ö. Åström"), "Åström");
+});
