@@ -45,6 +45,8 @@ export const COMP_EMBLEM: Record<SourceId, { light: string; dark?: string }> = {
   uecl: espn(20296),
   // API-Footballin kilpailulogot (lähteen antamat osoitteet; ei tummaa versiota → vaalea laatta tummassa teemassa)
   ...(Object.fromEntries(AF_COMPS.map((c) => [c.id, { light: `https://media.api-sports.io/football/leagues/${c.af}.png` }])) as Record<(typeof AF_COMPS)[number]["id"], { light: string }>),
+  // Kansallinen Liiga: käyttäjän valitsema logo (suomenkielinen Wikipedia, 24.10.2026). Jos kuva ei lataudu, näytetään lyhenne.
+  kansallinenliiga: { light: "https://upload.wikimedia.org/wikipedia/fi/f/f8/Kansallinen_Liiga_logo_blank.svg" },
 };
 
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));
