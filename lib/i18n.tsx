@@ -470,7 +470,6 @@ const D = {
   formWins: ["Voitot", "Vinster", "Wins"],
   formDraws: ["Tasapelit", "Oavgjorda", "Draws"],
   formLosses: ["Häviöt", "Förluster", "Losses"],
-  formScopeN: ["{c}: viimeiset {n} ottelua, uusin oikealla", "{c}: senaste {n} matcherna, nyaste till höger", "{c}: last {n} matches, newest on the right"],
   tab_h2h: ["Keskinäiset", "Inbördes", "Head-to-head"],
   tab_table: ["Sarjataulukko", "Serietabell", "Standings"],
   gdFull: ["Maaliero", "Målskillnad", "Goal difference"],

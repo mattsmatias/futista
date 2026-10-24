@@ -398,9 +398,9 @@ const MIN = 60_000;
       const yd = new Date(Date.now() - 86400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
       await page.goto(`${APP}/ottelu/superlig/${yd}/testispor-ankara--mittaspor-izmir`, { waitUntil: "networkidle" });
       const fp = page.locator(".panel", { has: page.locator("h3", { hasText: /^Kunto$/ }) });
-      const head = (await fp.locator(".panel-head .muted").innerText().catch(() => "")).trim();
+      const head = (await fp.innerText().catch(() => "")).trim();
       const rows = await fp.locator(".form-duo > div").evaluateAll((els) => els.map((e) => [...e.querySelectorAll(".fp")].map((x) => x.textContent).join("")));
-      ok("ottelusivun kunto: kaikki kilpailut (sarja, Eurooppa-liiga, cup), uusin oikealla", head.startsWith("Kaikki kilpailut") && rows[0] === "TVHVT" && rows[1] === "TT", `${head} | ${rows.join(" / ")}`);
+      ok("ottelusivun kunto: kaikki kilpailut (sarja, Eurooppa-liiga, cup), uusin oikealla, ei selitetekstiä", !/viimeiset|uusin oikealla/i.test(head) && (await fp.locator(".form-allcomps").count()) === 1 && rows[0] === "TVHVT" && rows[1] === "TT", `${head} | ${rows.join(" / ")}`);
     }
     // joukkueen kunto kaikista kilpailuista (ESPN:n otteluohjelma, simuloitu: sarja, Eurooppa-liiga, cup, harjoitus, siirretty, tuleva)
     await page.goto(APP + "/joukkue/superlig/testispor-ankara", { waitUntil: "networkidle" });

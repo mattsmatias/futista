@@ -31,12 +31,6 @@ function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number
   );
 }
 
-/** Montako kunto-ottelua näytetään (enintään 5; se joukkue, jolla otteluita on enemmän) */
-function formN(results: LeagueStats["results"], a: string, b: string) {
-  const c = (x: string) => { const n = norm(x); return Math.min(5, results.filter((r) => norm(r.home.name) === n || norm(r.away.name) === n).length); };
-  return Math.max(c(a), c(b));
-}
-
 function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
   const i = useI18n();
   const n = norm(team.name);
@@ -209,13 +203,13 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             <div className="panel">
               {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>
-                <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScopeN").replace("{c}", t("formScopeAll")).replace("{n}", String(Math.max(formAll.home.length, formAll.away.length)))}</span></div>
-                <div className="form-duo form-allcomps">
+                <div className="panel-head"><h3>{t("form")}</h3></div>
+                <div className="form-duo form-allcomps" aria-label={t("formScopeAll")}>
                   <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormItems items={formAll.home} /></div>
                   <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormItems items={formAll.away} /></div>
                 </div>
               </> : <>
-                <div className="panel-head"><h3>{t("form")}</h3><span className="muted">{t("formScopeN").replace("{c}", s.league).replace("{n}", String(formN(s.results, m.home.name, m.away.name)))}</span></div>
+                <div className="panel-head"><h3>{t("form")}</h3></div>
                 <div className="form-duo">
                   <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
                   <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>
