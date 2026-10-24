@@ -75,7 +75,7 @@ function bigFixtures(now) {
   return [f(990001, tm(9902, "Mittaus United"), tm(9901, "Testiseura Kotka"), [1, 3]), f(990002, tm(9903, "Mittaus Reserve"), tm(9904, "Kotka City"), [0, 0])];
 }
 function detail(id, now) {
-  if (id >= 990000) return detailOf(bigFixtures(now).find((x) => x.fixture.id === id), true);
+  if (id >= 990000 && id < 1_000_000) return detailOf(bigFixtures(now).find((x) => x.fixture.id === id), true);
   const lg = Math.floor(id / 1000);
   if (!LEAGUES[lg]) return [];
   return detailOf(fixtures(lg, now).find((x) => x.fixture.id === id), lg !== 246 && lg !== 1087, lg);
