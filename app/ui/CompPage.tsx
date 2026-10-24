@@ -36,7 +36,8 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
     { id: "ottelut", label: "fixturesTab" },
     { id: "tulokset", label: "results" },
     ...(s.table.length ? [{ id: "taulukko" as Tab, label: "table" as Key }] : []),
-    ...(dataOn ? [{ id: "maalit" as Tab, label: "scorers" as Key }] : []),
+    // maalintekijät-välilehti vain, jos lähteen maalintekijädata on varmennettu (rekisteri: data.scorers)
+    ...(dataOn && afComp(s.source)?.data.scorers !== false ? [{ id: "maalit" as Tab, label: "scorers" as Key }] : []),
     ...(articles.length ? [{ id: "uutiset" as Tab, label: "nav_news" as Key }] : []),
   ];
   // päättyneen kauden kilpailu (esim. MM-kisat) avautuu tuloksiin: sen otteluita ei esitetä tulevina

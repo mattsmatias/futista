@@ -79,13 +79,17 @@ async function afGetNow(path: string): Promise<any> {
   return j;
 }
 
-// samanaikaiset saman polun haut yhdistetään (yksi lähdehaku)
+// samanaikaiset saman polun haut yhdistetään (yksi lähdehaku). Onnistunut tulos pidetään 5 s, koska datavälimuistin
+// kirjoitus valmistuu vasta hetken kuluttua: sillä välin saapuva sama pyyntö ei tee uutta lähdehakua. Virhe poistetaan heti.
 const inflight = new Map<string, Promise<any>>();
+const GRACE_MS = 5_000;
 export function once<T>(k: string, f: () => Promise<T>): Promise<T> {
   const hit = inflight.get(k);
   if (hit) return hit as Promise<T>;
-  const p = f().finally(() => inflight.delete(k));
+  const p = f();
   inflight.set(k, p);
+  p.then(() => { setTimeout(() => { if (inflight.get(k) === p) inflight.delete(k); }, GRACE_MS).unref?.(); },
+    () => { if (inflight.get(k) === p) inflight.delete(k); });
   return p;
 }
 

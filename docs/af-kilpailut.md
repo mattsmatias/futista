@@ -45,6 +45,13 @@ Live-seurantaa ei voitu varmentaa tarkistushetkellä (lauantaiaamu, ei käynniss
 - **Kausi** valitaan API:n `current`-kaudesta. Päättynyt kausi (MM 2026, EM 2024, MM-karsinnat, Coupe de France 2025–26,
   Suomen Cup 2026) merkitään "Kausi päättynyt"; sen otteluita ei näytetä tulevina.
 
+- **Jaettu sarja:** Veikkausliigan taulukko tulee kolmena: runkosarja (lähde nimeää kilpailun nimellä), "Champion Group",
+  "Relegration Group" (lähteen kirjoitusasu). Näytetään mestaruus- ja putoamisryhmä ensin, runkosarja viimeisenä.
+  Kansallisen Liigan taulukossa on vain runkosarjan 8 joukkuetta (jatkosarjojen taulukkoa lähde ei anna).
+- **Minuuttiraja (havaittu esikatselussa):** kylmän välimuistin purske (kaikki kilpailut kerralla) sai lähteeltä
+  `errors.rateLimit` 200-vastauksessa. Korjattu: rinnakkaisuus enintään 4 hakua / instanssi, ja minuuttiraja aiheuttaa
+  60 s tauon (aiemmin tauko jatkui UTC-vuorokauden loppuun). Päiväkiintiö (`errors.requests`) pysäyttää edelleen vuorokaudeksi.
+
 ## Käyttöönotto ja pois kytkeminen
 - Kaikki kilpailut pois: `APIFOOTBALL_OFF=1` (tai avaimen puuttuminen).
 - Yksittäinen kilpailu pois: `AF_COMPS_OFF=veikkausliiga,fa-cup` (Futistan tunnisteet, ks. lib/af-registry.ts) → Redeploy.
