@@ -2,6 +2,7 @@
 // "laliiga", "la liga", "valioliiga", "premier league", "mestarien liiga", "champions league" …
 // Vain yleisesti tunnettuja tosiasioita (mikä sarja on), ei keksittyä sisältöä.
 import type { SourceId } from "./sources";
+import { afComp } from "./af-registry";
 
 export const LEAGUE_SEO: Partial<Record<SourceId, { aka: string; also: string[]; what: string }>> = {
   laliga: { aka: "LaLiiga", also: ["La Liga", "LaLiga", "laliiga", "Espanjan liiga"], what: "Espanjan jalkapallon pääsarja" },
@@ -47,5 +48,10 @@ export function leagueTitle(id: SourceId, name: string) {
 export function leagueIntro(id: SourceId, name: string) {
   const x = LEAGUE_SEO[id];
   const head = x ? `${name}${x.aka !== name ? ` (${x.aka})` : ""} on ${x.what}.` : `${name}.`;
-  return `${head} Futistassa otteluohjelma, tulokset, livetulokset, sarjataulukko, maalintekijät ja uutiset suomeksi.`;
+  // API-Football-kilpailut: luetellaan vain se, mitä sivulla oikeasti on (cupissa ei taulukkoa, maalintekijät vain varmennetuille, ei uutissyötettä)
+  const c = afComp(id);
+  const parts = c
+    ? ["otteluohjelma", "tulokset", "livetulokset", ...(c.data.standings && c.kind !== "cup" ? ["sarjataulukko"] : []), ...(c.data.scorers ? ["maalintekijät"] : [])]
+    : ["otteluohjelma", "tulokset", "livetulokset", "sarjataulukko", "maalintekijät", "uutiset"];
+  return `${head} Futistassa ${parts.slice(0, -1).join(", ")} ja ${parts.at(-1)} suomeksi.`;
 }

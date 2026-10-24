@@ -190,3 +190,12 @@ test("ottelun tiedot: tapahtumat, vaihtojen suunta kokoonpanosta, kenttä vain l
   assert.equal(parseAfDetail({ ...d, lineups: [] }, false)!.home, null);
   assert.equal(parseAfDetail(null, false), null);
 });
+
+test("sarjasivun esittely: cupissa ei luvata sarjataulukkoa eikä varmentamattomia maalintekijöitä", async () => {
+  const { leagueIntro } = await import("../lib/league-seo");
+  const fa = leagueIntro("facup" as never, "FA Cup");
+  assert.ok(!fa.includes("sarjataulukko") && !fa.includes("maalintekijät") && !fa.includes("uutiset"), fa);
+  const vl = leagueIntro("veikkausliiga" as never, "Veikkausliiga");
+  assert.ok(vl.includes("sarjataulukko") && vl.includes("maalintekijät"), vl);
+  assert.ok(leagueIntro("valioliiga" as never, "Valioliiga").includes("uutiset"));
+});

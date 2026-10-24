@@ -21,7 +21,7 @@ import { MatchRow } from "./MatchRow";
 import { NewsItem } from "./News";
 import { leagueIntro } from "@/lib/league-seo";
 import type { SourceId } from "@/lib/sources";
-import { roundFi } from "@/lib/af-league-core";
+import { roundFi, isKnockout } from "@/lib/af-league-core";
 import { afComp } from "@/lib/af-registry";
 
 type Tab = "ottelut" | "tulokset" | "taulukko" | "maalit" | "uutiset";
@@ -93,7 +93,8 @@ function CompMatches({ s, part }: { s: LeagueStats; part: "up" | "done" }) {
   const fixtures: Fixture[] = [...extras.filter((x) => x.s === s.source), ...s.fixtures];
   const upDays = [...new Set(fixtures.map((f) => f.date))].sort().slice(0, 7);
   const doneDays = [...new Set(s.results.map((r) => r.date))].sort().reverse().slice(0, 10);
-  const rl = (r: string) => (i.lang === "fi" ? roundFi(r) : r);
+  // sarjan pudotuspelimuotoinen kierros (esim. lähteen "Final" Veikkausliigassa) on jatko-ottelu, ei sarjan finaali
+  const rl = (r: string) => (i.lang === "fi" ? (s.kind === "league" && isKnockout(r) ? `Jatko-ottelut: ${roundFi(r).toLowerCase()}` : roundFi(r)) : r);
   // kierrokset (API-Football): päivän otsikon alle päivän kierrokset; cupissa ottelut ryhmitellään kierroksittain
   const roundsOf = (list: { round?: string }[]) => [...new Set(list.map((x) => x.round).filter((x): x is string => !!x))];
   const dayBlock = (d: string, rows: JSX.Element[], rounds: string[] = []) => (
