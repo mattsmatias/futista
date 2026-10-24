@@ -264,7 +264,10 @@ const MIN = 60_000;
     // suodattimet
     await page.goto(APP + "/?n=live", { waitUntil: "networkidle" });
     const liveBody = await page.locator("main").innerText();
-    ok("suodatin Live: ei käynnissä → tyhjä tila ja painike kaikkiin otteluihin", liveBody.includes("Kaikki päivän ottelut") || liveBody.includes("Näytä kaikki"), liveBody.slice(0, 120).replace(/\n/g, " "));
+    // simuloidussa datassa on joskus käynnissä oleva ottelu (kellonajasta riippuen): silloin näkyy vain live-ottelut
+    const liveRows = await page.locator("main .cgroup a[href^='/ottelu/']").count();
+    const liveOnly = liveRows > 0 && (await page.locator("main .cgroup a[href^='/ottelu/']").evaluateAll((els) => els.every((e) => /LIVE|\d+'|Puoliaika/.test(e.innerText))));
+    ok("suodatin Live: käynnissä olevat ottelut, tai tyhjä tila ja painike kaikkiin otteluihin", liveOnly || liveBody.includes("Kaikki päivän ottelut") || liveBody.includes("Näytä kaikki"), liveBody.slice(0, 120).replace(/\n/g, " "));
     ok("  suodatin säilyy osoitteessa", new URL(page.url()).searchParams.get("n") === "live");
     // haku: näppäimistö, Escape palauttaa kohdistuksen
     await page.goto(APP + "/", { waitUntil: "networkidle" });
@@ -284,13 +287,13 @@ const MIN = 60_000;
     ok("haku: pelaaja löytyy nimellä → profiili", ph === "/pelaaja/7001", String(ph));
     await page.keyboard.press("Escape");
     {
-      const pp = await browser.newPage();
+      const pctx = await browser.newContext({ locale: "fi-FI" }), pp = await pctx.newPage();
       await pp.goto(APP + "/pelaaja/7001", { waitUntil: "load" });
       const sub = (await pp.locator(".player-head .ehead-txt p").innerText().catch(() => "")).trim();
       await pp.locator("main dt").first().waitFor({ timeout: 10000 }).catch(() => {});
       const card = await pp.locator("main").innerText();
       ok("pelaajaprofiili: nimen alla vain seura (ei pelipaikkaa, ikää, numeroa); tiedot kortissa", sub.length > 0 && !sub.includes("·") && !/#\d/.test(sub) && /pelipaikka/i.test(card), `${sub} | ${card.slice(0, 200).replace(/\n/g, " / ")}`);
-      await pp.close();
+      await pctx.close();
     }
     // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan
     await page.goto(APP + "/suosikit", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
