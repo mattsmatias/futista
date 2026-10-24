@@ -31,7 +31,10 @@ export default function AdvertisePage({ formOn }: { formOn: boolean }) {
   const doneRef = useRef<HTMLHeadingElement>(null);
   const errRef = useRef<HTMLParagraphElement>(null);
 
+  const [errTick, setErrTick] = useState(0);
   useEffect(() => { if (status === "sent") doneRef.current?.focus(); }, [status]);
+  // lähetysvirhe saa fokuksen, kun se on piirretty (ruudunlukija kuulee sen heti); kenttävirheissä fokus on kentässä
+  useEffect(() => { if (errTick) errRef.current?.focus(); }, [errTick]);
 
   const set = (k: keyof typeof EMPTY) => (e: { target: { value: string } }) => {
     setV((o) => ({ ...o, [k]: e.target.value }));
@@ -71,7 +74,7 @@ export default function AdvertisePage({ formOn }: { formOn: boolean }) {
     setErr(next);
     setStatus("idle");
     busy.current = false;
-    requestAnimationFrame(() => errRef.current?.focus());
+    if (next !== "adv_errInvalid") setErrTick((n) => n + 1);
   }
 
   const again = () => { setV(EMPTY); setBad([]); setErr(null); reqId.current = newId(); started.current = Date.now(); setStatus("idle"); };

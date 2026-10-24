@@ -123,8 +123,8 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
   // näppäimistö: kenttien järjestys, piilokenttä ei saa fokusta
   await page.focus("#adv-name");
   const order = [];
-  for (let k = 0; k < 5; k++) { order.push(await page.evaluate(() => document.activeElement?.id || document.activeElement?.className || document.activeElement?.tagName)); await page.keyboard.press("Tab"); }
-  ok("näppäimistö: Nimi → Yritys → Sähköposti → Viesti → tietosuojalinkki (piilokenttä ohitetaan)", order.join(",") === "adv-name,adv-company,adv-email,adv-message,", order.join(","));
+  for (let k = 0; k < 5; k++) { order.push(await page.evaluate(() => { const e = document.activeElement; return e?.id || (e?.tagName === "A" ? `A:${e.getAttribute("href")}` : e?.tagName); })); await page.keyboard.press("Tab"); }
+  ok("näppäimistö: Nimi → Yritys → Sähköposti → Viesti → tietosuojalinkki (piilokenttä ohitetaan)", order.join(",") === "adv-name,adv-company,adv-email,adv-message,A:/tietosuoja", order.join(","));
 
   // tyhjä lähetys: virheet näkyvät, fokus ensimmäiseen virheelliseen kenttään, mitään ei lähetetä
   await mails(true);
