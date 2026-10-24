@@ -74,3 +74,25 @@ test("joukkuelista ja lähteen virheet", () => {
   assert.equal(afErrors({ errors: { requests: "You have reached the request limit for the day" } }), "requests");
   assert.equal(afErrors({ errors: { token: "Error/Missing application key" } }), "token");
 });
+
+test("siirrot: lähteen toistot yhdistetään (päivä erillään, seuran nimi ilman tunnistetta), pelaajan nimi seurana pois", () => {
+  const B = { id: 529, name: "Barcelona" };
+  const tr = (date: string, type: string, inn: any, out: any) => ({ date, type, teams: { in: inn, out } });
+  const j = { response: [
+    { player: { id: 643, name: "Gabriel Jesus" }, transfers: [tr("2026-08-31", "N/A", B, { id: 42, name: "Arsenal" }), tr("2026-08-30", "N/A", B, { id: 42, name: "Arsenal" })] },
+    { player: { id: 855, name: "João Cancelo" }, transfers: [tr("2026-06-29", "Back from Loan", { name: "Al Hilal" }, B), tr("2026-06-29", "Back from Loan", { id: 2932, name: "Al-Hilal Saudi FC" }, B)] },
+    { player: { id: 182556, name: "Alan Godoy" }, transfers: [tr("2026-08-15", "Free", { name: "Godoy Alan" }, B), tr("2026-08-15", "Free", { id: 716, name: "Lugo" }, B), tr("2026-08-31", "Free", { id: 716, name: "Lugo" }, B)] },
+    { player: { id: 1, name: "Kaksi Eri" }, transfers: [tr("2026-07-01", "Loan", { id: 5, name: "A" }, B), tr("2026-08-20", "Loan", { id: 6, name: "C" }, B)] },
+    { player: { id: 2, name: "Yksin Roskaa" }, transfers: [tr("2026-07-05", "Free", { name: "Roskaa Yksin" }, B)] },
+  ] };
+  const r = parseTransfers(j, 529, "2026-06-01")!;
+  assert.deepEqual(r.in.map((x) => [x.player, x.date, x.other?.name]), [["Gabriel Jesus", "2026-08-31", "Arsenal"]]);
+  assert.deepEqual(r.out.map((x) => [x.player, x.date, x.other?.name ?? null]), [
+    ["Alan Godoy", "2026-08-31", "Lugo"],
+    ["Kaksi Eri", "2026-08-20", "C"],
+    ["Alan Godoy", "2026-08-15", "Lugo"],   // eri siirto (yli 3 vrk erillään) säilyy
+    ["Yksin Roskaa", "2026-07-05", null],     // pelaajan nimi seurana → seura tuntematon
+    ["Kaksi Eri", "2026-07-01", "A"],
+    ["João Cancelo", "2026-06-29", "Al-Hilal Saudi FC"],
+  ]);
+});
