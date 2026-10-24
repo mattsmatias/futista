@@ -44,7 +44,7 @@ export const AF_COMPS = [
   // Vaihe E – Pohjoismaat
   { id: "allsvenskan", af: 113, name: ["Allsvenskan", "Allsvenskan", "Allsvenskan"], country: "se", gender: "m", kind: "league", groups: ["nordic"], data: { standings: true, scorers: true }, mark: "AS" },
   { id: "eliteserien", af: 103, name: ["Eliteserien", "Eliteserien", "Eliteserien"], country: "no", gender: "m", kind: "league", groups: ["nordic"], data: { standings: true, scorers: true }, mark: "ES" },
-  { id: "superligadk", af: 119, name: ["Superliga (Tanska)", "Superligaen", "Danish Superliga"], country: "dk", gender: "m", kind: "league", groups: ["nordic"], data: { standings: true, scorers: true }, mark: "SL" },
+  { id: "superligadk", af: 119, name: ["Superliga", "Superligaen", "Danish Superliga"], country: "dk", gender: "m", kind: "league", groups: ["nordic"], data: { standings: true, scorers: true }, mark: "SL" },
 ] as const satisfies readonly AfComp[];
 
 export type AfId = (typeof AF_COMPS)[number]["id"];
