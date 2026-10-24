@@ -140,6 +140,7 @@ const DAY = 86400_000;
   ok("etusivu: Veikkausliiga omana ryhmänään", groups.includes("Veikkausliiga"), groups.join(", "));
   const lc = Number(await page.locator(".f-live .fcount").innerText().catch(() => "0"));
   ok("  Live-määrässä mukana käynnissä oleva Veikkausliiga-ottelu", lc >= 1, String(lc));
+  ok("  live-rivillä ei punaista palloa ajan vieressä", (await page.locator(".mrow.is-live").count()) >= 1 && (await page.locator(".mrow .live-dot").count()) === 0);
   // (simuloidun football-datan minuuttiraja voi palvelimen käynnistyksen jälkeen näkyä muiden sarjojen kohdalla – ei tämän testin asia)
   const pf = await page.locator(".part-fail").innerText().catch(() => "");
   ok("  ei 'osa ei latautunut' -ilmoitusta API-Football-kilpailuista", !/Veikkausliiga|Ykkösliiga|Suomen Cup|Kansallinen|MM-|EM-|Kansojen|FA Cup|Liigacup|Copa del Rey|DFB|Coppa Italia|Coupe de France|Women|Naisten|Allsvenskan|Eliteserien|Superliga|Muut kilpailut/.test(pf), pf);

@@ -44,7 +44,6 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
     <div className={`mrow${isLive ? " is-live" : ""}`}>
       <a className="mrow-link" href={href} aria-label={label}>
         <span className={`mrow-st ms-${st.cls}`} aria-hidden="true">
-          {isLive && <i className="live-dot" />}
           <span>{st.short}</span>
         </span>
         <span className="mrow-teams" aria-hidden="true">
