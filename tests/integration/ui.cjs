@@ -442,6 +442,8 @@ const MIN = 60_000;
       const r404 = await fetch(APP + "/api/siirrot?l=superlig&t=ei-ole-olemassa");
       const after = (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => x.url.startsWith("/af/")).length;
       ok("  tuntematon joukkue: 404, ei lähdehakua", r404.status === 404 && after === before, `${r404.status} ${before}→${after}`);
+      // takaisin yleiskatsaukseen (välilehti jää osoitteeseen #transfers), seuraavat tarkistukset olettavat sen
+      await page.goto(APP + "/joukkue/superlig/testispor-ankara", { waitUntil: "networkidle" });
     }
     // kilpailujen logot värineliön tilalla (ESPN:n kilpailulogot; testiympäristössä kuvat eivät lataudu → neutraali piste)
     const teamHtml = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
