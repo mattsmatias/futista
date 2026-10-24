@@ -12,7 +12,9 @@ function Rich({ text }: { text: string }) {
     <>
       {parts.map((p, i) => {
         const m = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-        return m ? <a key={i} href={m[2]} target="_blank" rel="noopener">{m[1]}</a> : <Fragment key={i}>{p}</Fragment>;
+        if (!m) return <Fragment key={i}>{p}</Fragment>;
+        // sisäiset linkit (/mainosta) samaan välilehteen
+        return m[2].startsWith("/") ? <a key={i} href={m[2]}>{m[1]}</a> : <a key={i} href={m[2]} target="_blank" rel="noopener">{m[1]}</a>;
       })}
     </>
   );

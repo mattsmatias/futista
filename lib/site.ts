@@ -4,5 +4,5 @@ export const SITE = {
   name: "Futista",
   owner: "",                  // ei näytetä sivulla
   email: "",                  // esim. "futista@gmail.com"
-  updated: "2026-10-21",      // tietosuojaselosteen päiväys
+  updated: "2026-10-24",      // tietosuojaselosteen päiväys
 };

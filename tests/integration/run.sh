@@ -29,6 +29,8 @@ export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_lo
 # siirrot: simuloitu API-Football (mock-sources.cjs /af/)
 export APIFOOTBALL_KEY=test-not-a-real-key APIFOOTBALL_BASE_URL=http://127.0.0.1:9101/af
 export RAPIDAPI_KEY=test-not-a-real-key RAPIDAPI_ON=1 RAPIDAPI_SCOPE=ligue1 RAPIDAPI_BASE_URL=http://127.0.0.1:9104 RAPIDAPI_PER_HOUR=40
+# Mainosta-lomake: simuloitu Resend (mock-sources.cjs /resend/), testiosoitteet (example.test ei ole oikea verkkotunnus)
+export RESEND_API_KEY=test-not-a-real-key RESEND_BASE_URL=http://127.0.0.1:9101/resend CONTACT_TO_EMAIL=yllapito@example.test CONTACT_FROM_EMAIL="Futista <lomake@example.test>"
 [ -n "${FONTS_MOCK:-}" ] && export NEXT_FONT_GOOGLE_MOCKED_RESPONSES="$FONTS_MOCK"
 [ "${SKIP_BUILD:-}" = 1 ] || npx next build
 rm -rf .next/cache/fetch-cache   # testit alkavat tyhjästä datavälimuistista
@@ -40,9 +42,14 @@ node tests/integration/chain.cjs || rc=1
 node tests/integration/ui.cjs || rc=1
 node tests/integration/kokoonpanot.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
-start env FD_OFF=1 ESPN_OFF=1
+start env FD_OFF=1 ESPN_OFF=1 RESEND_API_KEY=
 node tests/integration/switches.cjs || rc=1
+MAINOSTA_MODE=off node tests/integration/mainosta.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env RAPIDAPI_ON=0
 KOK_MODE=off node tests/integration/kokoonpanot.cjs || rc=1
+kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
+# mainoskortti ja Mainosta-sivu: simuloitu uutissyöte (muut testit ajetaan ilman uutisia)
+start env NEWS_FEED_BASE_URL=http://127.0.0.1:9101/feed
+node tests/integration/mainosta.cjs || rc=1
 exit $rc

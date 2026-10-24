@@ -2,7 +2,7 @@
 // Kotitekoista dataa, EI yhteyttä oikeisiin rajapintoihin. Tilaa ohjataan:
 //   GET /__mode?fd=ok|down|429&espn=ok|down&h2h=ok|empty|down   GET /__log   GET /__reset
 const http = require("node:http");
-const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok" };
+const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", resend: "ok" };
 const log = [];
 const json = (res, code, body, extra = {}) => { res.writeHead(code, { "content-type": "application/json", ...extra }); res.end(JSON.stringify(body)); };
 const now = Date.now();
@@ -187,14 +187,43 @@ function af(path, req, res) {
   return send({ errors: [], response: [] });
 }
 
+// Uutissyöte (simuloitu RSS, vain Mainosta-testien palvelimelle NEWS_FEED_BASE_URL): La Liga 9 juttua, Valioliiga 3
+function feed(id, res) {
+  const n = { laliga: 9, valioliiga: 3 }[id];
+  if (!n) { res.writeHead(404); return res.end(); }
+  const now = Date.now(), site = id === "laliga" ? "laliiga" : "valioliiga", pre = id === "laliga" ? "Testiuutinen" : "Valioliigan testiuutinen";
+  const off = id === "laliga" ? 0 : 30; // Valioliigan jutut vanhempia → kaikki-näkymän kuusi ensimmäistä ovat La Ligasta
+  const items = Array.from({ length: n }, (_, k) => `<item><title>${pre} ${k + 1}</title><link>https://www.${site}.com/testi-${k + 1}/</link>
+<guid>${id}-testi-${k + 1}</guid><dc:creator>Testaaja</dc:creator><pubDate>${new Date(now - (k + 1 + off) * 3600_000).toUTCString()}</pubDate>
+<category>Uutiset</category><description><![CDATA[<p>Testijutun ${k + 1} ingressi. Toinen lause.</p>]]></description></item>`).join("\n");
+  res.writeHead(200, { "content-type": "application/rss+xml" });
+  res.end(`<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Testi</title>${items}</channel></rss>`);
+}
+
+// Resend (simuloitu sähköpostin lähetys): tallentaa vastaanotetut viestit /__mail-listaan
+const mail = [];
+function resend(path, req, res) {
+  let b = "";
+  req.on("data", (c) => (b += c));
+  req.on("end", () => {
+    if (mode.resend === "down") return json(res, 500, { name: "internal_server_error" });
+    if (req.method !== "POST" || path !== "/emails") return json(res, 404, {});
+    if (!/^Bearer \S+/.test(req.headers.authorization || "")) return json(res, 401, { name: "missing_api_key" });
+    try { const m = JSON.parse(b); mail.push(m); return json(res, 200, { id: `test-${mail.length}` }); } catch { return json(res, 422, {}); }
+  });
+}
+
 http.createServer((req, res) => {
   const u = new URL(req.url, "http://x");
   if (u.pathname === "/__mode") { for (const k of Object.keys(mode)) if (u.searchParams.get(k)) mode[k] = u.searchParams.get(k); return json(res, 200, mode); }
   if (u.pathname === "/__log") return json(res, 200, log);
   if (u.pathname === "/__reset") { log.length = 0; return json(res, 200, {}); }
+  if (u.pathname === "/__mail") { if (u.searchParams.get("clear")) mail.length = 0; return json(res, 200, mail); }
   log.push({ t: Date.now(), url: req.url, mode: { ...mode } });
   if (req.url.startsWith("/v4/")) return fd(req.url.slice(3), res);
   if (req.url.startsWith("/espn/")) return espn(req.url.slice(6), res);
   if (req.url.startsWith("/af/")) return af(req.url.slice(3), req, res);
+  if (req.url.startsWith("/feed/")) return feed(req.url.slice(6), res);
+  if (req.url.startsWith("/resend/")) return resend(req.url.slice(7), req, res);
   json(res, 404, {});
 }).listen(Number(process.env.PORT || 9101), "127.0.0.1", () => console.log("mock-sources ready"));

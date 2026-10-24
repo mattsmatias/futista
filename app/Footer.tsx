@@ -22,6 +22,7 @@ export default function Footer() {
         <nav className="foot-links" aria-label={t("footerNav")}>
           <a href="/maajoukkueet">{t("nationalTeams")}</a>
           <a href="/tietoa">{t("about")}</a>
+          <a href="/mainosta">{t("footAdvertise")}</a>
           <a href="/tietosuoja">{t("privacy")}</a>
         </nav>
         <small className="foot-credits">

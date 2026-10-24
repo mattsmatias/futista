@@ -8,7 +8,7 @@ export type Doc = { title: string; intro: string; sections: Section[] };
 export const PRIVACY: Record<Lang, Doc> = {
   fi: {
     title: "Tietosuoja",
-    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
+    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön tai lähetä yhteydenottopyyntöä Mainosta-sivun lomakkeella. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
     sections: [
       {
         h: "Rekisterinpitäjä ja yhteystiedot",
@@ -33,6 +33,14 @@ export const PRIVACY: Record<Lang, Doc> = {
         ],
       },
       {
+        h: "Yhteydenottolomake (Mainosta-sivu)",
+        p: [
+          "Jos lähetät yhteydenottopyynnön [Mainosta-sivulla](/mainosta), lomakkeen tiedot (nimi, yritys jos annat sen, sähköpostiosoite ja viesti) toimitetaan Futistan ylläpidon sähköpostiin. Niitä käytetään vain yhteydenottoosi vastaamiseen ja mahdollisesta mainonnasta tai yhteistyöstä sopimiseen. Käsittelyn perusteena on pyyntösi.",
+          "Viesti välitetään sähköpostina [Resend](https://resend.com/legal/privacy-policy)-palvelun kautta. Futistan palvelin ei tallenna viestiä tietokantaan eikä kirjaa sen sisältöä tai sähköpostiosoitettasi lokeihin. Viestiä säilytetään ylläpidon sähköpostissa vain niin kauan kuin yhteydenpito sitä edellyttää.",
+          "Roskapostin ja väärinkäytön estämiseksi palvelin laskee lähetyskertoja lyhyen aikaa IP-osoitteesta muodostetun tunnisteen perusteella. Tunnistetta ei tallenneta levylle eikä tietokantaan; se pidetään vain palvelimen väliaikaisessa muistissa lähetysrajan ajan (10 minuuttia).",
+        ],
+      },
+      {
         h: "Palvelin ja lokitiedot",
         p: [
           "Sivuston liikenne kulkee [Cloudflaren](https://www.cloudflare.com/privacypolicy/) verkon kautta, ja sivusto toimii [Vercelin](https://vercel.com/legal/privacy-policy) palvelimilla. Cloudflaren vastaukset pyytävät selainta raportoimaan verkkovirheistä Cloudflarelle (Network Error Logging). Cloudflare lisää sivulle myös [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) -skriptin, joka lähettää Cloudflarelle sivun latausta ja käyntiä koskevia tilastotietoja; Cloudflaren mukaan se ei käytä evästeitä. Kuten kaikki verkkopalvelut, Cloudflare ja Vercel käsittelevät teknisesti IP-osoitteesi ja selaimesi tiedot sivun toimittamiseksi ja tietoturvan vuoksi, ja säilyttävät lokit omien käytäntöjensä mukaisesti.",
@@ -49,7 +57,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Oikeutesi",
         p: [
-          "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Muita tietoja meillä ei sinusta ole.",
+          "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Jos olet lähettänyt yhteydenottopyynnön, voit pyytää viestisi poistamista tai pääsyä siihen ottamalla yhteyttä samalla lomakkeella. Muita tietoja meillä ei sinusta ole.",
           "Sinulla on oikeus tehdä valitus [tietosuojavaltuutetulle](https://tietosuoja.fi).",
         ],
       },
@@ -57,7 +65,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   sv: {
     title: "Integritet",
-    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar. Sidan har ingen registrering och ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel, och Cloudflare lägger till besöksstatistik på sidan (Cloudflare Web Analytics; se Server och loggar).",
+    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar eller skickar en kontaktförfrågan via formuläret på sidan Annonsera. Sidan har ingen registrering och ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel, och Cloudflare lägger till besöksstatistik på sidan (Cloudflare Web Analytics; se Server och loggar).",
     sections: [
       {
         h: "Personuppgiftsansvarig och kontakt",
@@ -82,6 +90,14 @@ export const PRIVACY: Record<Lang, Doc> = {
         ],
       },
       {
+        h: "Kontaktformulär (sidan Annonsera)",
+        p: [
+          "Om du skickar en kontaktförfrågan på [sidan Annonsera](/mainosta) skickas formulärets uppgifter (namn, företag om du anger det, e-postadress och meddelande) till Futistas e-post. De används endast för att besvara din förfrågan och för att avtala om eventuell annonsering eller samarbete. Grunden för behandlingen är din förfrågan.",
+          "Meddelandet skickas som e-post via tjänsten [Resend](https://resend.com/legal/privacy-policy). Futistas server sparar inte meddelandet i någon databas och loggar inte innehållet eller din e-postadress. Meddelandet sparas i Futistas e-post endast så länge kontakten kräver det.",
+          "För att förhindra skräppost och missbruk räknar servern antalet försök under en kort tid med hjälp av en identifierare som bildas av IP-adressen. Identifieraren sparas inte på disk eller i någon databas; den hålls bara i serverns tillfälliga minne under spärrtiden (10 minuter).",
+        ],
+      },
+      {
         h: "Server och loggar",
         p: [
           "Trafiken går via [Cloudflares](https://www.cloudflare.com/privacypolicy/) nät och webbplatsen körs på [Vercels](https://vercel.com/legal/privacy-policy) servrar. Cloudflares svar ber webbläsaren rapportera nätverksfel till Cloudflare (Network Error Logging). Cloudflare lägger också till skriptet [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/), som skickar statistik om sidladdning och besök till Cloudflare; enligt Cloudflare använder det inga kakor. Som alla webbtjänster behandlar Cloudflare och Vercel tekniskt din IP-adress och webbläsarinformation för att leverera sidan och av säkerhetsskäl, och sparar loggar enligt sina egna rutiner.",
@@ -98,7 +114,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Dina rättigheter",
         p: [
-          "Du raderar aviseringsuppgifterna genom att stänga av aviseringarna. Andra uppgifter om dig har vi inte.",
+          "Du raderar aviseringsuppgifterna genom att stänga av aviseringarna. Om du har skickat en kontaktförfrågan kan du begära att ditt meddelande raderas eller att få ta del av det genom att kontakta oss via samma formulär. Andra uppgifter om dig har vi inte.",
           "Du har rätt att lämna klagomål till [dataombudsmannen i Finland](https://tietosuoja.fi/sv).",
         ],
       },
@@ -106,7 +122,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   en: {
     title: "Privacy",
-    intro: "Futista does not collect personal data about you unless you turn on notifications. The site has no sign-up and no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel, and Cloudflare adds visitor statistics to the page (Cloudflare Web Analytics; see Server and logs).",
+    intro: "Futista does not collect personal data about you unless you turn on notifications or send an enquiry through the form on the Advertise page. The site has no sign-up and no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel, and Cloudflare adds visitor statistics to the page (Cloudflare Web Analytics; see Server and logs).",
     sections: [
       {
         h: "Controller and contact",
@@ -131,6 +147,14 @@ export const PRIVACY: Record<Lang, Doc> = {
         ],
       },
       {
+        h: "Contact form (Advertise page)",
+        p: [
+          "If you send an enquiry on the [Advertise page](/mainosta), the form details (name, company if you give it, email address and message) are delivered to Futista's email. They are used only to reply to your enquiry and to agree on any advertising or partnership. The basis for processing is your request.",
+          "The message is sent as email through [Resend](https://resend.com/legal/privacy-policy). Futista's server does not store the message in a database and does not log its content or your email address. The message is kept in Futista's email only as long as the correspondence requires.",
+          "To prevent spam and abuse, the server counts attempts for a short time using an identifier derived from your IP address. The identifier is not written to disk or a database; it is only kept in the server's temporary memory for the limit period (10 minutes).",
+        ],
+      },
+      {
         h: "Hosting and server logs",
         p: [
           "Traffic passes through [Cloudflare's](https://www.cloudflare.com/privacypolicy/) network and the site runs on [Vercel](https://vercel.com/legal/privacy-policy) servers. Cloudflare's responses ask the browser to report network errors to Cloudflare (Network Error Logging). Cloudflare also adds the [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) script, which sends page-load and visit statistics to Cloudflare; according to Cloudflare it uses no cookies. Like any web service, Cloudflare and Vercel technically process your IP address and browser details to deliver the page and for security, and keep logs under their own policies.",
@@ -147,7 +171,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Your rights",
         p: [
-          "You delete your notification data by turning notifications off. We hold no other data about you.",
+          "You delete your notification data by turning notifications off. If you have sent an enquiry, you can ask for your message to be deleted or for a copy of it by contacting us through the same form. We hold no other data about you.",
           "You have the right to lodge a complaint with the [Data Protection Ombudsman of Finland](https://tietosuoja.fi/en).",
         ],
       },

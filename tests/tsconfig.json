@@ -27,6 +27,7 @@
     "cache.test.ts",
     "espn-lineups.test.ts",
     "rapid.test.ts",
-    "apifootball.test.ts"
+    "apifootball.test.ts",
+    "contact.test.ts"
   ]
 }

@@ -108,7 +108,9 @@ export async function getArticles(): Promise<Article[]> {
 }
 
 async function readAll(): Promise<Article[]> {
-  const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, f))))).flat();
+  // testejä varten syötteen voi korvata paikallisella (EI koskaan tuotannossa): NEWS_FEED_BASE_URL/<sarja>
+  const mock = process.env.VERCEL_ENV !== "production" ? process.env.NEWS_FEED_BASE_URL : undefined;
+  const all = (await Promise.all(SOURCES.flatMap((s) => s.feeds.map((f) => readFeed(s, mock ? `${mock}/${s.id}` : f))))).flat();
   if (!all.length) throw new Error("yksikään uutissyöte ei vastannut");
   // sama juttu voi tulla kahdesta syötteestä
   const seen = new Set<string>();

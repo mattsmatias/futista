@@ -9,6 +9,8 @@ import { useFreshArticles } from "@/lib/fresh";
 import { useUrlParam } from "@/lib/url-state";
 import Footer from "../Footer";
 import { NewsLead, NewsItem } from "./News";
+import AdSlot from "./AdSlot";
+import { NEWS_AD_AFTER } from "@/lib/ad-slot";
 
 const PAGE = 20;
 
@@ -24,6 +26,7 @@ export default function NewsPage({ articles: first }: { articles: Article[] }) {
     .filter((a) => comp === "all" || a.source === comp)
     .filter((a) => kind === "all" || a.type === "Siirtouutiset"), [articles, comp, kind]);
   const [lead, ...rest] = list;
+  const split = NEWS_AD_AFTER - 1; // pääuutinen on ensimmäinen
 
   return (
     <>
@@ -49,10 +52,15 @@ export default function NewsPage({ articles: first }: { articles: Article[] }) {
         {rest.length > 0 && (
           <section aria-label={t("latest")}>
             <h2 className="sub-h">{t("latest")}</h2>
-            <div className="nlist">{rest.slice(0, n).map((a) => <NewsItem key={a.id} a={a} isNew={fresh.has(a.id)} />)}</div>
+            {/* mainoskortti NEWS_AD_AFTER uutisen jälkeen (pääuutinen mukaan lukien) omana kokonaisena rivinään listojen välissä;
+                jos uutisia on vähemmän, kortti on listan lopussa */}
+            <div className="nlist">{rest.slice(0, Math.min(n, split)).map((a) => <NewsItem key={a.id} a={a} isNew={fresh.has(a.id)} />)}</div>
+            <AdSlot />
+            {rest.length > split && n > split && <div className="nlist">{rest.slice(split, n).map((a) => <NewsItem key={a.id} a={a} isNew={fresh.has(a.id)} />)}</div>}
             {rest.length > n && <button type="button" className="btn ghost more-btn" onClick={() => setN(n + PAGE)}>{t("loadMoreNews")}</button>}
           </section>
         )}
+        {lead && rest.length === 0 && <AdSlot />}
       </main>
       <Footer />
     </>

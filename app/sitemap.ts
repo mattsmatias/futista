@@ -37,5 +37,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...[...matches.entries()].map(([path, d]) => ({ url: BASE + path, lastModified: d, changeFrequency: "hourly" as const, priority: 0.5 })),
     { url: `${BASE}/tietoa`, changeFrequency: "monthly", priority: 0.2 },
     { url: `${BASE}/tietosuoja`, changeFrequency: "monthly", priority: 0.2 },
+    { url: `${BASE}/mainosta`, changeFrequency: "monthly", priority: 0.2 },
   ];
 }
