@@ -14,8 +14,10 @@ export function useUrlParam(key: string, fallback: string, valid: (v: string) =>
       setV(x !== null && valid(x) ? x : fallback);
     };
     read();
+    // popstate = takaisin/eteenpäin; URL_EVENT = saman sivun linkki (esim. alapalkin Live → /?n=live) tai toinen näkymän tila
     window.addEventListener("popstate", read);
-    return () => window.removeEventListener("popstate", read);
+    window.addEventListener(URL_EVENT, read);
+    return () => { window.removeEventListener("popstate", read); window.removeEventListener(URL_EVENT, read); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, fallback]);
   const set = useCallback((x: string) => {

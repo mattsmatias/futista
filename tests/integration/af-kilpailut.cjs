@@ -164,6 +164,21 @@ const DAY = 86400_000;
   const n320 = await page.evaluate(() => [...document.querySelectorAll(".bottomnav a")].map((a) => ({ fit: a.scrollWidth <= a.clientWidth + 1, w: Math.round(a.getBoundingClientRect().width) })));
   ok("  320 px: alapalkin tekstit mahtuvat", n320.every((x) => x.fit && x.w >= 44), JSON.stringify(n320));
   await page.setViewportSize({ width: 390, height: 844 });
+  // alapalkin Live ↔ Ottelut samalla sivulla (/ ↔ /?n=live): näkymä vaihtuu ilman sivun latausta (korjaus 25.10.2026)
+  {
+    const state = () => page.evaluate(() => ({ url: location.pathname + location.search, nav: document.querySelector(".bottomnav a[aria-current=page]")?.textContent, f: document.querySelector(".filters .fbtn[aria-pressed=true]")?.textContent?.replace(/\d+/g, "").trim() }));
+    await page.goto(APP + "/", { waitUntil: "load" }); await page.waitForTimeout(1500);
+    await page.locator(".bottomnav a", { hasText: /^Live$/ }).click(); await page.waitForTimeout(800);
+    const a = await state();
+    ok("alapalkki Live (etusivulta): Live-suodatin päälle ja Live korostettu", a.url === "/?n=live" && a.nav === "Live" && a.f === "Live", JSON.stringify(a));
+    await page.locator(".bottomnav a", { hasText: /^Ottelut$/ }).click(); await page.waitForTimeout(800);
+    const b = await state();
+    ok("  alapalkki Ottelut (Live-näkymästä): Kaikki-suodatin ja Ottelut korostettu", b.url === "/" && b.nav === "Ottelut" && b.f === "Kaikki", JSON.stringify(b));
+    await page.locator(".bottomnav a", { hasText: /^Live$/ }).click(); await page.waitForTimeout(800);
+    await page.goBack(); await page.waitForTimeout(1200);
+    const c = await state();
+    ok("  takaisin-painike Live-näkymästä palauttaa Kaikki-näkymän", c.url === "/" && c.nav === "Ottelut" && c.f === "Kaikki", JSON.stringify(c));
+  }
   ok("selain: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();
 

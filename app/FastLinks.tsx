@@ -3,6 +3,7 @@
 // uudelleenlatausta), ja linkki ladataan valmiiksi jo ennen kuin sitä ehditään painaa.
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { URL_EVENT } from "@/lib/url-state";
 
 export default function FastLinks() {
   const router = useRouter();
@@ -22,6 +23,16 @@ export default function FastLinks() {
       const href = internal(e.target as Element);
       if (!href) return;
       e.preventDefault();
+      const u = new URL(href, location.href);
+      if (u.pathname === location.pathname) {
+        // sama sivu, eri näkymän tila (esim. Ottelut "/" ↔ Live "/?n=live"): sivua ei ladata uudelleen, joten
+        // osoite vaihdetaan ja näkymälle ilmoitetaan muutoksesta (useUrlParam ja alapalkin korostus lukevat sen).
+        // Aiemmin router.push vaihtoi vain osoitteen, ja näkymä jäi ennalleen ("nappi ei toimi").
+        if (u.pathname + u.search + u.hash !== location.pathname + location.search + location.hash) history.pushState(null, "", href);
+        window.dispatchEvent(new Event(URL_EVENT));
+        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+        return;
+      }
       router.push(href);
     };
 
