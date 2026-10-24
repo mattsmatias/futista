@@ -217,3 +217,11 @@ test("muun sarjan ottelu → API-Footballin ottelu: molemmat joukkueet ja aika; 
   assert.equal(pickFixture(M, k, "Manchester United FC", "Arsenal FC"), 7);
   assert.equal(pickFixture(M, k, "Manchester", "Arsenal"), null);
 });
+
+test("live-ottelun joukkue: lähteen 'RCD Espanyol de Barcelona' on Espanyol, ei Barcelona (havaittu 24.10.2026)", async () => {
+  const { bestTeam, words } = await import("../lib/live-core");
+  const teams = [{ name: "Barcelona" }, { name: "Racing Santander" }, { name: "Espanyol" }, { name: "Real Madrid" }];
+  assert.equal(bestTeam(teams, ["espanyol", "barcelona", "esp"])?.name, "Espanyol");
+  assert.equal(bestTeam(teams, words("FC Barcelona"))?.name, "Barcelona");
+  assert.equal(bestTeam(teams, ["real", "racing", "santander", "san"])?.name, "Racing Santander");
+});

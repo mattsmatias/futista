@@ -147,8 +147,15 @@ export const sameTeamStrict = (ours: string, theirs: string[]) => same(ours, the
 
 /** Paras vastine joukkuelistasta: ensin täsmällinen nimi, sitten yksiselitteinen nimen osa */
 export function bestTeam<T extends { name: string }>(teams: T[], theirs: string[]): T | undefined {
-  const exact = teams.find((t) => same(t.name, theirs));
-  if (exact) return exact;
+  // useampi täysi osuma (esim. lähteen "RCD Espanyol de Barcelona" → sekä "Espanyol" että "Barcelona"):
+  // valitaan se, jonka nimi alkaa aikaisimmin lähteen nimessä (päänimi on ensin); tasapeli → ei arvata
+  const exact = teams.filter((t) => same(t.name, theirs));
+  if (exact.length === 1) return exact[0];
+  if (exact.length > 1) {
+    const at = (t: T) => Math.min(...words(t.name).map((w) => theirs.indexOf(w)).filter((i) => i >= 0));
+    const ranked = exact.map((t) => ({ t, i: at(t) })).sort((a, b) => a.i - b.i);
+    return ranked[0].i < ranked[1].i ? ranked[0].t : undefined;
+  }
   const part = teams.filter((t) => partly(t.name, theirs));
   return part.length === 1 ? part[0] : undefined;
 }
