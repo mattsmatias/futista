@@ -1609,3 +1609,21 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .foot-leagues { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
 .foot-leagues a { color: var(--muted); }
 .foot-leagues a:hover { color: var(--fg); }
+
+/* Siirrot-välilehti (joukkueen sivu) */
+.tr-list { list-style: none; margin: 0; padding: 0; }
+.tr-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.tr-row:first-child { border-top: 0; }
+.tr-photo { flex: none; width: 40px; height: 40px; border-radius: 10px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; }
+.tr-photo img { width: 40px; height: 40px; object-fit: cover; }
+.tr-photo b { font: 700 15px var(--ui); color: var(--muted); }
+.tr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tr-name { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-other { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tr-other .crest, .tr-other .badge { flex: none; }
+.tr-meta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.tr-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tr-kind { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--fg); white-space: nowrap; }
+.tr-loan, .tr-loanEnd { background: color-mix(in srgb, #3b82f6 16%, transparent); }
+.tr-free { background: color-mix(in srgb, var(--win) 16%, transparent); }
+.tr-src { margin: 10px 4px 0; }

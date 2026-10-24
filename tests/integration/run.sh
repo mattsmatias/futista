@@ -26,6 +26,8 @@ node tests/integration/mock-rapid.cjs & pids+=($!)
 export FOOTBALL_DATA_KEY=test-not-a-real-key FD_BASE_URL=http://127.0.0.1:9101/v4 ESPN_BASE_URL=http://127.0.0.1:9101/espn/
 export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_localtest FD_QUOTA_REQUIRED=1 NEXT_TELEMETRY_DISABLED=1
 # kokoonpanot ja tilastot: simuloitu RapidAPI (mock-rapid.cjs), vain testisarja ligue1
+# siirrot: simuloitu API-Football (mock-sources.cjs /af/)
+export APIFOOTBALL_KEY=test-not-a-real-key APIFOOTBALL_BASE_URL=http://127.0.0.1:9101/af
 export RAPIDAPI_KEY=test-not-a-real-key RAPIDAPI_ON=1 RAPIDAPI_SCOPE=ligue1 RAPIDAPI_BASE_URL=http://127.0.0.1:9104 RAPIDAPI_PER_HOUR=40
 [ -n "${FONTS_MOCK:-}" ] && export NEXT_FONT_GOOGLE_MOCKED_RESPONSES="$FONTS_MOCK"
 [ "${SKIP_BUILD:-}" = 1 ] || npx next build

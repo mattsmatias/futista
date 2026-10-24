@@ -8,7 +8,7 @@ import { clubByName, SOURCES, isMain } from "@/lib/sources";
 import { useI18n } from "@/lib/i18n";
 import { HeartButton } from "@/lib/favorites";
 import { norm } from "@/lib/teams";
-import { matchHref } from "@/lib/routes";
+import { matchHref, teamSlug } from "@/lib/routes";
 import { Badge, FixtureRow, FormPills, LoadError, Match, Scorers, Standings, SrcLine } from "../../../Stats";
 import { Card } from "../../../Cards";
 import Footer from "../../../Footer";
@@ -24,6 +24,7 @@ import { StatusPill } from "@/lib/live";
 import { teamForm, seasonStart, compRank, type FormItem } from "@/lib/team-form";
 import { useScorers } from "@/lib/leagues-client";
 import { todayHel } from "@/lib/day";
+import TransfersTab from "../../../ui/TransfersTab";
 
 /** Kunto kaikista virallisista kilpailuista: 5 viimeisintä (uusin oikealla) ja kauden kokonaismäärät */
 function FormAll({ games, calendarYear, season }: { games: Game[]; calendarYear: boolean; season?: string | null }) {
@@ -57,8 +58,8 @@ function FormAll({ games, calendarYear, season }: { games: Game[]; calendarYear:
   );
 }
 
-type Tab = "overview" | "matches" | "squad" | "news" | "table";
-const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", news: "teamNews", table: "standingsTab" };
+type Tab = "overview" | "matches" | "squad" | "transfers" | "news" | "table";
+const LABEL: Record<Tab, Key> = { overview: "overview", matches: "matches", squad: "squad", transfers: "transfers", news: "teamNews", table: "standingsTab" };
 
 const ORDER = ["Goalkeeper", "Defence", "Midfield", "Offence"];
 
@@ -121,7 +122,7 @@ function TeamScorers({ id, league }: { id: string; league: string }) {
   );
 }
 
-export default function TeamView({ s, team, news, info, infoFailed, games }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null; infoFailed?: boolean; games: Game[] | null }) {
+export default function TeamView({ s, team, news, info, infoFailed, games, transfersOn = false }: { s: LeagueStats; team: Team; news: Article[]; info: TeamInfo | null; infoFailed?: boolean; games: Game[] | null; transfersOn?: boolean }) {
   const i = useI18n();
   const { t } = i;
   const n = norm(team.name);
@@ -156,8 +157,8 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
   const club = clubByName(team.name);
   const src = SOURCES.find((x) => x.id === s.source)!;
   const hasSquad = !!info && info.squad.length > 0;
-  const tabs = (["overview", "matches", "squad", "news", "table"] as Tab[]).filter((k) =>
-    k === "squad" ? hasSquad || !!infoFailed : k === "news" ? news.length > 0 || isMain(s.source) : k === "table" ? s.table.length > 0 : true);
+  const tabs = (["overview", "matches", "squad", "transfers", "news", "table"] as Tab[]).filter((k) =>
+    k === "squad" ? hasSquad || !!infoFailed : k === "transfers" ? transfersOn : k === "news" ? news.length > 0 || isMain(s.source) : k === "table" ? s.table.length > 0 : true);
   const [tab, setTab] = useState<Tab>("overview");
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -318,6 +319,8 @@ export default function TeamView({ s, team, news, info, infoFailed, games }: { s
 
         {tab === "squad" && info && <Squad info={info} team={team.name} />}
         {tab === "squad" && !info && infoFailed && <section className="panel"><p className="muted pad">{t("sourceDown")}</p></section>}
+
+        {tab === "transfers" && transfersOn && <section className="sec"><TransfersTab source={s.source} slug={teamSlug(team.name)} /></section>}
 
         {tab === "news" && <section className="sec">
           {news.length

@@ -2,7 +2,7 @@
 // Kotitekoista dataa, EI yhteyttä oikeisiin rajapintoihin. Tilaa ohjataan:
 //   GET /__mode?fd=ok|down|429&espn=ok|down&h2h=ok|empty|down   GET /__log   GET /__reset
 const http = require("node:http");
-const mode = { fd: "ok", espn: "ok", h2h: "ok" };
+const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok" };
 const log = [];
 const json = (res, code, body, extra = {}) => { res.writeHead(code, { "content-type": "application/json", ...extra }); res.end(JSON.stringify(body)); };
 const now = Date.now();
@@ -162,6 +162,31 @@ function espn(path, res) {
   return json(res, 404, {});
 }
 
+// API-Football (simuloitu): Süper Ligin kuvitteelliset joukkueet ja siirrot. Avain vaaditaan otsakkeessa.
+function af(path, req, res) {
+  if (mode.af === "down") return json(res, 503, {});
+  const hdr = { "x-ratelimit-requests-limit": "7500", "x-ratelimit-requests-remaining": "7000" };
+  const send = (body) => { res.writeHead(200, { "content-type": "application/json", ...hdr }); res.end(JSON.stringify(body)); };
+  if (!req.headers["x-apisports-key"]) return send({ errors: { token: "Error/Missing application key" }, response: [] });
+  const u = new URL(path, "http://x");
+  if (u.pathname === "/teams") {
+    if (u.searchParams.get("league") !== "203") return send({ errors: [], response: [{ team: { id: 9990, name: "Muu Seura" } }] });
+    return send({ errors: [], response: [[5001, "Testispor Ankara"], [5002, "Mittaspor Izmir"], [5003, "Koespor"]].map(([id, name]) => ({ team: { id, name, logo: null } })) });
+  }
+  if (u.pathname === "/transfers" && u.searchParams.get("team") === "5001") {
+    const y = new Date().getUTCMonth() >= 6 ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
+    const tr = (date, type, inn, out) => ({ date, type, teams: { in: inn, out } });
+    const A = { id: 5001, name: "Testispor Ankara", logo: null }, X = { id: 6001, name: "Kaukoseura", logo: null }, Y = { id: 6002, name: "Lainaseura", logo: null };
+    return send({ errors: [], response: [
+      { player: { id: 801, name: "Uusi Hyökkääjä" }, transfers: [tr(`${y}-07-15`, "€ 4.5M", A, X)] },
+      { player: { id: 802, name: "Lainattu Puolustaja" }, transfers: [tr(`${y}-08-20`, "Loan", Y, A)] },
+      { player: { id: 803, name: "Vanha Siirto" }, transfers: [tr(`${y - 1}-07-01`, "Free", A, X)] },
+      { player: { id: 804, name: "Vapaa Keskikenttä" }, transfers: [tr(`${y}-07-01`, "Free", A, Y)] },
+    ] });
+  }
+  return send({ errors: [], response: [] });
+}
+
 http.createServer((req, res) => {
   const u = new URL(req.url, "http://x");
   if (u.pathname === "/__mode") { for (const k of Object.keys(mode)) if (u.searchParams.get(k)) mode[k] = u.searchParams.get(k); return json(res, 200, mode); }
@@ -170,5 +195,6 @@ http.createServer((req, res) => {
   log.push({ t: Date.now(), url: req.url, mode: { ...mode } });
   if (req.url.startsWith("/v4/")) return fd(req.url.slice(3), res);
   if (req.url.startsWith("/espn/")) return espn(req.url.slice(6), res);
+  if (req.url.startsWith("/af/")) return af(req.url.slice(3), req, res);
   json(res, 404, {});
 }).listen(Number(process.env.PORT || 9101), "127.0.0.1", () => console.log("mock-sources ready"));

@@ -420,6 +420,29 @@ const MIN = 60_000;
     ok("  merkki avaa ottelun", !!lastHref && lastHref.startsWith("/ottelu/"), String(lastHref));
     const dBg = await fa.locator(".fp-d").first().evaluate((e) => getComputedStyle(e).backgroundColor);
     ok("  värit: voitto vihreä, tasapeli oranssi, häviö punainen", (await fa.locator(".fp-w").count()) === 2 && (await fa.locator(".fp-d").count()) === 2 && (await fa.locator(".fp-l").count()) === 1 && dBg === "rgb(245, 163, 0)", dBg);
+    // Siirrot-välilehti (simuloitu API-Football): tulleet ja lähteneet tältä kaudelta, summa vain lähteen kertomana
+    {
+      await fetch(`${MOCK}/__reset`);
+      await page.locator(".ent-tabs [role=tab]", { hasText: /^Siirrot$/ }).click();
+      await page.locator(".tr-panel").first().waitFor({ timeout: 15000 }).catch(() => {});
+      const panels = page.locator(".tr-panel");
+      const inT = (await panels.nth(0).innerText().catch(() => "")).replace(/\s+/g, " "), outT = (await panels.nth(1).innerText().catch(() => "")).replace(/\s+/g, " ");
+      ok("siirrot: välilehti näkyy ja tulleet listattu (summa lähteestä, laina)", /Tulleet/.test(inT) && inT.includes("Uusi Hyökkääjä") && inT.includes("€ 4.5M") && inT.includes("Kaukoseura") && inT.includes("Lainattu Puolustaja") && inT.includes("Laina"), inT.slice(0, 200));
+      ok("  lähteneet: vapaa siirto; edellisen kauden siirto ei mukana", /Lähteneet/.test(outT) && outT.includes("Vapaa Keskikenttä") && outT.includes("Vapaa siirto") && !(inT + outT).includes("Vanha Siirto"), outT.slice(0, 200));
+      ok("  lähde kerrottu", (await page.locator(".tr-src").innerText().catch(() => "")).includes("API-Football"));
+      // toinen avaus ja suora API-kutsu: lähteestä ei haeta uudelleen (välimuisti), kävijämäärä ei kuluta kiintiötä
+      await page.reload({ waitUntil: "networkidle" });
+      await page.locator(".ent-tabs [role=tab]", { hasText: /^Siirrot$/ }).click();
+      await page.locator(".tr-panel").first().waitFor({ timeout: 15000 }).catch(() => {});
+      await fetch(APP + "/api/siirrot?l=superlig&t=testispor-ankara");
+      const afLog = (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => x.url.startsWith("/af/"));
+      ok("  välimuisti: joukkuelista ja siirrot haettu lähteestä kerran", afLog.filter((x) => x.url.includes("/transfers")).length === 1 && afLog.filter((x) => x.url.includes("/teams")).length === 1, afLog.map((x) => x.url).join(" "));
+      // tuntematon joukkue → 404 ilman lähdehakua; joukkue, jota ei löydy lähteestä → nomatch (ei arvata)
+      const before = afLog.length;
+      const r404 = await fetch(APP + "/api/siirrot?l=superlig&t=ei-ole-olemassa");
+      const after = (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => x.url.startsWith("/af/")).length;
+      ok("  tuntematon joukkue: 404, ei lähdehakua", r404.status === 404 && after === before, `${r404.status} ${before}→${after}`);
+    }
     // kilpailujen logot värineliön tilalla (ESPN:n kilpailulogot; testiympäristössä kuvat eivät lataudu → neutraali piste)
     const teamHtml = await (await fetch(APP + "/joukkue/superlig/testispor-ankara")).text();
     ok("kilpailulogot: Eurooppa-liigan ja Süper Ligin logo ottelulistassa", teamHtml.includes("leaguelogos/soccer/500/2310.png") && teamHtml.includes("leaguelogos/soccer/500/18.png"));

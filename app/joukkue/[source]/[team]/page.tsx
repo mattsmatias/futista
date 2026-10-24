@@ -7,6 +7,7 @@ import { findTeam } from "@/lib/routes";
 import { storyIsAbout } from "@/lib/teams";
 import { getTeamInfo } from "@/lib/team-info";
 import { getTeamGames } from "@/lib/espn";
+import { hasApiFootball, afSupported } from "@/lib/apifootball";
 import { hasFd, fdFailingRecently } from "@/lib/fd";
 import TeamView from "./TeamView";
 import JsonLd from "../../../JsonLd";
@@ -55,7 +56,7 @@ export default async function TeamPage({ params }: Props) {
     <>
       <JsonLd data={teamLd({ url, name: d.team.name, league: d.s.league, logo: d.team.crest ?? null })} />
       <JsonLd data={breadcrumbLd([{ name: "Futista", url: `${SITE}/` }, { name: d.s.league, url: `${SITE}/sarjat/${d.s.source}` }, { name: d.team.name, url }])} />
-      <TeamView s={d.s} team={d.team} news={news} info={info} infoFailed={infoFailed} games={games} />
+      <TeamView s={d.s} team={d.team} news={news} info={info} infoFailed={infoFailed} games={games} transfersOn={hasApiFootball() && afSupported(d.s.source)} />
     </>
   );
 }
