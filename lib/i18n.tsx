@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { pushSyncTeams } from "./push-client";
+import { afComp } from "./af-registry";
 
 export type Lang = "fi" | "sv" | "en";
 export const LANGS: { id: Lang; name: string; short: string }[] = [
@@ -402,6 +403,32 @@ const D = {
   c_pt: ["Portugali", "Portugal", "Portugal"],
   c_tr: ["Turkki", "Turkiet", "Türkiye"],
   c_us: ["Yhdysvallat", "USA", "United States"],
+  c_fi: ["Suomi", "Finland", "Finland"],
+  c_se: ["Ruotsi", "Sverige", "Sweden"],
+  c_no: ["Norja", "Norge", "Norway"],
+  c_dk: ["Tanska", "Danmark", "Denmark"],
+  c_world: ["Kansainvälinen", "Internationell", "International"],
+  womenComp: ["Naiset", "Damer", "Women"],
+  grp_fi: ["Suomi", "Finland", "Finland"],
+  ev_title: ["Tapahtumat", "Händelser", "Events"],
+  ev_goal: ["Maali", "Mål", "Goal"],
+  ev_own: ["Oma maali", "Självmål", "Own goal"],
+  ev_pen: ["Maali (rangaistuspotku)", "Mål (straff)", "Goal (penalty)"],
+  ev_missedpen: ["Rangaistuspotku ohi", "Missad straff", "Missed penalty"],
+  ev_yellow: ["Keltainen kortti", "Gult kort", "Yellow card"],
+  ev_red: ["Punainen kortti", "Rött kort", "Red card"],
+  ev_secondyellow: ["Toinen keltainen (punainen)", "Andra gula (rött)", "Second yellow (red)"],
+  ev_sub: ["Vaihto", "Byte", "Substitution"],
+  ev_assist: ["syöttö:", "assist:", "assist:"],
+  ev_none: ["Lähde ei anna tämän ottelun tapahtumia.", "Källan har inga händelser för den här matchen.", "The source has no events for this match."],
+  ev_error: ["Tapahtumia ei saatu haettua juuri nyt.", "Händelserna kunde inte hämtas just nu.", "Couldn't load the events right now."],
+  grp_cups: ["Cupit", "Cuper", "Cups"],
+  grp_nordic: ["Pohjoismaat", "Norden", "Nordic leagues"],
+  grp_women: ["Naisten jalkapallo", "Damfotboll", "Women's football"],
+  seasonEnded: ["päättynyt", "avslutad", "finished"],
+  seasonEndedNote: ["Kausi {s} on päättynyt ({d}). Seuraavan kauden ottelut näkyvät, kun lähde julkaisee ne.", "Säsongen {s} är avslutad ({d}). Nästa säsongs matcher visas när källan publicerar dem.", "Season {s} has finished ({d}). Next season's matches appear once the source publishes them."],
+  roundUnknown: ["Kierros ei tiedossa", "Omgång okänd", "Round unknown"],
+  lg_afall: ["Muut kilpailut (Suomi, maajoukkueet, cupit, naiset, Pohjoismaat)", "Övriga tävlingar", "Other competitions"],
   intlGroup: ["Maaottelut", "Landskamper", "International matches"],
   favSaved: ["Suosikit tallentuvat vain tälle laitteelle.", "Favoriterna sparas bara på den här enheten.", "Favourites are saved on this device only."],
   addTeams: ["Lisää joukkueita", "Lägg till lag", "Add teams"],
@@ -564,7 +591,8 @@ export function useI18n() {
     lang,
     setLang,
     t,
-    league: (source: string, fallback: string) => (`lg_${source}` in D ? t(`lg_${source}` as Key) : fallback),
+    // API-Football-kilpailujen nimet rekisteristä (fi, sv, en)
+    league: (source: string, fallback: string) => (`lg_${source}` in D ? t(`lg_${source}` as Key) : afComp(source)?.name[lang === "sv" ? 1 : lang === "en" ? 2 : 0] ?? fallback),
     type: (ty: string) =>
       ty === "Tulokset" ? t("results") : ty === "Siirtouutiset" ? t("transfers")
         : ty === "Pääuutiset" ? t("type_Pääuutiset") : ty === "Valmentajat" ? t("type_Valmentajat") : ty,

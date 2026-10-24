@@ -178,7 +178,8 @@ export function StatusPill({ s, explain }: { s: MatchState; explain?: boolean })
     return <span className="st st-live"><i />{s.phase === "et" ? t("extraTime") : t("live")}{(s.clock ?? s.min) && <b className="st-min">{s.clock ?? s.min}</b>}</span>;
   }
   if (s.kind === "ft") {
-    const extra = s.pens ? ` · ${t("pensShort")} ${s.pens[0]}–${s.pens[1]}` : s.aet ? ` · ${t("aetShort")}` : "";
+    // rangaistuspotkut ilman lähteen lukemaa: kerrotaan, että ratkesi rangaistuspotkuilla (lukemaa ei keksitä)
+    const extra = s.pens ? ` · ${t("pensShort")} ${s.pens[0]}–${s.pens[1]}` : s.phase === "pens" ? ` · ${t("pensShort")}` : s.aet ? ` · ${t("aetShort")}` : "";
     return <span className="st st-ft">{t("statusFt")}{extra}</span>;
   }
   const label = s.kind === "ht" ? t("halfTime") : s.kind === "suspended" ? t("suspended") : s.kind === "postponed" ? t("postponed") : t("cancelled");

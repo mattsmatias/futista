@@ -1,6 +1,7 @@
 "use client";
 // Ottelusivun Kokoonpanot- ja Tilastot-välilehdet (Free API Live Football Data / RapidAPI palvelimen kautta).
 // Nämä EIVÄT muuta tulosta, ottelutilaa eivätkä peliminuuttia – ne tulevat edelleen Futistan nykyisistä lähteistä.
+import type { AfEvent } from "@/lib/af-league-core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n, LOCALE, type Key } from "@/lib/i18n";
 import { useVisibleInterval } from "@/lib/fresh";
@@ -12,7 +13,7 @@ import { Badge } from "./Stats";
 
 type Where = { l: string; d: string; p: string };
 type Meta = { fetchedAt?: number | null; stale?: boolean; source?: string };
-type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; home?: Lineup; away?: Lineup };
+type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; home?: Lineup; away?: Lineup; events?: AfEvent[]; hasEvents?: boolean };
 type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[] };
 
 /** Hakee välilehden tiedot; virheessä säilytetään viimeisin kelvollinen vastaus. Päivitys vain näkyvissä ja ennen loppua. */
@@ -339,5 +340,42 @@ export function StatsTab({ w, home, away }: { w: Where; home: Team; away: Team }
         <SourceLine m={data} />
       </div>
     </>
+  );
+}
+
+// ---------------- Ottelutapahtumat (API-Football) ----------------
+/** Maalit, kortit, vaihdot ja VAR-päätökset aikajärjestyksessä. Sama haku kuin kokoonpanoissa (ei lisäkutsua).
+ *  Ei näytetä mitään, jos lähde ei anna tapahtumia; virhe ja "ei vielä alkanut" erotetaan. */
+export function EventsCard({ w, home, away }: { w: Where; home: Team; away: Team }) {
+  const { t } = useI18n();
+  const { data, error, loading, retry } = useExtra<LuResp>("kokoonpanot", w);
+  if (!data) return error ? <ErrorBox text={t("ev_error")} retry={retry} loading={loading} /> : null;
+  if (data.state === "wait" || data.phase === "pre" || data.phase === "far") return null;
+  const ev = data.events ?? [];
+  if (data.state === "unavailable") return <Note text={t("ev_error")} />;
+  if (!ev.length) return data.phase === "final" ? <Note text={t("ev_none")} /> : null;
+  const label: Record<AfEvent["kind"], string> = { goal: t("ev_goal"), own: t("ev_own"), pen: t("ev_pen"), missedpen: t("ev_missedpen"), yellow: t("ev_yellow"), red: t("ev_red"), secondyellow: t("ev_secondyellow"), sub: t("ev_sub"), var: "VAR" };
+  const icon: Record<AfEvent["kind"], string> = { goal: "⚽", own: "⚽", pen: "⚽", missedpen: "✕", yellow: "▮", red: "▮", secondyellow: "▮", sub: "⇄", var: "▣" };
+  return (
+    <div className="panel ev-card">
+      <div className="panel-head"><h3>{t("ev_title")}</h3></div>
+      <ol className="ev-list">
+        {ev.map((e, k) => (
+          <li key={k} className={`ev ev-${e.side} ev-k-${e.kind}`}>
+            <span className="ev-min">{e.min !== null ? `${e.min}${e.extra ? `+${e.extra}` : ""}'` : "–"}</span>
+            <span className={`ev-ic ev-ic-${e.kind}`} aria-hidden="true">{icon[e.kind]}</span>
+            <span className="ev-txt">
+              <span className="sr-only">{e.side === "h" ? home.name : away.name}: </span>
+              <b>{label[e.kind]}</b>{e.player ? ` ${e.player}` : ""}
+              {e.kind === "sub" && e.other ? <span className="muted"> → {e.other}</span> : null}
+              {(e.kind === "goal" || e.kind === "pen") && e.other ? <span className="muted"> ({t("ev_assist")} {e.other})</span> : null}
+              {e.kind === "var" && e.detail ? <span className="muted"> {e.detail}</span> : null}
+            </span>
+            <span className="ev-team muted" aria-hidden="true">{e.side === "h" ? home.name : away.name}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="panel-src">{t("source")}: {data.source ?? "API-Football"}</p>
+    </div>
   );
 }

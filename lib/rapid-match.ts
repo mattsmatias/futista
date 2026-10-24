@@ -8,7 +8,7 @@ import { isDate } from "./day";
 import { phaseOf, slotKey, type Phase } from "./rapid-core";
 import { rapidAllowed, rapidConfig, rapidEvent } from "./rapid";
 
-export type OurMatch = { source: string; date: string; pair: string; kickoff: number | null; finished: boolean; aet: boolean; eid?: string; home: { name: string; id?: number }; away: { name: string; id?: number } };
+export type OurMatch = { source: string; date: string; pair: string; kickoff: number | null; finished: boolean; aet: boolean; eid?: string; afid?: number; home: { name: string; id?: number }; away: { name: string; id?: number } };
 
 /** null = tuntematon ottelu (404); "unavailable" = sarjan tietoja ei saatu juuri nyt */
 export async function ourMatch(source: string, date: string, pair: string): Promise<OurMatch | null | "unavailable"> {
@@ -26,7 +26,7 @@ export async function ourMatch(source: string, date: string, pair: string): Prom
   return {
     source, date, pair,
     kickoff: /^\d{1,2}:\d{2}$/.test(time) ? helsinkiEpoch(date, time) : null,
-    finished: !!r, aet: !!r?.note, ...(m.eid ? { eid: m.eid } : {}),
+    finished: !!r, aet: !!r?.note, ...(m.eid ? { eid: m.eid } : {}), ...(m.afid ? { afid: m.afid } : {}),
     home: { name: m.home.name, id: m.home.id }, away: { name: m.away.name, id: m.away.id },
   };
 }

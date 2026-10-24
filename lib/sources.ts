@@ -1,5 +1,7 @@
 // Uutislähteet. Uuden lähteen saa lisättyä tähän listaan.
-export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship" | "superlig" | "mls" | "uel" | "uecl";
+import { AF_COMPS, afCompOn, type AfId, type AfKind } from "./af-registry";
+
+export type SourceId = "laliga" | "valioliiga" | "ucl" | "bundesliga" | "seriea" | "ligue1" | "eredivisie" | "primeira" | "championship" | "superlig" | "mls" | "uel" | "uecl" | AfId;
 
 export type Club = { tag: string; name: string; short: string; c1: string; c2: string };
 
@@ -21,6 +23,9 @@ export type Source = {
   fd: string;       // football-data.orgin sarjakoodi ("" = ei football-datassa)
   espn?: string;    // ESPN:n sarjatunnus, kun koko sarja haetaan ESPN:stä (taulukko, ottelut, maalipörssi)
   calendarYear?: boolean; // kausi = kalenterivuosi (esim. MLS), ei syksystä kevääseen
+  af?: number;      // API-Footballin league-id: koko kilpailu API-Footballista (lib/af-league.ts, rekisteri lib/af-registry.ts)
+  kind?: AfKind;    // sarja / cup / turnaus (cupille ei rakenneta sarjataulukkoa)
+  women?: boolean;  // naisten kilpailu (joukkueiden nimet erotetaan miesten joukkueista)
   pages?: { table: string; results: string; fixtures: string }; // tilastosivut, oletuksena base + sarjataulukko/ jne.
   clubs: Club[];  // seurapikavalinnat (tag = syötteen kategoria)
   zones: Zone[];  // sarjataulukon värikoodit
@@ -101,11 +106,16 @@ export const SOURCES: Source[] = [
   espnLeague("uecl", "Konferenssiliiga", "uefa.europa.conf", [z(1, 8, "r16"), z(9, 24, "po")]),
   // MLS: kaksi konferenssia (sijat konferenssin sisällä): 1–7 pudotuspeleihin, 8–9 wild card -otteluihin
   { ...espnLeague("mls", "MLS", "usa.1", [z(1, 7, "mlspo"), z(8, 9, "mlswc")]), calendarYear: true },
+  // API-Football: kotimainen jalkapallo, maajoukkuekilpailut, cupit, naiset ja Pohjoismaat (vain käytössä olevat)
+  ...AF_COMPS.filter((c) => afCompOn(c.id)).map((c) => afLeague(c.id, c.name[0], c.af, c.kind, c.gender === "w")),
 ];
 
 function z(from: number, to: number, kind: Zone["kind"]): Zone { return { from, to, label: kind, kind }; }
 function fdLeague(id: SourceId, league: string, fd: string, zones: Zone[]): Source {
   return { id, name: "football-data.org", league, base: "", feeds: [], fd, clubs: [], zones };
+}
+function afLeague(id: SourceId, league: string, af: number, kind: AfKind, women: boolean): Source {
+  return { id, name: "API-Football", league, base: "", feeds: [], fd: "", af, kind, women, clubs: [], zones: [] };
 }
 function espnLeague(id: SourceId, league: string, espn: string, zones: Zone[]): Source {
   return { id, name: "ESPN", league, base: "", feeds: [], fd: "", espn, clubs: [], zones };

@@ -1676,3 +1676,19 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 .adv-hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .advpage .adv-err, :root:not([data-theme="light"]) .advpage .adv-alert { color: #ff8a8f; } }
 :root[data-theme="dark"] .advpage .adv-err, :root[data-theme="dark"] .advpage .adv-alert { color: #ff8a8f; }
+
+/* API-Football-kilpailut: kierrokset ja kauden tila (CompPage) */
+.day-round { font-weight: 500; color: var(--muted); font-size: .92em; }
+.cup-round { display: grid; gap: 10px; margin-bottom: 18px; }
+.cup-round-h { margin: 6px 0 0; font: 700 16px/1.25 var(--display); letter-spacing: -0.015em; }
+.comp-note { margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--fg); font-size: 14.5px; }
+/* Ottelutapahtumat (API-Football) */
+.ev-list { list-style: none; margin: 0; padding: 0; }
+.ev { display: grid; grid-template-columns: 48px 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 14.5px; }
+.ev:first-child { border-top: 0; }
+.ev-min { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.ev-ic { text-align: center; }
+.ev-ic-yellow { color: #e5b300; } .ev-ic-red, .ev-ic-secondyellow { color: #e5484d; } .ev-ic-missedpen { color: var(--muted); }
+.ev-txt { min-width: 0; overflow-wrap: anywhere; }
+.ev-team { font-size: 12.5px; white-space: nowrap; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 520px) { .ev { grid-template-columns: 42px 20px minmax(0, 1fr); row-gap: 2px; } .ev-team { grid-column: 3; max-width: none; } }

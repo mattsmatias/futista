@@ -5,6 +5,7 @@ import { seasonLabel } from "./score";
 import { getLeague, type Team } from "./stats";
 import { bestTeam, words } from "./live-core";
 import { espnScorers } from "./espn-league";
+import { afScorers } from "./af-league";
 
 export type Scorer = {
   id: number; name: string; nationality: string | null;
@@ -17,6 +18,7 @@ export async function getScorers(id: string): Promise<LeagueScorers | null> {
   const s = SOURCES.find((x) => x.id === id);
   if (!s) return null;
   if (s.espn) return espnScorers(s.id, s.espn, !!s.calendarYear);
+  if (s.af) return afScorers(s.id);
   const [res, league] = await Promise.all([fdMeta<any>(`/competitions/${s.fd}/scorers?limit=15`, 3600), getLeague(id)]);
   if (!res) return null;
   const data = res.data;

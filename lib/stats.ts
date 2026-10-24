@@ -8,11 +8,14 @@ import { helsinkiParts } from "./live-core";
 import { fdScore, seasonLabel, seasonFromDate } from "./score";
 import { fillFromLastGood } from "./stats-merge";
 import { fromEspnLeague } from "./espn-league";
+import { fromAfLeague } from "./af-league";
 
 export type Team = { name: string; code: string; crest?: string; id?: number }; // id = football-data.orgin tunniste
 export type Row = { pos: number; team: Team; p: number; w: number; d: number; l: number; gf: number; ga: number; pts: number };
-export type Result = { date: string; time?: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null; eid?: string }; // eid = ESPN:n ottelutunniste (ESPN-sarjat); time vain, jos lähde kertoo alkamisajan
-export type Fixture = { date: string; time: string; home: Team; away: Team; eid?: string };
+export type Result = { date: string; time?: string; home: Team; away: Team; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null; eid?: string; afid?: number; round?: string }; // eid = ESPN:n ottelutunniste (ESPN-sarjat); afid = API-Footballin; time vain, jos lähde kertoo alkamisajan
+/** API-Footballin ottelun tila (lähteen lyhenne, minuutti, maalit; rangaistuspotkut erikseen). Puuttuva arvo = null. */
+export type AfLive = { s: string; el: number | null; ex: number | null; hs: number | null; as: number | null; pens: [number, number] | null };
+export type Fixture = { date: string; time: string; home: Team; away: Team; eid?: string; afid?: number; round?: string; st?: AfLive };
 export type Part = "table" | "results" | "fixtures";
 export type LeagueStats = {
   source: SourceId; league: string; table: Row[]; results: Result[]; fixtures: Fixture[];
@@ -21,6 +24,9 @@ export type LeagueStats = {
   failed?: Part[];          // osat, joita lähde ei juuri nyt antanut (ja joista ei ole aiempaa tietoa)
   stale?: boolean;          // osa tiedoista on aiemmasta onnistuneesta hausta
   groups?: { key: string; name: string; table: Row[] }[]; // useampi taulukko (esim. MLS:n konferenssit); table = kaikki yhdessä
+  kind?: "league" | "cup" | "tournament"; // API-Football-kilpailut: cupille ei näytetä sarjataulukkoa
+  seasonEnd?: string | null;  // kauden viimeinen päivä lähteen mukaan
+  ended?: boolean;            // kausi on päättynyt (otteluita ei näytetä tulevina)
 };
 
 const UA = { "User-Agent": "Futista/1.0" };
@@ -211,6 +217,7 @@ export async function getLeague(id: string): Promise<LeagueStats | null> {
   if (!s) return null;
   if (s.feeds.length) return (await getStats()).find((x) => x.source === id) ?? null;
   if (s.espn) return fromEspnLeague(s.id, s.espn, s.league, !!s.calendarYear);
+  if (s.af) return fromAfLeague(s.id, s.league);
   return fromFd(s);
 }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createRetryGate } from "@/lib/retry";
 import type { Fixture, LeagueStats, Result, Row, Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
+import { SOURCES } from "@/lib/sources";
 import { norm } from "@/lib/teams";
 import { teamHref } from "@/lib/routes";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
@@ -14,7 +15,7 @@ import { helsinkiEpoch } from "@/lib/live-core";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
-import { LineupsTab, StatsTab, PlayersTab } from "../../../../MatchExtras";
+import { LineupsTab, StatsTab, PlayersTab, EventsCard } from "../../../../MatchExtras";
 import FormItems from "../../../../FormItems";
 import type { FormItem } from "@/lib/team-form";
 
@@ -201,6 +202,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
         {tab === "summary" && (
           <>
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
+            {extras && SOURCES.find((x) => x.id === s.source)?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
             <div className="panel">
               {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>
                 <div className="panel-head"><h3>{t("form")}</h3></div>
@@ -210,7 +212,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
                 </div>
               </> : <>
                 <div className="panel-head"><h3>{t("form")}</h3></div>
-                <div className="form-duo">
+                <div className="form-duo" aria-label={`${t("form")}: ${i.league(s.source, s.league)}`} title={i.league(s.source, s.league)}>
                   <div><span className="fd-name"><Badge t={m.home} size={22} />{m.home.name}</span><FormPills team={m.home.name} results={s.results} source={s.source} /></div>
                   <div><span className="fd-name"><Badge t={m.away} size={22} />{m.away.name}</span><FormPills team={m.away.name} results={s.results} source={s.source} /></div>
                 </div>

@@ -178,12 +178,40 @@ export function helsinkiEpoch(date: string, time: string) {
 
 const LIVE_MIN = 115; // ottelu + tauko + lisäajat
 
+/** API-Footballin ottelun tila (lähteen oma tila ja minuutti; ESPN:n minuuttisääntöä ei käytetä).
+ *  null = ottelu ei ole alkanut lähteen mukaan → yleinen päättely aloitusajasta. Tulos voi pienentyä (VAR): uusin tieto näytetään. */
+export function afMatchState(st: { s: string; el: number | null; ex: number | null; hs: number | null; as: number | null; pens: [number, number] | null }): MatchState | null {
+  const sc = { hs: st.hs, as: st.as };
+  const min = st.el !== null ? `${st.el}${st.ex ? `+${st.ex}` : ""}'` : undefined;
+  switch (st.s) {
+    case "1H": case "2H": case "LIVE": return { kind: "live", ...sc, ...(min ? { min } : {}) };
+    case "HT": return { kind: "ht", ...sc };
+    case "ET": return { kind: "live", ...sc, ...(min ? { min } : {}), phase: "et" };
+    case "BT": return { kind: "ht", ...sc, phase: "et" };
+    case "P": return { kind: "live", ...sc, phase: "pens", pens: st.pens };
+    case "FT": return { kind: "ft", ...sc };
+    case "AET": return { kind: "ft", ...sc, aet: true };
+    case "PEN": return { kind: "ft", ...sc, phase: "pens", pens: st.pens };
+    case "SUSP": case "INT": case "ABD": return { kind: "suspended", ...sc };
+    case "PST": return { kind: "postponed" };
+    case "CANC": return { kind: "cancelled" };
+    default: return null; // NS, TBD
+  }
+}
+
 export function matchState(
-  m: { source: string; date: string; time?: string; home: { name: string }; away: { name: string } },
+  m: { source: string; date: string; time?: string; home: { name: string }; away: { name: string }; st?: Parameters<typeof afMatchState>[0] },
   live: LiveMatch[],
   now: number | null,
 ): MatchState {
   const kick = m.time ? helsinkiEpoch(m.date, m.time) : null;
+  // API-Football-kilpailu: tila lähteen omasta tiedosta (ei yhdistetä muiden lähteiden live-otteluihin nimellä)
+  if (m.st) {
+    const a = afMatchState(m.st);
+    if (a) return a;
+    if (now === null || kick === null || now < kick) return { kind: "upcoming" };
+    return now < kick + LIVE_MIN * 60_000 ? { kind: "unconfirmed", inferred: true } : { kind: "unconfirmed", inferred: true, late: true };
+  }
   const near = (l: LiveMatch, h: number) => kick === null || Math.abs(l.kickoff - kick) < h * 3600_000;
   // 1) molemmat nimet täsmäävät, 2) toinen täsmää ja toisesta löytyy selvä nimen osa samaan aikaan alkavassa ottelussa
   const hit =

@@ -61,10 +61,13 @@ export default async function MatchPage({ params }: Props) {
   if (!d) notFound();
   const m = (d.result ?? d.fixture)!;
   // kunto kaikista kilpailuista (ESPN:n joukkueen otteluohjelma); jos jommankumman haku ei onnistu → sarjan oma kunto
+  // API-Football-kilpailuissa (mm. naiset, Suomi, maajoukkueet) ei haeta ESPN:n joukkueohjelmaa: nimen perusteella se voisi olla
+  // väärä joukkue (esim. miesten joukkue naisten ottelussa). Kunto lasketaan silloin kilpailun omista otteluista.
+  const afComp = !!SOURCES.find((x) => x.id === d.s.source)?.af;
   const [extra, hg, ag] = await Promise.all([
     getMatchExtra(d.s.source, m.date, m.home, m.away),
-    getTeamGames(d.s.source, m.home.name, [d.s]).catch(() => null),
-    getTeamGames(d.s.source, m.away.name, [d.s]).catch(() => null),
+    afComp ? null : getTeamGames(d.s.source, m.home.name, [d.s]).catch(() => null),
+    afComp ? null : getTeamGames(d.s.source, m.away.name, [d.s]).catch(() => null),
   ]);
   const now = Date.now();
   const formAll: { home: FormItem[]; away: FormItem[] } | null = hg && ag
@@ -72,7 +75,8 @@ export default async function MatchPage({ params }: Props) {
   const pair = decodeURIComponent(params.pair);
   // kokoonpanot/tilastot: RapidAPI-sarjat (kiintiö ja rajaus) tai ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS)
   const espnSrc = !!SOURCES.find((x) => x.id === d.s.source)?.espn && process.env.ESPN_OFF !== "1";
-  const extras = espnSrc || rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
+  const afSrc = !!SOURCES.find((x) => x.id === d.s.source)?.af; // API-Football-kilpailu (lib/af-league.ts)
+  const extras = espnSrc || afSrc || rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
   const url = `${SITE}${matchHref(d.s.source, m.date, m.home.name, m.away.name)}`;
   return (
     <>

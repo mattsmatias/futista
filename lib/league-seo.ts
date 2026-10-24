@@ -3,7 +3,7 @@
 // Vain yleisesti tunnettuja tosiasioita (mikä sarja on), ei keksittyä sisältöä.
 import type { SourceId } from "./sources";
 
-export const LEAGUE_SEO: Record<SourceId, { aka: string; also: string[]; what: string }> = {
+export const LEAGUE_SEO: Partial<Record<SourceId, { aka: string; also: string[]; what: string }>> = {
   laliga: { aka: "LaLiiga", also: ["La Liga", "LaLiga", "laliiga", "Espanjan liiga"], what: "Espanjan jalkapallon pääsarja" },
   valioliiga: { aka: "Premier League", also: ["Valioliiga", "Englannin Valioliiga", "Premier League"], what: "Englannin jalkapallon pääsarja" },
   ucl: { aka: "Champions League", also: ["Mestarien liiga", "Mestareiden liiga", "UEFA Champions League", "Champions League"], what: "Euroopan seurajoukkueiden arvostetuin turnaus" },
@@ -17,6 +17,26 @@ export const LEAGUE_SEO: Record<SourceId, { aka: string; also: string[]; what: s
   championship: { aka: "Englannin Championship", also: ["Championship", "EFL Championship"], what: "Englannin toiseksi korkein sarjataso" },
   superlig: { aka: "Turkin Süper Lig", also: ["Süper Lig", "Super Lig", "Turkin liiga"], what: "Turkin jalkapallon pääsarja" },
   mls: { aka: "Major League Soccer", also: ["MLS", "Major League Soccer"], what: "Yhdysvaltojen ja Kanadan jalkapallon pääsarja" },
+  // API-Football-kilpailut (lib/af-registry.ts)
+  veikkausliiga: { aka: "Veikkausliiga", also: ["Veikkausliiga", "Suomen pääsarja", "Veikkausliigan sarjataulukko"], what: "Suomen jalkapallon miesten pääsarja" },
+  ykkosliiga: { aka: "Ykkösliiga", also: ["Ykkösliiga", "Suomen toiseksi ylin sarja"], what: "Suomen jalkapallon miesten toiseksi ylin sarjataso" },
+  suomencup: { aka: "Suomen Cup", also: ["Suomen Cup", "Suomen cup"], what: "Suomen jalkapallon miesten cup-kilpailu" },
+  kansallinenliiga: { aka: "Kansallinen Liiga", also: ["Kansallinen Liiga", "naisten Kansallinen Liiga", "naisten pääsarja"], what: "Suomen jalkapallon naisten pääsarja" },
+  mmkisat: { aka: "World Cup", also: ["MM-kisat", "jalkapallon MM-kisat", "World Cup"], what: "miesten maajoukkueiden maailmanmestaruusturnaus" },
+  emkisat: { aka: "Euro", also: ["EM-kisat", "jalkapallon EM-kisat", "Euro"], what: "miesten maajoukkueiden Euroopan-mestaruusturnaus" },
+  kansojenliiga: { aka: "Nations League", also: ["Kansojen liiga", "UEFA Nations League"], what: "UEFAn miesten maajoukkueiden turnaus" },
+  mmkarsinnat: { aka: "MM-karsinnat", also: ["MM-karsinnat", "World Cup qualifiers"], what: "miesten MM-kisojen Euroopan karsintaturnaus" },
+  facup: { aka: "FA Cup", also: ["FA Cup", "FA-cup"], what: "Englannin jalkapallon cup-kilpailu" },
+  liigacup: { aka: "EFL Cup", also: ["Englannin liigacup", "Carabao Cup", "EFL Cup"], what: "Englannin liigaseurojen cup-kilpailu" },
+  copadelrey: { aka: "Copa del Rey", also: ["Copa del Rey", "Espanjan cup"], what: "Espanjan jalkapallon cup-kilpailu" },
+  dfbpokal: { aka: "DFB-Pokal", also: ["DFB-Pokal", "Saksan cup"], what: "Saksan jalkapallon cup-kilpailu" },
+  coppaitalia: { aka: "Coppa Italia", also: ["Coppa Italia", "Italian cup"], what: "Italian jalkapallon cup-kilpailu" },
+  coupedefrance: { aka: "Coupe de France", also: ["Coupe de France", "Ranskan cup"], what: "Ranskan jalkapallon cup-kilpailu" },
+  wsl: { aka: "WSL", also: ["Women's Super League", "WSL", "Englannin naisten liiga"], what: "Englannin jalkapallon naisten pääsarja" },
+  naistenmli: { aka: "Women's Champions League", also: ["Naisten Mestarien liiga", "UEFA Women's Champions League"], what: "Euroopan naisten seurajoukkueiden turnaus" },
+  allsvenskan: { aka: "Allsvenskan", also: ["Allsvenskan", "Ruotsin pääsarja"], what: "Ruotsin jalkapallon miesten pääsarja" },
+  eliteserien: { aka: "Eliteserien", also: ["Eliteserien", "Norjan pääsarja"], what: "Norjan jalkapallon miesten pääsarja" },
+  superligadk: { aka: "Superligaen", also: ["Tanskan Superliga", "Superligaen"], what: "Tanskan jalkapallon miesten pääsarja" },
 };
 
 export function leagueTitle(id: SourceId, name: string) {

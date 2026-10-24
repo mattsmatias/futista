@@ -1,11 +1,13 @@
 // Kilpailujen esitystiedot: järjestys, maa ja tunnusmerkki (lyhenne + väri tunnisteena, ei koko käyttöliittymän väritys)
 import { SOURCES, type SourceId } from "./sources";
+import { AF_COMPS } from "./af-registry";
 
 /** Johdonmukainen järjestys otteluiden etusivulla ja Sarjat-hakemistossa */
 export const COMP_ORDER: SourceId[] = ["ucl", "uel", "uecl", "laliga", "valioliiga", "bundesliga", "seriea", "ligue1", "eredivisie", "primeira", "championship", "superlig", "mls"];
 export const POPULAR: SourceId[] = ["laliga", "valioliiga", "ucl"];
 
-export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | "eu" | "de" | "it" | "fr" | "nl" | "pt" | "tr" | "us" }> = {
+export type CompCountry = "es" | "en" | "eu" | "de" | "it" | "fr" | "nl" | "pt" | "tr" | "us" | "fi" | "se" | "no" | "dk" | "world";
+export const COMP_META: Record<SourceId, { mark: string; country: CompCountry }> = {
   ucl: { mark: "MLI", country: "eu" },
   laliga: { mark: "LL", country: "es" },
   valioliiga: { mark: "PL", country: "en" },
@@ -19,6 +21,7 @@ export const COMP_META: Record<SourceId, { mark: string; country: "es" | "en" | 
   mls: { mark: "MLS", country: "us" },
   uel: { mark: "EL", country: "eu" },
   uecl: { mark: "ECL", country: "eu" },
+  ...(Object.fromEntries(AF_COMPS.map((c) => [c.id, { mark: c.mark, country: c.country }])) as Record<(typeof AF_COMPS)[number]["id"], { mark: string; country: CompCountry }>),
 };
 
 /** Kilpailun oma logo. Lähteet ovat jo käytössä olevia tietolähteitä (ESPN ja football-data), ei uusia.
@@ -40,6 +43,8 @@ export const COMP_EMBLEM: Record<SourceId, { light: string; dark?: string }> = {
   mls: espn(19),
   uel: espn(2310),
   uecl: espn(20296),
+  // API-Footballin kilpailulogot (lähteen antamat osoitteet; ei tummaa versiota → vaalea laatta tummassa teemassa)
+  ...(Object.fromEntries(AF_COMPS.map((c) => [c.id, { light: `https://media.api-sports.io/football/leagues/${c.af}.png` }])) as Record<(typeof AF_COMPS)[number]["id"], { light: string }>),
 };
 
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));

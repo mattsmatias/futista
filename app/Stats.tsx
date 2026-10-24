@@ -17,6 +17,7 @@ import { useMatchState, StatusPill, useLiveExtras, useDataEnabled } from "@/lib/
 import { Num } from "@/lib/fresh";
 import type { MatchState } from "@/lib/live-core";
 import { MatchRow } from "./ui/MatchRow";
+import { groupFi } from "@/lib/af-league-core";
 
 export function Badge({ t, size = 26 }: { t: Team; size?: number }) {
   const [failed, setFailed] = useState(0); // 0 = alkuperäinen, 1 = .svg-yritys, 2 = värimerkki
@@ -114,7 +115,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
       </div>
       {rows.length === 0 ? <p className="muted pad">{s.failed?.includes("table") ? t("sourceDown") : t("noTable")}</p> : (
         groups ? <>{shownGroups!.map((g) => (
-          <div key={g.key}><h4 className="tbl-group">{t(`conf_${g.key}` as Key) !== `conf_${g.key}` ? t(`conf_${g.key}` as Key) : g.name}</h4>{tableOf(compact ? g.table.slice(0, 6) : g.table)}</div>
+          <div key={g.key}><h4 className="tbl-group">{t(`conf_${g.key}` as Key) !== `conf_${g.key}` ? t(`conf_${g.key}` as Key) : src.af && i.lang === "fi" ? groupFi(g.name) : g.name}</h4>{tableOf(compact ? g.table.slice(0, 6) : g.table)}</div>
         ))}</> : tableOf(rows)
       )}
       {!compact && (

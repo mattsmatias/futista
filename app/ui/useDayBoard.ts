@@ -9,7 +9,9 @@ import { COMP_ORDER } from "@/lib/comps";
 import { coverage, covers, rowsFor, type Coverage, type DayRow } from "@/lib/day";
 import { useLeagueMap } from "@/lib/leagues-client";
 import { useDataEnabled, useLiveData, useLiveExtras } from "@/lib/live";
-import { matchState, type MatchState } from "@/lib/live-core";
+import { matchState, helsinkiEpoch, sameTeam, words, type MatchState } from "@/lib/live-core";
+import { useAfDay } from "@/lib/af-client";
+import { AF_COMPS } from "@/lib/af-registry";
 import { useIntlGames } from "@/lib/intl-client";
 import type { Game } from "@/lib/espn-parse";
 import { matchHref } from "@/lib/routes";
@@ -25,7 +27,10 @@ export type CompBlock = {
   cov: Coverage;
 };
 
-const FD_IDS = SOURCES.filter((s) => !s.feeds.length).map((s) => s.id);
+// API-Football-kilpailut eivät lataa koko kautta selaimeen: päivän ottelut tulevat /api/af-paiva-reitiltä (lib/af-client.tsx)
+const FD_IDS = SOURCES.filter((s) => !s.feeds.length && !s.af).map((s) => s.id);
+const AF_IDS = SOURCES.filter((s) => !!s.af).map((s) => s.id);
+const NT_IDS = new Set<string>(AF_COMPS.filter((c) => (c.groups as readonly string[]).includes("nt")).map((c) => c.id));
 
 export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
   const dataOn = useDataEnabled();
@@ -37,6 +42,7 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
   const { map, retry } = useLeagueMap([...(dataOn ? FD_IDS : []), ...needFull]);
   const { live, now } = useLiveData();
   const intl = useIntlGames(true);
+  const afDay = useAfDay(date);
   const times = useRef(new Map<string, string>()).current;
 
   const allStats: LeagueStats[] = useMemo(() => {
@@ -76,14 +82,40 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
     return { id, name: src.league, rows, status: loading ? "loading" : failed ? "failed" : "ok", stale: !!d?.stale, partial, cov };
   }), [allStats, map, live, now, date, today, extras, dataOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const intlGames: Game[] = useMemo(() => (intl.games ?? []).filter((g) => g.date === date).sort((a, b) => a.epoch - b.epoch), [intl.games, date]);
+  // API-Football-kilpailut omina ryhminään (rekisterin järjestys) olemassa olevien jälkeen
+  const afComps: CompBlock[] = useMemo(() => afDay.failed ? [{ id: "afall", name: "API-Football", rows: [], status: "failed" as const, stale: false, partial: false, cov: null }] : AF_IDS.map((id) => {
+    const c = afDay.comps?.find((x) => x.id === id);
+    const src = SOURCES.find((s) => s.id === id)!;
+    const d = c && !c.failed ? { source: id, results: c.results, fixtures: c.fixtures } : null;
+    const rows: BoardRow[] = d ? rowsFor(d as any, date, times).map((r) => ({
+      ...r,
+      href: matchHref(id, r.date, r.home.name, r.away.name),
+      s: r.kind === "result"
+        ? { kind: "ft", hs: r.r.hs, as: r.r.as, aet: r.r.note === "aet", pens: r.r.pens ?? null, ...(r.r.note === "pens" ? { phase: "pens" as const } : {}) }
+        : matchState({ ...r.f, source: id }, live, now),
+    })) : [];
+    rows.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "") || a.home.name.localeCompare(b.home.name));
+    // ei latausrunkoja (19 kilpailua → sivu hyppisi); ryhmä näkyy vasta, kun päivälle on otteluita. Epäonnistuminen kerrotaan.
+    const status: CompBlock["status"] = afDay.failed || c?.failed ? "failed" : "ok";
+    return { id, name: src.league, rows, status, stale: false, partial: false, cov: d ? { from: date, to: date } : null };
+  }), [afDay.comps, afDay.loading, afDay.failed, live, now, date]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // sama maaottelu ei näy kahdesti: ESPN:n maaottelu jätetään pois, jos API-Footballin maajoukkuekilpailussa on varmasti sama
+  // ottelu (sama päivä, alkamisaika enintään 3 h erillään ja molemmat joukkueet tunnistetaan). Epävarmaa ei yhdistetä.
+  const ntRows = afComps.filter((c) => NT_IDS.has(c.id)).flatMap((c) => c.rows);
+  const dupOfAf = (g: Game) => ntRows.some((r) => {
+    const k = r.time ? helsinkiEpoch(r.date, r.time) : null;
+    return r.date === g.date && k !== null && Math.abs(k - g.epoch) <= 3 * 3600_000 && sameTeam(r.home.name, words(g.home.name)) && sameTeam(r.away.name, words(g.away.name));
+  });
+  const intlGames: Game[] = useMemo(() => (intl.games ?? []).filter((g) => g.date === date && !dupOfAf(g)).sort((a, b) => a.epoch - b.epoch), [intl.games, date, ntRows.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const range = useMemo(() => {
     const cs = comps.map((c) => c.cov).filter((c): c is NonNullable<Coverage> => !!c);
     if (!cs.length) return null;
     return { from: cs.map((c) => c.from).sort()[0], to: cs.map((c) => c.to).sort().slice(-1)[0] };
   }, [comps]);
 
-  return { comps, intlGames, intlFailed: intl.failed && !intl.games, range, retry, allStats };
+  const retryAll = () => { retry(); afDay.retry(); };
+  return { comps: [...comps, ...afComps], intlGames, intlFailed: intl.failed && !intl.games, range, retry: retryAll, allStats };
 }
 
 export const isLiveState = (s: MatchState) => s.kind === "live" || s.kind === "ht";

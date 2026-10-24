@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   // julkaisun tunniste: avoin sovellus vertaa tätä palvelimen versioon ja päivittää itsensä (lib/app-update.ts)
-  env: { NEXT_PUBLIC_BUILD: process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "dev" },
+  // API-Football-kilpailut (lib/af-registry.ts): käytössä, jos avain on annettu eikä lähdettä ole kytketty pois.
+  // Vain päälle/pois-tieto ja pois kytkettyjen kilpailujen tunnisteet – avain EI päädy selaimeen. Muutos vaatii Redeployn.
+  env: {
+    NEXT_PUBLIC_BUILD: process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "dev",
+    NEXT_PUBLIC_AF_ON: process.env.APIFOOTBALL_KEY && process.env.APIFOOTBALL_OFF !== "1" ? "1" : "",
+    NEXT_PUBLIC_AF_COMPS_OFF: (process.env.AF_COMPS_OFF || "").replace(/[^a-z0-9,]/g, ""),
+  },
   experimental: {
     serverComponentsExternalPackages: ["linkedom", "@mozilla/readability", "sanitize-html"],
   },

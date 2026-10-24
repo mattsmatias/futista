@@ -5,6 +5,9 @@ import { teamHref } from "@/lib/routes";
 import { norm } from "@/lib/teams";
 import { getIntl, FINLAND } from "@/lib/espn";
 import type { SearchTeam, SearchNation } from "@/lib/search-core";
+import { AF_COMPS } from "@/lib/af-registry";
+
+const NT = new Set<string>(AF_COMPS.filter((c) => (c.groups as readonly string[]).includes("nt")).map((c) => c.id));
 
 // Hakemisto selaimen hakuun: joukkueet (sarjataulukoista), maajoukkueet (maaotteluista + Suomi).
 // Haettu kerralla ja CDN-välimuistissa (6 h) → hakusanat eivät aiheuta lähdehakuja.
@@ -13,7 +16,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET() {
-  const fdIds = SOURCES.filter((s) => !s.feeds.length).map((s) => s.id);
+  // maajoukkuekilpailujen joukkueet löytyvät jo maajoukkueina (ei kahta hakutulosta samasta maasta)
+  const fdIds = SOURCES.filter((s) => !s.feeds.length && !NT.has(s.id)).map((s) => s.id);
   const [main, ...rest] = await Promise.all([
     getStats().catch(() => [] as LeagueStats[]),
     ...fdIds.map((id) => getLeague(id).catch(() => null)),
@@ -21,7 +25,8 @@ export async function GET() {
   ]);
   const intl = rest.pop() as Awaited<ReturnType<typeof getIntl>>;
   const leagues = [...(main as LeagueStats[]), ...(rest as (LeagueStats | null)[]).filter((x): x is LeagueStats => !!x && x.table.length > 0)];
-  const missing = SOURCES.filter((s) => !leagues.some((l) => l.source === s.id && l.table.length)).map((s) => s.id);
+  // cupeilla ei ole sarjataulukkoa → ei "puuttuva"; maajoukkuekilpailut eivät ole hakemistossa
+  const missing = SOURCES.filter((s) => !NT.has(s.id) && s.kind !== "cup" && !leagues.some((l) => l.source === s.id && l.table.length)).map((s) => s.id);
 
   // sama seura useassa kilpailussa = yksi hakutulos (football-datan tunniste, muuten sama nimi)
   const teams: SearchTeam[] = [];
