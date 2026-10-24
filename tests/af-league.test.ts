@@ -120,6 +120,7 @@ test("jaettu sarja (Veikkausliiga): mestaruus- ja putoamisryhmä ennen runkosarj
   const parsed = parseAfStandings([{ league: { standings: [g("Veikkausliiga", 22, ["KuPS", "Inter Turku"]), g("Champion Group", 28, ["Inter Turku"]), g("Relegration Group", 27, ["Lahti"])] } }], false);
   const r = splitStages(parsed, "league");
   assert.deepEqual(r.groups!.map((x) => groupFi(x.name)), ["Mestaruusryhmä", "Putoamisryhmä", "Runkosarja"]);
+  assert.equal(r.table[0].team.name, "Inter Turku"); // nykyisen vaiheen rivi ensin (ei runkosarjan sijoitus)
   const t = splitStages(parseAfStandings([{ league: { standings: [g("Group B", 3, ["A"]), g("Group A", 3, ["B"])] } }], false), "tournament");
   assert.deepEqual(t.groups!.map((x) => x.name), ["Group B", "Group A"]);
 });

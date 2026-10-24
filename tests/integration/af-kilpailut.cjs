@@ -62,20 +62,23 @@ const DAY = 86400_000;
   const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
+  // "load" + odotus: sivuilla on jatkuvia päivityksiä ja lähteen logokuvia, joten verkko ei aina hiljene
+  const go = async (u) => { await page.goto(APP + u, { waitUntil: "load" }); await page.locator("main").waitFor(); await page.waitForTimeout(1500); };
   const wide = () => page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
 
   // ---------- Kilpailuhakemisto ----------
-  await page.goto(APP + "/sarjat", { waitUntil: "networkidle" });
+  await go("/sarjat");
   const heads = await page.locator(".dir-sec h2").allTextContents();
   ok("hakemisto: ryhmät Suomi, Maajoukkueet, Cupit, Pohjoismaat, Naisten jalkapallo", ["Suomi", "Maajoukkueet", "Cupit", "Pohjoismaat", "Naisten jalkapallo"].every((h) => heads.includes(h)), heads.join(" | "));
   const fin = await page.locator(".dir-sec", { has: page.locator("h2", { hasText: /^Suomi$/ }) }).locator(".dir-name").allTextContents();
   ok("  Suomi: Veikkausliiga, Ykkösliiga, Suomen Cup, Kansallinen Liiga", ["Veikkausliiga", "Ykkösliiga", "Suomen Cup", "Kansallinen Liiga"].every((n) => fin.includes(n)), fin.join(", "));
   ok("  naisten kilpailu merkitty (Naiset)", (await page.locator(".dir-list a", { hasText: "Kansallinen Liiga" }).first().innerText()).includes("Naiset"));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
+  ok("  alatunnisteen lähteissä API-Football", (await page.locator(".foot-credits").innerText()).includes("API-Football"));
   ok("  alanavigaatiossa edelleen 4 kohtaa (ei uusia välilehtiä)", (await page.locator(".bottomnav a").count()) === 4);
 
   // ---------- Sarjasivut ----------
-  await page.goto(APP + "/sarjat/veikkausliiga", { waitUntil: "networkidle" });
+  await go("/sarjat/veikkausliiga");
   const tabs = await page.locator(".etabs [role=tab]").allTextContents();
   ok("Veikkausliiga-sivu: kausi otsikossa", (await page.locator(".ehead .muted").first().innerText()).includes(String(new Date().getUTCFullYear())));
   ok("  välilehdet: ottelut, tulokset, taulukko, maalintekijät", tabs.length >= 4 && tabs.some((x) => /taulukko/i.test(x)), tabs.join("|"));
@@ -83,18 +86,18 @@ const DAY = 86400_000;
   await page.locator(".etabs [role=tab]", { hasText: /taulukko/i }).click(); await page.waitForTimeout(300);
   ok("  sarjataulukossa 4 joukkuetta", (await page.locator(".epane").innerText()).includes("Länsiranta 244"));
 
-  await page.goto(APP + "/sarjat/facup", { waitUntil: "networkidle" });
+  await go("/sarjat/facup");
   const ftabs = await page.locator(".etabs [role=tab]").allTextContents();
   ok("FA Cup: ei sarjataulukko-välilehteä (ei keksittyä taulukkoa)", !ftabs.some((x) => /taulukko/i.test(x)), ftabs.join("|"));
   ok("  FA Cup: ei maalintekijät-välilehteä (lähteen data ei varmennettu)", !ftabs.some((x) => /maalintekij/i.test(x)), ftabs.join("|"));
   await page.locator(".etabs [role=tab]", { hasText: /tulokset/i }).click(); await page.waitForTimeout(300);
   ok("  tulokset kierroksittain (kierroksen nimi suomeksi)", (await page.locator(".cup-round-h").count()) > 0, (await page.locator(".cup-round-h").allTextContents()).join(" | "));
 
-  await page.goto(APP + "/sarjat/mmkisat", { waitUntil: "networkidle" });
+  await go("/sarjat/mmkisat");
   ok("MM-kisat (päättynyt kausi): avautuu tuloksiin", (await page.locator(".etabs [role=tab][aria-selected=true]").innerText()).match(/tulokset/i));
   ok("  kauden päättyminen kerrotaan", (await page.locator(".ehead").innerText()).includes("päättynyt"));
 
-  await page.goto(APP + "/sarjat/wsl", { waitUntil: "networkidle" });
+  await go("/sarjat/wsl");
   ok("WSL: otsikossa 'Naiset'", (await page.locator(".ehead").innerText()).includes("Naiset"));
 
   // ---------- Ottelusivu ----------
@@ -107,6 +110,8 @@ const DAY = 86400_000;
   const kt = page.locator(".subtabs button", { hasText: "Kokoonpanot" });
   if (await kt.count()) { await kt.click(); await page.waitForTimeout(800); }
   ok("  kokoonpanot-välilehti: pelaajat näkyvät", (await page.locator("main").innerText()).includes("Pelaaja 2441-1"));
+  const leg = await page.locator(".lu-legend").innerText().catch(() => "");
+  ok("  arvosana nimetään oikean lähteen arvosanaksi (API-Football)", leg.includes("API-Football") && !leg.includes("Free API Live"), leg.slice(0, 120));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
 
   // ruudukoton kokoonpano (Ykkösliiga): pelaajalista, ei keksittyä kenttää
@@ -116,7 +121,7 @@ const DAY = 86400_000;
   ok("Ykkösliiga: kokoonpano ilman ruudukkoa → ei kenttäsijainteja", ylu?.state === "ok" && !/"grid":"\d/.test(yj) && !/"x":\d/.test(yj), ylu?.state);
 
   // ---------- Etusivu ----------
-  await page.goto(APP + "/", { waitUntil: "networkidle" });
+  await go("/");
   await page.waitForTimeout(1500);
   const groups = await page.locator(".cgroup .cg-name").allTextContents();
   ok("etusivu: Veikkausliiga omana ryhmänään", groups.includes("Veikkausliiga"), groups.join(", "));

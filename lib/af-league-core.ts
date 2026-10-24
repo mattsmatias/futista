@@ -119,7 +119,8 @@ export function splitStages<T extends { table: Row[]; groups?: AfGroupTable[] }>
   const regular = (g: NonNullable<T["groups"]>[number]) => !/group/i.test(g.name);
   const groups = r.groups.map((g) => (regular(g) ? { ...g, name: "Regular Season" } : g))
     .sort((a, b) => Number(regular(a)) - Number(regular(b)) || played(b) - played(a));
-  return { ...r, groups };
+  // table (sijoitus ottelusivulla, haku) samassa järjestyksessä: joukkueen ensimmäinen rivi = nykyinen vaihe
+  return { ...r, groups, table: groups.flatMap((g) => g.table) };
 }
 
 /** Maalintekijät. Puuttuva syöttö- tai ottelumäärä on null, ei nolla. */

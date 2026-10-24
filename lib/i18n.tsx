@@ -496,7 +496,7 @@ const D = {
   lu_pitchLabel: ["Kenttäkaavio: {t}, muodostelma {f}. Sama tieto on listana alla.", "Planskiss: {t}, formation {f}.", "Pitch view: {t}, formation {f}."],
   lu_list: ["Avauskokoonpano listana", "Startelva som lista", "Starting XI as a list"],
   lu_rating: ["Arvosana", "Betyg", "Rating"],
-  lu_ratingNote: ["Arvosana on lähteen (Free API Live Football Data) otteluarvosana. Lähde ei kerro asteikkoa. – = ei arvosanaa.", "Betyget är källans (Free API Live Football Data) matchbetyg. Källan anger inte skalan. – = inget betyg.", "The rating is the source's (Free API Live Football Data) match rating. The source doesn't state the scale. – = no rating."],
+  lu_ratingNote: ["Arvosana on lähteen ({s}) otteluarvosana. Lähde ei kerro asteikkoa. – = ei arvosanaa.", "Betyget är källans ({s}) matchbetyg. Källan anger inte skalan. – = inget betyg.", "The rating is the source's ({s}) match rating. The source doesn't state the scale. – = no rating."],
   lu_avg: ["Avauskokoonpanon arvosanojen keskiarvo {a} ({n}/{m} pelaajalta)", "Startelvans betygssnitt {a} ({n}/{m} spelare)", "Starting XI average rating {a} ({n}/{m} players)"],
   lu_captain: ["kapteeni", "kapten", "captain"],
   lu_motm: ["ottelun pelaaja", "matchens spelare", "player of the match"],

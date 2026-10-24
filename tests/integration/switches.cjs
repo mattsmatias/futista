@@ -18,7 +18,8 @@ const ok = (name, cond, info = "") => { results.push(!!cond); console.log(`${con
   r = await fetch(`${APP}/api/h2h/5001?l=bundesliga`); ok("FD_OFF: H2H → 503", r.status === 503);
   r = await fetch(`${APP}/api/live`); const live = await r.json(); ok("FD_OFF+ESPN_OFF: live-rajapinta vastaa ilman lähteitä", r.status === 200, JSON.stringify(live).slice(0, 100));
   await page.goto(APP + "/", { waitUntil: "networkidle" });
-  const hits = (await (await fetch(`${MOCK}/__log`)).json()).length;
+  // vain football-data (/v4/) ja ESPN (/espn/); API-Football-kilpailut (/af/) eivät kuulu näihin katkaisimiin
+  const hits = (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => /^\/(v4|espn)\//.test(x.url)).length;
   ok("ei yhtään hakua football-dataan tai ESPN:ään", hits === 0, `${hits} hakua`);
   await browser.close();
   console.log(`\nTULOS: ${results.filter(Boolean).length}/${results.length} OK`); process.exit(results.every(Boolean) ? 0 : 1);
