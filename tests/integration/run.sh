@@ -28,6 +28,8 @@ export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_lo
 # kokoonpanot ja tilastot: simuloitu RapidAPI (mock-rapid.cjs), vain testisarja ligue1
 # siirrot: simuloitu API-Football (mock-sources.cjs /af/)
 export APIFOOTBALL_KEY=test-not-a-real-key APIFOOTBALL_BASE_URL=http://127.0.0.1:9101/af
+# muiden sarjojen ottelutiedot API-Footballista pois aiemmista testeistä (ne testaavat RapidAPI- ja ESPN-lähteitä); oma ajo lopussa
+export AF_EXTRAS_OFF=1
 export RAPIDAPI_KEY=test-not-a-real-key RAPIDAPI_ON=1 RAPIDAPI_SCOPE=ligue1 RAPIDAPI_BASE_URL=http://127.0.0.1:9104 RAPIDAPI_PER_HOUR=40
 # Mainosta-lomake: simuloitu Resend (mock-sources.cjs /resend/), testiosoitteet (example.test ei ole oikea verkkotunnus)
 export RESEND_API_KEY=test-not-a-real-key RESEND_BASE_URL=http://127.0.0.1:9101/resend CONTACT_TO_EMAIL=yllapito@example.test CONTACT_FROM_EMAIL="Futista <lomake@example.test>"
@@ -53,4 +55,7 @@ kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || 
 # mainoskortti ja Mainosta-sivu: simuloitu uutissyöte (muut testit ajetaan ilman uutisia)
 start env NEWS_FEED_BASE_URL=http://127.0.0.1:9101/feed
 node tests/integration/mainosta.cjs || rc=1
+kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
+start env AF_EXTRAS_OFF=
+node tests/integration/af-isot.cjs || rc=1
 exit $rc

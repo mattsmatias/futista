@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, pickSeason, applyLive, afTeam, roundFi, groupFi, isKnockout, splitStages } from "../lib/af-league-core";
+import { parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, pickSeason, applyLive, afTeam, roundFi, groupFi, isKnockout, splitStages, pickFixture } from "../lib/af-league-core";
 import { afMatchState, matchState } from "../lib/live-core";
 import { AF_COMPS } from "../lib/af-registry";
 
@@ -199,4 +199,21 @@ test("sarjasivun esittely: cupissa ei luvata sarjataulukkoa eikä varmentamattom
   const vl = leagueIntro("veikkausliiga" as never, "Veikkausliiga");
   assert.ok(vl.includes("sarjataulukko") && vl.includes("maalintekijät"), vl);
   assert.ok(leagueIntro("valioliiga" as never, "Valioliiga").includes("uutiset"));
+});
+
+test("muun sarjan ottelu → API-Footballin ottelu: molemmat joukkueet ja aika; epäselvä jätetään yhdistämättä", () => {
+  const k = Date.UTC(2026, 9, 24, 14, 0);
+  const L = [
+    { id: 1, ts: k, home: "Racing Santander", away: "Barcelona" },
+    { id: 2, ts: k, home: "Real Madrid", away: "Getafe" },
+    { id: 3, ts: k + 5 * 3600_000, home: "Racing Ferrol", away: "Barcelona B" },
+  ];
+  assert.equal(pickFixture(L, k, "Racing Santander", "FC Barcelona"), 1);
+  assert.equal(pickFixture(L, k, "Barcelona", "Racing Santander"), null); // väärät puolet → ei osumaa
+  assert.equal(pickFixture(L, k + 8 * 3600_000, "Racing Santander", "FC Barcelona"), null); // aika ei täsmää
+  assert.equal(pickFixture(L, k, "Real Madrid CF", "Getafe CF"), 2);
+  // tiukka osuma voittaa väljän; kaksi väljää osumaa → ei yhdistetä
+  const M = [{ id: 7, ts: k, home: "Manchester United", away: "Arsenal" }, { id: 8, ts: k, home: "Manchester City", away: "Arsenal" }];
+  assert.equal(pickFixture(M, k, "Manchester United FC", "Arsenal FC"), 7);
+  assert.equal(pickFixture(M, k, "Manchester", "Arsenal"), null);
 });

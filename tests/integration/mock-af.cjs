@@ -63,13 +63,25 @@ function fixtures(lg, now) {
   }
   return out;
 }
+// Muu sarja (Bundesliga, football-datan simuloitu ottelu 5000: Mittaus United – Testiseura Kotka 1–3, 4 vrk sitten):
+// API-Footballin päivälista. Mukana harhautus, jonka nimet osuvat vain väljästi (ei saa valita).
+const hel = (t) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Helsinki" }).format(t);
+function bigFixtures(now) {
+  const t = now - 4 * DAY;
+  const tm = (id, name) => ({ id, name, logo: null, winner: null });
+  const f = (id, h, a, g) => ({ fixture: { id, timestamp: Math.floor(t / 1000), date: new Date(t).toISOString(), status: { short: "FT", long: "FT", elapsed: 90, extra: null } },
+    league: { id: 78, round: "Regular Season - 3" }, teams: { home: h, away: a }, goals: { home: g[0], away: g[1] },
+    score: { fulltime: { home: g[0], away: g[1] }, extratime: { home: null, away: null }, penalty: { home: null, away: null } } });
+  return [f(990001, tm(9902, "Mittaus United"), tm(9901, "Testiseura Kotka"), [1, 3]), f(990002, tm(9903, "Mittaus Reserve"), tm(9904, "Kotka City"), [0, 0])];
+}
 function detail(id, now) {
+  if (id >= 990000) return detailOf(bigFixtures(now).find((x) => x.fixture.id === id), true);
   const lg = Math.floor(id / 1000);
   if (!LEAGUES[lg]) return [];
-  const all = fixtures(lg, now);
-  const fx = all.find((x) => x.fixture.id === id);
+  return detailOf(fixtures(lg, now).find((x) => x.fixture.id === id), lg !== 246 && lg !== 1087, lg);
+}
+function detailOf(fx, grid, lg = 0) {
   if (!fx) return [];
-  const grid = lg !== 246 && lg !== 1087;
   const pl = (tid, n, pos, g) => ({ player: { id: tid * 100 + n, name: `Pelaaja ${tid}-${n}`, number: n, pos, grid: grid ? g : null } });
   const xi = (tid) => [pl(tid, 1, "G", "1:1"), ...[2, 3, 4, 5].map((n, k) => pl(tid, n, "D", `2:${k + 1}`)), ...[6, 7, 8].map((n, k) => pl(tid, n, "M", `3:${k + 1}`)), ...[9, 10, 11].map((n, k) => pl(tid, n, "F", `4:${k + 1}`))];
   const h = fx.teams.home.id, a = fx.teams.away.id;
@@ -109,6 +121,11 @@ function handle(u, send, mode, res, hdr) {
     const ids = u.searchParams.get("live").split("-").map(Number);
     const live = ids.includes(244) ? fixtures(244, now).filter((x) => x.fixture.status.short === "1H").map((x) => ({ ...x, fixture: { ...x.fixture, status: { short: "2H", elapsed: 67, extra: null } }, goals: mode.afvar === "1" ? { home: 1, away: 1 } : { home: 2, away: 1 } })) : [];
     send({ errors: [], response: live });
+    return true;
+  }
+  if (u.pathname === "/fixtures" && u.searchParams.get("date") && u.searchParams.get("league") === "78") {
+    const d = u.searchParams.get("date"), list = bigFixtures(now);
+    send({ errors: [], response: list.filter((x) => hel(x.fixture.timestamp * 1000) === d) });
     return true;
   }
   if (u.pathname === "/fixtures" && u.searchParams.get("id")) { send({ errors: [], response: detail(Number(u.searchParams.get("id")), now) }); return true; }

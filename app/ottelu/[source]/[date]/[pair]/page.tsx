@@ -7,6 +7,7 @@ import { getMatchExtra } from "@/lib/match-extra";
 import { getTeamGames } from "@/lib/espn";
 import { teamForm, type FormItem } from "@/lib/team-form";
 import MatchView from "./MatchView";
+import { afBigOn } from "@/lib/af-league";
 import { rapidAllowed } from "@/lib/rapid";
 import JsonLd from "../../../../JsonLd";
 import { SITE, matchLd, fiDate, og, OG_IMAGE } from "@/lib/seo";
@@ -76,7 +77,9 @@ export default async function MatchPage({ params }: Props) {
   // kokoonpanot/tilastot: RapidAPI-sarjat (kiintiö ja rajaus) tai ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS)
   const espnSrc = !!SOURCES.find((x) => x.id === d.s.source)?.espn && process.env.ESPN_OFF !== "1";
   const afSrc = !!SOURCES.find((x) => x.id === d.s.source)?.af; // API-Football-kilpailu (lib/af-league.ts)
-  const extras = espnSrc || afSrc || rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair } : null;
+  // muut sarjat (La Liga, Valioliiga, Mestarien liiga …): tapahtumat, kokoonpanot ja tilastot API-Footballista, kun avain on käytössä
+  const afBig = afBigOn(d.s.source);
+  const extras = espnSrc || afSrc || afBig || rapidAllowed(d.s.source, m.date, pair) ? { l: d.s.source, d: m.date, p: pair, ...(afSrc || afBig ? { af: true } : {}) } : null;
   const url = `${SITE}${matchHref(d.s.source, m.date, m.home.name, m.away.name)}`;
   return (
     <>

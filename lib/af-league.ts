@@ -9,10 +9,11 @@
 //  - Häiriössä (429, aikakatkaisu, 5xx, rungon virhekenttä) tallentamatta: edellinen onnistunut tulos säilyy.
 import { stableCache } from "./stable-cache";
 import { afGet, hasApiFootball, once } from "./apifootball";
+import { AF_LEAGUE, afSeason } from "./apifootball-core";
 import { AF_COMPS, afCompOn, afComp } from "./af-registry";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
-import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, type AfDetail } from "./af-league-core";
+import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, type AfDetail } from "./af-league-core";
 import type { LeagueStats, Fixture, Part } from "./stats";
 import type { SourceId } from "./sources";
 
@@ -123,12 +124,18 @@ export async function afScorers(id: string) {
 
 /** Yksittäisen ottelun tiedot (tapahtumat, kokoonpanot, tilastot) yhdellä haulla. Vain tunnetun kilpailun ottelulle. */
 export async function afMatchDetail(id: string, fixtureId: number, phase: "pre" | "live" | "final"): Promise<{ at: number; data: AfDetail } | null> {
-  if (!on(id) || !Number.isInteger(fixtureId) || fixtureId <= 0) return null;
+  if (on(id)) return detailOf(id, fixtureId, phase, women(id));
+  if (afBigOn(id)) return detailOf(id, fixtureId, phase, false);
+  return null;
+}
+
+async function detailOf(id: string, fixtureId: number, phase: "pre" | "live" | "final", w: boolean): Promise<{ at: number; data: AfDetail } | null> {
+  if (!Number.isInteger(fixtureId) || fixtureId <= 0) return null;
   const ttl = phase === "final" ? 30 * DAY : phase === "live" ? 90 : 600;
   try {
     return await stableCache(async () => {
       const j = await once(`d${fixtureId}`, () => afGet(`/fixtures?id=${fixtureId}`));
-      const d = parseAfDetail(j?.response?.[0], women(id));
+      const d = parseAfDetail(j?.response?.[0], w);
       if (!d) throw new Error("detail: unrecognised");
       return { at: Date.now(), data: d };
     }, ["af-detail-v1", id, String(fixtureId), phase], { revalidate: ttl })();
@@ -138,6 +145,28 @@ export async function afMatchDetail(id: string, fixtureId: number, phase: "pre" 
   }
 }
 
+// ---------- Muut sarjat (football-data / ESPN): ottelun tiedot API-Footballista ----------
+// La Liga, Valioliiga, Mestarien liiga jne. tulevat edelleen nykyisistä lähteistä; API-Footballista haetaan vain
+// ottelusivun tapahtumat, kokoonpanot ja tilastot. Ottelu yhdistetään API-Footballin otteluun:
+// sama kilpailu (AF_LEAGUE) + sama päivä (Suomen aika) + alkamisaika ±3 h + molemmat joukkueet. Epäselvä → ei yhdistetä.
+/** Onko API-Football ottelutietojen lähde tälle sarjalle (katkaisin AF_EXTRAS_OFF=1 palauttaa vanhat lähteet) */
+export const afBigOn = (source: string) => hasApiFootball() && process.env.AF_EXTRAS_OFF !== "1" && source in AF_LEAGUE && !afComp(source);
+
+const dayFixtures = (league: number, season: number, date: string, settled: boolean) => stableCache(async () => {
+  const j = await once(`dfx${league}/${season}/${date}`, () => afGet(`/fixtures?league=${league}&season=${season}&date=${date}&timezone=Europe/Helsinki`));
+  if (!Array.isArray(j?.response)) throw new Error("bad day fixtures");
+  return (j.response as any[]).map((f) => ({ id: Number(f?.fixture?.id), ts: Number(f?.fixture?.timestamp) * 1000, home: String(f?.teams?.home?.name ?? ""), away: String(f?.teams?.away?.name ?? "") }));
+}, ["af-dayfx-v1", settled ? "settled" : "open", String(league), String(season), date], { revalidate: settled ? 7 * DAY : 3600 })();
+
+/** API-Footballin ottelutunniste meidän ottelulle. null = ei löydy tai epäselvä; "unavailable" = haku ei onnistunut. */
+export async function afFindFixture(source: string, date: string, kickoff: number | null, home: string, away: string): Promise<number | null | "unavailable"> {
+  if (!afBigOn(source)) return null;
+  const season = afSeason(date, source === "mls");
+  const settled = date < todayHel(); // menneen päivän tunnisteet eivät muutu
+  const list = await dayFixtures(AF_LEAGUE[source], season, date, settled).catch(() => null);
+  if (!list) return "unavailable";
+  return pickFixture(list, kickoff, home, away);
+}
 /** Etusivun päivänäkymä: kaikkien käytössä olevien kilpailujen valitun päivän ottelut (ei uusia lähdehakuja päivän vaihtuessa) */
 export async function afDay(date: string): Promise<{ comps: { id: string; league: string; results: LeagueStats["results"]; fixtures: Fixture[]; failed: boolean }[]; hot: boolean }> {
   const comps = AF_COMPS.filter((c) => on(c.id));

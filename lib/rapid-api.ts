@@ -6,7 +6,7 @@ import { phaseOf, type Lineup, type StatRow } from "./rapid-core";
 import { ourMatch } from "./rapid-match";
 import { SOURCES } from "./sources";
 import { espnExtras, ESPN_SOURCE } from "./espn-lineups";
-import { afMatchDetail } from "./af-league";
+import { afMatchDetail, afBigOn, afFindFixture } from "./af-league";
 
 export const RAPID_SOURCE = "Free API Live Football Data (RapidAPI)";
 
@@ -75,8 +75,13 @@ async function afResponse(kind: "lineups" | "stats", req: Request) {
   if (ours === "unavailable") return json({ state: "unavailable" }, 503, 0);
   const phase = phaseOf(ours.kickoff, Date.now(), ours.finished);
   if (phase === "far" || (kind === "stats" && phase === "pre")) return json({ state: "wait", phase }, 200, phase === "far" ? 900 : 300);
-  if (!ours.afid) return json({ state: "nodata", phase, why: "none" }, 200, 900);
-  const r = await afMatchDetail(l, ours.afid, phase);
+  // API-Football-kilpailu: tunniste omasta datasta; muu sarja (La Liga ym.): haetaan saman päivän listasta
+  const afid = ours.afid ?? (afBigOn(l) ? await afFindFixture(l, d, ours.kickoff, ours.home.name, ours.away.name) : null);
+  if (afid === "unavailable") return json({ state: "unavailable" }, 503, 0);
+  // ESPN-sarjassa ilman API-Football-osumaa käytetään entistä ESPN-lähdettä
+  if (!afid && !ours.afid && espnSlug(l)) return espnResponse(kind, req);
+  if (!afid) return json({ state: "nodata", phase, why: "none" }, 200, 900);
+  const r = await afMatchDetail(l, afid, phase);
   if (!r) return json({ state: "unavailable" }, 503, 0);
   const meta = { fetchedAt: r.at, stale: false, source: AF_SOURCE };
   const age = phase === "final" ? 3600 : 60;
@@ -90,7 +95,7 @@ async function afResponse(kind: "lineups" | "stats", req: Request) {
 }
 
 export async function lineupsResponse(req: Request) {
-  if (isAf(params(req).l)) return afResponse("lineups", req);
+  if (isAf(params(req).l) || afBigOn(params(req).l)) return afResponse("lineups", req);
   if (espnSlug(params(req).l)) return espnResponse("lineups", req);
   const b = await base("lineups", req);
   if (b.done) return b.done;
@@ -107,7 +112,7 @@ export async function lineupsResponse(req: Request) {
 }
 
 export async function statsResponse(req: Request) {
-  if (isAf(params(req).l)) return afResponse("stats", req);
+  if (isAf(params(req).l) || afBigOn(params(req).l)) return afResponse("stats", req);
   if (espnSlug(params(req).l)) return espnResponse("stats", req);
   const b = await base("stats", req);
   if (b.done) return b.done;

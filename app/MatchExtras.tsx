@@ -11,7 +11,7 @@ import { startersAverage, ratingTier } from "@/lib/rapid-core";
 import type { Team } from "@/lib/stats";
 import { Badge } from "./Stats";
 
-type Where = { l: string; d: string; p: string };
+type Where = { l: string; d: string; p: string; af?: boolean }; // af = tiedot API-Footballista (tapahtumat saatavilla)
 type Meta = { fetchedAt?: number | null; stale?: boolean; source?: string };
 type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; home?: Lineup; away?: Lineup; events?: AfEvent[]; hasEvents?: boolean };
 type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[] };

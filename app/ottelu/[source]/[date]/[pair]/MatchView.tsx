@@ -110,7 +110,7 @@ function Info({ e }: { e: MatchExtra }) {
 }
 
 /** extras = kokoonpano- ja tilastovälilehdet käytössä tälle ottelulle (palvelin päättää: katkaisin ja kilpailu-/otteluraja) */
-export default function MatchView({ s, result, fixture, extra = null, extras = null, formAll = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string } | null; formAll?: { home: FormItem[]; away: FormItem[] } | null }) {
+export default function MatchView({ s, result, fixture, extra = null, extras = null, formAll = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string; af?: boolean } | null; formAll?: { home: FormItem[]; away: FormItem[] } | null }) {
   // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
   //  ok + [] = "ei aiempia kohtaamisia"; error = "tietoja ei saada" + uudelleenyritys (ei koko sivun latausta)
   const [history, setHistory] = useState<Meeting[] | null>(null);
@@ -202,7 +202,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
         {tab === "summary" && (
           <>
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
-            {extras && SOURCES.find((x) => x.id === s.source)?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
+            {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
             <div className="panel">
               {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>
                 <div className="panel-head"><h3>{t("form")}</h3></div>

@@ -7,7 +7,7 @@
 //  - Naisten kilpailuissa joukkueen nimeen " W", jos lähde ei sitä anna (ei sekoitu miesten joukkueeseen).
 import type { Fixture, Result, Row, Team, AfLive } from "./stats";
 import type { Lineup, LPlayer, StatRow, StatKey, StatValue } from "./rapid-core";
-import { helsinkiParts } from "./live-core";
+import { helsinkiParts, sameTeam, sameTeamStrict, words } from "./live-core";
 
 const num = (v: unknown): number | null => { const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v.replace("%", "")) : NaN; return Number.isFinite(n) ? n : null; };
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
@@ -295,3 +295,16 @@ export function groupFi(g: string): string {
 
 /** Rakenne näyttöä varten: cupissa ja turnauksen pudotuspeleissä kierros, ei sarjataulukkoa cupille */
 export const isKnockout = (round?: string) => !!round && !/^(Regular Season|Group|League [A-D] -|League Stage|Championship|Relegation Group)/i.test(round);
+
+/** Meidän ottelu → API-Footballin ottelu saman kilpailun saman päivän listasta.
+ *  Ehdot: MOLEMMAT joukkueet oikeilla paikoilla: koko nimi (alkamisaika ±3 h) tai selvä nimen osa (alkamisaika ±15 min).
+ *  Täsmälleen yksi osuma → tunniste; nolla tai useampi → null (epäselvää ei yhdistetä). */
+export function pickFixture(list: { id: number; ts: number; home: string; away: string }[], kickoff: number | null, home: string, away: string): number | null {
+  const near = list.filter((f) => Number.isInteger(f.id) && f.id > 0 && (kickoff === null || (Number.isFinite(f.ts) && Math.abs(f.ts - kickoff) <= 3 * 3600_000)));
+  // ensin tiukka (kaikki nimen sanat), vasta sitten väljä (selvä nimen osa); kummassakin oltava täsmälleen yksi osuma
+  const strict = near.filter((f) => sameTeamStrict(home, words(f.home)) && sameTeamStrict(away, words(f.away)));
+  if (strict.length) return strict.length === 1 ? strict[0].id : null;
+  // väljä vertailu vain samaan alkamisaikaan (±15 min): estää esim. "Racing Ferrol" ≈ "Racing Santander" eri kellonaikaan
+  const loose = near.filter((f) => kickoff !== null && Math.abs(f.ts - kickoff) <= 15 * 60_000 && sameTeam(home, words(f.home)) && sameTeam(away, words(f.away)));
+  return loose.length === 1 ? loose[0].id : null;
+}

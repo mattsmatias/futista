@@ -142,6 +142,8 @@ export function helsinkiParts(epoch: number) {
 
 /** Onko rajapinnan joukkue sama kuin meidän joukkue (nimi täsmää tai selvä nimen osa löytyy) */
 export const sameTeam = (ours: string, theirs: string[]) => same(ours, theirs) || partly(ours, theirs);
+/** Vain tiukka vertailu (kaikki meidän nimen sanat löytyvät) */
+export const sameTeamStrict = (ours: string, theirs: string[]) => same(ours, theirs);
 
 /** Paras vastine joukkuelistasta: ensin täsmällinen nimi, sitten yksiselitteinen nimen osa */
 export function bestTeam<T extends { name: string }>(teams: T[], theirs: string[]): T | undefined {
