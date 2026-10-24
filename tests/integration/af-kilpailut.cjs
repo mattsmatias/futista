@@ -88,7 +88,7 @@ const DAY = 86400_000;
   ok("  rajaus sanalla 'naiset' löytää naisten kilpailut edelleen", found.includes("Kansallinen Liiga") && !found.includes("La Liga"), found.join(", "));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
   ok("  alatunnisteen lähteissä API-Football", (await page.locator(".foot-credits").innerText()).includes("API-Football"));
-  ok("  alanavigaatiossa edelleen 4 kohtaa (ei uusia välilehtiä)", (await page.locator(".bottomnav a").count()) === 4);
+  ok("  alanavigaatiossa 5 kohtaa (Ottelut, Suosikit, Live, Sarjat, Uutiset)", (await page.locator(".bottomnav a").allTextContents()).join("|") === "Ottelut|Suosikit|Live|Sarjat|Uutiset");
 
   // ---------- Sarjasivut ----------
   await go("/sarjat/veikkausliiga");
@@ -155,6 +155,15 @@ const DAY = 86400_000;
   } else ok("  takaisin palatessa sama päivä", false, "eilisen Veikkausliiga-ottelua ei löytynyt");
   await page.goto(APP + "/?n=live", { waitUntil: "load" }); await page.waitForTimeout(2500);
   ok("  Live-suodatin: Veikkausliiga-ottelu näkyy", (await page.locator(".cgroup .cg-name").allTextContents()).includes("Veikkausliiga"));
+  ok("  alapalkin Live-kohta aktiivinen Live-näkymässä", (await page.locator(".bottomnav a[aria-current=page]").textContent()) === "Live");
+  const navs = await page.locator(".bottomnav a").evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => [Math.round(r.width), Math.round(r.height)]));
+  ok("  alapalkin kohdat vähintään 44 × 44 px (390 px)", navs.every(([w, h]) => w >= 44 && h >= 44), JSON.stringify(navs));
+  await page.locator(".filters .fbtn", { hasText: /^Kaikki$/ }).click(); await page.waitForTimeout(300);
+  ok("  Kaikki-suodatin → Ottelut-kohta aktiivinen", (await page.locator(".bottomnav a[aria-current=page]").textContent()) === "Ottelut");
+  await page.setViewportSize({ width: 320, height: 700 }); await page.waitForTimeout(200);
+  const n320 = await page.evaluate(() => [...document.querySelectorAll(".bottomnav a")].map((a) => ({ fit: a.scrollWidth <= a.clientWidth + 1, w: Math.round(a.getBoundingClientRect().width) })));
+  ok("  320 px: alapalkin tekstit mahtuvat", n320.every((x) => x.fit && x.w >= 44), JSON.stringify(n320));
+  await page.setViewportSize({ width: 390, height: 844 });
   ok("selain: ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();
 

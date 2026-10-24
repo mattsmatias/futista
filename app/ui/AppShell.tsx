@@ -1,6 +1,7 @@
 "use client";
 // Sovelluksen runko kaikille sivuille: kompakti yläpalkki (logo, haku, asetukset), päänavigaatio
 // (Ottelut · Suosikit · Sarjat · Uutiset) – työpöydällä yläpalkissa, puhelimessa kiinteänä alapalkkina.
+import { URL_EVENT } from "@/lib/url-state";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAppUpdate } from "@/lib/app-update";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,15 +12,18 @@ import { useI18n, LANGS, type Key } from "@/lib/i18n";
 import SearchDialog from "./Search";
 import { Icon } from "./Icons";
 
-type NavId = "matches" | "favs" | "comps" | "news";
+type NavId = "matches" | "favs" | "live" | "comps" | "news";
 const NAV: { id: NavId; href: string; label: Key; icon: JSX.Element }[] = [
   { id: "matches", href: "/", label: "nav_matches", icon: Icon.matches },
   { id: "favs", href: "/suosikit", label: "nav_favs", icon: Icon.favs },
+  // Live = etusivun Live-suodatin (?n=live) omana kohtanaan (käyttäjän valinta 24.10.2026)
+  { id: "live", href: "/?n=live", label: "f_live", icon: Icon.live },
   { id: "comps", href: "/sarjat", label: "nav_comps", icon: Icon.comps },
   { id: "news", href: "/uutiset", label: "nav_news", icon: Icon.news },
 ];
 
-export function activeNav(path: string): NavId | null {
+export function activeNav(path: string, live = false): NavId | null {
+  if (path === "/" && live) return "live";
   if (path === "/" || path.startsWith("/ottelu")) return "matches";
   if (path.startsWith("/suosikit")) return "favs";
   if (path.startsWith("/sarjat") || path.startsWith("/maajoukkue") || path.startsWith("/joukkue") || path.startsWith("/pelaaja")) return "comps";
@@ -50,7 +54,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const [searchOpen, setSearchOpen] = useState(false);
   const trigger = useRef<HTMLElement | null>(null);
-  const active = activeNav(path);
+  // Live-kohta on aktiivinen, kun etusivulla on Live-suodatin (?n=live); suodatin vaihtuu ilman sivun latausta
+  const [liveOn, setLiveOn] = useState(false);
+  useEffect(() => {
+    const read = () => setLiveOn(new URLSearchParams(location.search).get("n") === "live");
+    read();
+    window.addEventListener("popstate", read);
+    window.addEventListener(URL_EVENT, read);
+    return () => { window.removeEventListener("popstate", read); window.removeEventListener(URL_EVENT, read); };
+  }, [path]);
+  const active = activeNav(path, liveOn);
   const fallback = backFallback(path);
 
   useAppUpdate(); // uusi julkaisu käyttöön automaattisesti (myös kotivalikosta avattu sovellus)

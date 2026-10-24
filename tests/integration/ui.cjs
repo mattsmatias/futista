@@ -153,7 +153,7 @@ const MIN = 60_000;
     const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
     await page.goto(APP + "/", { waitUntil: "networkidle" });
     const nav = await page.locator(".bottomnav a").allTextContents();
-    ok("etusivu: alanavigaatio Ottelut / Suosikit / Sarjat / Uutiset", nav.join("|") === "Ottelut|Suosikit|Sarjat|Uutiset", nav.join("|"));
+    ok("etusivu: alanavigaatio Ottelut / Suosikit / Live / Sarjat / Uutiset", nav.join("|") === "Ottelut|Suosikit|Live|Sarjat|Uutiset", nav.join("|"));
     ok("  aktiivinen kohta merkitty muutenkin kuin värillä (aria-current)", (await page.locator(".bottomnav a[aria-current=page]").textContent()) === "Ottelut");
     const small = await page.locator(".bottomnav a, .daypick button, .filters button, .appbar button").evaluateAll((els) => els.filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect()).filter((r) => r.height < 44 || r.width < 44).length);
     ok("  kosketusalueet vähintään 44 px (navigaatio, päivä, suodattimet, yläpalkki)", small === 0, `${small} liian pientä`);
