@@ -175,13 +175,13 @@ function af(path, req, res) {
   }
   if (u.pathname === "/transfers" && u.searchParams.get("team") === "5001") {
     const y = new Date().getUTCMonth() >= 6 ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
-    const tr = (date, type, inn, out) => ({ date, type, teams: { in: inn, out } });
+    const tr = (date, type, inn, out) => ({ date, type, teams: { in: inn, out } }); // in = joukkue, johon pelaaja siirtyi
     const A = { id: 5001, name: "Testispor Ankara", logo: null }, X = { id: 6001, name: "Kaukoseura", logo: null }, Y = { id: 6002, name: "Lainaseura", logo: null };
     return send({ errors: [], response: [
       { player: { id: 801, name: "Uusi Hyökkääjä" }, transfers: [tr(`${y}-07-15`, "€ 4.5M", A, X)] },
-      { player: { id: 802, name: "Lainattu Puolustaja" }, transfers: [tr(`${y}-08-20`, "Loan", Y, A)] },
+      { player: { id: 802, name: "Lainattu Puolustaja" }, transfers: [tr(`${y}-08-20`, "Loan", A, Y)] },
       { player: { id: 803, name: "Vanha Siirto" }, transfers: [tr(`${y - 1}-07-01`, "Free", A, X)] },
-      { player: { id: 804, name: "Vapaa Keskikenttä" }, transfers: [tr(`${y}-07-01`, "Free", A, Y)] },
+      { player: { id: 804, name: "Vapaa Keskikenttä" }, transfers: [tr(`${y}-07-01`, "Free", Y, A)] },
     ] });
   }
   return send({ errors: [], response: [] });
