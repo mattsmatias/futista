@@ -231,7 +231,7 @@ function wd(u, res) {
     { c: E + "Q82595", ys: yrs(1964, 2026) }, { c: E + "Q15805431", ys: yrs(1903, 1963) },
     { c: E + "Q150880", ys: yrs(1953, 2020) },
   ]);
-  if (/P1346 wd:Q900001/.test(q)) return b([
+  if (/P1346 wd:Q900001\b/.test(q)) return b([
     { s: E + "Q1", c: E + "Q82595", l: "2013–14 Fußball-Bundesliga" },
     { s: E + "Q1", c: E + "Q15805431", l: "2013–14 Fußball-Bundesliga" },
     { s: E + "Q2", c: E + "Q82595", l: "2019–20 Bundesliga" },
