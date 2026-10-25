@@ -14,7 +14,7 @@ export const trophiesOn = (source: string) => process.env.TROPHIES_OFF !== "1" &
 
 async function sparql(q: string): Promise<Record<string, string>[]> {
   const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), 8000);
+  const t = setTimeout(() => ac.abort(), 20000);
   try {
     const r = await nodeFetch(`${BASE}?format=json&query=${encodeURIComponent(q)}`, { headers: { Accept: "application/sparql-results+json", "User-Agent": UA }, signal: ac.signal });
     if (r.status !== 200) throw new Error(`wd ${r.status}`);
@@ -24,18 +24,26 @@ async function sparql(q: string): Promise<Record<string, string>[]> {
 }
 const qid = (uri: string) => uri.replace(/^.*\/entity\//, "");
 
-const clubsOf = (leagueQ: string) => stableCache(async (): Promise<WdClub[]> => {
-  const rows = await sparql(`SELECT ?t ?n WHERE {
-    ?t p:P118 ?st. ?st ps:P118 wd:${leagueQ}. FILTER NOT EXISTS { ?st pq:P582 ?end }
-    ?t wdt:P31/wdt:P279* wd:Q476028.
+const clubsOf = (leagueQ: string) => stableCache(async (): Promise<{ now: WdClub[]; ever: WdClub[] }> => {
+  // kaikki seurat, jotka ovat joskus pelanneet liigassa; cur = voimassa oleva sarjamerkintä (ei päättymisaikaa)
+  const rows = await sparql(`SELECT ?t ?n ?cur WHERE {
+    { SELECT DISTINCT ?t (MAX(IF(BOUND(?end), 0, 1)) AS ?cur) WHERE { ?t p:P118 ?st. ?st ps:P118 wd:${leagueQ}. OPTIONAL { ?st pq:P582 ?end } ?t wdt:P31/wdt:P279* wd:Q476028. FILTER NOT EXISTS { ?t wdt:P576 ?gone } } GROUP BY ?t }
     { ?t rdfs:label ?n } UNION { ?t skos:altLabel ?n }
     FILTER(LANG(?n) IN ("en","fi","es","de","it","fr","nl","pt","tr"))
   }`);
   if (!rows.length) throw new Error("no clubs"); // tyhjä vastaus ei ole totuus: ei tallenneta
-  const m = new Map<string, Set<string>>();
-  for (const r of rows) { const q = qid(r.t); if (!m.has(q)) m.set(q, new Set()); m.get(q)!.add(r.n); }
-  return [...m].map(([q, n]) => ({ q, names: [...n] }));
-}, ["wd-clubs-v1", leagueQ], { revalidate: WEEK })();
+  const m = new Map<string, { cur: boolean; names: Set<string> }>();
+  for (const r of rows) { const q = qid(r.t); if (!m.has(q)) m.set(q, { cur: r.cur === "1", names: new Set() }); m.get(q)!.names.add(r.n); }
+  const all = [...m].map(([q, v]) => ({ q, cur: v.cur, names: [...v.names] }));
+  return { now: all.filter((c) => c.cur).map(({ q, names }) => ({ q, names })), ever: all.map(({ q, names }) => ({ q, names })) };
+}, ["wd-clubs-v2", leagueQ], { revalidate: WEEK })();
+
+/** Nykyisistä seuroista ensin; jos ei osumaa (sarjamerkintä puuttuu), kaikista liigassa pelanneista – aina yksiselitteisesti. */
+const findClub = (team: string, c: { now: WdClub[]; ever: WdClub[] }) => {
+  const a = matchClub(team, c.now);
+  if (a) return a;
+  return c.now.some((x) => matchClub(team, [x])) ? undefined : matchClub(team, c.ever);
+};
 
 const winsOf = (club: string) => stableCache(async (): Promise<WdWin[]> => {
   const rows = await sparql(`SELECT ?s ?c ?l ?end ?start ?pit WHERE {
@@ -49,20 +57,16 @@ const winsOf = (club: string) => stableCache(async (): Promise<WdWin[]> => {
 
 export type TeamTrophies = { q: string; trophies: Trophy[] };
 
-/** Joukkueen pokaalit; null = ei yksiselitteistä Wikidata-seuraa tai lähde ei vastannut (osio jätetään pois). */
+/** Joukkueen pokaalit; null = ei yksiselitteistä Wikidata-seuraa (osio jätetään pois). Lähteen häiriö heittää virheen. */
 export async function getTrophies(source: string, team: string): Promise<TeamTrophies | null> {
-  if (!trophiesOn(source) || !/^Q\d+$/.test(LEAGUE_Q[source])) return null;
-  try {
-    const q = matchClub(team, await clubsOf(LEAGUE_Q[source]));
-    if (!q) return null;
-    return { q, trophies: buildTrophies(await winsOf(q)) };
-  } catch {
-    return null;
-  }
+  if (!trophiesOn(source)) return null;
+  const q = findClub(team, await clubsOf(LEAGUE_Q[source]));
+  if (!q) return null;
+  return { q, trophies: buildTrophies(await winsOf(q)) };
 }
 
 /** Kehitystyökalu (esikatselu): koko liigan seuraosumat oikeaa taulukkoa vasten. */
 export async function debugMatches(source: string, teams: string[]) {
-  const clubs = await clubsOf(LEAGUE_Q[source]);
-  return { clubs: clubs.length, teams: teams.map((t) => ({ t, q: matchClub(t, clubs) ?? null, names: (clubs.find((c) => c.q === matchClub(t, clubs))?.names ?? []).slice(0, 4) })) };
+  const c = await clubsOf(LEAGUE_Q[source]);
+  return { now: c.now.length, ever: c.ever.length, teams: teams.map((t) => { const q = findClub(t, c); return { t, q: q ?? null, cur: !!q && c.now.some((x) => x.q === q), names: (c.ever.find((x) => x.q === q)?.names ?? []).slice(0, 3) }; }) };
 }

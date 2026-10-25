@@ -71,14 +71,24 @@ export const clubKey = (s: string) => norm(s).split(" ").filter((w) => w && !NOI
 
 export type WdClub = { q: string; names: string[] };
 
+// Lähteiden lyhyet nimet, joita Wikidatan nimissä ei ole (vain tunnistusta varten)
+const EXTRA: Record<string, string[]> = {
+  "m gladbach": ["borussia monchengladbach", "monchengladbach"],
+  "go ahead": ["go ahead eagles"],
+  sittard: ["fortuna sittard"],
+  brest: ["stade brestois 29", "stade brestois"],
+  psg: ["paris saint germain"],
+};
+const teamNames = (team: string) => { const n = namesFor(team); return [...n, ...n.flatMap((x) => EXTRA[x] ?? [])]; };
+
 /** Joukkueen Wikidata-tunniste liigan nykyisten seurojen joukosta: vain yksiselitteinen nimiosuma, muuten undefined. */
 export function matchClub(team: string, clubs: WdClub[]): string | undefined {
-  const keys = new Set(namesFor(team).map(clubKey).filter(Boolean));
+  const keys = new Set(teamNames(team).map(clubKey).filter(Boolean));
   if (!keys.size) return undefined;
   // 1) tarkka osuma normalisoituun nimeen; 2) avainosuma (liitteet pois). Kummassakin oltava täsmälleen yksi seura.
   for (const exact of [true, false]) {
     const hits = new Set<string>();
-    const mine = exact ? new Set(namesFor(team)) : keys;
+    const mine = exact ? new Set(teamNames(team)) : keys;
     for (const c of clubs) for (const n of c.names) if (mine.has(exact ? norm(n) : clubKey(n))) hits.add(c.q);
     if (hits.size === 1) return [...hits][0];
     if (hits.size > 1) return undefined;
