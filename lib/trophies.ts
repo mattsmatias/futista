@@ -27,16 +27,18 @@ const qid = (uri: string) => uri.replace(/^.*\/entity\//, "");
 const clubsOf = (leagueQ: string) => stableCache(async (): Promise<{ now: WdClub[]; ever: WdClub[] }> => {
   // kaikki seurat, jotka ovat joskus pelanneet liigassa; cur = voimassa oleva sarjamerkintä (ei päättymisaikaa)
   const rows = await sparql(`SELECT ?t ?n ?cur WHERE {
-    { SELECT DISTINCT ?t (MAX(IF(BOUND(?end), 0, 1)) AS ?cur) WHERE { ?t p:P118 ?st. ?st ps:P118 wd:${leagueQ}. OPTIONAL { ?st pq:P582 ?end } ?t wdt:P31/wdt:P279* wd:Q476028. FILTER NOT EXISTS { ?t wdt:P576 ?gone } } GROUP BY ?t }
-    { ?t rdfs:label ?n } UNION { ?t skos:altLabel ?n }
-    FILTER(LANG(?n) IN ("en","fi","es","de","it","fr","nl","pt","tr"))
+    ?t p:P118 ?st. ?st ps:P118 wd:${leagueQ}.
+    ?t wdt:P31 wd:Q476028.
+    FILTER NOT EXISTS { ?t wdt:P576 ?gone }
+    BIND(IF(EXISTS { ?st pq:P582 ?end }, "0", "1") AS ?cur)
+    ?t rdfs:label|skos:altLabel ?n. FILTER(LANG(?n) IN ("en","fi","es","de","it","fr","nl","pt","tr"))
   }`);
   if (!rows.length) throw new Error("no clubs"); // tyhjä vastaus ei ole totuus: ei tallenneta
   const m = new Map<string, { cur: boolean; names: Set<string> }>();
-  for (const r of rows) { const q = qid(r.t); if (!m.has(q)) m.set(q, { cur: r.cur === "1", names: new Set() }); m.get(q)!.names.add(r.n); }
+  for (const r of rows) { const q = qid(r.t); if (!m.has(q)) m.set(q, { cur: false, names: new Set() }); const v = m.get(q)!; v.cur ||= r.cur === "1"; v.names.add(r.n); }
   const all = [...m].map(([q, v]) => ({ q, cur: v.cur, names: [...v.names] }));
   return { now: all.filter((c) => c.cur).map(({ q, names }) => ({ q, names })), ever: all.map(({ q, names }) => ({ q, names })) };
-}, ["wd-clubs-v2", leagueQ], { revalidate: WEEK })();
+}, ["wd-clubs-v3", leagueQ], { revalidate: WEEK })();
 
 /** Nykyisistä seuroista ensin; jos ei osumaa (sarjamerkintä puuttuu), kaikista liigassa pelanneista – aina yksiselitteisesti. */
 const findClub = (team: string, c: { now: WdClub[]; ever: WdClub[] }) => {
