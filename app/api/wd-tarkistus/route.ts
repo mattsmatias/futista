@@ -117,7 +117,7 @@ export async function GET(req: Request) {
       // pienoiskuva base64-muodossa tarkistusta varten (vain Commonsin tiedosto)
       const f = u.get("f") ?? "";
       if (!/^File:[^/\\<>]{3,200}$/.test(f)) return NextResponse.json({ error: "f" }, { status: 400 });
-      const r = await nodeFetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(f)}&prop=imageinfo&iiprop=url&iiurlwidth=320`, { headers: { "User-Agent": UA } });
+      const r = await nodeFetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(f)}&prop=imageinfo&iiprop=url&iiurlwidth=${Math.min(320, Math.max(60, Number(u.get("w")) || 320))}`, { headers: { "User-Agent": UA } });
       const t = (Object.values(JSON.parse(await r.text())?.query?.pages ?? {})[0] as any)?.imageinfo?.[0]?.thumburl;
       if (!t) return NextResponse.json({ error: "no thumb" }, { status: 404 });
       const img = await fetch(t, { headers: { "User-Agent": UA } });
