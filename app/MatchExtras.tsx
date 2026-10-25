@@ -15,7 +15,7 @@ import { Badge } from "./Stats";
 type Where = { l: string; d: string; p: string; af?: boolean }; // af = tiedot API-Footballista (tapahtumat saatavilla)
 type Meta = { fetchedAt?: number | null; stale?: boolean; source?: string };
 type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; home?: Lineup; away?: Lineup; events?: AfEvent[]; hasEvents?: boolean };
-type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[] };
+type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[]; halves?: { h1: StatRow[]; h2: StatRow[] } };
 
 /** Hakee välilehden tiedot; virheessä säilytetään viimeisin kelvollinen vastaus. Päivitys vain näkyvissä ja ennen loppua. */
 function useExtra<T extends { state: string; phase?: string }>(path: string, w: Where, every = 300_000) {
@@ -195,10 +195,10 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
   return (
     <>
       {error && <ErrorBox text={t("lu_error")} retry={retry} loading={loading} />}
-      <p className="mx-label">{data.phase === "pre" ? t("lu_pre") : t("lu_started")}</p>
+      {/* ennen alkua kerrotaan, ettei lähde vahvista kokoonpanoa; "Avauskokoonpanot"-otsikko poistettu (käyttäjän valinta 26.10.2026) */}
+      {data.phase === "pre" && <p className="mx-label">{t("lu_pre")}</p>}
       {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} photos={data.source === "API-Football"} /> : (
-        <div className="panel lu-starters">
-          <div className="panel-head"><h3>{t("lu_starters")}</h3></div>
+        <div className="panel lu-starters" aria-label={t("lu_starters")}>
           <div className="lu-cols">
             {[{ l: h, tm: home }, { l: a, tm: away }].map(({ l, tm }, i) => (
               <section key={i} className="lu-team" aria-label={tm.name}>
@@ -349,22 +349,35 @@ function StatLine({ r }: { r: StatRow }) {
 export function StatsTab({ w, home, away }: { w: Where; home: Team; away: Team }) {
   const { t } = useI18n();
   const { data, error, loading, retry } = useExtra<StResp>("ottelutilastot", w);
+  const [half, setHalf] = useState<"h1" | "h2" | null>(null);
   if (!data) return error ? <ErrorBox text={t("st_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
   if (data.state === "wait") return <Note text={t(data.phase === "live" ? "st_waitLive" : "st_waitPre")} />;
   if (data.state === "busy") return <Note text={t("mx_busy")} sub={t("mx_busyHint")} />;
   if (data.state !== "ok" || !data.rows?.length) return <Note text={t("st_none")} />;
+  // puoliajat erikseen, kun lähde antaa ne (käyttäjän valinta 26.10.2026); muuten koko ottelun luvut
+  const hv = data.halves && data.halves.h1.length ? data.halves : null;
+  const has2 = !!hv && hv.h2.length > 0;
+  // oletus: käynnissä olevassa ottelussa meneillään oleva puoliaika, päättyneessä 1. puoliaika
+  const cur = half === "h2" && has2 ? "h2" : half === "h1" ? "h1" : data.phase === "live" && has2 ? "h2" : "h1";
+  const rows = hv ? hv[cur] : data.rows;
   return (
     <>
       {error && <ErrorBox text={t("st_error")} retry={retry} loading={loading} />}
+      {hv && (
+        <div className="seg ms-halves" role="group" aria-label={t("st_halves")}>
+          <button aria-pressed={cur === "h1"} className={cur === "h1" ? "on" : ""} onClick={() => setHalf("h1")}>{t("st_h1")}</button>
+          <button aria-pressed={cur === "h2"} className={cur === "h2" ? "on" : ""} onClick={() => setHalf("h2")} disabled={!has2}>{t("st_h2")}</button>
+        </div>
+      )}
       <div className="panel ms">
         <div className="panel-head ms-head">
           <span className="ph-team"><Badge t={home} size={22} /><span className="ms-team">{home.name}</span></span>
-          <span className="muted">{t("st_full")}</span>
+          <span className="muted">{hv ? t(cur === "h1" ? "st_h1" : "st_h2") : t("st_full")}</span>
           <span className="ph-team"><span className="ms-team">{away.name}</span><Badge t={away} size={22} /></span>
         </div>
         {data.phase === "live" && <p className="pad small muted">{t("st_liveNote")}</p>}
-        {data.aet && <p className="pad small muted">{t("st_aet")}</p>}
-        <div className="ms-rows">{data.rows.map((r) => <StatLine key={r.key} r={r} />)}</div>
+        {data.aet && !hv && <p className="pad small muted">{t("st_aet")}</p>}
+        <div className="ms-rows">{rows.map((r) => <StatLine key={r.key} r={r} />)}</div>
         <p className="pad small muted">{t("st_note")}</p>
         <SourceLine m={data} />
       </div>

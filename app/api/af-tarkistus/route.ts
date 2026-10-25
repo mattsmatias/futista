@@ -58,28 +58,11 @@ const finland = stableCache(async () => {
   return (j?.response ?? []).map((r: any) => ({ id: r.league?.id, name: r.league?.name, type: r.league?.type, seasons: (r.seasons ?? []).filter((s: any) => s.year >= 2023).map((s: any) => ({ year: s.year, current: s.current, start: s.start, end: s.end })) }));
 }, ["af-tarkistus-fi-v1"], { revalidate: 6 * 3600 });
 
-// puoliaikatilastot: kilpailun viimeisin pelattu ottelu → fixtures/statistics?half=true (2 hakua, 6 h välimuisti)
-const halfCheck = (id: number) => stableCache(async () => {
-  const fj = await afGet(`/fixtures?league=${id}&last=1&timezone=Europe/Helsinki`);
-  const f = fj?.response?.[0];
-  if (!f) return { id, fixture: null };
-  const sj = await afGet(`/fixtures/statistics?fixture=${f.fixture.id}&half=true`);
-  const r: any[] = sj?.response ?? [];
-  const pick = (a: any[]) => (a ?? []).map((x: any) => `${x.type}=${x.value}`);
-  return {
-    id, fixture: { id: f.fixture.id, date: f.fixture.date, teams: [f.teams?.home?.name, f.teams?.away?.name], goals: f.goals, status: f.fixture?.status?.short },
-    errors: sj?.errors ?? null, keys: r.map((x) => Object.keys(x)),
-    teams: r.map((x) => ({ team: x.team?.name, full: pick(x.statistics), h1: pick(x.statistics_1h), h2: pick(x.statistics_2h) })),
-  };
-}, ["af-tarkistus-half-v1", String(id)], { revalidate: 6 * 3600 })();
-
 export async function GET(req: Request) {
   if (process.env.VERCEL_ENV === "production" || !hasApiFootball()) return NextResponse.json({ error: "off" }, { status: 404 });
   const q = new URL(req.url).searchParams.get("id") ?? "";
   try {
     if (q === "fi") return NextResponse.json({ finland: await finland() });
-    const hl = Number(new URL(req.url).searchParams.get("half") ?? "");
-    if (Number.isInteger(hl) && ALLOWED.has(hl)) return NextResponse.json(await halfCheck(hl), { headers: { "Cache-Control": "no-store" } });
     const id = Number(q);
     if (!Number.isInteger(id) || !ALLOWED.has(id)) return NextResponse.json({ error: "not allowed" }, { status: 400 });
     return NextResponse.json(await check(id), { headers: { "Cache-Control": "no-store" } });

@@ -13,7 +13,7 @@ import { AF_LEAGUE, afSeason } from "./apifootball-core";
 import { AF_COMPS, afCompOn, afComp } from "./af-registry";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
-import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, type AfDetail } from "./af-league-core";
+import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, parseAfHalves, type AfDetail } from "./af-league-core";
 import type { LeagueStats, Fixture, Part } from "./stats";
 import type { SourceId } from "./sources";
 
@@ -156,9 +156,27 @@ async function detailOf(id: string, fixtureId: number, phase: "pre" | "live" | "
       const d = parseAfDetail(j?.response?.[0], w);
       if (!d) throw new Error("detail: unrecognised");
       return { at: Date.now(), data: d };
-    }, ["af-detail-v1", id, String(fixtureId), phase], { revalidate: ttl })();
+    }, ["af-detail-v2", id, String(fixtureId), phase], { revalidate: ttl })();
   } catch (e) {
     console.warn("af-ottelu", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
+    return null;
+  }
+}
+
+/** Puoliaikatilastot (fixtures/statistics?half=true). Erillinen haku vain Tilastot-välilehdellä; päättynyt 30 vrk,
+ *  käynnissä 90 s. null = ei saatavilla tai haku epäonnistui (näytetään koko ottelun tilastot). */
+export async function afHalfStats(id: string, fixtureId: number, phase: "pre" | "live" | "final", homeId: number | null | undefined, awayId: number | null | undefined) {
+  if (!(on(id) || afBigOn(id)) || !Number.isInteger(fixtureId) || fixtureId <= 0 || homeId == null || awayId == null) return null;
+  const ttl = phase === "final" ? 30 * DAY : phase === "live" ? 90 : 600;
+  try {
+    const resp = await stableCache(async () => {
+      const j = await once(`h${fixtureId}`, () => afGet(`/fixtures/statistics?fixture=${fixtureId}&half=true`));
+      if (!Array.isArray(j?.response)) throw new Error("half: unrecognised");
+      return j.response as any[];
+    }, ["af-half-v1", id, String(fixtureId), phase], { revalidate: ttl })();
+    return parseAfHalves(resp, homeId, awayId);
+  } catch (e) {
+    console.warn("af-puoliajat", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
     return null;
   }
 }

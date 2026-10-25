@@ -4,7 +4,7 @@ import { phaseOf } from "./match-core";
 import { ourMatch, liveOurMatch } from "./match-find";
 import { SOURCES } from "./sources";
 import { espnExtras, ESPN_SOURCE } from "./espn-lineups";
-import { afMatchDetail, afBigOn, afFindFixture } from "./af-league";
+import { afMatchDetail, afBigOn, afFindFixture, afHalfStats } from "./af-league";
 
 const json = (body: unknown, status: number, maxAge: number) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": maxAge > 0 ? `public, s-maxage=${maxAge}, stale-while-revalidate=60` : "no-store" } });
@@ -68,7 +68,10 @@ async function afResponse(kind: "lineups" | "stats", req: Request) {
     return json({ state: "ok", phase, kickoff: ours.kickoff, home: r.data.home, away: r.data.away, ...ev, ...meta }, 200, age);
   }
   if (!r.data.stats.length) return json({ state: "nodata", phase, ...meta }, 200, 120);
-  return json({ state: "ok", phase, aet: ours.aet, rows: r.data.stats, ...meta }, 200, age);
+  // puoliajat erikseen (käyttäjän valinta 26.10.2026); jos lähde ei anna, näytetään koko ottelun tilastot
+  const halves = await afHalfStats(l, afid, phase, r.data.homeId, r.data.awayId);
+  const hv = halves && halves.h1.length ? { halves } : {};
+  return json({ state: "ok", phase, aet: ours.aet, rows: r.data.stats, ...hv, ...meta }, 200, age);
 }
 
 // Muut sarjat ilman API-Footballia tai ESPN:ää: ei kokoonpano- eikä tilastolähdettä ("ei käytössä", välilehdet piilossa)

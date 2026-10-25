@@ -162,6 +162,7 @@ export type AfDetail = {
   home: Lineup | null; away: Lineup | null;
   stats: StatRow[]; events: AfEvent[];
   hasEvents: boolean; hasLineups: boolean; hasStats: boolean; hasPlayers: boolean;
+  homeId?: number | null; awayId?: number | null; // lähteen joukkuetunnisteet (puoliaikatilastojen yhdistämiseen)
 };
 
 const ROLE: Record<string, 0 | 1 | 2 | 3> = { G: 0, D: 1, M: 2, F: 3 };
@@ -259,20 +260,37 @@ export function parseAfDetail(d: any, women: boolean): AfDetail | null {
     const s = (d.statistics ?? []).find((x: any) => num(x?.team?.id) === id);
     return new Map<string, unknown>((s?.statistics ?? []).map((x: any) => [String(x?.type), x?.value]));
   };
-  const hm = statMap("h"), am = statMap("a");
-  const val = (m: Map<string, unknown>, k: string): StatValue => { const n = num(m.get(k)); return n === null ? null : { n, pct: null }; };
-  const stats: StatRow[] = [];
-  for (const [key, src] of STATS) { const row = { key, home: val(hm, src), away: val(am, src) }; if (row.home || row.away) stats.push(row); }
-  const acc = (m: Map<string, unknown>): StatValue => { const n = num(m.get("Passes accurate")); if (n === null) return null; return { n, pct: num(m.get("Passes %")) }; };
-  const accRow: StatRow = { key: "accuratePasses", home: acc(hm), away: acc(am) };
-  if (accRow.home || accRow.away) stats.splice(stats.findIndex((x) => x.key === "passes") + 1 || stats.length, 0, accRow);
+  const stats = statRows(statMap("h"), statMap("a"));
   const home = lu("h"), away = lu("a");
   return {
     status: String(d?.fixture?.status?.short ?? ""), elapsed: num(d?.fixture?.status?.elapsed),
     home, away, stats, events,
     hasEvents: events.length > 0, hasLineups: !!home && !!away, hasStats: stats.length > 0,
     hasPlayers: (d.players ?? []).some((p: any) => (p?.players ?? []).length > 0),
+    homeId, awayId,
   };
+}
+
+/** Tilastorivit lähteen tyyppi → arvo -kartoista. Puuttuva arvo ei ole nolla (rivi jää pois, jos kummallakaan ei ole). */
+function statRows(hm: Map<string, unknown>, am: Map<string, unknown>): StatRow[] {
+  const val = (m: Map<string, unknown>, k: string): StatValue => { const n = num(m.get(k)); return n === null ? null : { n, pct: null }; };
+  const stats: StatRow[] = [];
+  for (const [key, src] of STATS) { const row = { key, home: val(hm, src), away: val(am, src) }; if (row.home || row.away) stats.push(row); }
+  const acc = (m: Map<string, unknown>): StatValue => { const n = num(m.get("Passes accurate")); if (n === null) return null; return { n, pct: num(m.get("Passes %")) }; };
+  const accRow: StatRow = { key: "accuratePasses", home: acc(hm), away: acc(am) };
+  if (accRow.home || accRow.away) stats.splice(stats.findIndex((x) => x.key === "passes") + 1 || stats.length, 0, accRow);
+  return stats;
+}
+
+/** Puoliaikatilastot (fixtures/statistics?half=true: statistics_1h / statistics_2h joukkueittain, tarkistettu oikeasta
+ *  vastauksesta 26.10.2026). Joukkue tunnisteella; tyhjä puoliaika (ei vielä pelattu / lähde ei anna) → []. */
+export function parseAfHalves(resp: any[], homeId: number | null | undefined, awayId: number | null | undefined): { h1: StatRow[]; h2: StatRow[] } | null {
+  if (!Array.isArray(resp) || homeId == null || awayId == null) return null;
+  const team = (id: number) => resp.find((x) => num(x?.team?.id) === id);
+  const h = team(homeId), a = team(awayId);
+  if (!h || !a) return null;
+  const map = (x: any, k: string) => new Map<string, unknown>((Array.isArray(x?.[k]) ? x[k] : []).map((y: any) => [String(y?.type), y?.value]));
+  return { h1: statRows(map(h, "statistics_1h"), map(a, "statistics_1h")), h2: statRows(map(h, "statistics_2h"), map(a, "statistics_2h")) };
 }
 
 // ---------------- Kierrosten ja lohkojen nimet (suomeksi; muilla kielillä lähteen nimi) ----------------

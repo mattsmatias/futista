@@ -1750,3 +1750,7 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .pr-axis span:first-child { transform: none; }
 .pr-axis span:last-child { transform: translateX(-100%); }
 .pr-note { margin: 4px 16px 12px; font-size: 12px; line-height: 1.4; }
+
+/* Tilastot: puoliaikavalinta */
+.ms-halves { margin: 0 auto 10px 0; width: fit-content; }
+.ms-halves button:disabled { opacity: .45; cursor: default; }

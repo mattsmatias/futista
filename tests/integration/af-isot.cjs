@@ -72,6 +72,23 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.setViewportSize({ width: 390, height: 844 });
   ok("  nimet ja kuvat eivät mene päällekkäin eivätkä leikkaudu (390 ja 320 px)", l390.over === 0 && l390.clip === 0 && l320.over === 0 && l320.clip === 0, JSON.stringify({ l390, l320 }));
   ok("  ei arvosana- eikä pelipaikkaselitettä (käyttäjän valinta 25.10.2026)", !/Arvosana on lähteen|Pelipaikka on/.test(await page.locator("main").innerText()));
+  // Tilastot puoliajoittain (käyttäjän valinta 26.10.2026): ei koko ottelun lukuja, kun lähde antaa puoliajat
+  const sh = await get("ottelutilastot", Q);
+  ok("Tilastot: puoliajat lähteestä (1. ja 2. puoliaika joukkueittain)", sh.j?.halves?.h1?.find((r) => r.key === "shots")?.home?.n === 5 && sh.j?.halves?.h2?.find((r) => r.key === "shots")?.away?.n === 6, JSON.stringify(sh.j?.halves?.h1?.[0]));
+  ok("  puuttuva arvo ei ole nolla (xG puuttuu → ei riviä)", !sh.j?.halves?.h1?.some((r) => r.key === "xg"));
+  await page.locator(".subtabs button", { hasText: /^Tilastot$/ }).click();
+  await page.waitForSelector(".ms-halves", { timeout: 15000 }).catch(() => {});
+  const segs = await page.locator(".ms-halves button").allTextContents();
+  const headTxt = async () => (await page.locator(".ms-head").innerText()).replace(/\s+/g, " ");
+  const shotsRow = async () => (await page.locator(".ms-rows").innerText()).replace(/\s+/g, " ");
+  ok("  valinta 1. / 2. puoliaika, ei Koko ottelu -näkymää", segs.join("|") === "1. puoliaika|2. puoliaika" && /1\. puoliaika/.test(await headTxt()) && !/Koko ottelu/.test(await page.locator("main").innerText()), segs.join("|"));
+  const s1 = await shotsRow();
+  await page.locator(".ms-halves button", { hasText: "2. puoliaika" }).click(); await page.waitForTimeout(200);
+  const s2 = await shotsRow();
+  ok("  2. puoliajan luvut vaihtuvat", /2\. puoliaika/.test(await headTxt()) && s1 !== s2 && /\b4\b[\s\S]*\b6\b/.test(s2), `${s1.slice(0, 60)} → ${s2.slice(0, 60)}`);
+  await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click(); await page.waitForTimeout(500);
+  ok("Kokoonpanot: ei 'Avauskokoonpanot'-tekstiä (käyttäjän valinta 26.10.2026)", !/Avauskokoonpanot/.test(await page.locator("main").innerText()));
+
   // Pelaajatilastot: pelaajan kuva lähteen tunnisteella (API-Football); kuvapalvelin simuloidaan 1×1-kuvalla
   await page.route(/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
   await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();

@@ -136,6 +136,14 @@ function handle(u, send, mode, res, hdr) {
     send({ errors: [], response: list.filter((x) => hel(x.fixture.timestamp * 1000) === d) });
     return true;
   }
+  // puoliaikatilastot (rakenne oikeasta vastauksesta 26.10.2026: statistics, statistics_1h, statistics_2h)
+  if (u.pathname === "/fixtures/statistics" && u.searchParams.get("fixture") && u.searchParams.get("half") === "true") {
+    const fx = detail(Number(u.searchParams.get("fixture")), now)[0];
+    if (!fx || fx.fixture.status.short === "NS") return send({ errors: [], response: [] }), true;
+    const st = (tid, k) => [{ type: "Total Shots", value: k === 1 ? (tid === fx.teams.home.id ? 5 : 2) : (tid === fx.teams.home.id ? 4 : 6) }, { type: "Corner Kicks", value: k }, { type: "Ball Possession", value: k === 1 ? "58%" : "47%" }, { type: "expected_goals", value: null }];
+    send({ errors: [], response: [fx.teams.home.id, fx.teams.away.id].map((tid) => ({ team: { id: tid }, statistics: [{ type: "Total Shots", value: 9 }], statistics_1h: st(tid, 1), statistics_2h: fx.fixture.status.short === "1H" ? [] : st(tid, 3) })) });
+    return true;
+  }
   if (u.pathname === "/fixtures" && u.searchParams.get("ids")) { send({ errors: [], response: u.searchParams.get("ids").split("-").flatMap((id) => detail(Number(id), now)) }); return true; }
   if (u.pathname === "/fixtures" && u.searchParams.get("id")) { send({ errors: [], response: detail(Number(u.searchParams.get("id")), now) }); return true; }
   if (u.pathname === "/fixtures" && LEAGUES[lg]) { send({ errors: [], response: fixtures(lg, now) }); return true; }

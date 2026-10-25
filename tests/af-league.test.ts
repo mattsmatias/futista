@@ -237,3 +237,19 @@ test("kokoonpanon nimilappu: sukunimi Flashscoren tapaan", async () => {
   assert.equal(surname("Virgil van Dijk"), "van Dijk");
   assert.equal(surname("Ö. Åström"), "Åström");
 });
+
+test("puoliaikatilastot: joukkue tunnisteella, puuttuva arvo ei nolla, pelaamaton puoliaika tyhjä", async () => {
+  const { parseAfHalves } = await import("../lib/af-league-core");
+  // rakenne oikeasta vastauksesta (fixtures/statistics?half=true, La Liga 25.10.2026), lyhennetty
+  const resp = [
+    { team: { id: 2 }, statistics: [], statistics_1h: [{ type: "Total Shots", value: 6 }, { type: "expected_goals", value: "0.88" }, { type: "Ball Possession", value: "41%" }], statistics_2h: [] },
+    { team: { id: 1 }, statistics: [], statistics_1h: [{ type: "Total Shots", value: 9 }, { type: "expected_goals", value: null }, { type: "Ball Possession", value: "59%" }], statistics_2h: [] },
+  ];
+  const h = parseAfHalves(resp, 1, 2)!;
+  assert.deepEqual(h.h1.find((r) => r.key === "shots"), { key: "shots", home: { n: 9, pct: null }, away: { n: 6, pct: null } });
+  assert.deepEqual(h.h1.find((r) => r.key === "xg"), { key: "xg", home: null, away: { n: 0.88, pct: null } });
+  assert.equal(h.h1.find((r) => r.key === "possession")?.home?.n, 59);
+  assert.deepEqual(h.h2, []);
+  assert.equal(parseAfHalves(resp, 1, 3), null);
+  assert.equal(parseAfHalves(resp, null, 2), null);
+});
