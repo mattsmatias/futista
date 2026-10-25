@@ -462,6 +462,8 @@ const D = {
   h2hScope: ["Kaikki kilpailut, joista lähteellä on tietoa", "Alla tävlingar som källan har uppgifter om", "All competitions the source covers"],
   h2hCount: ["ottelua", "matcher", "matches"],
   tab_lineups: ["Kokoonpanot", "Laguppställningar", "Line-ups"],
+  pr_title: ["Paine", "Tryck", "Momentum"],
+  pr_note: ["Futistan arvio ottelun tapahtumista (laukaukset, kulmat, maalit), ei virallinen tilasto", "Futistas uppskattning utifrån matchhändelser (skott, hörnor, mål), ingen officiell statistik", "Futista's estimate from match events (shots, corners, goals), not an official statistic"],
   tab_players: ["Pelaajatilastot", "Spelarstatistik", "Player stats"],
   lu_pitchLabel2: ["Kenttäkaavio: {h} ({hf}) ylhäällä, {a} ({af}) alhaalla.", "Planskiss: {h} ({hf}) överst, {a} ({af}) nederst.", "Pitch view: {h} ({hf}) at the top, {a} ({af}) at the bottom."],
   lu_starters: ["Avauskokoonpanot", "Startelvor", "Starting line-ups"],

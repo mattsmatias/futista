@@ -1731,3 +1731,22 @@ h3 .cmark.cm-sm, .sc-top .cmark.cm-sm, .lpick .cmark.cm-sm, .fbtn .cmark.cm-sm {
 
 /* Sarjataulukon otsikoiden lyhenteet: selitys title-attribuutissa (ei näkyvää lyhennelistaa, käyttäjän valinta 25.10.2026) */
 th abbr[title] { text-decoration: none; cursor: help; }
+
+/* Paineen kuvaaja (ottelusivu): koti ylös, vieras alas; maalit pisteinä, puoliaika katkoviivana */
+.pr-card { --pr-h: #2f6fe4; --pr-a: #e3632b; }
+.pr-live { font: 700 11px var(--ui); color: var(--live, #d32f2f); letter-spacing: .04em; }
+.pr-teams { display: flex; justify-content: space-between; gap: 12px; padding: 4px 16px 6px; font-size: 13px; }
+.pr-t { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-t i { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+.pr-th i { background: var(--pr-h); } .pr-ta i { background: var(--pr-a); }
+.pr-t b { font-variant-numeric: tabular-nums; }
+.pr-svg { display: block; width: calc(100% - 32px); height: 120px; margin: 0 16px; }
+.pr-h { fill: var(--pr-h); } .pr-a { fill: var(--pr-a); }
+.pr-mid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pr-ht { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; opacity: .6; }
+.pr-goal { fill: var(--fg); stroke: var(--surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pr-axis { position: relative; height: 18px; margin: 2px 16px 0; font: 600 11px var(--mono); color: var(--muted); }
+.pr-axis span { position: absolute; transform: translateX(-50%); }
+.pr-axis span:first-child { transform: none; }
+.pr-axis span:last-child { transform: translateX(-100%); }
+.pr-note { margin: 4px 16px 12px; font-size: 12px; line-height: 1.4; }

@@ -15,7 +15,7 @@ import { helsinkiEpoch } from "@/lib/live-core";
 import { Num, AutoRefresh } from "@/lib/fresh";
 import { h2hSummary } from "@/lib/h2h";
 import Footer from "../../../../Footer";
-import { LineupsTab, StatsTab, PlayersTab, EventsCard } from "../../../../MatchExtras";
+import { LineupsTab, StatsTab, PlayersTab, EventsCard, PressureCard } from "../../../../MatchExtras";
 import FormItems from "../../../../FormItems";
 import type { FormItem } from "@/lib/team-form";
 
@@ -110,7 +110,7 @@ function Info({ e }: { e: MatchExtra }) {
 }
 
 /** extras = kokoonpano- ja tilastovälilehdet käytössä tälle ottelulle (palvelin päättää: katkaisin ja kilpailu-/otteluraja) */
-export default function MatchView({ s, result, fixture, extra = null, extras = null, formAll = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string; af?: boolean } | null; formAll?: { home: FormItem[]; away: FormItem[] } | null }) {
+export default function MatchView({ s, result, fixture, extra = null, extras = null, formAll = null, pressure = null }: { s: LeagueStats; result?: Result; fixture?: Fixture; extra?: MatchExtra | null; extras?: { l: string; d: string; p: string; af?: boolean } | null; formAll?: { home: FormItem[]; away: FormItem[] } | null; pressure?: { l: string; d: string; p: string } | null }) {
   // aiemmat kohtaamiset haetaan vasta, kun H2H-välilehti avataan
   //  ok + [] = "ei aiempia kohtaamisia"; error = "tietoja ei saada" + uudelleenyritys (ei koko sivun latausta)
   const [history, setHistory] = useState<Meeting[] | null>(null);
@@ -202,6 +202,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
         {tab === "summary" && (
           <>
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
+            {pressure && started && <PressureCard w={pressure} home={m.home} away={m.away} />}
             {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
             <div className="panel">
               {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>

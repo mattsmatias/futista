@@ -17,7 +17,7 @@ const BASE = (process.env.VERCEL_ENV !== "production" && process.env.ESPN_BASE_U
 export const espnOn = () => process.env.ESPN_OFF !== "1";
 
 /** Meidän sarja → ESPN:n sarjatunnus */
-const LEAGUE: Record<string, string> = {
+export const ESPN_LEAGUE: Record<string, string> = {
   laliga: "esp.1", valioliiga: "eng.1", ucl: "uefa.champions", bundesliga: "ger.1", seriea: "ita.1",
   ligue1: "fra.1", eredivisie: "ned.1", primeira: "por.1", championship: "eng.2", superlig: "tur.1", mls: "usa.1", uel: "uefa.europa", uecl: "uefa.europa.conf",
 };
@@ -37,7 +37,7 @@ const teamsOf = (slug: string) =>
 
 /** Etsi ESPN:n joukkue meidän nimellä */
 async function findTeam(source: string, name: string): Promise<string | null> {
-  const slug = LEAGUE[source];
+  const slug = ESPN_LEAGUE[source];
   if (!slug) return null;
   const teams = await teamsOf(slug).catch(() => [] as EspnTeam[]);
   const ours = words(name);
@@ -120,7 +120,7 @@ export async function getTeamGames(source: string, name: string, stats: LeagueSt
     for (const g of games) {
       // sivun joukkueen puoli tunnisteella (ei nimellä): kuntorivi lib/team-form.ts
       g.side = g.home.id === id ? "home" : g.away.id === id ? "away" : undefined;
-      const target = g.slug === LEAGUE[source] ? source : g.slug === "uefa.champions" ? "ucl" : null;
+      const target = g.slug === ESPN_LEAGUE[source] ? source : g.slug === "uefa.champions" ? "ucl" : null;
       const st = target ? stats.find((x) => x.source === target) : undefined;
       if (st) link(g, st);
       if (!g.href) { g.home = ours(g.home); g.away = ours(g.away); }
@@ -256,7 +256,7 @@ const TEST_SOURCE = (() => {
   return process.env.VERCEL_ENV === "preview" && u && /^https:\/\/[a-z0-9-]+\.vercel\.run$/.test(u) ? u : null;
 })();
 const board = (slug: string) => {
-  const test = TEST_SOURCE && slug === LEAGUE.laliga ? TEST_SOURCE : null;
+  const test = TEST_SOURCE && slug === ESPN_LEAGUE.laliga ? TEST_SOURCE : null;
   return stableCache(async (): Promise<{ at: number; events: any[] }> => {
     const j = await getJson(test ? `${test}/scoreboard` : `${BASE}${slug}/scoreboard`, 8000);
     return { at: Date.now(), events: j?.events ?? [] };
@@ -289,13 +289,13 @@ export async function getEspnLive(): Promise<{ matches: LiveMatch[]; at: number 
   if (!espnOn() || process.env.NEXT_PHASE === "phase-production-build") return { matches: [], at: null, ok: false };
   const out: LiveMatch[] = [];
   let at: number | null = null, ok = true;
-  await Promise.all(Object.entries(LEAGUE).map(async ([source, slug]) => {
+  await Promise.all(Object.entries(ESPN_LEAGUE).map(async ([source, slug]) => {
     const b = await board(slug).catch(() => null);
     if (!b) { ok = false; return; }
     at = at === null ? b.at : Math.min(at, b.at);
     for (const e of b.events) { const m = toLive(e, source, b.at); if (m) out.push(m); }
   }));
-  await addPeriodStarts(out, (src) => (LEAGUE as Record<string, string>)[src]);
+  await addPeriodStarts(out, (src) => (ESPN_LEAGUE as Record<string, string>)[src]);
   return { matches: out, at, ok };
 }
 

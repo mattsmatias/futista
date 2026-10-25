@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { pressureOn } from "@/lib/pressure";
 import { SOURCES } from "@/lib/sources";
 import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
@@ -79,12 +80,14 @@ export default async function MatchPage({ params }: Props) {
   // muut sarjat (La Liga, Valioliiga, Mestarien liiga …): tapahtumat, kokoonpanot ja tilastot API-Footballista, kun avain on käytössä
   const afBig = afBigOn(d.s.source);
   const extras = espnSrc || afSrc || afBig ? { l: d.s.source, d: m.date, p: pair, ...(afSrc || afBig ? { af: true } : {}) } : null;
+  // paineen kuvaaja: sarjoille, joilla on ESPN-vastine (ESPN:n ottelutapahtumat)
+  const pressure = pressureOn(d.s.source) ? { l: d.s.source, d: m.date, p: pair } : null;
   const url = `${SITE}${matchHref(d.s.source, m.date, m.home.name, m.away.name)}`;
   return (
     <>
       <JsonLd data={matchLd({ url, league: d.s.league, date: m.date, time: d.fixture?.time || d.result?.time || null, home: m.home.name, away: m.away.name,
         hs: d.result?.hs ?? null, as: d.result?.as ?? null, finished: !!d.result })} />
-      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} formAll={formAll} />
+      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} formAll={formAll} pressure={pressure} />
     </>
   );
 }
