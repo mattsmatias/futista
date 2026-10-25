@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { nodeFetch } from "@/lib/http";
 import { getLeague } from "@/lib/stats";
 import { debugMatches, getTrophies } from "@/lib/trophies";
-import { LEAGUE_Q } from "@/lib/trophies-core";
+import { LEAGUE_Q, ALL_COMPS } from "@/lib/trophies-core";
 
 // Kehitystyökalu (pokaalit): Wikidatan todellinen sisältö kiinteillä kyselypohjilla. VAIN esikatselussa (ei tuotannossa).
 // Ei avoin välityspalvelin: käyttäjä valitsee vain pohjan ja tarkasti rajatut tunnisteet (Q/P-numero, lyhyt tunniste).
@@ -24,6 +24,26 @@ export async function GET(req: Request) {
   const Q = u.get("t") ?? "", P = u.get("p") ?? "", ID = u.get("id") ?? "";
   try {
     const src = u.get("src") ?? "";
+    if (q === "compimgs") {
+      // sallittujen kilpailujen kuvat (P18) ja niiden lisenssit yhdellä haulla
+      const rows = await sparql(`SELECT ?c ?en ?img WHERE { VALUES ?c { ${ALL_COMPS.map((c) => "wd:" + c).join(" ")} } OPTIONAL { ?c rdfs:label ?en FILTER(LANG(?en)="en") } OPTIONAL { ?c wdt:P18 ?img } }`);
+      const files = rows.filter((r: any) => r.img).map((r: any) => "File:" + decodeURIComponent(r.img.replace(/^.*Special:FilePath\//, "")).replace(/_/g, " "));
+      const meta: Record<string, any> = {};
+      for (let i = 0; i < files.length; i += 40) {
+        const r = await nodeFetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(files.slice(i, i + 40).join("|"))}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=240`, { headers: { "User-Agent": UA } });
+        for (const p of Object.values(JSON.parse(await r.text())?.query?.pages ?? {}) as any[]) {
+          const ii = p.imageinfo?.[0] ?? {}, m = ii.extmetadata ?? {};
+          meta[p.title] = { thumb: String(ii.thumburl ?? "").split("?")[0], license: m.LicenseShortName?.value, lu: m.LicenseUrl?.value, artist: String(m.Artist?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 80) };
+        }
+      }
+      return NextResponse.json(rows.map((r: any) => { const f = r.img ? "File:" + decodeURIComponent(r.img.replace(/^.*Special:FilePath\//, "")).replace(/_/g, " ") : null; return { c: r.c.replace(/^.*\//, ""), en: r.en, f, ...(f ? meta[f] : {}) }; }));
+    }
+    if (q === "cands" && /^[\p{L}\p{N} .'-]{2,60}$/u.test(u.get("s") ?? "")) {
+      // tiivis Commons-haku: vain valokuvat, nimi, lisenssi, tekijä
+      const r = await nodeFetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=10&gsrsearch=${encodeURIComponent(u.get("s")! + " filetype:bitmap")}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=240`, { headers: { "User-Agent": UA } });
+      const pages = Object.values(JSON.parse(await r.text())?.query?.pages ?? {}) as any[];
+      return NextResponse.json(pages.map((p) => { const ii = p.imageinfo?.[0] ?? {}, m = ii.extmetadata ?? {}; return [p.title.slice(5), m.LicenseShortName?.value, String(m.Artist?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 50), String(m.ImageDescription?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 90)]; }));
+    }
     if (q === "match" && LEAGUE_Q[src]) {
       const s = await getLeague(src);
       return NextResponse.json(await debugMatches(src, (s?.table ?? []).map((r) => r.team.name)));
