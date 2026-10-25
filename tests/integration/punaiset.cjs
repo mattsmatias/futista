@@ -24,7 +24,10 @@ const DAY = 86400_000;
   // simuloidut ottelut: 244001 = 24 h sitten, 244002 = 27 h sitten → Helsingin päivä voi olla eri (yöllä ajettaessa)
   const D1 = hel(Date.now() - DAY), D2 = hel(Date.now() - DAY - 3 * 3600_000);
   const vlOf = async (d) => (await (await fetch(`${APP}/api/af-paiva?d=${d}`)).json().catch(() => ({}))).comps?.find((c) => c.id === "veikkausliiga")?.results ?? [];
-  const r244001 = (await vlOf(D1)).find((x) => x.afid === 244001), r244002 = (await vlOf(D2)).find((x) => x.afid === 244002);
+  // aiempi testi simuloi API-Footballin 429-rajan → haut tauolla ~60 s (lib/apifootball.ts); odotetaan tauon yli
+  let r244002 = null;
+  for (let i = 0; i < 18 && !r244002?.reds; i++) { r244002 = (await vlOf(D2)).find((x) => x.afid === 244002); if (!r244002?.reds) await new Promise((r) => setTimeout(r, 5000)); }
+  const r244001 = (await vlOf(D1)).find((x) => x.afid === 244001);
   ok("  eilen päättynyt: punainen + toinen keltainen (sama pelaaja kerran) → [1, 1]", JSON.stringify(r244002?.reds) === "[1,1]", JSON.stringify(r244002?.reds));
   ok("  ottelu ilman punaisia: [0, 0]", JSON.stringify(r244001?.reds) === "[0,0]", JSON.stringify(r244001?.reds));
   const tm = await (await fetch(`${APP}/api/af-paiva?d=${hel(Date.now() + 2 * DAY)}`)).json().catch(() => ({}));
