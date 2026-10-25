@@ -65,7 +65,25 @@ export type Game = {
   kind: Kind; clock?: string; href?: string;
   phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
   side?: "home" | "away"; // joukkueen sivulla: kummalla puolella sivun joukkue on (ESPN-tunnisteella)
+  reds?: [number, number] | null; // punaiset kortit [koti, vieras] käynnissä olevassa / päättyneessä ottelussa; null = lähde ei kerro
 };
+
+/** Punaiset kortit ESPN:n ottelun tapahtumista (competitions[0].details, redCard = true) joukkueittain.
+ *  null, jos lähde ei anna tapahtumalistaa (puuttuva tieto ei ole nolla). Toinen keltainen on ESPN:ssä redCard = true. */
+export function parseReds(c: any, h: any, a: any): [number, number] | null {
+  const d = c?.details;
+  if (!Array.isArray(d)) return null;
+  const hid = String(h?.team?.id ?? h?.id ?? ""), aid = String(a?.team?.id ?? a?.id ?? "");
+  if (!hid || !aid) return null;
+  // ulosajettu pelaaja kerran (sama pelaaja voi esiintyä kahdesti: toinen keltainen + punainen)
+  const off = [new Set<string>(), new Set<string>()];
+  d.forEach((x: any, i: number) => {
+    if (x?.redCard !== true) return;
+    const t = String(x?.team?.id ?? ""), who = String(x?.athletesInvolved?.[0]?.id ?? `#${i}`);
+    if (t === hid) off[0].add(who); else if (t === aid) off[1].add(who);
+  });
+  return [off[0].size, off[1].size];
+}
 
 export function toGame(e: any, slug?: string, compName?: string): Game | null {
   const c = e?.competitions?.[0];
@@ -92,6 +110,7 @@ export function toGame(e: any, slug?: string, compName?: string): Game | null {
     home: tm(h), away: tm(a), hs: sc.hs, as: sc.as, kind: st.kind,
     clock: st.kind === "live" && st.phase !== "pens" ? fmtClock(c?.status?.displayClock) : undefined,
     phase: st.phase, pens: sc.pens, aet: st.aet,
+    ...(st.kind === "live" || st.kind === "ht" || st.kind === "ft" ? { reds: parseReds(c, h, a) } : {}),
   };
 }
 
@@ -108,7 +127,7 @@ export function toLive(e: any, source: string, fetchedAt: number | null = null):
   const w = (x: any) => [...new Set(words([x.team?.displayName, x.team?.shortDisplayName, x.team?.location, x.team?.name, x.team?.abbreviation].filter(Boolean).join(" ")))];
   return {
     source, kickoff: g.epoch, status, home: w(h), away: w(a), hs: g.hs, as: g.as,
-    min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet,
+    min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet, ...(g.reds ? { reds: g.reds } : {}),
     homeName: h.team?.shortDisplayName || h.team?.displayName, awayName: a.team?.shortDisplayName || a.team?.displayName,
     homeCrest: h.team?.logo ?? h.team?.logos?.[0]?.href, awayCrest: a.team?.logo ?? a.team?.logos?.[0]?.href,
     src: "espn",

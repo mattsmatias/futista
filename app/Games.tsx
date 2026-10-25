@@ -78,7 +78,7 @@ export function GameRow({ g, nations, highlight, hideDate }: { g: Game; nations?
       <span className="mrow-comp"><span className={`g-comp ${compClass(g.slug)}`}><CompMark slug={g.slug} small />{compName(g, i.lang)}</span>{!hideDate && <span className="g-date">· {i.day(g.date)}</span>}</span>
       {/* sarjaotteluille sarjan ottelusivu, muille (cupit, EL, ECL, maaottelut) perustason ottelusivu */}
       <MatchRow href={g.href ?? `/ottelu/e/${g.id}`} time={g.time} home={t(g.home)} away={t(g.away)}
-        s={{ kind: g.kind, hs: g.hs, as: g.as, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet }}
+        s={{ kind: g.kind, hs: g.hs, as: g.as, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet, ...(g.reds ? { reds: g.reds } : {}) }}
         highlight={highlight ? (x) => x.name === g.home.name ? g.home.id === highlight : x.name === g.away.name ? g.away.id === highlight : false : undefined} />
     </div>
   );

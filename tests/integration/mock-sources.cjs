@@ -133,7 +133,13 @@ function espn(path, res) {
     if (path.startsWith("tur.1/scoreboard?dates=")) {
       const ev = (id, t, h, a, done, hs, as) => ({ id: String(id), date: new Date(t).toISOString(), competitions: [{ status: { type: done ? { name: "STATUS_FULL_TIME", state: "post", completed: true } : { name: "STATUS_SCHEDULED", state: "pre" } }, competitors: [{ homeAway: "home", team: h, score: done ? String(hs) : undefined }, { homeAway: "away", team: a, score: done ? String(as) : undefined }] }] });
       const y = Number(path.match(/dates=(\d{4})/)[1]), now = Date.now(), yr = (t) => new Date(t).getUTCFullYear() === y;
-      return json(res, 200, { events: [ev(9001, now - 86400_000, A, B, true, 2, 0), ev(9002, now + 2 * 86400_000, B, C, false)].filter((e) => yr(Date.parse(e.date))) });
+      // ottelussa 9001 vierasjoukkueelle punainen kortti (ESPN:n tapahtumarakenne: competitions[0].details, redCard)
+      const e1 = ev(9001, now - 86400_000, A, B, true, 2, 0);
+      e1.competitions[0].details = [
+        { type: { id: "94", text: "Yellow Card" }, team: { id: A.id }, redCard: false, yellowCard: true, athletesInvolved: [{ id: "a1" }] },
+        { type: { id: "93", text: "Red Card" }, team: { id: B.id }, redCard: true, yellowCard: false, athletesInvolved: [{ id: "b1" }] },
+      ];
+      return json(res, 200, { events: [e1, ev(9002, now + 2 * 86400_000, B, C, false)].filter((e) => yr(Date.parse(e.date))) });
     }
   }
   // Eurooppa-liiga (ESPN): liigavaihe, kuvitteelliset joukkueet

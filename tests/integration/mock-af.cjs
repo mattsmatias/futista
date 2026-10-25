@@ -91,6 +91,12 @@ function detailOf(fx, grid, lg = 0) {
     events: ns ? [] : [
       { time: { elapsed: 12, extra: null }, team: { id: h }, player: { id: h * 100 + 9, name: `Pelaaja ${h}-9` }, assist: { id: h * 100 + 7, name: `Pelaaja ${h}-7` }, type: "Goal", detail: "Normal Goal" },
       { time: { elapsed: 25, extra: null }, team: { id: a }, player: { id: a * 100 + 4, name: `Pelaaja ${a}-4` }, assist: { id: null, name: null }, type: "Card", detail: "Yellow Card" },
+      // Veikkausliigan ottelu 244002: kotijoukkueelle punainen, vierasjoukkueen pelaajalle toinen keltainen (+ punainen, sama pelaaja)
+      ...(fx.fixture.id === 244002 ? [
+        { time: { elapsed: 50, extra: null }, team: { id: h }, player: { id: h * 100 + 3, name: `Pelaaja ${h}-3` }, assist: { id: null, name: null }, type: "Card", detail: "Red Card" },
+        { time: { elapsed: 70, extra: null }, team: { id: a }, player: { id: a * 100 + 4, name: `Pelaaja ${a}-4` }, assist: { id: null, name: null }, type: "Card", detail: "Second Yellow card" },
+        { time: { elapsed: 70, extra: null }, team: { id: a }, player: { id: a * 100 + 4, name: `Pelaaja ${a}-4` }, assist: { id: null, name: null }, type: "Card", detail: "Red Card" },
+      ] : []),
     ],
     lineups: ns ? [] : [h, a].map((tid) => ({ team: { id: tid, name: tid === h ? fx.teams.home.name : fx.teams.away.name }, formation: grid ? "4-3-3" : null, startXI: xi(tid), substitutes: [pl(tid, 12, "F", null)], coach: { name: "Valmentaja" } })),
     statistics: ns || lg === 246 ? [] : [h, a].map((tid) => ({ team: { id: tid }, statistics: [{ type: "Ball Possession", value: tid === h ? "55%" : "45%" }, { type: "Total Shots", value: tid === h ? 9 : null }, { type: "Corner Kicks", value: 4 }] })),
@@ -119,7 +125,9 @@ function handle(u, send, mode, res, hdr) {
   }
   if (u.pathname === "/fixtures" && u.searchParams.get("live")) {
     const ids = u.searchParams.get("live").split("-").map(Number);
-    const live = ids.includes(244) ? fixtures(244, now).filter((x) => x.fixture.status.short === "1H").map((x) => ({ ...x, fixture: { ...x.fixture, status: { short: "2H", elapsed: 67, extra: null } }, goals: mode.afvar === "1" ? { home: 1, away: 1 } : { home: 2, away: 1 } })) : [];
+    // live-vastauksessa tapahtumat (oikean API:n tapaan): vierasjoukkueelle punainen kortti
+    const live = ids.includes(244) ? fixtures(244, now).filter((x) => x.fixture.status.short === "1H").map((x) => ({ ...x, fixture: { ...x.fixture, status: { short: "2H", elapsed: 67, extra: null } }, goals: mode.afvar === "1" ? { home: 1, away: 1 } : { home: 2, away: 1 },
+      events: [{ time: { elapsed: 55, extra: null }, team: { id: x.teams.away.id }, player: { id: 1, name: "Pelaaja" }, type: "Card", detail: "Red Card" }] })) : [];
     send({ errors: [], response: live });
     return true;
   }
@@ -128,6 +136,7 @@ function handle(u, send, mode, res, hdr) {
     send({ errors: [], response: list.filter((x) => hel(x.fixture.timestamp * 1000) === d) });
     return true;
   }
+  if (u.pathname === "/fixtures" && u.searchParams.get("ids")) { send({ errors: [], response: u.searchParams.get("ids").split("-").flatMap((id) => detail(Number(id), now)) }); return true; }
   if (u.pathname === "/fixtures" && u.searchParams.get("id")) { send({ errors: [], response: detail(Number(u.searchParams.get("id")), now) }); return true; }
   if (u.pathname === "/fixtures" && LEAGUES[lg]) { send({ errors: [], response: fixtures(lg, now) }); return true; }
   if (u.pathname === "/standings" && LEAGUES[lg]) { send({ errors: [], response: standings(lg) }); return true; }

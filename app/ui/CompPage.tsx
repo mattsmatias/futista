@@ -10,7 +10,7 @@ import { useI18n, type Key } from "@/lib/i18n";
 import { useUrlParam } from "@/lib/url-state";
 import { useScorers } from "@/lib/leagues-client";
 import { useDataEnabled, useLiveData, useLiveExtras } from "@/lib/live";
-import { matchState } from "@/lib/live-core";
+import { matchState, resultState } from "@/lib/live-core";
 import { useFavorites } from "@/lib/favorites";
 import { matchHref } from "@/lib/routes";
 import { AutoRefresh } from "@/lib/fresh";
@@ -106,7 +106,7 @@ function CompMatches({ s, part }: { s: LeagueStats; part: "up" | "done" }) {
   const cup = s.kind === "cup";
   const fRow = (f: Fixture) => <MatchRow key={f.date + f.home.name} href={matchHref(s.source, f.date, f.home.name, f.away.name)} home={f.home} away={f.away} time={f.time} s={matchState({ ...f, source: s.source }, live, now)} highlight={isFav} />;
   const rRow = (r: Result) => <MatchRow key={r.date + r.home.name} href={matchHref(s.source, r.date, r.home.name, r.away.name)} home={r.home} away={r.away} time={r.time ?? null}
-    s={{ kind: "ft", hs: r.hs, as: r.as, aet: r.note === "aet", pens: r.pens ?? null, ...(r.note === "pens" ? { phase: "pens" as const } : {}) }} highlight={isFav} />;
+    s={resultState({ ...r, source: s.source }, live)} highlight={isFav} />;
   const src = SOURCES.find((x) => x.id === s.source)!;
   return (
     <>

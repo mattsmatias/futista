@@ -32,14 +32,21 @@ export function useStatusText() {
   };
 }
 
+/** Punaisten korttien merkki joukkueen nimen perässä (vain kun lähde kertoo ja kortteja on) */
+const RedCards = ({ n }: { n: number }) => n > 0 ? <span className="mrow-rc" aria-hidden="true">{n}</span> : null;
+
 export function MatchRow({ href, home, away, s, time, highlight }: { href: string; home: RowTeam; away: RowTeam; s: MatchState; time: string | null; highlight?: (t: Team) => boolean }) {
+  const { t } = useI18n();
   const st = useStatusText()(s, time);
   const score = hasScore(s);
   const done = s.kind === "ft";
   const hw = done && score && s.hs! > s.as!, aw = done && score && s.as! > s.hs!;
   const isLive = s.kind === "live" || s.kind === "ht";
   const name = (x: RowTeam) => x.display ?? x.name;
-  const label = `${name(home)}${score ? ` ${s.hs}–${s.as}` : ""} ${name(away)}. ${st.long}${s.pens ? ` ${s.pens[0]}–${s.pens[1]}` : ""}`;
+  // punaiset kortit vain käynnissä olevassa ja päättyneessä ottelussa
+  const reds = (isLive || done) && s.reds ? s.reds : null;
+  const redTxt = (x: RowTeam, n: number) => n > 0 ? ` ${name(x)}: ${n} × ${t("lu_red")}.` : "";
+  const label = `${name(home)}${score ? ` ${s.hs}–${s.as}` : ""} ${name(away)}. ${st.long}${s.pens ? ` ${s.pens[0]}–${s.pens[1]}` : ""}${reds ? redTxt(home, reds[0]) + redTxt(away, reds[1]) : ""}`;
   return (
     <div className={`mrow${isLive ? " is-live" : ""}`}>
       <a className="mrow-link" href={href} aria-label={label}>
@@ -47,8 +54,8 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
           <span>{st.short}</span>
         </span>
         <span className="mrow-teams" aria-hidden="true">
-          <span className={`mrow-tm${hw ? " win" : ""}${highlight?.(home) ? " fav" : ""}`}><Badge t={home} size={20} /><span className="nm">{name(home)}</span></span>
-          <span className={`mrow-tm${aw ? " win" : ""}${highlight?.(away) ? " fav" : ""}`}><Badge t={away} size={20} /><span className="nm">{name(away)}</span></span>
+          <span className={`mrow-tm${hw ? " win" : ""}${highlight?.(home) ? " fav" : ""}`}><Badge t={home} size={20} /><span className="nm">{name(home)}</span>{reds && <RedCards n={reds[0]} />}</span>
+          <span className={`mrow-tm${aw ? " win" : ""}${highlight?.(away) ? " fav" : ""}`}><Badge t={away} size={20} /><span className="nm">{name(away)}</span>{reds && <RedCards n={reds[1]} />}</span>
         </span>
         <span className={`mrow-sc${isLive ? " sc-live" : ""}`} aria-hidden="true">
           <span className={hw ? "win" : ""}>{score ? <Num v={s.hs} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[0]})</small>}</span>

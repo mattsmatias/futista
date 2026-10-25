@@ -43,6 +43,7 @@ node tests/integration/chain.cjs || rc=1
 node tests/integration/ui.cjs || rc=1
 node tests/integration/af-kilpailut.cjs || rc=1
 node tests/integration/pokaalit.cjs || rc=1
+node tests/integration/punaiset.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1 RESEND_API_KEY=
 node tests/integration/switches.cjs || rc=1

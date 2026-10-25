@@ -52,7 +52,7 @@ export function parseEspnEvents(events: any[], now = Date.now()): { results: Res
     const h = teamOf(c.find((x: any) => x.homeAway === "home")?.team), a = teamOf(c.find((x: any) => x.homeAway === "away")?.team);
     if (g.kind === "ft") {
       if (g.hs === null || g.hs === undefined || g.as === null || g.as === undefined) continue; // puuttuva tulos ei ole 0–0
-      const r: Result = { date: g.date, time: g.time, home: h, away: a, hs: g.hs, as: g.as, eid: g.id };
+      const r: Result = { date: g.date, time: g.time, home: h, away: a, hs: g.hs, as: g.as, eid: g.id, ...(g.reds ? { reds: g.reds } : {}) };
       if (g.pens) { r.note = "pens"; r.pens = g.pens; } else if (g.aet) r.note = "aet";
       results.push(r);
     } else if (g.kind === "upcoming" || g.kind === "live" || g.kind === "ht" || g.kind === "unconfirmed") {

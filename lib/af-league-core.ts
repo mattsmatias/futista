@@ -72,6 +72,21 @@ export function parseAfFixtures(resp: any[], women: boolean, now = Date.now()): 
 
 /** Koonti-livehaun (fixtures?live=…) tiedot otteluohjelmaan: tila ja maalit lähteen tunnisteella (ei nimellä).
  *  Tulos voi myös pienentyä (VAR-korjaus): uusin lähdetieto korvaa aiemman. */
+/** Punaiset kortit API-Footballin ottelun tapahtumista [koti, vieras]: ulosajetut pelaajat joukkueittain
+ *  ("Red Card" ja "Second Yellow card"; sama pelaaja kerran). null, jos tapahtumalistaa ei ole (ei nolla). */
+export function afReds(f: any): [number, number] | null {
+  const ev = f?.events;
+  const hid = num(f?.teams?.home?.id), aid = num(f?.teams?.away?.id);
+  if (!Array.isArray(ev) || hid === null || aid === null) return null;
+  const off = [new Set<string>(), new Set<string>()];
+  for (const e of ev) {
+    if (e?.type !== "Card" || !/^(red card|second yellow card)$/i.test(String(e?.detail ?? "").trim())) continue;
+    const t = num(e?.team?.id), who = String(e?.player?.id ?? e?.player?.name ?? `${e?.time?.elapsed}-${e?.time?.extra}`);
+    if (t === hid) off[0].add(who); else if (t === aid) off[1].add(who);
+  }
+  return [off[0].size, off[1].size];
+}
+
 export function applyLive(fixtures: Fixture[], live: any[]): Fixture[] {
   const byId = new Map<number, any>();
   for (const f of Array.isArray(live) ? live : []) { const id = num(f?.fixture?.id); if (id !== null) byId.set(id, f); }
@@ -80,7 +95,7 @@ export function applyLive(fixtures: Fixture[], live: any[]): Fixture[] {
     const l = x.afid ? byId.get(x.afid) : undefined;
     if (!l) return x;
     const ph = num(l?.score?.penalty?.home), pa = num(l?.score?.penalty?.away);
-    return { ...x, st: { s: String(l?.fixture?.status?.short ?? x.st?.s ?? ""), el: num(l?.fixture?.status?.elapsed), ex: num(l?.fixture?.status?.extra), hs: num(l?.goals?.home), as: num(l?.goals?.away), pens: ph !== null && pa !== null ? [ph, pa] : null } };
+    return { ...x, st: { s: String(l?.fixture?.status?.short ?? x.st?.s ?? ""), el: num(l?.fixture?.status?.elapsed), ex: num(l?.fixture?.status?.extra), hs: num(l?.goals?.home), as: num(l?.goals?.away), pens: ph !== null && pa !== null ? [ph, pa] : null, reds: afReds(l) } };
   });
 }
 

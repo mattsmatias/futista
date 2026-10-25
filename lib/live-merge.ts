@@ -88,6 +88,7 @@ const fromEspn = (m: LiveMatch, e: LiveMatch, conflict: boolean): LiveMatch => (
 export function mergeLive(fdList: LiveMatch[], espn: LiveMatch[]): LiveMatch[] {
   const out: LiveMatch[] = fdList.map((m) => ({ ...m, src: "fd" as const, statusSrc: "fd" as const }));
   const used = new Set<number>();
+  const redsAt = new Map<number, [number, number]>(); // punaiset kortit vain ESPN:n tapahtumista
   for (const e of espn) {
     const i = findMatch(fdList, e);
     if (i < 0 || used.has(i)) {
@@ -97,6 +98,7 @@ export function mergeLive(fdList: LiveMatch[], espn: LiveMatch[]): LiveMatch[] {
       continue;
     }
     used.add(i);
+    if (e.reds) redsAt.set(i, e.reds);
     const f = fdList[i];
     const m = out[i];
     const cf = cls(f.status), ce = cls(e.status);
@@ -117,6 +119,7 @@ export function mergeLive(fdList: LiveMatch[], espn: LiveMatch[]): LiveMatch[] {
     if (fdNewer) { const c = isRegression(e.status, f.status); out[i] = { ...m, src: "fd+espn", conflict: c || undefined, conflictKind: c ? "status" : undefined }; }
     else out[i] = fromEspn(m, e, isRegression(f.status, e.status));
   }
+  for (const [i, r] of redsAt) out[i] = { ...out[i], reds: r };
   return out;
 }
 

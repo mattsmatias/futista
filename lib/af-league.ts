@@ -13,7 +13,7 @@ import { AF_LEAGUE, afSeason } from "./apifootball-core";
 import { AF_COMPS, afCompOn, afComp } from "./af-registry";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
-import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, type AfDetail } from "./af-league-core";
+import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, type AfDetail } from "./af-league-core";
 import type { LeagueStats, Fixture, Part } from "./stats";
 import type { SourceId } from "./sources";
 
@@ -55,6 +55,24 @@ const liveAll = () => {
     return { at: Date.now(), response: j.response as any[] };
   }, ["af-live-v1", ids], { revalidate: 60 })();
 };
+
+/** Päättyneiden otteluiden punaiset kortit (fixtures?ids, enintään 20 / haku). Päättynyt ottelu ei muutu → 30 vrk. */
+const redsOf = (ids: number[]) => stableCache(async (): Promise<Record<string, [number, number] | null>> => {
+  const j = await once(`ids${ids.join("-")}`, () => afGet(`/fixtures?ids=${ids.join("-")}`));
+  if (!Array.isArray(j?.response)) throw new Error("bad ids");
+  return Object.fromEntries((j.response as any[]).map((f) => [String(f?.fixture?.id), afReds(f)]));
+}, ["af-reds-v1", ids.join("-")], { revalidate: 30 * DAY })();
+
+/** Tulosten punaiset kortit (vain tänään tai aiemmin päättyneet). Häiriössä ilman kortteja (ei nollia). */
+async function withReds(results: LeagueStats["results"]): Promise<LeagueStats["results"]> {
+  const ids = [...new Set(results.map((r) => r.afid).filter((x): x is number => typeof x === "number"))].sort((a, b) => a - b);
+  if (!ids.length) return results;
+  const parts: number[][] = [];
+  for (let i = 0; i < ids.length; i += 20) parts.push(ids.slice(i, i + 20));
+  const maps = await Promise.all(parts.map((p) => redsOf(p).catch(() => ({} as Record<string, [number, number] | null>))));
+  const all = Object.assign({}, ...maps) as Record<string, [number, number] | null>;
+  return results.map((r) => { const x = r.afid ? all[String(r.afid)] : null; return x ? { ...r, reds: x } : r; });
+}
 
 const kickOf = (f: { date: string; time: string }) => (/^\d{1,2}:\d{2}$/.test(f.time) ? helsinkiEpoch(f.date, f.time) : null);
 
@@ -175,10 +193,16 @@ export async function afDay(date: string): Promise<{ comps: { id: string; league
   let hot = false;
   const out = comps.map((c, i) => {
     const s = all[i];
-    if (!s) return { id: c.id, league: c.name[0], results: [], fixtures: [], failed: true };
+    if (!s) return { id: c.id, league: c.name[0], results: [] as LeagueStats["results"], fixtures: [] as Fixture[], failed: true };
     const fixtures = s.fixtures.filter((f) => f.date === date);
     if (fixtures.some((f) => inLiveWindow(f, now, kickOf(f)))) hot = true;
     return { id: c.id, league: s.league, results: s.results.filter((r) => r.date === date), fixtures, failed: false };
   });
+  // punaiset kortit päivän päättyneisiin (yksi koontihaku / 20 ottelua, ei tulevan päivän hakuja)
+  if (date <= todayHel()) {
+    const reds = await withReds(out.flatMap((c) => c.results));
+    const by = new Map(reds.map((r) => [r.afid, r]));
+    for (const c of out) c.results = c.results.map((r) => (r.afid && by.get(r.afid)) || r);
+  }
   return { comps: out, hot };
 }

@@ -1090,6 +1090,9 @@ div.match { cursor: default; }
 .mrow-tm { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; line-height: 1.25; color: var(--fg); }
 .mrow-tm .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mrow-tm.win { font-weight: 750; }
+/* punaiset kortit nimen perässä (käynnissä / päättynyt): pieni punainen kortti, jossa määrä */
+.mrow-rc { flex: none; display: inline-grid; place-items: center; min-width: 13px; height: 17px; padding: 0 3px; border-radius: 3px;
+  background: #d32f2f; color: #fff; font: 700 11px/1 var(--ui); font-variant-numeric: tabular-nums; box-shadow: 0 0 0 1px color-mix(in srgb, #000 12%, transparent); }
 /* suosikkijoukkue: sama sydän kuin Suosikit-painikkeessa (SVG), ei tekstimerkkiä ♥; keskitetty nimen kanssa */
 .mrow-tm.fav .nm::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 6px; vertical-align: -1px;
   background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.4 4.5 7 4.5c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.6 0 5.6 3.5 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z' fill='%23ff3d6e'/%3E%3C/svg%3E"); }

@@ -28,6 +28,7 @@ export type LiveMatch = {
   phase?: "et" | "pens";            // jatkoaika / rangaistuspotkukilpailu käynnissä
   pens?: [number, number] | null;   // rangaistuspotkukilpailun tulos (ei sisälly hs/as-lukuihin)
   aet?: boolean;                    // päättyi jatkoajan jälkeen
+  reds?: [number, number] | null;   // punaiset kortit [koti, vieras] (vain ESPN:n tapahtumista; puuttuu = ei tiedossa)
   src?: "fd" | "espn" | "fd+espn";  // mitkä lähteet ottelusta löytyivät
   id?: string;                      // pysyvä tunniste: "fd:<id>" tai "espn:<id>"
   fetchedAt?: number | null;        // milloin Futista sai tilan lähteeltä (onnistunut vastaus)
@@ -45,6 +46,7 @@ export type MatchState = {
   /** sekuntikello "61:27" (kulunut peliaika), vain kun jakson alkuhetki tiedetään ja ollaan varsinaisella peliajalla */
   clock?: string;
   phase?: "et" | "pens"; pens?: [number, number] | null; aet?: boolean;
+  reds?: [number, number] | null; // punaiset kortit [koti, vieras]; vain kun lähde kertoo
   inferred?: boolean; // tila päätelty alkamisajasta (ei rajapinnan tietoa)
   late?: boolean;      // unconfirmed: tavanomainen ottelun kesto on jo kulunut
   uncertain?: boolean; // lähteet ristiriidassa (lib/live-merge.ts conflict)
@@ -189,7 +191,11 @@ const LIVE_MIN = 115; // ottelu + tauko + lisäajat
 
 /** API-Footballin ottelun tila (lähteen oma tila ja minuutti; ESPN:n minuuttisääntöä ei käytetä).
  *  null = ottelu ei ole alkanut lähteen mukaan → yleinen päättely aloitusajasta. Tulos voi pienentyä (VAR): uusin tieto näytetään. */
-export function afMatchState(st: { s: string; el: number | null; ex: number | null; hs: number | null; as: number | null; pens: [number, number] | null }): MatchState | null {
+export function afMatchState(st: { s: string; el: number | null; ex: number | null; hs: number | null; as: number | null; pens: [number, number] | null; reds?: [number, number] | null }): MatchState | null {
+  const b = afBase(st);
+  return b && st.reds && (b.kind === "live" || b.kind === "ht" || b.kind === "ft") ? { ...b, reds: st.reds } : b;
+}
+function afBase(st: { s: string; el: number | null; ex: number | null; hs: number | null; as: number | null; pens: [number, number] | null }): MatchState | null {
   const sc = { hs: st.hs, as: st.as };
   const min = st.el !== null ? `${st.el}${st.ex ? `+${st.ex}` : ""}'` : undefined;
   switch (st.s) {
@@ -208,6 +214,30 @@ export function afMatchState(st: { s: string; el: number | null; ex: number | nu
   }
 }
 
+/** Sama ottelu live-listalta: 1) molemmat nimet täsmäävät, 2) toinen täsmää ja toisesta löytyy selvä nimen osa
+ *  samaan aikaan alkavassa ottelussa. Ei osumaa → undefined. */
+export function findLive(m: { source: string; date: string; time?: string; home: { name: string }; away: { name: string } }, live: LiveMatch[]): LiveMatch | undefined {
+  const kick = m.time ? helsinkiEpoch(m.date, m.time) : null;
+  const near = (l: LiveMatch, h: number) => kick === null || Math.abs(l.kickoff - kick) < h * 3600_000;
+  return live.find((l) => l.source === m.source && near(l, 36) && same(m.home.name, l.home) && same(m.away.name, l.away)) ??
+    live.find((l) => l.source === m.source && near(l, 3) &&
+      ((same(m.home.name, l.home) && partly(m.away.name, l.away)) || (partly(m.home.name, l.home) && same(m.away.name, l.away))));
+}
+
+/** Päättyneen ottelun punaiset kortit: ottelun oma tieto (API-Football) tai saman ottelun päättynyt live-merkintä (ESPN).
+ *  Live-merkinnän on oltava päättynyt ja tuloksen sama, ettei eri ottelun tietoja yhdistetä. */
+export function resultReds(r: { source: string; date: string; time?: string; home: { name: string }; away: { name: string }; hs: number; as: number; reds?: [number, number] | null }, live: LiveMatch[]): [number, number] | null {
+  if (r.reds) return r.reds;
+  const l = findLive(r, live);
+  return l?.reds && (l.status === "FINISHED" || l.status === "AWARDED") && l.hs === r.hs && l.as === r.as ? l.reds : null;
+}
+
+/** Päättyneen ottelun tila listariville (tulos, jatkoaika, pilkut ja punaiset kortit, jos lähde kertoo) */
+export function resultState(r: { source: string; date: string; time?: string; home: { name: string }; away: { name: string }; hs: number; as: number; note?: "aet" | "pens"; pens?: [number, number] | null; reds?: [number, number] | null }, live: LiveMatch[] = []): MatchState {
+  const reds = resultReds(r, live);
+  return { kind: "ft", hs: r.hs, as: r.as, aet: r.note === "aet", pens: r.pens ?? null, ...(r.note === "pens" ? { phase: "pens" as const } : {}), ...(reds ? { reds } : {}) };
+}
+
 export function matchState(
   m: { source: string; date: string; time?: string; home: { name: string }; away: { name: string }; st?: Parameters<typeof afMatchState>[0] },
   live: LiveMatch[],
@@ -221,12 +251,7 @@ export function matchState(
     if (now === null || kick === null || now < kick) return { kind: "upcoming" };
     return now < kick + LIVE_MIN * 60_000 ? { kind: "unconfirmed", inferred: true } : { kind: "unconfirmed", inferred: true, late: true };
   }
-  const near = (l: LiveMatch, h: number) => kick === null || Math.abs(l.kickoff - kick) < h * 3600_000;
-  // 1) molemmat nimet täsmäävät, 2) toinen täsmää ja toisesta löytyy selvä nimen osa samaan aikaan alkavassa ottelussa
-  const hit =
-    live.find((l) => l.source === m.source && near(l, 36) && same(m.home.name, l.home) && same(m.away.name, l.away)) ??
-    live.find((l) => l.source === m.source && near(l, 3) &&
-      ((same(m.home.name, l.home) && partly(m.away.name, l.away)) || (partly(m.home.name, l.home) && same(m.away.name, l.away))));
+  const hit = findLive(m, live);
   if (hit) {
     // tilanne vain, jos rajapinta kertoo sen (puuttuva tulos ei ole 0–0)
     const sc = { hs: hit.hs ?? null, as: hit.as ?? null };
@@ -234,7 +259,9 @@ export function matchState(
     // lähteet ristiriidassa → tila näytetään epävarmana (ei keksittyä varmuutta)
     // lähteen oma päivitysaika vain, kun näytettävä tila on siitä lähteestä ja lähde ilmoittaa sen
     const srcAt = hit.statusSrc !== "espn" && typeof hit.sourceUpdatedAt === "number" ? hit.sourceUpdatedAt : undefined;
-    const r = (x: MatchState): MatchState => ({ ...x, ...(hit.conflict ? { uncertain: true, uncertainWhat: hit.conflictKind } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
+    // punaiset kortit vain käynnissä olevalle ja päättyneelle (lähteen tapahtumista)
+    const reds = (k: MatchState["kind"]) => hit.reds && (k === "live" || k === "ht" || k === "ft") ? { reds: hit.reds } : {};
+    const r = (x: MatchState): MatchState => ({ ...x, ...reds(x.kind), ...(hit.conflict ? { uncertain: true, uncertainWhat: hit.conflictKind } : {}), ...(srcAt ? { srcUpdatedAt: srcAt } : {}) });
     switch (hit.status) {
       case "IN_PLAY": return r({ kind: "live", ...sc, min: liveClock(hit, now), clock: liveStopwatch(hit, now), ...extra });
       case "EXTRA_TIME": return r({ kind: "live", ...sc, min: liveClock(hit, now), clock: liveStopwatch(hit, now), ...extra, phase: "et" });

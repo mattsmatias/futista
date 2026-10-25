@@ -15,7 +15,7 @@ import { usePersistentState } from "@/lib/persist";
 import { useBrokenImage } from "@/lib/img";
 import { useMatchState, StatusPill, useLiveExtras, useDataEnabled } from "@/lib/live";
 import { Num } from "@/lib/fresh";
-import type { MatchState } from "@/lib/live-core";
+import { resultState, type MatchState } from "@/lib/live-core";
 import { MatchRow } from "./ui/MatchRow";
 import { groupFi } from "@/lib/af-league-core";
 
@@ -132,7 +132,7 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
 export function Match({ r, source }: { r: Result; source: string }) {
   const { isFav } = useFavorites();
   return <MatchRow href={matchHref(source, r.date, r.home.name, r.away.name)} home={r.home} away={r.away} time={r.time ?? null} highlight={isFav}
-    s={{ kind: "ft", hs: r.hs, as: r.as, aet: r.note === "aet", pens: r.pens ?? null, ...(r.note === "pens" ? { phase: "pens" as const } : {}) }} />;
+    s={resultState({ ...r, source })} />;
 }
 
 const hasScore = (s: MatchState) => s.hs !== undefined && s.hs !== null && s.as !== undefined && s.as !== null;

@@ -9,7 +9,7 @@ import { COMP_ORDER } from "@/lib/comps";
 import { coverage, covers, rowsFor, type Coverage, type DayRow } from "@/lib/day";
 import { useLeagueMap } from "@/lib/leagues-client";
 import { useDataEnabled, useLiveData, useLiveExtras } from "@/lib/live";
-import { matchState, helsinkiEpoch, sameTeam, words, type MatchState } from "@/lib/live-core";
+import { matchState, resultState, helsinkiEpoch, sameTeam, words, type MatchState } from "@/lib/live-core";
 import { useAfDay } from "@/lib/af-client";
 import { AF_COMPS } from "@/lib/af-registry";
 import { useIntlGames } from "@/lib/intl-client";
@@ -67,7 +67,7 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
       ...r,
       href: matchHref(id, r.date, r.home.name, r.away.name),
       s: r.kind === "result"
-        ? { kind: "ft", hs: r.r.hs, as: r.r.as, aet: r.r.note === "aet", pens: r.r.pens ?? null, ...(r.r.note === "pens" ? { phase: "pens" as const } : {}) }
+        ? resultState({ ...r.r, source: id }, live)
         : matchState({ ...r.f, source: id }, live, now),
     })) : [];
     for (const x of extras.filter((x) => x.s === id && x.date === date)) {
@@ -91,7 +91,7 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
       ...r,
       href: matchHref(id, r.date, r.home.name, r.away.name),
       s: r.kind === "result"
-        ? { kind: "ft", hs: r.r.hs, as: r.r.as, aet: r.r.note === "aet", pens: r.r.pens ?? null, ...(r.r.note === "pens" ? { phase: "pens" as const } : {}) }
+        ? resultState({ ...r.r, source: id }, live)
         : matchState({ ...r.f, source: id }, live, now),
     })) : [];
     rows.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "") || a.home.name.localeCompare(b.home.name));
@@ -119,4 +119,4 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
 }
 
 export const isLiveState = (s: MatchState) => s.kind === "live" || s.kind === "ht";
-export const gameState = (g: Game): MatchState => ({ kind: g.kind, hs: g.hs, as: g.as, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet });
+export const gameState = (g: Game): MatchState => ({ kind: g.kind, hs: g.hs, as: g.as, min: g.clock, phase: g.phase, pens: g.pens, aet: g.aet, ...(g.reds ? { reds: g.reds } : {}) });
