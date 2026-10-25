@@ -1462,11 +1462,16 @@ html { touch-action: manipulation; }
 .ps-seg button { min-height: 40px; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
 .ps-seg button.on { color: var(--fg); }
 .ps-list { list-style: none; margin: 0; padding: 4px 8px 8px; }
-.ps-row { display: grid; grid-template-columns: 1.8em 2.1em 1fr auto; align-items: center; gap: 10px; min-height: 48px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.ps-row { display: grid; grid-template-columns: 1.8em 40px 1fr auto; align-items: center; gap: 10px; min-height: 48px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .ps-row:last-child { border-bottom: 0; }
 .ps-rank { font: 700 13px var(--mono); color: var(--muted); }
 .ps-num { display: grid; place-items: center; width: 2.1em; height: 2.1em; border-radius: 50%; font: 700 12px var(--mono); background: var(--surface-2); }
 .ps-a { background: var(--fg); color: var(--bg); }
+/* pelaajan kuva (lähteen oma kuva tunnisteella); reunus kertoo joukkueen puolen kuten numeropallo */
+.ps-face { display: block; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: var(--surface-2); box-shadow: 0 0 0 2px var(--ps-side, var(--line)); }
+.ps-face.ps-a { --ps-side: var(--fg); }
+.ps-row .ps-num { justify-self: center; }
+.ps-face img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .ps-who { min-width: 0; display: grid; }
 .ps-who b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ps-who small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

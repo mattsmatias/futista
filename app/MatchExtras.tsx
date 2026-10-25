@@ -238,7 +238,14 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
 type PRow = { p: LPlayer; side: "h" | "a" };
 type Cat = { key: string; title: Key; value: (p: LPlayer) => number | null; fmt: (p: LPlayer) => React.ReactNode; positive?: boolean };
 
-function PlayerTop({ cat, rows, home, away }: { cat: Cat; rows: PRow[]; home: Team; away: Team }) {
+/** Pelaajatilastojen kuva: lähteen oma kuva pelaajan tunnisteella (API-Football); puuttuva tai latautumaton → paitanumero */
+function PsFace({ p, side, photo }: { p: LPlayer; side: "h" | "a"; photo: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (photo && !failed) return <span className={`ps-face ps-${side}`} aria-hidden="true"><img src={photo} alt="" width={40} height={40} loading="lazy" decoding="async" onError={() => setFailed(true)} /></span>;
+  return <span className={`ps-num ps-${side}`} aria-hidden="true">{p.number ?? "–"}</span>;
+}
+
+function PlayerTop({ cat, rows, home, away, photos }: { cat: Cat; rows: PRow[]; home: Team; away: Team; photos: boolean }) {
   const { t } = useI18n();
   const [all, setAll] = useState(false);
   const list = rows.filter((r) => { const v = cat.value(r.p); return v !== null && (!cat.positive || v > 0); })
@@ -254,7 +261,7 @@ function PlayerTop({ cat, rows, home, away }: { cat: Cat; rows: PRow[]; home: Te
         {shown.map((r, i) => (
           <li key={r.side + (r.p.id ?? r.p.name)} className="ps-row">
             <span className="ps-rank">{rank(i)}.</span>
-            <span className={`ps-num ps-${r.side}`} aria-hidden="true">{r.p.number ?? "–"}</span>
+            <PsFace p={r.p} side={r.side} photo={photos ? afPhoto(r.p.id) : null} />
             <span className="ps-who"><b>{r.p.name}</b><small>{(r.side === "h" ? home : away).name}{r.p.role !== null ? ` · ${t(`roleL_${r.p.role}` as Key)}` : ""}</small></span>
             <span className="ps-val">{cat.fmt(r.p)}</span>
           </li>
@@ -301,7 +308,7 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
         {phys && seg(group, (v) => setGroup(v as "key" | "phys"), [["key", t("ps_key")], ["phys", t("ps_phys")]], t("tab_players"))}
         {seg(who, (v) => setWho(v as "all" | "h" | "a"), [["all", t("ps_all")], ["h", home.name], ["a", away.name]], t("lu_team"))}
       </div>
-      {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} />)}
+      {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} photos={data.source === "API-Football"} />)}
       <div className="panel lu-legend">
         {group === "key" && !all.some((r) => r.p.rating !== null) && <p className="pad small muted">{t("ps_noRatings")}</p>}
         {all.some((r) => r.p.shots != null) && <p className="pad small muted">{t("ps_shotsNote")}</p>}

@@ -72,6 +72,21 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.setViewportSize({ width: 390, height: 844 });
   ok("  nimet ja kuvat eivät mene päällekkäin eivätkä leikkaudu (390 ja 320 px)", l390.over === 0 && l390.clip === 0 && l320.over === 0 && l320.clip === 0, JSON.stringify({ l390, l320 }));
   ok("  ei arvosana- eikä pelipaikkaselitettä (käyttäjän valinta 25.10.2026)", !/Arvosana on lähteen|Pelipaikka on/.test(await page.locator("main").innerText()));
+  // Pelaajatilastot: pelaajan kuva lähteen tunnisteella (API-Football); kuvapalvelin simuloidaan 1×1-kuvalla
+  await page.route(/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
+  await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
+  await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {});
+  const faces = await page.locator(".ps-row .ps-face img").evaluateAll((els) => els.map((e) => e.getAttribute("src")));
+  ok("Pelaajatilastot: pelaajien kuvat lähteen tunnisteella", faces.length > 0 && faces.every((x) => /^https:\/\/media\.api-sports\.io\/football\/players\/9902\d{2}\.png$|^https:\/\/media\.api-sports\.io\/football\/players\/9901\d{2}\.png$/.test(x || "")), JSON.stringify(faces.slice(0, 3)));
+  const pov = await page.evaluate(() => [...document.querySelectorAll(".ps-row")].some((r) => r.scrollWidth > r.clientWidth + 1));
+  ok("  rivit mahtuvat (390 px)", !pov);
+  // latautumaton kuva → paitanumero (ei rikkinäistä kuvaa)
+  await page.unroute(/media\.api-sports\.io/);
+  await page.route(/media\.api-sports\.io/, (r) => r.fulfill({ status: 404, body: "" }));
+  await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click(); await page.waitForTimeout(300);
+  await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
+  await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
+  ok("  kuva ei lataudu → paitanumero", (await page.locator(".ps-row .ps-face img").count()) === 0 && (await page.locator(".ps-row .ps-num").count()) > 0);
   ok("  ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();
 
