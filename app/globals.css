@@ -1173,9 +1173,6 @@ div.match { cursor: default; }
 @media (max-width: 760px) { .nlead { grid-template-columns: 1fr; } .nlead .art { min-height: 0; aspect-ratio: 16 / 9; max-height: 240px; } .nlead-txt { padding: 14px; } }
 
 /* Sarjat */
-.dir-filter { display: flex; align-items: center; gap: 8px; max-width: 420px; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
-.dir-filter svg { width: 18px; height: 18px; }
-.dir-filter input { flex: 1; min-width: 0; border: 0; background: none; color: var(--fg); font: 500 15px var(--ui); outline: none; }
 .dir-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
 .dir-list li + li { border-top: 1px solid var(--line); }
 @media (min-width: 640px) { .dir-list li + li { border-top: 0; } .dir-list li { border-bottom: 1px solid var(--line); } }
