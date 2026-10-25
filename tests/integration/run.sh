@@ -28,6 +28,8 @@ export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_lo
 export APIFOOTBALL_KEY=test-not-a-real-key APIFOOTBALL_BASE_URL=http://127.0.0.1:9101/af
 # muiden sarjojen ottelutiedot API-Footballista pois aiemmista testeistä (ne testaavat ESPN-lähdettä ja "ei käytössä" -tilaa); oma ajo lopussa
 export AF_EXTRAS_OFF=1
+# pokaalit: simuloitu Wikidata (mock-sources.cjs /wd/sparql)
+export WD_BASE_URL=http://127.0.0.1:9101/wd/sparql
 # Mainosta-lomake: simuloitu Resend (mock-sources.cjs /resend/), testiosoitteet (example.test ei ole oikea verkkotunnus)
 export RESEND_API_KEY=test-not-a-real-key RESEND_BASE_URL=http://127.0.0.1:9101/resend CONTACT_TO_EMAIL=yllapito@example.test CONTACT_FROM_EMAIL="Futista <lomake@example.test>"
 [ -n "${FONTS_MOCK:-}" ] && export NEXT_FONT_GOOGLE_MOCKED_RESPONSES="$FONTS_MOCK"
@@ -40,6 +42,7 @@ rc=0
 node tests/integration/chain.cjs || rc=1
 node tests/integration/ui.cjs || rc=1
 node tests/integration/af-kilpailut.cjs || rc=1
+node tests/integration/pokaalit.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1 RESEND_API_KEY=
 node tests/integration/switches.cjs || rc=1

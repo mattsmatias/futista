@@ -14,6 +14,7 @@
   },
   "files": [
     "seo.test.ts",
+    "trophies.test.ts",
     "scorer-rank.test.ts",
     "app-update.test.ts",
     "http.test.ts",

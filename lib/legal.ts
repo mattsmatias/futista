@@ -49,8 +49,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Ulkopuoliset sisällöt",
         p: [
-          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com), joukkueiden logot football-data.orgin, TheSportsDB:n ja ESPN:n palvelimilta, pelaajakuvat Wikimedia Commonsin ja TheSportsDB:n palvelimilta ja maiden liput flagcdn.comista. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi ja selaimen perustiedot kyseisille palvelimille.",
-          "Ottelu- ja tilastotiedot Futistan palvelin hakee itse (football-data.org, ESPN, TheSportsDB). Näihin hakuihin ei liitetä sinun tietojasi.",
+          "Uutisten kuvat ladataan suoraan uutislähteiden palvelimilta (LaLiiga.com ja Valioliiga.com), joukkueiden logot football-data.orgin, TheSportsDB:n ja ESPN:n palvelimilta, pelaajakuvat Wikimedia Commonsin ja TheSportsDB:n palvelimilta, pokaalien kuvat Wikimedia Commonsista ja maiden liput flagcdn.comista. Näitä kuvia ladatessaan selaimesi välittää IP-osoitteesi ja selaimen perustiedot kyseisille palvelimille.",
+          "Ottelu- ja tilastotiedot Futistan palvelin hakee itse (football-data.org, ESPN, TheSportsDB, Wikidata). Näihin hakuihin ei liitetä sinun tietojasi.",
           "Fontit toimitetaan Futistan omalta palvelimelta, joten niitä ladattaessa tietoja ei välity Googlelle.",
         ],
       },
@@ -106,8 +106,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Externt innehåll",
         p: [
-          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com), lagens logotyper från football-data.orgs, TheSportsDB:s och ESPN:s servrar, spelarbilder från Wikimedia Commons och TheSportsDB och landsflaggor från flagcdn.com. När bilderna laddas skickar din webbläsare din IP-adress och grundläggande webbläsarinformation till dessa servrar.",
-          "Match- och statistikuppgifter hämtas av Futistas egen server (football-data.org, ESPN, TheSportsDB). Inga uppgifter om dig skickas med dessa förfrågningar.",
+          "Nyhetsbilderna hämtas direkt från nyhetskällornas servrar (LaLiiga.com och Valioliiga.com), lagens logotyper från football-data.orgs, TheSportsDB:s och ESPN:s servrar, spelar- och trofébilder från Wikimedia Commons och TheSportsDB och landsflaggor från flagcdn.com. När bilderna laddas skickar din webbläsare din IP-adress och grundläggande webbläsarinformation till dessa servrar.",
+          "Match- och statistikuppgifter hämtas av Futistas egen server (football-data.org, ESPN, TheSportsDB, Wikidata). Inga uppgifter om dig skickas med dessa förfrågningar.",
           "Typsnitten levereras från Futistas egen server, så inga uppgifter skickas till Google när de laddas.",
         ],
       },
@@ -163,8 +163,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "External content",
         p: [
-          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com), team logos from football-data.org, TheSportsDB and ESPN, player photos from Wikimedia Commons and TheSportsDB and country flags from flagcdn.com. When these images load, your browser sends your IP address and basic browser details to those servers.",
-          "Match and statistics data is fetched by Futista's own server (football-data.org, ESPN, TheSportsDB). None of your data is included in those requests.",
+          "News images load directly from the news sources' servers (LaLiiga.com and Valioliiga.com), team logos from football-data.org, TheSportsDB and ESPN, player and trophy photos from Wikimedia Commons and TheSportsDB and country flags from flagcdn.com. When these images load, your browser sends your IP address and basic browser details to those servers.",
+          "Match and statistics data is fetched by Futista's own server (football-data.org, ESPN, TheSportsDB, Wikidata). None of your data is included in those requests.",
           "Fonts are served from Futista's own server, so nothing is sent to Google when they load.",
         ],
       },

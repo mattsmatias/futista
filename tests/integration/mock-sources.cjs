@@ -2,7 +2,7 @@
 // Kotitekoista dataa, EI yhteyttä oikeisiin rajapintoihin. Tilaa ohjataan:
 //   GET /__mode?fd=ok|down|429&espn=ok|down&h2h=ok|empty|down   GET /__log   GET /__reset
 const http = require("node:http");
-const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", afvar: "0", resend: "ok" };
+const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", afvar: "0", resend: "ok", wd: "ok" };
 const afMock = require("./mock-af.cjs");
 const log = [];
 const json = (res, code, body, extra = {}) => { res.writeHead(code, { "content-type": "application/json", ...extra }); res.end(JSON.stringify(body)); };
@@ -215,6 +215,27 @@ function resend(path, req, res) {
   });
 }
 
+// Wikidata (simuloitu SPARQL, pokaalit): liigan seurat ja seuran voitot. Mukana ystävyysturnaus (ei saa näkyä).
+// EI todiste Wikidatan todellisesta kattavuudesta.
+function wd(u, res) {
+  if (mode.wd === "down") return json(res, 503, {});
+  const q = u.searchParams.get("query") || "";
+  const b = (rows) => json(res, 200, { results: { bindings: rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { type: "literal", value: v }]))) } });
+  const E = "http://www.wikidata.org/entity/";
+  if (/ps:P118 wd:Q82595/.test(q)) return b([
+    { t: E + "Q900001", n: "Mittaus United FC", cur: "1" }, { t: E + "Q900001", n: "Mittaus United", cur: "1" },
+    { t: E + "Q900002", n: "Mittaus City", cur: "1" },
+  ]);
+  if (/P1346 wd:Q900001/.test(q)) return b([
+    { s: E + "Q1", c: E + "Q82595", l: "2013–14 Fußball-Bundesliga" },
+    { s: E + "Q1", c: E + "Q15805431", l: "2013–14 Fußball-Bundesliga" },
+    { s: E + "Q2", c: E + "Q82595", l: "2019–20 Bundesliga" },
+    { s: E + "Q3", c: E + "Q150880", l: "2019–20 DFB-Pokal" },
+    { s: E + "Q4", c: E + "Q3239561", l: "2013 Audi Cup" },
+  ]);
+  return b([]);
+}
+
 http.createServer((req, res) => {
   const u = new URL(req.url, "http://x");
   if (u.pathname === "/__mode") { for (const k of Object.keys(mode)) if (u.searchParams.get(k)) mode[k] = u.searchParams.get(k); return json(res, 200, mode); }
@@ -227,5 +248,6 @@ http.createServer((req, res) => {
   if (req.url.startsWith("/af/")) return af(req.url.slice(3), req, res);
   if (req.url.startsWith("/feed/")) return feed(req.url.slice(6), res);
   if (req.url.startsWith("/resend/")) return resend(req.url.slice(7), req, res);
+  if (u.pathname === "/wd/sparql") return wd(u, res);
   json(res, 404, {});
 }).listen(Number(process.env.PORT || 9101), "127.0.0.1", () => console.log("mock-sources ready"));
