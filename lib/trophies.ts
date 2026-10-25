@@ -59,14 +59,15 @@ const winsOf = (club: string) => stableCache(async (): Promise<WdWin[]> => {
 
 // Kilpailujen kattavuus (kaikille seuroille yhteinen): voittajallisten kausien määrä ja vuosiväli
 const coverage = () => stableCache(async (): Promise<CompCoverage[]> => {
-  const rows = await sparql(`SELECT ?c (COUNT(DISTINCT ?s) AS ?won) (MIN(?y) AS ?first) (MAX(?y) AS ?last) WHERE {
+  const rows = await sparql(`SELECT ?c (GROUP_CONCAT(DISTINCT ?y; separator=",") AS ?ys) WHERE {
     VALUES ?c { ${ALL_COMPS.map((c) => "wd:" + c).join(" ")} }
     ?s wdt:P3450 ?c; wdt:P1346 ?w.
-    OPTIONAL { ?s wdt:P582|wdt:P585|wdt:P580 ?d } BIND(YEAR(?d) AS ?y)
+    OPTIONAL { ?s wdt:P582 ?e } OPTIONAL { ?s wdt:P585 ?p } OPTIONAL { ?s wdt:P580 ?b }
+    BIND(YEAR(COALESCE(?e, ?p, ?b)) AS ?y)
   } GROUP BY ?c`);
   if (!rows.length) throw new Error("no coverage");
-  return rows.map((r) => ({ comp: qid(r.c), won: Number(r.won) || 0, first: r.first ? Number(r.first) : undefined, last: r.last ? Number(r.last) : undefined }));
-}, ["wd-coverage-v1"], { revalidate: WEEK })();
+  return rows.map((r) => ({ comp: qid(r.c), years: String(r.ys ?? "").split(",").map(Number).filter((y) => y > 1800 && y < 3000) }));
+}, ["wd-coverage-v2"], { revalidate: WEEK })();
 
 export type TeamTrophies = { q: string; trophies: Trophy[] };
 

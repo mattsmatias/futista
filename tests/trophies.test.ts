@@ -63,16 +63,18 @@ test("kilpailulista ja kuvat ovat johdonmukaisia", () => {
   }
 });
 
-test("puutteelliset kilpailut: aukot tai vanha viimeisin voittaja → 'vähintään'", () => {
+test("puutteelliset kilpailut: aukot viime vuosissa tai harva historia → 'vähintään'", () => {
+  const r = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
   const p = partialTrophies([
-    { comp: "Q82595", won: 62, first: 1964, last: 2026 }, { comp: "Q15805431", won: 60, first: 1903, last: 1963 }, // Saksan mestaruus kattava
-    { comp: "Q674734", won: 20, first: 1955, last: 2025 }, // Suomen Cup: 20 kautta 71 vuodesta
-    { comp: "Q189188", won: 90, first: 1908, last: 2016 }, // Community Shield: viimeisin 2016
-    { comp: "Q40241", won: 39, first: 1961, last: 1999 }, // Cup-voittajien cup lakkautettu 1999 → kattava
+    { comp: "Q82595", years: r(1964, 2026) }, { comp: "Q15805431", years: [...r(1903, 1963), 1964] }, // Saksan mestaruus kattava (päällekkäinen vuosi kerran)
+    { comp: "Q324867", years: [...r(1929, 2020), 2026] }, // La Liga: 2021–2025 puuttuu → puutteellinen
+    { comp: "Q674734", years: [1960, 1990, 2006, 2008, 2011, 2017, 2020, 2021, 2022, 2023, 2024, 2025] }, // Suomen Cup harva
+    { comp: "Q189188", years: r(1908, 2016) }, // Community Shield: viimeisin 2016
+    { comp: "Q40241", years: r(1961, 1999) }, // Cup-voittajien cup lakkautettu 1999 → kattava
   ], 2026);
-  assert.ok(!p.has("de-l") && !p.has("cwc"));
-  assert.ok(p.has("fi-c") && p.has("en-s"));
-  assert.ok(p.has("es-l"), "ei kattavuustietoa → puutteellinen");
+  assert.ok(!p.has("de-l") && !p.has("cwc"), [...p].join(","));
+  assert.ok(p.has("es-l") && p.has("fi-c") && p.has("en-s"));
+  assert.ok(p.has("it-l"), "ei kattavuustietoa → puutteellinen");
   const t = buildTrophies([{ comp: "Q674734", season: "Q1", label: "2020 Finnish Cup" }], p);
   assert.equal(t[0].partial, true);
 });

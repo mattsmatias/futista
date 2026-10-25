@@ -166,19 +166,21 @@ export function buildTrophies(wins: WdWin[], partial: ReadonlySet<string> = new 
   return out.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || b.count - a.count);
 }
 
-/** Kilpailun kattavuus Wikidatassa: kausia, joilla on voittaja, ja niiden vuodet (ensimmäinen, viimeinen). */
-export type CompCoverage = { comp: string; won: number; first?: number; last?: number };
+/** Kilpailun kattavuus Wikidatassa: vuodet (kauden päättymis- tai ajankohdan vuosi), joilta on kausi voittajineen. */
+export type CompCoverage = { comp: string; years: number[] };
 
-/** Pokaalit, joiden Wikidata-tiedot ovat todennäköisesti puutteelliset: voittajallisia kausia alle 90 % vuosivälistä
- *  tai viimeisin voittaja yli vuoden takaa. Näille näytetään "vähintään N" (aina tosi), ei tarkkaa määrää. */
+/** Pokaalit, joiden Wikidata-tiedot ovat todennäköisesti puutteelliset: jokin viimeisten 10 vuoden kausista puuttuu
+ *  (tai viimeisin on vanha), tai voittajallisia vuosia on alle 90 % vuosivälistä. Saman pokaalin eri kilpailutunnisteet
+ *  yhdistetään vuosittain (sama kausi kerran). Näille näytetään "vähintään N" (aina tosi), ei tarkkaa määrää. */
 export function partialTrophies(cov: CompCoverage[], thisYear: number, defs: TrophyDef[] = TROPHIES): Set<string> {
   const out = new Set<string>();
   for (const d of defs) {
-    const c = cov.filter((x) => d.comps.includes(x.comp) && x.won > 0);
-    const won = c.reduce((a, x) => a + x.won, 0);
-    const first = Math.min(...c.map((x) => x.first ?? Infinity)), last = Math.max(...c.map((x) => x.last ?? -Infinity));
-    if (!c.length || !isFinite(first) || !isFinite(last)) { out.add(d.key); continue; }
-    if (last < (d.ended ?? thisYear - 1) || won / (last - first + 1) < 0.9) out.add(d.key);
+    const ys = new Set(cov.filter((x) => d.comps.includes(x.comp)).flatMap((x) => x.years));
+    if (!ys.size) { out.add(d.key); continue; }
+    const first = Math.min(...ys), last = d.ended ?? thisYear - 1;
+    let ok = ys.size / (Math.max(...ys, last) - first + 1) >= 0.9;
+    for (let y = Math.max(first, last - 9); ok && y <= last; y++) if (!ys.has(y)) ok = false;
+    if (!ok) out.add(d.key);
   }
   return out;
 }

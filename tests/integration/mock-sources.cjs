@@ -226,9 +226,10 @@ function wd(u, res) {
     { t: E + "Q900001", n: "Mittaus United FC", cur: "1" }, { t: E + "Q900001", n: "Mittaus United", cur: "1" },
     { t: E + "Q900002", n: "Mittaus City", cur: "1" },
   ]);
-  if (/AS \?won/.test(q)) return b([ // kattavuus: Saksan mestaruus kattava, DFB-Pokal puutteellinen (10 kautta 1990–2026)
-    { c: E + "Q82595", won: "62", first: "1964", last: "2026" }, { c: E + "Q15805431", won: "62", first: "1903", last: "1963" },
-    { c: E + "Q150880", won: "10", first: "1990", last: "2026" },
+  const yrs = (a, z) => Array.from({ length: z - a + 1 }, (_, i) => a + i).join(",");
+  if (/AS \?ys/.test(q)) return b([ // kattavuus: Saksan mestaruus kattava, DFB-Pokal puutteellinen (2021–2025 puuttuu)
+    { c: E + "Q82595", ys: yrs(1964, 2026) }, { c: E + "Q15805431", ys: yrs(1903, 1963) },
+    { c: E + "Q150880", ys: yrs(1953, 2020) },
   ]);
   if (/P1346 wd:Q900001/.test(q)) return b([
     { s: E + "Q1", c: E + "Q82595", l: "2013–14 Fußball-Bundesliga" },
