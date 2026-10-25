@@ -38,7 +38,7 @@ const DAY = 86400_000;
   await page.goto(APP + "/", { waitUntil: "load" }); await page.waitForTimeout(2500);
   const liveRows = await rc(".mrow.is-live");
   ok("etusivu: live-rivillä vierasjoukkueen nimen perässä punainen kortti (1)", liveRows.some((x) => x[0] === "" && x[1] === "1"), JSON.stringify(liveRows));
-  const lbl = await page.locator(".mrow.is-live a").first().getAttribute("aria-label");
+  const lbl = await page.locator(".mrow.is-live", { has: page.locator(".mrow-rc") }).first().locator("a").getAttribute("aria-label").catch(() => null);
   ok("  ruudunlukija: kortti kerrotaan tekstinä", /punainen kortti/.test(lbl || ""), lbl);
   const box = await page.locator(".mrow-rc").first().evaluate((e) => { const r = e.getBoundingClientRect(), c = getComputedStyle(e); return { w: r.width, h: r.height, bg: c.backgroundColor, fg: c.color }; }).catch(() => null);
   ok("  merkki: punainen tausta, valkoinen numero, pieni", box && box.bg === "rgb(211, 47, 47)" && box.fg === "rgb(255, 255, 255)" && box.h <= 18 && box.w <= 24, JSON.stringify(box));
