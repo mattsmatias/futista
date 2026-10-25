@@ -36,10 +36,11 @@ function Item({ x }: { x: Trophy }) {
         : <div className="tp-pic tp-none"><TrophyIcon /></div>}
       <div className="tp-main">
         <div className="tp-head">
-          <b className="tp-count" aria-label={`${x.count} ${t("tp_wins")}`}>{x.count}×</b>
+          <b className="tp-count" aria-label={`${x.partial ? t("tp_atLeast") + " " : ""}${x.count} ${t("tp_wins")}`}>{x.partial ? "≥" : ""}{x.count}×</b>
           <h3 className="tp-name">{name}</h3>
         </div>
         {x.seasons.length > 0 && <p className="tp-seasons small">{shown.join(" · ")}</p>}
+        {x.partial && <p className="tp-partial muted small">{t("tp_partial")}</p>}
         {noYear > 0 && <p className="muted small">{t("tp_noYear").replace("{n}", String(noYear))}</p>}
         {x.seasons.length > SHOW && <button className="linkbtn small" onClick={() => setAll(!all)} aria-expanded={all}>{all ? t("tp_less") : t("tp_more").replace("{n}", String(x.seasons.length))}</button>}
         {img && (

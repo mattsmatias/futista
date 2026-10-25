@@ -5,7 +5,7 @@ import { norm, namesFor } from "./teams";
 
 /** Pokaalin kuva Wikimedia Commonsista (vapaa lisenssi; tekijä ja lisenssi näytetään). */
 export type TrophyImage = { file: string; thumb: string; page: string; author: string; license: string; licenseUrl?: string };
-export type TrophyDef = { key: string; fi: string; en: string; comps: string[]; kind: "league" | "cup" | "super" | "intl"; img?: TrophyImage };
+export type TrophyDef = { key: string; fi: string; en: string; comps: string[]; kind: "league" | "cup" | "super" | "intl"; img?: TrophyImage; ended?: number /* lakkautettu: viimeinen pelivuosi */ };
 
 /** Liigan Wikidata-tunniste (seurat, joiden nykyinen sarja P118 on tämä). Vain varmennetut. */
 export const LEAGUE_Q: Record<string, string> = {
@@ -20,11 +20,11 @@ export const TROPHIES: TrophyDef[] = [
   { key: "ucl", fi: "Mestarien liiga / Euroopan cup", en: "UEFA Champions League / European Cup", comps: ["Q18756"], kind: "intl" },
   { key: "uel", fi: "Eurooppa-liiga / UEFA-cup", en: "UEFA Europa League / UEFA Cup", comps: ["Q18760", "Q715496"], kind: "intl" },
   { key: "uecl", fi: "Konferenssiliiga", en: "UEFA Conference League", comps: ["Q59365764"], kind: "intl" },
-  { key: "cwc", fi: "Cup-voittajien cup", en: "Cup Winners' Cup", comps: ["Q40241"], kind: "intl" },
-  { key: "fairs", fi: "Messukaupunkien cup", en: "Inter-Cities Fairs Cup", comps: ["Q245375"], kind: "intl" },
+  { key: "cwc", fi: "Cup-voittajien cup", en: "Cup Winners' Cup", comps: ["Q40241"], kind: "intl", ended: 1999 },
+  { key: "fairs", fi: "Messukaupunkien cup", en: "Inter-Cities Fairs Cup", comps: ["Q245375"], kind: "intl", ended: 1971 },
   { key: "usc", fi: "UEFA Super Cup", en: "UEFA Super Cup", comps: ["Q484028"], kind: "super" },
   { key: "clubwc", fi: "Seurajoukkueiden MM", en: "FIFA Club World Cup", comps: ["Q223366"], kind: "intl" },
-  { key: "interc", fi: "Intercontinental Cup", en: "Intercontinental Cup", comps: ["Q182473"], kind: "intl" },
+  { key: "interc", fi: "Intercontinental Cup", en: "Intercontinental Cup", comps: ["Q182473"], kind: "intl", ended: 2004 },
   { key: "concacaf", fi: "CONCACAF Champions Cup", en: "CONCACAF Champions Cup", comps: ["Q83335"], kind: "intl" },
   // kotimaiset mestaruudet
   { key: "es-l", fi: "Espanjan mestaruus (La Liga)", en: "La Liga", comps: ["Q324867"], kind: "league" },
@@ -45,11 +45,11 @@ export const TROPHIES: TrophyDef[] = [
   { key: "en-s", fi: "Community Shield", en: "Community Shield", comps: ["Q189188"], kind: "super" },
   { key: "de-c", fi: "DFB-Pokal", en: "DFB-Pokal", comps: ["Q150880"], kind: "cup" },
   { key: "de-s", fi: "Saksan Supercup", en: "German Super Cup", comps: ["Q156973"], kind: "super" },
-  { key: "de-lc", fi: "Saksan liigacup", en: "DFB-Ligapokal", comps: ["Q303844"], kind: "cup" },
+  { key: "de-lc", fi: "Saksan liigacup", en: "DFB-Ligapokal", comps: ["Q303844"], kind: "cup", ended: 2007 },
   { key: "it-c", fi: "Coppa Italia", en: "Coppa Italia", comps: ["Q169918"], kind: "cup" },
   { key: "it-s", fi: "Italian Supercoppa", en: "Supercoppa Italiana", comps: ["Q19618"], kind: "super" },
   { key: "fr-c", fi: "Coupe de France", en: "Coupe de France", comps: ["Q212412"], kind: "cup" },
-  { key: "fr-lc", fi: "Ranskan liigacup", en: "Coupe de la Ligue", comps: ["Q476539"], kind: "cup" },
+  { key: "fr-lc", fi: "Ranskan liigacup", en: "Coupe de la Ligue", comps: ["Q476539"], kind: "cup", ended: 2020 },
   { key: "fr-s", fi: "Trophée des Champions", en: "Trophée des Champions", comps: ["Q653544"], kind: "super" },
   { key: "nl-c", fi: "KNVB Beker", en: "KNVB Cup", comps: ["Q216858"], kind: "cup" },
   { key: "nl-s", fi: "Johan Cruijff Schaal", en: "Johan Cruyff Shield", comps: ["Q591412"], kind: "super" },
@@ -106,6 +106,10 @@ const EXTRA: Record<string, string[]> = {
   sittard: ["fortuna sittard"],
   brest: ["stade brestois 29", "stade brestois"],
   psg: ["paris saint germain"],
+  "sheffield utd": ["sheffield united"],
+  "preston ne": ["preston north end"],
+  mariehamn: ["ifk mariehamn"],
+  "amed sfk": ["amedspor", "amed sportif faaliyetler"],
 };
 const teamNames = (team: string) => { const n = namesFor(team); return [...n, ...n.flatMap((x) => EXTRA[x] ?? [])]; };
 
@@ -125,19 +129,28 @@ export function matchClub(team: string, clubs: WdClub[]): string | undefined {
 }
 
 export type WdWin = { comp: string; season: string; label?: string; end?: string; start?: string; pit?: string };
-export type Trophy = { key: string; fi: string; en: string; kind: TrophyDef["kind"]; count: number; seasons: string[]; img?: TrophyImage };
+export type Trophy = { key: string; fi: string; en: string; kind: TrophyDef["kind"]; count: number; seasons: string[]; img?: TrophyImage; partial?: boolean };
 
-/** Kauden nimi näytettäväksi: "2013–14" / "2014" otsikosta, muuten päättymis- tai ajankohdan vuosi. */
+/** Kauden nimi näytettäväksi: ensisijaisesti alkamis- ja päättymispäivästä ("2019–20" / "2024"), muuten otsikon
+ *  vuosista, viimeisenä ajankohdasta. Otsikot ovat joskus virheellisiä (esim. "2018–20"), päivämäärät harvemmin. */
 export function seasonName(w: WdWin): string | undefined {
+  const y = (d?: string) => (d && /^\d{4}-/.test(d) ? Number(d.slice(0, 4)) : undefined);
+  const a = y(w.start), b = y(w.end);
+  if (a && b && b - a <= 1) return a === b ? String(a) : `${a}–${String(b).slice(2)}`;
   const m = (w.label ?? "").match(/(\d{4})(?:\s*[–\-/]\s*(\d{2,4}))?/);
-  if (m) return m[2] ? `${m[1]}–${m[2].length === 4 ? m[2].slice(2) : m[2]}` : m[1];
-  const d = w.end ?? w.pit ?? w.start;
-  return d && /^\d{4}/.test(d) ? d.slice(0, 4) : undefined;
+  if (m && !m[2]) return m[1];
+  if (m) {
+    const end = m[2].length === 4 ? Number(m[2]) : Number(m[1].slice(0, 2) + m[2]);
+    // vain peräkkäiset vuodet kelpaavat kaudeksi; muuten otsikkoon ei luoteta (ei näytetä väärää vuotta)
+    if (end - Number(m[1]) === 1) return `${m[1]}–${String(end).slice(2)}`;
+  }
+  const d = y(w.pit) ?? b ?? a;
+  return d ? String(d) : undefined;
 }
 const sortYear = (s: string) => Number(s.slice(0, 4)) || 0;
 
 /** Voitot pokaaleittain: sallitut kilpailut, kausi kerran (eri kilpailutunnisteista huolimatta), uusin ensin. */
-export function buildTrophies(wins: WdWin[], defs: TrophyDef[] = TROPHIES): Trophy[] {
+export function buildTrophies(wins: WdWin[], partial: ReadonlySet<string> = new Set(), defs: TrophyDef[] = TROPHIES): Trophy[] {
   const out: Trophy[] = [];
   for (const d of defs) {
     const seasons = new Map<string, string>(); // kauden tunniste → nimi
@@ -148,7 +161,24 @@ export function buildTrophies(wins: WdWin[], defs: TrophyDef[] = TROPHIES): Trop
     }
     if (!seasons.size) continue;
     const names = [...new Set([...seasons.values()].filter(Boolean))].sort((a, b) => sortYear(b) - sortYear(a) || b.localeCompare(a));
-    out.push({ key: d.key, fi: d.fi, en: d.en, kind: d.kind, count: seasons.size, seasons: names, img: d.img });
+    out.push({ key: d.key, fi: d.fi, en: d.en, kind: d.kind, count: seasons.size, seasons: names, img: d.img, ...(partial.has(d.key) ? { partial: true } : {}) });
   }
   return out.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || b.count - a.count);
+}
+
+/** Kilpailun kattavuus Wikidatassa: kausia, joilla on voittaja, ja niiden vuodet (ensimmäinen, viimeinen). */
+export type CompCoverage = { comp: string; won: number; first?: number; last?: number };
+
+/** Pokaalit, joiden Wikidata-tiedot ovat todennäköisesti puutteelliset: voittajallisia kausia alle 90 % vuosivälistä
+ *  tai viimeisin voittaja yli vuoden takaa. Näille näytetään "vähintään N" (aina tosi), ei tarkkaa määrää. */
+export function partialTrophies(cov: CompCoverage[], thisYear: number, defs: TrophyDef[] = TROPHIES): Set<string> {
+  const out = new Set<string>();
+  for (const d of defs) {
+    const c = cov.filter((x) => d.comps.includes(x.comp) && x.won > 0);
+    const won = c.reduce((a, x) => a + x.won, 0);
+    const first = Math.min(...c.map((x) => x.first ?? Infinity)), last = Math.max(...c.map((x) => x.last ?? -Infinity));
+    if (!c.length || !isFinite(first) || !isFinite(last)) { out.add(d.key); continue; }
+    if (last < (d.ended ?? thisYear - 1) || won / (last - first + 1) < 0.9) out.add(d.key);
+  }
+  return out;
 }

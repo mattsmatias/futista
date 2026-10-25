@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { matchClub, buildTrophies, seasonName, clubKey, TROPHIES, TROPHY_IMG, ALL_COMPS } from "../lib/trophies-core";
+import { matchClub, buildTrophies, seasonName, clubKey, partialTrophies, TROPHIES, TROPHY_IMG, ALL_COMPS } from "../lib/trophies-core";
 
 // Nimet oikeista Wikidatan vastauksista (tarkistus 25.10.2026), lyhennetty
 const clubs = [
@@ -46,6 +46,10 @@ test("kauden nimi", () => {
   assert.equal(seasonName({ comp: "", season: "", label: "2025 Franz Beckenbauer Supercup" }), "2025");
   assert.equal(seasonName({ comp: "", season: "", pit: "1976-11-21T00:00:00Z" }), "1976");
   assert.equal(seasonName({ comp: "", season: "" }), undefined);
+  // päivämäärät ensin; virheellinen otsikko ("2018–20") ei kelpaa kaudeksi
+  assert.equal(seasonName({ comp: "", season: "", label: "2018–20 La Liga", start: "2019-08-16T00:00:00Z", end: "2020-07-19T00:00:00Z" }), "2019–20");
+  assert.equal(seasonName({ comp: "", season: "", label: "2018–20 La Liga" }), undefined); // ei väärää vuotta
+  assert.equal(seasonName({ comp: "", season: "", start: "2024-01-10T00:00:00Z", end: "2024-01-14T00:00:00Z" }), "2024");
 });
 
 test("kilpailulista ja kuvat ovat johdonmukaisia", () => {
@@ -57,4 +61,18 @@ test("kilpailulista ja kuvat ovat johdonmukaisia", () => {
     assert.match(img.page, /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
     assert.ok(img.author && img.license, k);
   }
+});
+
+test("puutteelliset kilpailut: aukot tai vanha viimeisin voittaja → 'vähintään'", () => {
+  const p = partialTrophies([
+    { comp: "Q82595", won: 62, first: 1964, last: 2026 }, { comp: "Q15805431", won: 60, first: 1903, last: 1963 }, // Saksan mestaruus kattava
+    { comp: "Q674734", won: 20, first: 1955, last: 2025 }, // Suomen Cup: 20 kautta 71 vuodesta
+    { comp: "Q189188", won: 90, first: 1908, last: 2016 }, // Community Shield: viimeisin 2016
+    { comp: "Q40241", won: 39, first: 1961, last: 1999 }, // Cup-voittajien cup lakkautettu 1999 → kattava
+  ], 2026);
+  assert.ok(!p.has("de-l") && !p.has("cwc"));
+  assert.ok(p.has("fi-c") && p.has("en-s"));
+  assert.ok(p.has("es-l"), "ei kattavuustietoa → puutteellinen");
+  const t = buildTrophies([{ comp: "Q674734", season: "Q1", label: "2020 Finnish Cup" }], p);
+  assert.equal(t[0].partial, true);
 });

@@ -226,6 +226,10 @@ function wd(u, res) {
     { t: E + "Q900001", n: "Mittaus United FC", cur: "1" }, { t: E + "Q900001", n: "Mittaus United", cur: "1" },
     { t: E + "Q900002", n: "Mittaus City", cur: "1" },
   ]);
+  if (/AS \?won/.test(q)) return b([ // kattavuus: Saksan mestaruus kattava, DFB-Pokal puutteellinen (10 kautta 1990–2026)
+    { c: E + "Q82595", won: "62", first: "1964", last: "2026" }, { c: E + "Q15805431", won: "62", first: "1903", last: "1963" },
+    { c: E + "Q150880", won: "10", first: "1990", last: "2026" },
+  ]);
   if (/P1346 wd:Q900001/.test(q)) return b([
     { s: E + "Q1", c: E + "Q82595", l: "2013–14 Fußball-Bundesliga" },
     { s: E + "Q1", c: E + "Q15805431", l: "2013–14 Fußball-Bundesliga" },

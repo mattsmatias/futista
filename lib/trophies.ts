@@ -5,7 +5,7 @@
 // Testeissä osoitteen voi korvata (WD_BASE_URL), EI koskaan tuotannossa.
 import { stableCache } from "./stable-cache";
 import { nodeFetch } from "./http";
-import { LEAGUE_Q, ALL_COMPS, matchClub, buildTrophies, type WdClub, type WdWin, type Trophy } from "./trophies-core";
+import { LEAGUE_Q, ALL_COMPS, matchClub, buildTrophies, partialTrophies, type WdClub, type WdWin, type Trophy, type CompCoverage } from "./trophies-core";
 
 const BASE = (process.env.VERCEL_ENV !== "production" && process.env.WD_BASE_URL) || "https://query.wikidata.org/sparql";
 const UA = "Futista/1.0 (https://www.futista.fi) pokaalit";
@@ -57,6 +57,17 @@ const winsOf = (club: string) => stableCache(async (): Promise<WdWin[]> => {
   return rows.map((r) => ({ comp: qid(r.c), season: qid(r.s), label: r.l, end: r.end, start: r.start, pit: r.pit }));
 }, ["wd-wins-v1", club], { revalidate: WEEK })();
 
+// Kilpailujen kattavuus (kaikille seuroille yhteinen): voittajallisten kausien määrä ja vuosiväli
+const coverage = () => stableCache(async (): Promise<CompCoverage[]> => {
+  const rows = await sparql(`SELECT ?c (COUNT(DISTINCT ?s) AS ?won) (MIN(?y) AS ?first) (MAX(?y) AS ?last) WHERE {
+    VALUES ?c { ${ALL_COMPS.map((c) => "wd:" + c).join(" ")} }
+    ?s wdt:P3450 ?c; wdt:P1346 ?w.
+    OPTIONAL { ?s wdt:P582|wdt:P585|wdt:P580 ?d } BIND(YEAR(?d) AS ?y)
+  } GROUP BY ?c`);
+  if (!rows.length) throw new Error("no coverage");
+  return rows.map((r) => ({ comp: qid(r.c), won: Number(r.won) || 0, first: r.first ? Number(r.first) : undefined, last: r.last ? Number(r.last) : undefined }));
+}, ["wd-coverage-v1"], { revalidate: WEEK })();
+
 export type TeamTrophies = { q: string; trophies: Trophy[] };
 
 /** Joukkueen pokaalit; null = ei yksiselitteistä Wikidata-seuraa (osio jätetään pois). Lähteen häiriö heittää virheen. */
@@ -64,7 +75,8 @@ export async function getTrophies(source: string, team: string): Promise<TeamTro
   if (!trophiesOn(source)) return null;
   const q = findClub(team, await clubsOf(LEAGUE_Q[source]));
   if (!q) return null;
-  return { q, trophies: buildTrophies(await winsOf(q)) };
+  const [wins, cov] = await Promise.all([winsOf(q), coverage()]);
+  return { q, trophies: buildTrophies(wins, partialTrophies(cov, new Date().getUTCFullYear())) };
 }
 
 /** Kehitystyökalu (esikatselu): koko liigan seuraosumat oikeaa taulukkoa vasten. */

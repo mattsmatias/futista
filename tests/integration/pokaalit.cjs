@@ -24,10 +24,11 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   const keys = (a.j?.trophies ?? []).map((x) => `${x.key}:${x.count}`).join(",");
   ok("Mittaus United: pokaalit (mestaruus 2, DFB-Pokal 1), ystävyysturnaus pois", a.j?.state === "ok" && a.j?.q === "Q900001" && keys === "de-l:2,de-c:1", `${a.j?.state} ${keys}`);
   ok("  kaudet uusin ensin, sama kausi kerran", JSON.stringify(a.j?.trophies?.[0]?.seasons) === JSON.stringify(["2019–20", "2013–14"]), JSON.stringify(a.j?.trophies?.[0]?.seasons));
+  ok("  puutteellinen kilpailu merkitty (DFB-Pokal), kattava ei (mestaruus)", a.j?.trophies?.[1]?.partial === true && !a.j?.trophies?.[0]?.partial, JSON.stringify(a.j?.trophies?.map((x) => x.partial)));
   ok("  kuvan tekijä ja lisenssi mukana", a.j?.trophies?.[0]?.img?.author === "Pangalau" && a.j?.trophies?.[0]?.img?.license === "CC BY-SA 4.0");
   const n1 = await wdCalls();
   await get("l=bundesliga&t=mittaus-united");
-  ok("  toinen pyyntö välimuistista (ei uusia Wikidata-hakuja)", (await wdCalls()) === n1 && n1 === 2, `${n1} → ${await wdCalls()}`);
+  ok("  toinen pyyntö välimuistista (ei uusia Wikidata-hakuja)", (await wdCalls()) === n1 && n1 === 3, `${n1} → ${await wdCalls()}`);
 
   const b = await get("l=bundesliga&t=testiseura-kotka");
   ok("seura puuttuu Wikidatan listalta → nomatch (ei arvata)", b.status === 200 && b.j?.state === "nomatch", `${b.status} ${b.j?.state}`);
@@ -48,7 +49,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     await page.locator("[role=tab]", { hasText: /^Pokaalit$/ }).click();
     await page.waitForSelector(".tp-item", { timeout: 15000 }).catch(() => {});
     const items = await page.locator(".tp-item").allInnerTexts();
-    ok(`${w}px:   kaksi pokaalia, määrät ja nimet`, items.length === 2 && /2×[\s\S]*Saksan mestaruus/.test(items[0]) && /1×[\s\S]*DFB-Pokal/.test(items[1]), JSON.stringify(items).slice(0, 160));
+    ok(`${w}px:   kaksi pokaalia, määrät ja nimet`, items.length === 2 && /2×[\s\S]*Saksan mestaruus/.test(items[0]) && /≥1×[\s\S]*DFB-Pokal[\s\S]*puutteelliset/.test(items[1]) && !/puutteelliset/.test(items[0]), JSON.stringify(items).slice(0, 160));
     ok(`${w}px:   kuva ja tekijä/lisenssi (Commons-linkit)`, (await page.locator(".tp-item").first().locator("img").count()) === 1 && /Kuva: Pangalau · CC BY-SA 4\.0/.test(items[0] || "") &&
       (await page.locator(".tp-credit a[href^='https://commons.wikimedia.org/wiki/File:']").count()) === 1, items[0]);
     ok(`${w}px:   ilman kuvaa → kuvake, ei tekijätietoa`, (await page.locator(".tp-item").nth(1).locator("svg.tp-icon").count()) === 1 && !/Kuva:/.test(items[1] || ""));

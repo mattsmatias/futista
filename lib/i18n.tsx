@@ -28,6 +28,8 @@ const D = {
   tp_more: ["Näytä kaikki ({n})", "Visa alla ({n})", "Show all ({n})"],
   tp_less: ["Näytä vähemmän", "Visa färre", "Show fewer"],
   tp_wins: ["voittoa", "segrar", "wins"],
+  tp_atLeast: ["vähintään", "minst", "at least"],
+  tp_partial: ["Wikidatan tiedot tästä kilpailusta ovat puutteelliset, joten voittoja voi olla enemmän.", "Wikidatas uppgifter om tävlingen är ofullständiga, så segrarna kan vara fler.", "Wikidata's records for this competition are incomplete, so there may be more wins."],
   adSlot_tag: ["Mainospaikka", "Annonsplats", "Ad space"],
   adSlot_title: ["Haluatko mainoksesi tähän?", "Vill du ha din annons här?", "Want your ad here?"],
   adSlot_text: ["Tavoita jalkapallon seuraajat Futistassa. Kysy mainospaikoista ja yhteistyöstä.", "Nå fotbollsfansen på Futista. Fråga om annonsplatser och samarbete.", "Reach football fans on Futista. Ask about ad space and partnerships."],
