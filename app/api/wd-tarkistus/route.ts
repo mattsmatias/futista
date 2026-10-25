@@ -41,6 +41,15 @@ export async function GET(req: Request) {
       // kilpailun kuva (P18), logo (P154) ja palkintona annettava esine (P2522 voittaja ei; käytetään "trophy" -kohteita P1027? → haetaan kaikki kuvaominaisuudet)
       return NextResponse.json(await sparql(`SELECT ?p ?pl ?v WHERE { wd:${Q} ?pd ?v. ?p wikibase:directClaim ?pd; rdfs:label ?pl FILTER(LANG(?pl)="en"). FILTER(?p IN (wd:P18, wd:P154, wd:P1027, wd:P2522, wd:P373, wd:P910, wd:P1424)) }`));
     }
+    if (q === "won" && /^Q\d{1,10}$/.test(Q)) {
+      // kaikki kilpailut, joita liigan nykyiset seurat ovat voittaneet (kuratointia varten): kilpailu, tyypit, voittojen määrä
+      return NextResponse.json(await sparql(`SELECT ?c ?en ?fi (COUNT(DISTINCT ?s) AS ?n) (GROUP_CONCAT(DISTINCT ?k; separator="|") AS ?types) WHERE {
+        ?t p:P118 ?st. ?st ps:P118 wd:${Q}. FILTER NOT EXISTS { ?st pq:P582 ?end }
+        ?s wdt:P1346 ?t; wdt:P3450 ?c.
+        OPTIONAL { ?c rdfs:label ?en FILTER(LANG(?en)="en") } OPTIONAL { ?c rdfs:label ?fi FILTER(LANG(?fi)="fi") }
+        OPTIONAL { ?c wdt:P31 ?ty. ?ty rdfs:label ?k FILTER(LANG(?k)="en") }
+      } GROUP BY ?c ?en ?fi ORDER BY DESC(?n) LIMIT 60`));
+    }
     const S = u.get("s") ?? "";
     const okText = /^[\p{L}\p{N} .'-]{2,60}$/u.test(S);
     if (q === "search" && okText) {
