@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { nodeFetch } from "@/lib/http";
 import { getLeague } from "@/lib/stats";
-import { debugMatches, getTrophies } from "@/lib/trophies";
+import { getTrophies } from "@/lib/trophies";
 import { LEAGUE_Q, ALL_COMPS } from "@/lib/trophies-core";
 
 // Kehitystyökalu (pokaalit): Wikidatan todellinen sisältö kiinteillä kyselypohjilla. VAIN esikatselussa (ei tuotannossa).
@@ -51,9 +51,14 @@ export async function GET(req: Request) {
       const pages = Object.values(JSON.parse(await r.text())?.query?.pages ?? {}) as any[];
       return NextResponse.json(pages.map((p) => { const ii = p.imageinfo?.[0] ?? {}, m = ii.extmetadata ?? {}; return [p.title.slice(5), m.LicenseShortName?.value, String(m.Artist?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 50), String(m.ImageDescription?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 90)]; }));
     }
-    if (q === "match" && LEAGUE_Q[src]) {
-      const s = await getLeague(src);
-      return NextResponse.json(await debugMatches(src, (s?.table ?? []).map((r) => r.team.name)));
+    if (q === "stmts" && /^Q\d{1,10}$/.test(Q)) {
+      // kauden voittajamerkinnät tarkenteineen (P1346 + kaikki tarkenteet)
+      return NextResponse.json(await sparql(`SELECT ?w ?wl ?qp ?qpl ?qv ?qvl ?rank WHERE { wd:${Q} p:P1346 ?st. ?st ps:P1346 ?w; wikibase:rank ?rank. OPTIONAL { ?w rdfs:label ?wl FILTER(LANG(?wl)="en") }
+        OPTIONAL { ?st ?pq ?qv. ?qp wikibase:qualifier ?pq. OPTIONAL { ?qp rdfs:label ?qpl FILTER(LANG(?qpl)="en") } OPTIONAL { ?qv rdfs:label ?qvl FILTER(LANG(?qvl)="en") } } }`));
+    }
+    if (q === "seasons" && /^Q\d{1,10}$/.test(Q)) {
+      // kilpailun kaudet vuodesta 2018: kausi, otsikko, voittajat
+      return NextResponse.json(await sparql(`SELECT ?s ?l (GROUP_CONCAT(DISTINCT ?wl; separator="|") AS ?w) WHERE { ?s wdt:P3450 wd:${Q}; wdt:P582|wdt:P585 ?d. FILTER(YEAR(?d) >= 2019) OPTIONAL { ?s rdfs:label ?l FILTER(LANG(?l)="en") } OPTIONAL { ?s wdt:P1346 ?x. ?x rdfs:label ?wl FILTER(LANG(?wl)="en") } } GROUP BY ?s ?l`));
     }
     if (q === "trophies" && LEAGUE_Q[src] && /^[\p{L}\p{N} .'&-]{2,60}$/u.test(u.get("team") ?? "")) {
       return NextResponse.json(await getTrophies(src, u.get("team")!));
