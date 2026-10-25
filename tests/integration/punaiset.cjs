@@ -21,9 +21,10 @@ const DAY = 86400_000;
   const today = await (await fetch(`${APP}/api/af-paiva?d=${hel(Date.now())}`)).json().catch(() => ({}));
   const live = today.comps?.find((c) => c.id === "veikkausliiga")?.fixtures?.find((f) => f.afid === 244005);
   ok("Veikkausliiga (API-Football): live-ottelun punaiset kortit tapahtumista [0, 1]", JSON.stringify(live?.st?.reds) === "[0,1]", JSON.stringify(live?.st));
-  const yd = await (await fetch(`${APP}/api/af-paiva?d=${hel(Date.now() - DAY)}`)).json().catch(() => ({}));
-  const vl = yd.comps?.find((c) => c.id === "veikkausliiga")?.results ?? [];
-  const r244002 = vl.find((x) => x.afid === 244002), r244001 = vl.find((x) => x.afid === 244001);
+  // simuloidut ottelut: 244001 = 24 h sitten, 244002 = 27 h sitten → Helsingin päivä voi olla eri (yöllä ajettaessa)
+  const D1 = hel(Date.now() - DAY), D2 = hel(Date.now() - DAY - 3 * 3600_000);
+  const vlOf = async (d) => (await (await fetch(`${APP}/api/af-paiva?d=${d}`)).json().catch(() => ({}))).comps?.find((c) => c.id === "veikkausliiga")?.results ?? [];
+  const r244001 = (await vlOf(D1)).find((x) => x.afid === 244001), r244002 = (await vlOf(D2)).find((x) => x.afid === 244002);
   ok("  eilen päättynyt: punainen + toinen keltainen (sama pelaaja kerran) → [1, 1]", JSON.stringify(r244002?.reds) === "[1,1]", JSON.stringify(r244002?.reds));
   ok("  ottelu ilman punaisia: [0, 0]", JSON.stringify(r244001?.reds) === "[0,0]", JSON.stringify(r244001?.reds));
   const tm = await (await fetch(`${APP}/api/af-paiva?d=${hel(Date.now() + 2 * DAY)}`)).json().catch(() => ({}));
@@ -45,11 +46,13 @@ const DAY = 86400_000;
   const ov = await page.evaluate(() => [...document.querySelectorAll(".mrow-tm")].some((t) => t.scrollWidth > t.clientWidth + 1));
   ok("  nimi ja kortti mahtuvat riville", !ov);
 
-  await page.locator(".daypick button[aria-label='Edellinen päivä']").click(); await page.waitForTimeout(2500);
-  const ydRows = await rc(".cgroup .mrow");
-  ok("eilinen: päättyneen ottelun molemmilla joukkueilla kortti (1 / 1)", ydRows.some((x) => x[0] === "1" && x[1] === "1"), JSON.stringify(ydRows));
-  // kortit vain kahdella eilisellä ottelulla: Veikkausliiga 244002 (1 / 1) ja Süper Lig 9001 (– / 1)
-  ok("  myös ESPN-sarjan eilinen ottelu; muilla ei korttimerkkiä", ydRows.filter((x) => x[0] || x[1]).length === 2 && ydRows.some((x) => x[0] === "" && x[1] === "1"), JSON.stringify(ydRows.filter((x) => x[0] || x[1])));
+  // päivät: Veikkausliiga 244002 (1 / 1) päivänä D2, Süper Lig 9001 (– / 1) päivänä D1 (sama päivä päivällä ajettaessa)
+  const rowsOn = async (d) => { await page.goto(`${APP}/?pv=${d}`, { waitUntil: "load" }); await page.waitForTimeout(2500); return rc(".cgroup .mrow"); };
+  const rd2 = await rowsOn(D2);
+  ok("päättynyt ottelu: molemmilla joukkueilla kortti (1 / 1)", rd2.some((x) => x[0] === "1" && x[1] === "1"), JSON.stringify(rd2.filter((x) => x[0] || x[1])));
+  const rd1 = D1 === D2 ? rd2 : await rowsOn(D1);
+  const marked = [...new Set([...rd1, ...(D1 === D2 ? [] : rd2)].filter((x) => x[0] || x[1]).map((x) => x.join("/")))];
+  ok("  myös ESPN-sarjan päättynyt ottelu; muilla ei korttimerkkiä", marked.length === 2 && marked.includes("/1") && marked.includes("1/1"), JSON.stringify(marked));
 
   await page.goto(APP + "/sarjat/superlig?v=tulokset", { waitUntil: "load" }); await page.waitForTimeout(1500);
   const slRows = await rc(".mrow");
