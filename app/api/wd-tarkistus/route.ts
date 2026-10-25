@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { nodeFetch } from "@/lib/http";
+import { getLeague } from "@/lib/stats";
+import { debugMatches, getTrophies } from "@/lib/trophies";
+import { LEAGUE_Q } from "@/lib/trophies-core";
 
 // Kehitystyökalu (pokaalit): Wikidatan todellinen sisältö kiinteillä kyselypohjilla. VAIN esikatselussa (ei tuotannossa).
 // Ei avoin välityspalvelin: käyttäjä valitsee vain pohjan ja tarkasti rajatut tunnisteet (Q/P-numero, lyhyt tunniste).
@@ -20,6 +23,14 @@ export async function GET(req: Request) {
   const q = u.get("q") ?? "";
   const Q = u.get("t") ?? "", P = u.get("p") ?? "", ID = u.get("id") ?? "";
   try {
+    const src = u.get("src") ?? "";
+    if (q === "match" && LEAGUE_Q[src]) {
+      const s = await getLeague(src);
+      return NextResponse.json(await debugMatches(src, (s?.table ?? []).map((r) => r.team.name)));
+    }
+    if (q === "trophies" && LEAGUE_Q[src] && /^[\p{L}\p{N} .'&-]{2,60}$/u.test(u.get("team") ?? "")) {
+      return NextResponse.json(await getTrophies(src, u.get("team")!));
+    }
     if (q === "props") {
       return NextResponse.json(await sparql(`SELECT ?p ?l WHERE { ?p wikibase:propertyType wikibase:ExternalId; rdfs:label ?l. FILTER(LANG(?l)="en" && REGEX(?l, "football-data|ESPN|API-Football|api-sports|Sofascore|Transfermarkt|FotMob|Soccerway|TheSportsDB|Flashscore", "i")) }`));
     }
