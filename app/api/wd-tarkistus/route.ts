@@ -38,6 +38,13 @@ export async function GET(req: Request) {
       }
       return NextResponse.json(rows.map((r: any) => { const f = r.img ? "File:" + decodeURIComponent(r.img.replace(/^.*Special:FilePath\//, "")).replace(/_/g, " ") : null; return { c: r.c.replace(/^.*\//, ""), en: r.en, f, ...(f ? meta[f] : {}) }; }));
     }
+    if (q === "meta") {
+      // valittujen tiedostojen tiedot pokaalitaulukkoon: pienoiskuva (240 px), sivu, tekijä, lisenssi
+      const fs = (u.get("f") ?? "").split("|").filter((f) => /^File:[^/\\<>|]{3,200}$/.test(f)).slice(0, 40);
+      const r = await nodeFetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(fs.join("|"))}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=240`, { headers: { "User-Agent": UA } });
+      const pages = Object.values(JSON.parse(await r.text())?.query?.pages ?? {}) as any[];
+      return NextResponse.json(pages.map((p) => { const ii = p.imageinfo?.[0] ?? {}, m = ii.extmetadata ?? {}; return { file: p.title, thumb: String(ii.thumburl ?? "").split("?")[0], page: ii.descriptionurl, author: String(m.Artist?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 120), license: m.LicenseShortName?.value, licenseUrl: m.LicenseUrl?.value, attr: m.AttributionRequired?.value, desc: String(m.ImageDescription?.value ?? "").replace(/<[^>]+>/g, "").trim().slice(0, 160) }; }));
+    }
     if (q === "cands" && /^[\p{L}\p{N} .'-]{2,60}$/u.test(u.get("s") ?? "")) {
       // tiivis Commons-haku: vain valokuvat, nimi, lisenssi, tekijä
       const r = await nodeFetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=10&gsrsearch=${encodeURIComponent(u.get("s")! + " filetype:bitmap")}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=240`, { headers: { "User-Agent": UA } });
