@@ -50,12 +50,14 @@ const findClub = (team: string, c: { now: WdClub[]; ever: WdClub[] }) => {
 const winsOf = (club: string) => stableCache(async (): Promise<WdWin[]> => {
   const rows = await sparql(`SELECT ?s ?c ?l ?end ?start ?pit WHERE {
     VALUES ?c { ${ALL_COMPS.map((c) => "wd:" + c).join(" ")} }
-    ?s wdt:P1346 wd:${club}; wdt:P3450 ?c.
+    # seura itse tai sen joukkue (esim. "FC Bayern München" miesten joukkue, osa seuraa P361 / seuran osa P527)
+    { ?s wdt:P1346 wd:${club} } UNION { ?team wdt:P361 wd:${club}. ?s wdt:P1346 ?team } UNION { wd:${club} wdt:P527 ?team. ?s wdt:P1346 ?team }
+    ?s wdt:P3450 ?c.
     OPTIONAL { ?s rdfs:label ?l FILTER(LANG(?l)="en") }
     OPTIONAL { ?s wdt:P582 ?end } OPTIONAL { ?s wdt:P580 ?start } OPTIONAL { ?s wdt:P585 ?pit }
   }`);
   return rows.map((r) => ({ comp: qid(r.c), season: qid(r.s), label: r.l, end: r.end, start: r.start, pit: r.pit }));
-}, ["wd-wins-v1", club], { revalidate: WEEK })();
+}, ["wd-wins-v2", club], { revalidate: WEEK })();
 
 // Kilpailujen kattavuus (kaikille seuroille yhteinen): voittajallisten kausien määrä ja vuosiväli
 const coverage = () => stableCache(async (): Promise<CompCoverage[]> => {
@@ -78,10 +80,4 @@ export async function getTrophies(source: string, team: string): Promise<TeamTro
   if (!q) return null;
   const [wins, cov] = await Promise.all([winsOf(q), coverage()]);
   return { q, trophies: buildTrophies(wins, partialTrophies(cov, new Date().getUTCFullYear())) };
-}
-
-/** Kehitystyökalu (esikatselu): koko liigan seuraosumat oikeaa taulukkoa vasten. */
-export async function debugMatches(source: string, teams: string[]) {
-  const c = await clubsOf(LEAGUE_Q[source]);
-  return { now: c.now.length, ever: c.ever.length, teams: teams.map((t) => { const q = findClub(t, c); return { t, q: q ?? null, cur: !!q && c.now.some((x) => x.q === q), names: (c.ever.find((x) => x.q === q)?.names ?? []).slice(0, 3) }; }) };
 }
