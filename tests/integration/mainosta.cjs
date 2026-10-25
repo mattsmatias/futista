@@ -103,7 +103,9 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
     await page.goto(APP + "/uutiset?sarja=valioliiga", { waitUntil: "networkidle" });
     const few = await page.evaluate(() => { const all = [...document.querySelectorAll(".nlead, .nitem, .adcard")]; return { n: all.length, last: all.at(-1)?.className, ads: document.querySelectorAll(".adcard").length }; });
     ok("alle kuusi uutista (Valioliiga, 3): kortti listan lopussa", few.ads === 1 && few.n === 4 && /adcard/.test(few.last), JSON.stringify(few));
-    await page.goto(APP + "/uutiset", { waitUntil: "networkidle" });
+    // "load" + alatunnisteen odotus: sivun taustapäivitykset (live) voivat pitää verkon aktiivisena (satunnainen aikakatkaisu)
+    await page.goto(APP + "/uutiset", { waitUntil: "load" });
+    await page.locator("footer a", { hasText: "Mainosta Futistassa" }).waitFor({ timeout: 15000 }).catch(() => {});
     ok("alatunniste: linkki 'Mainosta Futistassa' → /mainosta", (await page.locator("footer a", { hasText: "Mainosta Futistassa" }).getAttribute("href")) === "/mainosta");
     await ctx.close();
   }
