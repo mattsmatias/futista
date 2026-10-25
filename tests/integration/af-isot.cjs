@@ -23,7 +23,8 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  ottelutilastot API-Footballista", s.j?.state === "ok" && s.j?.source === "API-Football", s.j?.state);
   ok("  päivälista ja ottelu haettu kerran (kokoonpanot + tilastot samalla haulla)", (await afLog(/fixtures\?league=78/)) === 1 && (await afLog(/fixtures\?id=990001/)) === 1, `${await afLog(/fixtures\?league=78/)} / ${await afLog(/fixtures\?id=990001/)}`);
   await get("kokoonpanot", Q);
-  ok("  toinen pyyntö välimuistista (ei uusia lähdehakuja)", (await afLog(/./)) === 2, String(await afLog(/./)));
+  // 3 = päivälista + ottelu + puoliaikatilastot (Tilastot-välilehti, oma haku)
+  ok("  toinen pyyntö välimuistista (ei uusia lähdehakuja)", (await afLog(/./)) === 3 && (await afLog(/fixtures\/statistics\?fixture=990001&half=true/)) === 1, String(await afLog(/./)));
 
   // ottelu, jota API-Footballin listassa ei ole → "ei saatavilla", ei keksittyä kokoonpanoa
   // simuloidun football-datan minuuttiraja voi olla hetken täynnä → odotetaan tuloksia
