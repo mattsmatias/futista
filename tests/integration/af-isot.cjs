@@ -83,6 +83,8 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   const headTxt = async () => (await page.locator(".ms-head").innerText()).replace(/\s+/g, " ");
   const shotsRow = async () => (await page.locator(".ms-rows").innerText()).replace(/\s+/g, " ");
   ok("  valinta 1. / 2. puoliaika, ei Koko ottelu -näkymää", segs.join("|") === "1. puoliaika|2. puoliaika" && /1\. puoliaika/.test(await headTxt()) && !/Koko ottelu/.test(await page.locator("main").innerText()), segs.join("|"));
+  const fit = await page.locator(".ms-halves button").evaluateAll((els) => els.every((e) => e.scrollWidth <= e.clientWidth + 1));
+  ok("  puoliaikapainikkeiden tekstit mahtuvat (390 px)", fit);
   const s1 = await shotsRow();
   await page.locator(".ms-halves button", { hasText: "2. puoliaika" }).click(); await page.waitForTimeout(200);
   const s2 = await shotsRow();

@@ -1752,5 +1752,6 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .pr-note { margin: 4px 16px 12px; font-size: 12px; line-height: 1.4; }
 
 /* Tilastot: puoliaikavalinta */
-.ms-halves { margin: 0 auto 10px 0; width: fit-content; }
+.ms-halves { margin: 0 0 10px; width: 100%; max-width: 420px; }
+.ms-halves button { flex: 1 0 auto; overflow: visible; text-overflow: clip; }
 .ms-halves button:disabled { opacity: .45; cursor: default; }
