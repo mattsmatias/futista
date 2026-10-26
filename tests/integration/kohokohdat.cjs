@@ -30,6 +30,12 @@ const ytCalls = async () => (await mj("/__log")).filter((x) => x.url.startsWith(
 
   // syöte "tyhjenee" (kooste pudonnut syötteestä): taulusta löytyy silti
   await mj("/__mode?yt=empty");
+  // simuloidun football-datan minuuttiraja voi olla edellisten testien jäljiltä täynnä → odotetaan sarjan tiedot
+  for (let i = 0; i < 18; i++) {
+    const w0 = await get(`/api/kohokohdat?${q(m2)}`);
+    if (w0.j?.state !== "unavailable") break;
+    await new Promise((r) => setTimeout(r, 5000));
+  }
   const a = await get(`/api/kohokohdat?${q(m0)}`);
   ok("kooste löytyy (taulusta, vaikka syöte on tyhjä); lehdistötilaisuus ei kelpaa", a.j?.state === "ok" && a.j?.video?.id === vid(m0) && a.j?.video?.channel === "Serie A", JSON.stringify(a.j));
   ok("  löytynyt: CDN-välimuisti 1 vrk", /s-maxage=86400/.test(a.cc || ""), a.cc);
