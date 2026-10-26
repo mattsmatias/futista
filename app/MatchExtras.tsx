@@ -9,7 +9,6 @@ import { createRetryGate } from "@/lib/retry";
 import type { Lineup, LPlayer, StatRow, StatValue } from "@/lib/match-core";
 import { startersAverage, ratingTier, surname } from "@/lib/match-core";
 import type { Team } from "@/lib/stats";
-import type { Pressure } from "@/lib/pressure-core";
 import { Badge } from "./Stats";
 
 type Where = { l: string; d: string; p: string; af?: boolean }; // af = tiedot API-Footballista (tapahtumat saatavilla)
@@ -418,44 +417,6 @@ export function EventsCard({ w, home, away }: { w: Where; home: Team; away: Team
         ))}
       </ol>
       <p className="panel-src">{t("source")}: {data.source ?? "API-Football"}</p>
-    </div>
-  );
-}
-
-// ---------------- Paineen kuvaaja (ESPN:n tapahtumista) ----------------
-type PrResp = { state: string; phase?: string; source?: string; fetchedAt?: number } & Partial<Pressure>;
-
-/** Kumpi joukkue painaa milloinkin: koti ylös, vieras alas, maalit merkittyinä. Futistan arvio lähteen tapahtumista
- *  (laukaukset, kulmat, maalit) – ei virallinen tilasto. Ei näytetä ennen alkua eikä ilman lähteen tapahtumia. */
-export function PressureCard({ w, home, away }: { w: Where; home: Team; away: Team }) {
-  const { t } = useI18n();
-  const { data } = useExtra<PrResp>("paine", w, 60_000);
-  if (!data || data.state !== "ok" || !data.h || !data.a || !data.last) return null;
-  const n = data.last, W = 4, H = 46, mid = 50;
-  const sh = data.h.reduce((x, y) => x + y, 0), sa = data.a.reduce((x, y) => x + y, 0);
-  const ph = sh + sa > 0 ? Math.round((sh / (sh + sa)) * 100) : null;
-  const ticks = [1, 15, 30, 45, 60, 75, 90, ...(n > 90 ? [105, 120] : [])].filter((m) => m <= n);
-  const label = `${t("pr_title")}: ${home.name}${ph !== null ? ` ${ph} %` : ""}, ${away.name}${ph !== null ? ` ${100 - ph} %` : ""}`;
-  return (
-    <div className="panel pr-card">
-      <div className="panel-head"><h3>{t("pr_title")}</h3>{data.phase === "live" && <span className="pr-live">LIVE</span>}</div>
-      <div className="pr-teams">
-        <span className="pr-t pr-th"><i aria-hidden="true" />{home.name}{ph !== null && <b>{ph} %</b>}</span>
-        <span className="pr-t pr-ta"><i aria-hidden="true" />{away.name}{ph !== null && <b>{100 - ph} %</b>}</span>
-      </div>
-      <svg className="pr-svg" viewBox={`0 0 ${n * W} 100`} preserveAspectRatio="none" role="img" aria-label={label}>
-        {data.ht ? <line className="pr-ht" x1={data.ht * W} x2={data.ht * W} y1="0" y2="100" /> : null}
-        <line className="pr-mid" x1="0" x2={n * W} y1={mid} y2={mid} />
-        {data.h.map((v, i) => v > 0.02 ? <rect key={"h" + i} className="pr-h" x={i * W + 0.5} width={W - 1} y={mid - v * H} height={v * H} /> : null)}
-        {data.a.map((v, i) => v > 0.02 ? <rect key={"a" + i} className="pr-a" x={i * W + 0.5} width={W - 1} y={mid} height={v * H} /> : null)}
-        {(data.goals ?? []).map((g, i) => <circle key={"g" + i} className={`pr-goal pr-g${g.side}`} cx={(g.min - 0.5) * W} cy={g.side === "h" ? 4 : 96} r="3.2" />)}
-      </svg>
-      <div className="pr-axis" aria-hidden="true">
-        {ticks.map((m) => <span key={m} style={{ left: `${((m - 0.5) / n) * 100}%` }}>{m === 1 ? "0'" : `${m}'`}</span>)}
-      </div>
-      {/* arvio-merkintä näkyy aina (lähderivit ovat sivustolla piilossa, lähde kerrotaan Tietoa-sivulla) */}
-      <p className="pr-note muted">{t("pr_note")}</p>
-      <p className="panel-src">{t("source")}: {data.source ?? "ESPN"}</p>
     </div>
   );
 }

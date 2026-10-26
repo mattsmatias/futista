@@ -16,7 +16,6 @@
     "seo.test.ts",
     "trophies.test.ts",
     "reds.test.ts",
-    "pressure.test.ts",
     "scorer-rank.test.ts",
     "app-update.test.ts",
     "http.test.ts",

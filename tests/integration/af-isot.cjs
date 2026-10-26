@@ -50,6 +50,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.goto(`${APP}/ottelu/bundesliga/${D}/mittaus-united--testiseura-kotka`, { waitUntil: "load" });
   await page.locator(".ev-card").waitFor({ timeout: 15000 }).catch(() => {});
   const tabs = await page.locator(".subtabs [role=tab]").allTextContents();
+  ok("ottelusivu: ei Paine-korttia (poistettu käyttäjän pyynnöstä 26.10.2026)", (await page.locator(".pr-card").count()) === 0 && (await (await fetch(`${APP}/api/paine?${Q}`)).status) === 404);
   ok("ottelusivu: Kokoonpanot-, Tilastot- ja Pelaajatilastot-välilehdet", ["Kokoonpanot", "Tilastot", "Pelaajatilastot"].every((x) => tabs.includes(x)), tabs.join("|"));
   ok("  Yhteenvedossa tapahtumat (maali ja syöttäjä)", (await page.locator(".ev-card").innerText().catch(() => "")).includes("Pelaaja 9902-9"));
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();

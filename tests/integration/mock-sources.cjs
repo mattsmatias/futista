@@ -162,19 +162,7 @@ function espn(path, res) {
       const pick = (e) => d8 ? e.date.slice(0, 10).replace(/-/g, "") === d8 : new Date(e.date).getUTCFullYear() === y;
       return json(res, 200, { leagues: [{ season: {} }], events: list.filter(pick) });
     }
-    if (path === "uefa.europa/summary?event=81001") {
-      // oikea yhteenveto (karsittu) + simuloitu kommentaari paineen kuvaajaa varten (rakenne oikean ESPN:n mukainen 25.10.2026)
-      const H = "Ararat-Armenia", A = "AZ Alkmaar";
-      const pl = (min, per, text, team) => ({ time: { value: (min - 1) * 60 + 20, displayValue: `${min}'` }, text, play: { type: { text }, period: { number: per }, clock: { value: (min - 1) * 60 + 20, displayValue: `${min}'` }, ...(team ? { team: { displayName: team } } : {}) } });
-      const commentary = [
-        { sequence: 0, time: { value: 0 }, text: "Lineups are announced." },
-        pl(10, 1, "Shot On Target", H), pl(11, 1, "Corner Awarded", H), pl(12, 1, "Shot Off Target", H), pl(30, 1, "Goal - Header", H),
-        pl(47, 1, "Shot Blocked", A), // 1. puoliajan lisäaika → 45'
-        pl(60, 2, "Shot On Target", A), pl(61, 2, "Shot Blocked", A), pl(62, 2, "Corner Awarded", A), pl(75, 2, "Goal", A),
-        pl(80, 2, "Foul", H), pl(82, 2, "Shot On Target", "Tuntematon FC"), // ei hyökkäystapahtuma / tunnistamaton joukkue → pois
-      ];
-      return json(res, 200, { ...require("../fixtures/espn-summary-uel.json"), commentary });
-    }
+    if (path === "uefa.europa/summary?event=81001") return json(res, 200, require("../fixtures/espn-summary-uel.json"));
   }
   if (path.includes("/scoreboard")) return json(res, 200, { events: [] });
   if (path.endsWith("/teams")) return json(res, 200, { sports: [{ leagues: [{ teams: [] }] }] });
