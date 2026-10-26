@@ -58,11 +58,24 @@ const finland = stableCache(async () => {
   return (j?.response ?? []).map((r: any) => ({ id: r.league?.id, name: r.league?.name, type: r.league?.type, seasons: (r.seasons ?? []).filter((s: any) => s.year >= 2023).map((s: any) => ({ year: s.year, current: s.current, start: s.start, end: s.end })) }));
 }, ["af-tarkistus-fi-v1"], { revalidate: 6 * 3600 });
 
+// poissaolijat: kilpailun viimeisin pelattu ottelu → injuries?fixture= (2 hakua, 6 h välimuisti)
+const injCheck = (id: number) => stableCache(async () => {
+  const fj = await afGet(`/fixtures?league=${id}&last=1&timezone=Europe/Helsinki`);
+  const f = fj?.response?.[0];
+  if (!f) return { id, fixture: null };
+  const ij = await afGet(`/injuries?fixture=${f.fixture.id}`);
+  const r: any[] = ij?.response ?? [];
+  return { id, fixture: { id: f.fixture.id, teams: [f.teams?.home?.id, f.teams?.home?.name, f.teams?.away?.id, f.teams?.away?.name] }, errors: ij?.errors ?? null, n: r.length, keys: r[0] ? Object.keys(r[0]) : null, playerKeys: r[0]?.player ? Object.keys(r[0].player) : null,
+    rows: r.map((x) => [x.team?.id, x.player?.id, x.player?.name, x.player?.type, x.player?.reason]) };
+}, ["af-tarkistus-inj-v1", String(id)], { revalidate: 6 * 3600 })();
+
 export async function GET(req: Request) {
   if (process.env.VERCEL_ENV === "production" || !hasApiFootball()) return NextResponse.json({ error: "off" }, { status: 404 });
   const q = new URL(req.url).searchParams.get("id") ?? "";
   try {
     if (q === "fi") return NextResponse.json({ finland: await finland() });
+    const inj = Number(new URL(req.url).searchParams.get("inj") ?? "");
+    if (Number.isInteger(inj) && ALLOWED.has(inj)) return NextResponse.json(await injCheck(inj), { headers: { "Cache-Control": "no-store" } });
     const id = Number(q);
     if (!Number.isInteger(id) || !ALLOWED.has(id)) return NextResponse.json({ error: "not allowed" }, { status: 400 });
     return NextResponse.json(await check(id), { headers: { "Cache-Control": "no-store" } });
