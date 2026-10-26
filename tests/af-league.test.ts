@@ -315,4 +315,8 @@ test("ottelun yhdistäminen: turkin ı ja -spor-pääte (oikeat nimet 26.10.2026
   assert.equal(pickFixture(list, ts2, "Erzurum BB", "Çorum FK"), 2);
   assert.equal(pickFixture(list, ts, "Istanbul Basaksehir", "Samsunspor"), 3);
   assert.equal(pickFixture(list, ts, "Besiktas", "Kasimpasa"), null); // käänteinen ei kelpaa
+  const b = Date.parse("2026-10-31T14:30:00Z");
+  const bl = [{ id: 7, ts: b, home: "Borussia Mönchengladbach", away: "SC Paderborn 07" }, { id: 8, ts: b, home: "FC Schalke 04", away: "RB Leipzig" }];
+  assert.equal(pickFixture(bl, b, "M'gladbach", "SC Paderborn"), 7); // oikeat nimet 26.10.2026 (Bundesliga)
+  assert.equal(pickFixture(bl, b, "Dortmund", "SC Paderborn"), null);
 });

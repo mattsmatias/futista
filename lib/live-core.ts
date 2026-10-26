@@ -165,8 +165,8 @@ export function bestTeam<T extends { name: string }>(teams: T[], theirs: string[
 
 /** Löytyykö nimestä vähintään yksi selvä (väh. 4 kirjaimen) sana, esim. "Sabah FC Masazir" ↔ "Sabah" */
 function partly(ours: string, theirs: string[]) {
-  // sama sana, tai pitkä sana on toisen alku (Erzurum BB ↔ Erzurumspor FK); vain väljässä vertailussa
-  return words(ours).some((x) => x.length >= 4 && (theirs.includes(x) || (x.length >= 6 && theirs.some((t) => t.length >= 6 && (t.startsWith(x) || x.startsWith(t))))));
+  // sama sana, tai pitkä sana on toisen alku tai loppu (Erzurum BB ↔ Erzurumspor FK, M'gladbach ↔ Mönchengladbach); vain väljässä vertailussa
+  return words(ours).some((x) => x.length >= 4 && (theirs.includes(x) || (x.length >= 6 && theirs.some((t) => t.length >= 6 && (t.startsWith(x) || x.startsWith(t) || t.endsWith(x) || x.endsWith(t))))));
 }
 
 function tzOffset(epoch: number) {
