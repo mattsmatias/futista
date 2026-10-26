@@ -298,14 +298,12 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
         <section className="panel lu-coaches" aria-label={t("lu_coaches")}>
           <div className="panel-head"><h3>{t("lu_coaches")}</h3></div>
           <div className="lu-coach-row">
-            <p aria-label={`${home.name}: ${h.coach ?? "–"}`}>{h.coach ?? "–"}</p>
-            <p aria-label={`${away.name}: ${a.coach ?? "–"}`}>{a.coach ?? "–"}</p>
+            <p aria-label={`${home.name}: ${h.coach ?? "–"}`}><Badge t={home} size={22} /><span className="lu-cn">{h.coach ?? "–"}</span></p>
+            <p aria-label={`${away.name}: ${a.coach ?? "–"}`}><span className="lu-cn">{a.coach ?? "–"}</span><Badge t={away} size={22} /></p>
           </div>
         </section>
       )}
-      <div className="panel lu-legend">
-        <SourceLine m={data} />
-      </div>
+      {/* lähderivi piilotettu sivustolla → ei tyhjää paneelia (harmaa viiva, käyttäjän havainto 26.10.2026) */}
     </>
   );
 }
