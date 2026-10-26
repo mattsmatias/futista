@@ -225,7 +225,8 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
                 </div>
               </>}
             </div>
-            {rh && ra && (
+            {/* sarjataulukon vertailu vain ennen ottelua ja sen aikana; päättyneestä pois (käyttäjän valinta 26.10.2026) */}
+            {!result && rh && ra && (
               <div className="panel">
                 <div className="panel-head"><h3>{t("comparison")}</h3><span className="muted">{t("standing")}</span></div>
                 <div className="cmps">

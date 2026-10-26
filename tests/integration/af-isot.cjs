@@ -126,6 +126,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.waitForSelector(".od-card", { timeout: 15000 }).catch(() => {});
   const odt = (await page.locator(".od-card").innerText().catch(() => "")).replace(/\s+/g, " ");
   ok("  Yhteenvedossa Kertoimet-kortti: 1 / X / 2 pilkulla, ei keskiarvo-/päivitysriviä (käyttäjän valinta 26.10.2026)", /Kertoimet/.test(odt) && /2,10/.test(odt) && /3,40/.test(odt) && /3,30/.test(odt) && !/Keskiarvo|vedonvälittäj|päivitetty/.test(odt), odt);
+  ok("  päättyneessä ottelussa ei Vertailu-osiota (käyttäjän valinta 26.10.2026)", !(await page.locator("main .panel-head h3").allTextContents()).includes("Vertailu"));
   // Kertoimet Ottelun tiedot -kortin yläpuolella (käyttäjän valinta 26.10.2026)
   const ord = await page.evaluate(() => {
     const heads = [...document.querySelectorAll("main .panel-head h3")].map((h) => h.textContent);
