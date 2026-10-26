@@ -51,8 +51,10 @@ const ytCalls = async () => (await mj("/__log")).filter((x) => x.url.startsWith(
   ok("syöte välimuistissa (ei uutta hakua jokaiselle ottelulle)", (await ytCalls()) === n1, `${n1} → ${await ytCalls()}`);
   const off = await get(`/api/kohokohdat?l=valioliiga&d=${hel(Date.now())}&p=a--b`);
   ok("sarja ilman lähdettä → off", off.j?.state === "off", JSON.stringify(off.j));
-  const nf = await get(`/api/kohokohdat?l=seriea&d=${hel(Date.now())}&p=ei-ole--olemassa`);
-  ok("tuntematon ottelu → 404", nf.status === 404);
+  // simuloidun football-datan minuuttiraja voi tuottaa hetkellisen 503:n → yritetään uudelleen
+  let nf;
+  for (let i = 0; i < 18; i++) { nf = await get(`/api/kohokohdat?l=seriea&d=${hel(Date.now())}&p=ei-ole--olemassa`); if (nf.status !== 503) break; await new Promise((r) => setTimeout(r, 5000)); }
+  ok("tuntematon ottelu → 404", nf.status === 404, String(nf.status));
 
   // pikkukuva oman palvelimen kautta; vain videotunniste
   const im = await get(`/api/kohokohdat/kuva?v=${vid(m0)}`);
