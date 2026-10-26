@@ -329,6 +329,30 @@ export function parseAfHalves(resp: any[], homeId: number | null | undefined, aw
   return { h1: statRows(map(h, "statistics_1h"), map(a, "statistics_1h")), h2: statRows(map(h, "statistics_2h"), map(a, "statistics_2h")) };
 }
 
+/** 2. puoliajan luvut koko ottelun ja 1. puoliajan erotuksena, kun lähde ei (vielä) anna 2. puoliaikaa
+ *  (havaittu 26.10.2026: statistics_2h tyhjä vielä 47. minuutilla). Vain laskettavat määrät; pallonhallinta ja
+ *  prosentit jätetään pois (eivät ole erotuksia). Puuttuva tai negatiivinen erotus (lähteiden ajoitusero) → arvo pois. */
+export function deriveSecondHalf(full: StatRow[], h1: StatRow[]): StatRow[] {
+  const first = new Map(h1.map((r) => [r.key, r]));
+  const diff = (a: StatValue, b: StatValue | undefined): StatValue => {
+    if (!a || !b) return null;
+    const n = Math.round((a.n - b.n) * 100) / 100;
+    return n >= 0 ? { n, pct: null } : null;
+  };
+  const out: StatRow[] = [];
+  for (const r of full) {
+    if (r.key === "possession") continue;
+    const f = first.get(r.key);
+    const row: StatRow = { key: r.key, home: diff(r.home, f?.home ?? undefined), away: diff(r.away, f?.away ?? undefined) };
+    if (row.home && row.away) out.push(row);
+  }
+  return out;
+}
+
+/** Onko 2. puoliaika alkanut (lähteen tila tai minuutti) */
+export const secondHalfStarted = (status: string, elapsed: number | null) =>
+  ["2H", "ET", "BT", "P", "AET", "PEN", "FT"].includes(status) || (status !== "HT" && elapsed !== null && elapsed > 45);
+
 // ---------------- Kierrosten ja lohkojen nimet (suomeksi; muilla kielillä lähteen nimi) ----------------
 const ROUND_FI: [RegExp, string | ((m: RegExpMatchArray) => string)][] = [
   [/^Final$/i, "Finaali"], [/^Semi-finals$/i, "Välierät"], [/^Quarter-finals$/i, "Puolivälierät"], [/^3rd Place Final$/i, "Pronssiottelu"],

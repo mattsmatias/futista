@@ -334,3 +334,15 @@ test("ottelun yhdistäminen: kokonaan eri nimet (oikeat nimet 26.10.2026: Ligue 
   assert.equal(pickFixture(L, t, "AGF", "Braga"), 6);
   assert.equal(pickFixture(L, t, "Olympique Lyon", "PSG"), null); // käänteinen ei kelpaa
 });
+
+test("2. puoliaika erotuksena, kun lähde ei vielä anna sitä (havaittu 26.10.2026, 47. min)", async () => {
+  const { deriveSecondHalf, secondHalfStarted } = await import("../lib/af-league-core");
+  const v = (n: number) => ({ n, pct: null });
+  const full = [{ key: "possession" as const, home: v(66), away: v(34) }, { key: "shots" as const, home: v(9), away: v(1) }, { key: "xg" as const, home: v(0.9), away: v(0.05) }, { key: "corners" as const, home: v(5), away: null }, { key: "fouls" as const, home: v(3), away: v(2) }];
+  const h1 = [{ key: "possession" as const, home: v(67), away: v(33) }, { key: "shots" as const, home: v(7), away: v(0) }, { key: "xg" as const, home: v(0.75), away: v(0) }, { key: "corners" as const, home: v(5), away: v(1) }, { key: "fouls" as const, home: v(4), away: v(2) }];
+  const d = deriveSecondHalf(full, h1);
+  assert.deepEqual(d.map((r) => [r.key, r.home?.n, r.away?.n]), [["shots", 2, 1], ["xg", 0.15, 0.05]]); // pallonhallinta pois, puuttuva pois, negatiivinen pois
+  assert.equal(secondHalfStarted("2H", 47), true);
+  assert.equal(secondHalfStarted("HT", 45), false);
+  assert.equal(secondHalfStarted("1H", 44), false);
+});

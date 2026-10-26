@@ -15,7 +15,7 @@ import { Badge } from "./Stats";
 type Where = { l: string; d: string; p: string; af?: boolean }; // af = tiedot API-Footballista (tapahtumat saatavilla)
 type Meta = { fetchedAt?: number | null; stale?: boolean; source?: string };
 type LuResp = Meta & { state: "ok" | "wait" | "notpublished" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; home?: Lineup; away?: Lineup; events?: AfEvent[]; hasEvents?: boolean };
-type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[]; halves?: { h1: StatRow[]; h2: StatRow[] } };
+type StResp = Meta & { state: "ok" | "wait" | "nodata" | "off" | "unavailable" | "notfound" | "busy"; phase?: string; aet?: boolean; rows?: StatRow[]; halves?: { h1: StatRow[]; h2: StatRow[]; h2derived?: boolean }; second?: boolean };
 
 /** Hakee välilehden tiedot; virheessä säilytetään viimeisin kelvollinen vastaus. Päivitys vain näkyvissä ja ennen loppua. */
 function useExtra<T extends { state: string; phase?: string }>(path: string, w: Where, every = 300_000) {
@@ -431,7 +431,8 @@ export function StatsTab({ w, home, away }: { w: Where; home: Team; away: Team }
   const hv = data.halves && data.halves.h1.length ? data.halves : null;
   const has2 = !!hv && hv.h2.length > 0;
   // oletus: käynnissä olevassa ottelussa meneillään oleva puoliaika, päättyneessä 1. puoliaika
-  const cur = half === "h2" && has2 ? "h2" : half === "h1" ? "h1" : data.phase === "live" && has2 ? "h2" : "h1";
+  // 2. puoliaika valitaan oletuksena heti sen alettua (käyttäjän havainto 26.10.2026)
+  const cur = half === "h2" && has2 ? "h2" : half === "h1" ? "h1" : data.phase === "live" && has2 && (data.second ?? true) ? "h2" : "h1";
   const rows = hv ? hv[cur] : data.rows;
   return (
     <>
@@ -449,6 +450,7 @@ export function StatsTab({ w, home, away }: { w: Where; home: Team; away: Team }
           <span className="ph-team"><span className="ms-team">{away.name}</span><Badge t={away} size={22} /></span>
         </div>
         {data.phase === "live" && <p className="pad small muted">{t("st_liveNote")}</p>}
+        {cur === "h2" && hv?.h2derived && <p className="pad small muted">{t("st_h2derived")}</p>}
         {data.aet && !hv && <p className="pad small muted">{t("st_aet")}</p>}
         <div className="ms-rows">{rows.map((r) => <StatLine key={r.key} r={r} />)}</div>
         <p className="pad small muted">{t("st_note")}</p>

@@ -497,6 +497,7 @@ const D = {
   lu_coaches: ["Valmentajat", "Tränare", "Managers"],
   tv_title: ["Lähetys Suomessa: {n} (sarjan esitysoikeuksien haltija)", "Sänds i Finland: {n} (ligans rättighetsinnehavare)", "Shown in Finland on {n} (league rights holder)"],
   tv_sr: ["Lähetys Suomessa:", "Sänds i Finland:", "Shown in Finland on"],
+  st_h2derived: ["2. puoliaika laskettu koko ottelun ja 1. puoliajan erotuksena, kunnes lähde päivittää sen. Pallonhallinta näkyy myöhemmin.", "Andra halvlek beräknad som skillnaden mellan hela matchen och första halvlek tills källan uppdaterar den.", "Second half calculated as full match minus first half until the source updates it."],
   od_title: ["Kertoimet", "Odds", "Odds"],
   od_draw: ["Tasapeli", "Oavgjort", "Draw"],
   hl_title: ["Ottelun kohokohdat", "Matchens höjdpunkter", "Match highlights"],
