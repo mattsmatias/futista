@@ -225,7 +225,7 @@ function lineupOf(l: any, players: any[] | undefined, events: AfEvent[], side: "
   return {
     team: str(l?.team?.name) ? (women && !/\sW$/.test(l.team.name) ? `${l.team.name} W` : l.team.name) : "",
     formation: formation && /^\d(-\d){1,4}$/.test(formation) ? formation : null,
-    starters, subs: bench, coach: str(l?.coach?.name), unavailable: [], positioned,
+    starters, subs: bench, coach: str(l?.coach?.name), coachId: Number.isInteger(l?.coach?.id) && l.coach.id > 0 ? l.coach.id : null, unavailable: [], positioned,
   };
 }
 

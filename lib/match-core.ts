@@ -23,6 +23,8 @@ export type LPlayer = {
 export type Unavailable = { id?: number | null; name: string; reason: "injury" | "suspension" | "other"; detail?: string | null; doubtful?: boolean };
 export type Lineup = {
   team: string; formation: string | null; starters: LPlayer[]; subs: LPlayer[]; coach: string | null;
+  /** valmentajan lähdetunniste (API-Football) kuvaa varten; ei nimen perusteella */
+  coachId?: number | null;
   unavailable: Unavailable[];
   /** true = jokaisella avauspelaajalla on lähteen antama kenttäsijainti */
   positioned: boolean;

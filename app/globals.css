@@ -1392,6 +1392,7 @@ html { touch-action: manipulation; }
 .lu-coach-row p { margin: 0; min-width: 0; font-weight: 600; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; }
 .lu-coach-row .crest, .lu-coach-row .badge { flex: none; }
 .lu-cn { min-width: 0; }
+.lu-coach-row .lu-cface { flex: none; }
 .lu-coach-row p + p { justify-content: flex-end; text-align: right; }
 /* Vaihdot ja poissaolijat: kuva/numero, nimi ja lisärivi (↻ tilalta lähtenyt + minuutti / poissaolon syy), arvosana oikealla */
 .lu-in, .lu-out-row { grid-template-columns: 36px 1fr auto; }

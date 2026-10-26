@@ -160,6 +160,11 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("Vaihtopelaajat: profiilikuvat lähteen tunnisteella", bf.length === 4 && bf.every((x) => /^https:\/\/media\.api-sports\.io\/football\/players\/990[12]\d{2}\.png$/.test(x || "")), JSON.stringify(bf));
   const bov = await page.evaluate(() => [...document.querySelectorAll(".lu-bench .lu-row")].some((r) => r.scrollWidth > r.clientWidth + 1));
   ok("  rivit mahtuvat (390 px)", !bov);
+  // Valmentajat: kuva lähteen valmentajatunnisteella (käyttäjän valinta 26.10.2026), logo säilyy
+  const cf = await page.locator(".lu-coaches .lu-coach-row p").evaluateAll((els) => els.map((e) => [e.querySelector(".lu-cface img")?.getAttribute("src") ?? null, !!e.querySelector(".crest, .badge"), e.querySelector(".lu-cn")?.textContent]));
+  ok("Valmentajat: profiilikuvat lähteen tunnisteella, logo ja nimi säilyvät", cf.length === 2 && cf[0][0] === "https://media.api-sports.io/football/coachs/99021.png" && cf[1][0] === "https://media.api-sports.io/football/coachs/99011.png" && cf.every((x) => x[1] && x[2] === "Valmentaja"), JSON.stringify(cf));
+  const cov = await page.evaluate(() => [...document.querySelectorAll(".lu-coach-row p")].some((r) => r.scrollWidth > r.clientWidth + 1));
+  ok("  valmentajarivi mahtuu (390 px)", !cov);
   await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
   await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {});
   // latautumaton kuva → paitanumero (ei rikkinäistä kuvaa)
@@ -171,6 +176,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  kuva ei lataudu → paitanumero", (await page.locator(".ps-row .ps-face img").count()) === 0 && (await page.locator(".ps-row .ps-num").count()) > 0);
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
   await page.waitForSelector(".lu-bench .lu-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
+  ok("  Valmentajat: kuva ei lataudu → ei rikkinäistä kuvaa, nimi ja logo näkyvät", (await page.locator(".lu-coaches .lu-cface").count()) === 0 && (await page.locator(".lu-coaches .lu-cn").count()) === 2);
   ok("  Vaihtopelaajat: kuva ei lataudu → paitanumero", (await page.locator(".lu-bench .lu-face img").count()) === 0 && (await page.locator(".lu-bench .lu-num").count()) === 4);
   ok("  ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   // Ottelulistojen kertoimet (käyttäjän valinta 26.10.2026): rivin alle 1 / X / 2, haetaan niputettuna näkyville riveille

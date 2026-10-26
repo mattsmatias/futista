@@ -81,6 +81,15 @@ const Note = ({ text, sub }: { text: string; sub?: string }) => (
 const fmtRating = (r: number | null, lang: string) => (r === null ? "–" : r.toLocaleString(LOCALE[lang as "fi"], { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 /** API-Footballin pelaajakuva pelaajan lähdetunnisteella (lähteen oma kuva, ei nimen perusteella haettu) */
 const afPhoto = (id: number | null) => (id && id > 0 ? `https://media.api-sports.io/football/players/${id}.png` : null);
+const afCoachPhoto = (id: number | null | undefined) => (id && id > 0 ? `https://media.api-sports.io/football/coachs/${id}.png` : null);
+
+/** Valmentajan kuva lähteen tunnisteella (API-Football); puuttuva tai latautumaton → ei kuvaa (nimi ja logo riittävät) */
+function CoachFace({ id, photos }: { id: number | null | undefined; photos: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const src = photos ? afCoachPhoto(id) : null;
+  if (!src || failed) return null;
+  return <span className="lu-face lu-cface" aria-hidden="true"><img src={src} alt="" width={36} height={36} loading="lazy" decoding="async" onError={() => setFailed(true)} /></span>;
+}
 const started = (phase?: string) => phase === "live" || phase === "final";
 const hasRatings = (ls: Lineup[]) => ls.some((l) => [...l.starters, ...l.subs].some((p) => p.rating !== null));
 
@@ -299,8 +308,8 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
         <section className="panel lu-coaches" aria-label={t("lu_coaches")}>
           <div className="panel-head"><h3>{t("lu_coaches")}</h3></div>
           <div className="lu-coach-row">
-            <p aria-label={`${home.name}: ${h.coach ?? "–"}`}><Badge t={home} size={22} /><span className="lu-cn">{h.coach ?? "–"}</span></p>
-            <p aria-label={`${away.name}: ${a.coach ?? "–"}`}><span className="lu-cn">{a.coach ?? "–"}</span><Badge t={away} size={22} /></p>
+            <p aria-label={`${home.name}: ${h.coach ?? "–"}`}><Badge t={home} size={22} />{h.coach && <CoachFace id={h.coachId} photos={photos} />}<span className="lu-cn">{h.coach ?? "–"}</span></p>
+            <p aria-label={`${away.name}: ${a.coach ?? "–"}`}><span className="lu-cn">{a.coach ?? "–"}</span>{a.coach && <CoachFace id={a.coachId} photos={photos} />}<Badge t={away} size={22} /></p>
           </div>
         </section>
       )}
