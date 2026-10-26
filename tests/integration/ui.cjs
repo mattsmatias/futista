@@ -405,6 +405,7 @@ const MIN = 60_000;
     {
       const yd = new Date(Date.now() - 86400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
       await page.goto(`${APP}/ottelu/superlig/${yd}/testispor-ankara--mittaspor-izmir`, { waitUntil: "networkidle" });
+      ok("ottelusivun Yhteenvedossa ei Vertailu-osiota (myös tulevassa/live)", (await page.locator(".cmps").count()) === 0);
       ok("ottelusivun Yhteenvedossa ei Kunto-osiota", (await page.locator(".mh-score, .mh-time").count()) > 0 && (await page.locator(".panel", { has: page.locator("h3", { hasText: /^Kunto$/ }) }).count()) === 0 && (await page.locator(".form-duo").count()) === 0);
     }
     // joukkueen kunto kaikista kilpailuista (ESPN:n otteluohjelma, simuloitu: sarja, Eurooppa-liiga, cup, harjoitus, siirretty, tuleva)

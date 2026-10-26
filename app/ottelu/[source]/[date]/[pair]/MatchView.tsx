@@ -22,17 +22,6 @@ import { LineupsTab, StatsTab, PlayersTab, EventsCard } from "../../../../MatchE
 
 type Tab = "summary" | "lineups" | "mstats" | "players" | "h2h" | "table";
 
-function Compare({ label, a, b, lowerBetter, noBar }: { label: string; a: number; b: number; lowerBetter?: boolean; noBar?: boolean }) {
-  const total = a + b || 1;
-  const aBetter = lowerBetter ? a < b : a > b, bBetter = lowerBetter ? b < a : b > a;
-  return (
-    <div className="cmp">
-      <div className="cmp-top"><b className={aBetter ? "lead" : ""}>{a}</b><span>{label}</span><b className={bBetter ? "lead" : ""}>{b}</b></div>
-      {!noBar && (a > 0 || b > 0) && <div className="cmp-bar"><i className="h" style={{ width: `${(a / total) * 100}%` }} /><i className="a" style={{ width: `${(b / total) * 100}%` }} /></div>}
-    </div>
-  );
-}
-
 function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
   const i = useI18n();
   const n = norm(team.name);
@@ -218,21 +207,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
             {/* Kunto-osio poistettu (käyttäjän valinta 26.10.2026) */}
-            {/* sarjataulukon vertailu vain ennen ottelua ja sen aikana; päättyneestä pois (käyttäjän valinta 26.10.2026) */}
-            {!result && rh && ra && (
-              <div className="panel">
-                <div className="panel-head"><h3>{t("comparison")}</h3><span className="muted">{t("standing")}</span></div>
-                <div className="cmps">
-                  <Compare label={t("position")} a={rh.pos} b={ra.pos} lowerBetter noBar />
-                  <Compare label={t("colPts")} a={rh.pts} b={ra.pts} />
-                  <Compare label={t("won")} a={rh.w} b={ra.w} />
-                  <Compare label={t("drawn")} a={rh.d} b={ra.d} />
-                  <Compare label={t("lost")} a={rh.l} b={ra.l} lowerBetter />
-                  <Compare label={t("goalsFor")} a={rh.gf} b={ra.gf} />
-                  <Compare label={t("goalsAgainst")} a={rh.ga} b={ra.ga} lowerBetter />
-                </div>
-              </div>
-            )}
+            {/* Vertailu-osio poistettu kokonaan (käyttäjän valinta 26.10.2026) */}
             {!extras && <p className="muted note">{t("lineupsNA")}</p>}
             {extras && !showExtras && <p className="muted note mx-soon">{t("lu_soon")}</p>}
           </>

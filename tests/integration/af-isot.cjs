@@ -126,7 +126,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.waitForSelector(".od-card", { timeout: 15000 }).catch(() => {});
   const odt = (await page.locator(".od-card").innerText().catch(() => "")).replace(/\s+/g, " ");
   ok("  Yhteenvedossa Kertoimet-kortti: 1 / X / 2 pilkulla, ei keskiarvo-/päivitysriviä (käyttäjän valinta 26.10.2026)", /Kertoimet/.test(odt) && /2,10/.test(odt) && /3,40/.test(odt) && /3,30/.test(odt) && !/Keskiarvo|vedonvälittäj|päivitetty/.test(odt), odt);
-  ok("  päättyneessä ottelussa ei Vertailu-osiota (käyttäjän valinta 26.10.2026)", !(await page.locator("main .panel-head h3").allTextContents()).includes("Vertailu"));
+  ok("  ei Vertailu-osiota (poistettu kokonaan, käyttäjän valinta 26.10.2026)", !(await page.locator("main .panel-head h3").allTextContents()).includes("Vertailu") && (await page.locator(".cmps").count()) === 0);
   await page.locator(".subtabs button", { hasText: /^Keskinäiset$/ }).click();
   await page.waitForTimeout(2500);
   ok("  Keskinäiset-välilehdellä ei kertoimia ottelurivien alla (käyttäjän valinta 26.10.2026)", (await page.locator(".mrow").count()) > 0 && (await page.locator(".mrow-od").count()) === 0, `${await page.locator(".mrow").count()} riviä, ${await page.locator(".mrow-od").count()} kerroinriviä`);
