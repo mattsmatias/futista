@@ -156,7 +156,7 @@ async function detailOf(id: string, fixtureId: number, phase: "pre" | "live" | "
       const d = parseAfDetail(j?.response?.[0], w);
       if (!d) throw new Error("detail: unrecognised");
       return { at: Date.now(), data: d };
-    }, ["af-detail-v2", id, String(fixtureId), phase], { revalidate: ttl })();
+    }, ["af-detail-v3", id, String(fixtureId), phase], { revalidate: ttl })();
   } catch (e) {
     console.warn("af-ottelu", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
     return null;

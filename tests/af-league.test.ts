@@ -253,3 +253,26 @@ test("puoliaikatilastot: joukkue tunnisteella, puuttuva arvo ei nolla, pelaamato
   assert.equal(parseAfHalves(resp, 1, 3), null);
   assert.equal(parseAfHalves(resp, null, 2), null);
 });
+
+test("kokoonpano: arvosana 0 (ei pelannut) ei ole arvosana; tapahtumat pelaajatunnisteella, vaikka nimi eri muodossa", () => {
+  // oikea tapaus 25.10.2026 Barcelona–Real Madrid: lähde antoi pelaamattomille vaihtopelaajille rating 0 ja
+  // tapahtumissa koko nimen ("Karim Adeyemi"), kokoonpanossa lyhyen ("K. Adeyemi")
+  const p = (id: number, name: string, pos = "M") => ({ player: { id, name, number: id, pos, grid: null } });
+  const d = {
+    fixture: { id: 1, status: { short: "FT", elapsed: 90 } }, teams: { home: { id: 1 }, away: { id: 2 } },
+    events: [
+      { time: { elapsed: 85, extra: null }, team: { id: 1 }, player: { id: 17, name: "Anthony Gordon" }, assist: { id: 14, name: "Karim Adeyemi" }, type: "subst", detail: "Substitution 4" },
+      { time: { elapsed: 90, extra: 6 }, team: { id: 1 }, player: { id: 14, name: "Karim Adeyemi" }, assist: { id: null, name: null }, type: "Card", detail: "Yellow Card" },
+    ],
+    lineups: [{ team: { id: 1, name: "Barcelona" }, formation: null, startXI: [p(17, "A. Gordon", "F"), ...Array.from({ length: 10 }, (_, i) => p(100 + i, `P${i}`))], substitutes: [p(14, "K. Adeyemi", "F"), p(13, "W. Szczęsny", "G")] }],
+    players: [{ team: { id: 1 }, players: [{ player: { id: 14 }, statistics: [{ games: { rating: "6.1" } }] }, { player: { id: 13 }, statistics: [{ games: { rating: "0" } }] }] }],
+    statistics: [],
+  };
+  const r = parseAfDetail(d, false)!;
+  const ad = r.home!.subs.find((x) => x.id === 14)!, sz = r.home!.subs.find((x) => x.id === 13)!;
+  assert.equal(sz.rating, null);
+  assert.equal(ad.rating, 6.1);
+  assert.equal(ad.subIn, 85);
+  assert.equal(ad.yellow, 1);
+  assert.equal(r.home!.starters.find((x) => x.id === 17)!.subOut, 85);
+});

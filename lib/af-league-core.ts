@@ -155,6 +155,7 @@ export type AfEvent = {
   min: number | null; extra: number | null; side: "h" | "a";
   kind: "goal" | "own" | "pen" | "missedpen" | "yellow" | "red" | "secondyellow" | "sub" | "var";
   player: string | null; other: string | null; // maali: syöttäjä; vaihto: sisään tullut (player = ulos)
+  playerId?: number | null; otherId?: number | null; // lähteen pelaajatunnisteet (kokoonpanon nimi voi olla eri muodossa: "K. Adeyemi" / "Karim Adeyemi")
   detail: string | null;
 };
 export type AfDetail = {
@@ -174,21 +175,26 @@ function lineupOf(l: any, players: any[] | undefined, events: AfEvent[], side: "
   const stat = new Map<number, any>();
   for (const p of players ?? []) { const id = num(p?.player?.id); if (id !== null) stat.set(id, p?.statistics?.[0] ?? {}); }
   const mine = events.filter((e) => e.side === side);
-  const count = (name: string, k: AfEvent["kind"][]) => mine.filter((e) => e.player === name && k.includes(e.kind)).length;
+  // pelaaja tunnistetaan lähteen tunnisteella; nimellä vain, jos tapahtumassa ei ole tunnistetta
+  const isP = (e: AfEvent, id: number | null, name: string) => (e.playerId != null && id !== null ? e.playerId === id : e.player === name);
+  const isO = (e: AfEvent, id: number | null, name: string) => (e.otherId != null && id !== null ? e.otherId === id : e.other === name);
+  const count = (id: number | null, name: string, k: AfEvent["kind"][]) => mine.filter((e) => isP(e, id, name) && k.includes(e.kind)).length;
   const toP = (raw: any, starter: boolean): LPlayer | null => {
     const p = raw?.player ?? {};
     const name = str(p.name);
     if (!name) return null;
     const id = num(p.id);
     const s = id !== null ? stat.get(id) : undefined;
-    const subOut = mine.find((e) => e.kind === "sub" && e.player === name)?.min ?? null;
-    const subIn = mine.find((e) => e.kind === "sub" && e.other === name)?.min ?? null;
+    const subOut = mine.find((e) => e.kind === "sub" && isP(e, id, name))?.min ?? null;
+    const subIn = mine.find((e) => e.kind === "sub" && isO(e, id, name))?.min ?? null;
+    // lähde antaa arvosanan 0 pelaajille, jotka eivät pelanneet → ei arvosanaa (asteikko 1–10; 0 ei ole arvosana)
+    const rt = num(s?.games?.rating);
     return {
       id, name, number: num(p.number) !== null ? String(num(p.number)) : null, pos: null,
       role: ROLE[String(p.pos ?? "")] ?? null,
-      rating: num(s?.games?.rating), captain: s?.games?.captain === true, motm: false,
-      goals: count(name, ["goal", "pen"]), ownGoals: count(name, ["own"]), assists: mine.filter((e) => (e.kind === "goal" || e.kind === "pen") && e.other === name).length,
-      yellow: count(name, ["yellow", "secondyellow"]), red: count(name, ["red", "secondyellow"]),
+      rating: rt !== null && rt > 0 ? rt : null, captain: s?.games?.captain === true, motm: false,
+      goals: count(id, name, ["goal", "pen"]), ownGoals: count(id, name, ["own"]), assists: mine.filter((e) => (e.kind === "goal" || e.kind === "pen") && isO(e, id, name)).length,
+      yellow: count(id, name, ["yellow", "secondyellow"]), red: count(id, name, ["red", "secondyellow"]),
       subIn: starter ? null : subIn, subOut, distance: null, topSpeed: null,
       shots: num(s?.shots?.total), shotsOnTarget: num(s?.shots?.on), saves: num(s?.goals?.saves),
       ...({ _grid: str(p.grid) } as object),
@@ -226,9 +232,11 @@ export function parseAfDetail(d: any, women: boolean): AfDetail | null {
   if (!d || typeof d !== "object" || !d.fixture) return null;
   const homeId = num(d?.teams?.home?.id), awayId = num(d?.teams?.away?.id);
   const sideOf = (teamId: unknown): "h" | "a" | null => (num(teamId) === homeId ? "h" : num(teamId) === awayId ? "a" : null);
-  const xiNames = new Set<string>();
-  for (const l of d.lineups ?? []) for (const x of l?.startXI ?? []) { const n = str(x?.player?.name); if (n) xiNames.add(n); }
-  const onPitch = new Set(xiNames);
+  // kentällä olevat pelaajat sekä tunnisteella että nimellä (tapahtumassa voi olla vain toinen, ja nimi voi olla eri muodossa)
+  const keys = (id: number | null, name: string | null) => [...(id !== null ? [`#${id}`] : []), ...(name ? [`n:${name}`] : [])];
+  const onPitch = new Set<string>();
+  const on = (id: number | null, name: string | null) => { const k = keys(id, name); return k.length > 0 && k.some((x) => onPitch.has(x)); };
+  for (const l of d.lineups ?? []) for (const x of l?.startXI ?? []) keys(num(x?.player?.id), str(x?.player?.name)).forEach((k) => onPitch.add(k));
   const events: AfEvent[] = [];
   for (const e of Array.isArray(d.events) ? d.events : []) {
     const side = sideOf(e?.team?.id);
@@ -236,18 +244,21 @@ export function parseAfDetail(d: any, women: boolean): AfDetail | null {
     const type = String(e?.type ?? "").toLowerCase(), detail = String(e?.detail ?? "");
     const min = num(e?.time?.elapsed), extra = num(e?.time?.extra);
     let player = str(e?.player?.name), other = str(e?.assist?.name);
+    let playerId = num(e?.player?.id), otherId = num(e?.assist?.id);
     let kind: AfEvent["kind"] | null = null;
     if (type === "goal") kind = /own/i.test(detail) ? "own" : /missed/i.test(detail) ? "missedpen" : /penalty/i.test(detail) ? "pen" : "goal";
     else if (type === "card") kind = /second yellow/i.test(detail) ? "secondyellow" : /red/i.test(detail) ? "red" : /yellow/i.test(detail) ? "yellow" : null;
     else if (type === "subst") {
       kind = "sub";
       // lähteen kentät eivät kerro suuntaa luotettavasti: ulos = kentällä ollut pelaaja (avauskokoonpano tai aiemmin sisään tullut)
-      if (player && other && !onPitch.has(player) && onPitch.has(other)) [player, other] = [other, player];
-      if (player) onPitch.delete(player);
-      if (other) onPitch.add(other);
+      if ((player || playerId !== null) && (other || otherId !== null) && !on(playerId, player) && on(otherId, other)) { [player, other] = [other, player]; [playerId, otherId] = [otherId, playerId]; }
+      keys(playerId, player).forEach((k) => onPitch.delete(k));
+      keys(otherId, other).forEach((k) => onPitch.add(k));
     } else if (type === "var") kind = "var";
     if (!kind) continue;
-    events.push({ min, extra, side, kind, player, other: kind === "goal" || kind === "pen" || kind === "sub" ? other : null, detail: kind === "var" ? detail || null : null });
+    const withOther = kind === "goal" || kind === "pen" || kind === "sub";
+    events.push({ min, extra, side, kind, player, other: withOther ? other : null, detail: kind === "var" ? detail || null : null,
+      ...(playerId !== null ? { playerId } : {}), ...(withOther && otherId !== null ? { otherId } : {}) });
   }
   const lu = (side: "h" | "a") => {
     const id = side === "h" ? homeId : awayId;
