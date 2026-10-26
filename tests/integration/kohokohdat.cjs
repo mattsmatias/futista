@@ -13,6 +13,8 @@ const slug = (s) => norm(s).replace(/ /g, "-");
 const hel = (ms) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Helsinki" }).format(ms);
 const q = (x) => `l=seriea&d=${hel(Date.parse(x.utcDate))}&p=${slug(x.homeTeam.name)}--${slug(x.awayTeam.name)}`;
 const get = async (path) => { const r = await fetch(`${APP}${path}`); return { status: r.status, cc: r.headers.get("cache-control"), type: r.headers.get("content-type"), j: /json/.test(r.headers.get("content-type") || "") ? await r.json().catch(() => null) : null }; };
+// aiemmat testit voivat täyttää simuloidun football-datan yhteisen minuuttikiintiön (kuten chain.cjs, nollataan testikannasta)
+const resetQuota = () => { if (process.env.PG_URL) require("node:child_process").execSync(`psql "${process.env.PG_URL}" -qAtc "delete from public.fd_quota_calls; delete from public.fd_quota_state;"`); };
 const ytCalls = async () => (await mj("/__log")).filter((x) => x.url.startsWith("/yt/feeds")).length;
 
 (async () => {
@@ -30,7 +32,8 @@ const ytCalls = async () => (await mj("/__log")).filter((x) => x.url.startsWith(
 
   // syöte "tyhjenee" (kooste pudonnut syötteestä): taulusta löytyy silti
   await mj("/__mode?yt=empty");
-  // simuloidun football-datan minuuttiraja voi olla edellisten testien jäljiltä täynnä → odotetaan sarjan tiedot
+  // simuloidun football-datan minuuttiraja voi olla edellisten testien jäljiltä täynnä → nollataan ja odotetaan sarjan tiedot
+  resetQuota();
   for (let i = 0; i < 18; i++) {
     const w0 = await get(`/api/kohokohdat?${q(m2)}`);
     if (w0.j?.state !== "unavailable") break;
@@ -53,7 +56,7 @@ const ytCalls = async () => (await mj("/__log")).filter((x) => x.url.startsWith(
   ok("sarja ilman lähdettä → off", off.j?.state === "off", JSON.stringify(off.j));
   // simuloidun football-datan minuuttiraja voi tuottaa hetkellisen 503:n → yritetään uudelleen
   let nf;
-  for (let i = 0; i < 18; i++) { nf = await get(`/api/kohokohdat?l=seriea&d=${hel(Date.now())}&p=ei-ole--olemassa`); if (nf.status !== 503) break; await new Promise((r) => setTimeout(r, 5000)); }
+  for (let i = 0; i < 18; i++) { nf = await get(`/api/kohokohdat?l=seriea&d=${hel(Date.now())}&p=ei-ole--olemassa`); if (nf.j?.state !== "unavailable") break; await new Promise((r) => setTimeout(r, 5000)); }
   ok("tuntematon ottelu → 404", nf.status === 404, String(nf.status));
 
   // pikkukuva oman palvelimen kautta; vain videotunniste
