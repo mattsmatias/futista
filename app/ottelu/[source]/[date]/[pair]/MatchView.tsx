@@ -205,11 +205,11 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
           <>
             {/* kooste vain päättyneelle ottelulle (Flashscoren tapaan Yhteenvedon alussa) */}
             {result && <HighlightCard l={s.source} d={m.date} p={`${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`} />}
-            {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
-            {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
-            {/* voittajakertoimet (keskiarvo, ei vedonvälittäjien nimiä); toteutunut korostetaan, jos ratkesi varsinaisella peliajalla */}
+            {/* voittajakertoimet Ottelun tiedot -kortin yläpuolella (käyttäjän valinta 26.10.2026); ei vedonvälittäjien nimiä */}
             <OddsCard l={s.source} d={m.date} p={`${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`} home={m.home} away={m.away}
               won={result && !result.note ? (result.hs > result.as ? "h" : result.hs < result.as ? "a" : "d") : null} />
+            {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
+            {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
             <div className="panel">
               {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>
                 <div className="panel-head"><h3>{t("form")}</h3></div>
