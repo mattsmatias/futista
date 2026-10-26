@@ -153,6 +153,8 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("Pelaajatilastot: pelaajien kuvat lähteen tunnisteella", faces.length > 0 && faces.every((x) => /^https:\/\/media\.api-sports\.io\/football\/players\/9902\d{2}\.png$|^https:\/\/media\.api-sports\.io\/football\/players\/9901\d{2}\.png$/.test(x || "")), JSON.stringify(faces.slice(0, 3)));
   const pov = await page.evaluate(() => [...document.querySelectorAll(".ps-row")].some((r) => r.scrollWidth > r.clientWidth + 1));
   ok("  rivit mahtuvat (390 px)", !pov);
+  const psTxt = await page.locator("main").innerText();
+  ok("  ei laukausselitettä eikä 'xG ja syötöt eivät ole saatavilla' -tekstiä (käyttäjän valinta 27.10.2026)", !/maalia kohti suluissa|eivät ole saatavilla/.test(psTxt) && !(await page.evaluate(() => [...document.querySelectorAll(".panel")].some((p) => p.offsetParent !== null && p.getBoundingClientRect().height < 4))));
   // Vaihtopelaajat: profiilikuvat lähteen tunnisteella (käyttäjän valinta 26.10.2026)
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
   await page.waitForSelector(".lu-bench .lu-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(500);
