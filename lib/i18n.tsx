@@ -497,7 +497,6 @@ const D = {
   lu_coach: ["Valmentaja", "Tränare", "Manager"],
   lu_missing: ["Poissaolijat", "Frånvarande", "Missing players"],
   lu_subsMade: ["Vaihdot", "Byten", "Substitutions"],
-  lu_startXI: ["Avauskokoonpano", "Startelva", "Starting line-up"],
   lu_off: ["pois", "ut", "off"],
   lu_doubt: ["epävarma", "osäker", "doubtful"],
   lu_formation: ["Muodostelma", "Formation", "Formation"],

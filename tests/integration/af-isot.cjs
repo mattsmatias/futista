@@ -96,14 +96,15 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  2. puoliajan luvut vaihtuvat", /2\. puoliaika/.test(await headTxt()) && s1 !== s2 && /\b4\b[\s\S]*\b6\b/.test(s2), `${s1.slice(0, 60)} → ${s2.slice(0, 60)}`);
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click(); await page.waitForTimeout(500);
   ok("Kokoonpanot: ei 'Avauskokoonpanot'-tekstiä (käyttäjän valinta 26.10.2026)", !/Avauskokoonpanot/.test(await page.locator("main").innerText()));
-  // Flashscoren rakenne (käyttäjän esimerkki 26.10.2026): kenttä → Vaihdot → Avauskokoonpano → Vaihtopelaajat → Poissaolijat
+  // Flashscoren rakenne (käyttäjän esimerkki 26.10.2026): kenttä → Vaihdot → Vaihtopelaajat → Poissaolijat
   const heads = await page.locator(".tab-pane .panel-head h3, main .panel-head h3").evaluateAll((els) => [...new Set(els.map((e) => e.textContent))]);
-  const order = ["Vaihdot", "Avauskokoonpano", "Vaihtopelaajat", "Poissaolijat"];
-  ok("Kokoonpanot: osiot Flashscoren järjestyksessä", order.every((x) => heads.includes(x)) && order.map((x) => heads.indexOf(x)).every((v, i, a) => i === 0 || v > a[i - 1]) && (await page.locator(".pitch-full").count()) === 1, heads.join("|"));
+  const order = ["Vaihdot", "Vaihtopelaajat", "Poissaolijat"];
+  ok("Kokoonpanot: ei Avauskokoonpano-listaa (käyttäjän valinta 26.10.2026)", !heads.includes("Avauskokoonpano") && (await page.locator(".lu-starters").count()) === 0);
+  ok("  osiot järjestyksessä kenttä → Vaihdot → Vaihtopelaajat → Poissaolijat", order.every((x) => heads.includes(x)) && order.map((x) => heads.indexOf(x)).every((v, i, a) => i === 0 || v > a[i - 1]) && (await page.locator(".pitch-full").count()) === 1, heads.join("|"));
   const made = (await page.locator(".lu-made").innerText()).replace(/\s+/g, " ");
   ok("  Vaihdot: sisään tullut, kenen tilalle ja minuutti, arvosana", /Pelaaja 9902-12/.test(made) && /↻ Pelaaja 9902-10 63'/.test(made) && /6,8/.test(made) && (await page.locator(".lu-made .rb").count()) === 1, made.slice(0, 160));
   ok("  vierasjoukkue ilman vaihtoja → '–' (ei keksittyä)", (await page.locator(".lu-made > .lu-cols > section").nth(1).innerText()).includes("–"));
-  ok("  Avauskokoonpano ja Vaihtopelaajat: listat ilman arvosanoja (arvosanat kentällä)", (await page.locator(".lu-starters .lu-row").count()) === 22 && (await page.locator(".lu-starters .rb, .lu-bench .rb").count()) === 0 && (await page.locator(".lu-bench .lu-row").count()) === 2 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
+  ok("  Vaihtopelaajat: lista ilman arvosanoja (arvosanat kentällä)", (await page.locator(".lu-bench .rb").count()) === 0 && (await page.locator(".lu-bench .lu-row").count()) === 2 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
   const miss = (await page.locator(".lu-missing").innerText()).replace(/\s+/g, " ");
   ok("  Poissaolijat: syyt suomeksi, epävarma merkitty, rivi kerran", /K\. Poissa Polvivamma/.test(miss) && /P\. Kielto Pelikielto \(punainen kortti\)/.test(miss) && /E\. Varma Kolhu · epävarma/.test(miss) && (await page.locator(".lu-missing .lu-row").count()) === 3, miss.slice(0, 200));
   await page.setViewportSize({ width: 320, height: 700 }); await page.waitForTimeout(300);

@@ -232,7 +232,21 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
       {/* ennen alkua kerrotaan, ettei lähde vahvista kokoonpanoa; "Avauskokoonpanot"-otsikko poistettu (käyttäjän valinta 26.10.2026) */}
       {data.phase === "pre" && <p className="mx-label">{t("lu_pre")}</p>}
       {pitch && <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} photos={photos} />}
-      {/* Flashscoren järjestys: kenttä → Vaihdot → Avauskokoonpano → Vaihtopelaajat → Poissaolijat */}
+      {/* ilman kenttäsijainteja avauspelaajat listana kentän paikalla (ilman otsikkoa) */}
+      {!pitch && (
+        <div className="panel lu-starters">
+          <div className="lu-cols">
+            {sides.map(({ l, tm }, i) => (
+              <section key={i} className="lu-team" aria-label={tm.name}>
+                <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
+                <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated} />)}</ol>
+                {avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* järjestys: kenttä → Vaihdot → Vaihtopelaajat → Poissaolijat (Avauskokoonpano-lista poistettu, käyttäjän valinta 26.10.2026) */}
       {anySubs && (
         <section className="panel lu-made" aria-label={t("lu_subsMade")}>
           <div className="panel-head"><h3>{t("lu_subsMade")}</h3></div>
@@ -245,19 +259,6 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
           </div>
         </section>
       )}
-      <section className="panel lu-starters" aria-label={t("lu_startXI")}>
-        <div className="panel-head"><h3>{t("lu_startXI")}</h3></div>
-        <div className="lu-cols">
-          {sides.map(({ l, tm }, i) => (
-            <section key={i} className="lu-team" aria-label={tm.name}>
-              <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
-              {/* kentällä arvosanat näkyvät jo; ilman kenttää (ei sijainteja) arvosanat tässä listassa */}
-              <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated && !pitch} />)}</ol>
-              {!pitch && avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
-            </section>
-          ))}
-        </div>
-      </section>
       <section className="panel lu-bench" aria-label={t("lu_subs")}>
         <div className="panel-head"><h3>{t("lu_subs")}</h3></div>
         <div className="lu-cols">
