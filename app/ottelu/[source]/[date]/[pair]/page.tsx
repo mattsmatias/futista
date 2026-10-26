@@ -4,8 +4,6 @@ import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
 import { teamSlug, findTeam, matchHref } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
-import { getTeamGames } from "@/lib/espn";
-import { teamForm, type FormItem } from "@/lib/team-form";
 import MatchView from "./MatchView";
 import { afBigOn } from "@/lib/af-league";
 import JsonLd from "../../../../JsonLd";
@@ -60,18 +58,8 @@ export default async function MatchPage({ params }: Props) {
   const d = await load(params);
   if (!d) notFound();
   const m = (d.result ?? d.fixture)!;
-  // kunto kaikista kilpailuista (ESPN:n joukkueen otteluohjelma); jos jommankumman haku ei onnistu → sarjan oma kunto
-  // API-Football-kilpailuissa (mm. naiset, Suomi, maajoukkueet) ei haeta ESPN:n joukkueohjelmaa: nimen perusteella se voisi olla
-  // väärä joukkue (esim. miesten joukkue naisten ottelussa). Kunto lasketaan silloin kilpailun omista otteluista.
-  const afComp = !!SOURCES.find((x) => x.id === d.s.source)?.af;
-  const [extra, hg, ag] = await Promise.all([
-    getMatchExtra(d.s.source, m.date, m.home, m.away),
-    afComp ? null : getTeamGames(d.s.source, m.home.name, [d.s]).catch(() => null),
-    afComp ? null : getTeamGames(d.s.source, m.away.name, [d.s]).catch(() => null),
-  ]);
-  const now = Date.now();
-  const formAll: { home: FormItem[]; away: FormItem[] } | null = hg && ag
-    ? { home: teamForm(hg, "", now).last, away: teamForm(ag, "", now).last } : null;
+  // Kunto-osio poistettu Yhteenvedosta (käyttäjän valinta 26.10.2026) → joukkueiden otteluohjelmia ei haeta
+  const extra = await getMatchExtra(d.s.source, m.date, m.home, m.away);
   const pair = decodeURIComponent(params.pair);
   // kokoonpanot/tilastot: API-Football tai ESPN-sarjat (Eurooppa-liiga, Konferenssiliiga, Süper Lig, MLS)
   const espnSrc = !!SOURCES.find((x) => x.id === d.s.source)?.espn && process.env.ESPN_OFF !== "1";
@@ -84,7 +72,7 @@ export default async function MatchPage({ params }: Props) {
     <>
       <JsonLd data={matchLd({ url, league: d.s.league, date: m.date, time: d.fixture?.time || d.result?.time || null, home: m.home.name, away: m.away.name,
         hs: d.result?.hs ?? null, as: d.result?.as ?? null, finished: !!d.result })} />
-      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} formAll={formAll} />
+      <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />
     </>
   );
 }

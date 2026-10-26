@@ -118,7 +118,7 @@ const DAY = 86400_000;
   await page.locator(".ev-card").waitFor({ timeout: 15000 }).catch(() => {});
   ok("ottelusivu: tulos näkyy", (await page.locator(".mh-score").innerText().catch(() => "")).includes("2"));
   ok("  tapahtumat: maali ja syöttäjä", (await page.locator(".ev-card").innerText().catch(() => "")).includes("Pelaaja 2441-9"), (await page.locator(".ev-card").innerText().catch(() => "-")).slice(0, 120));
-  ok("  muodon konteksti kertoo kilpailun", (await page.locator(".form-duo").first().getAttribute("aria-label").catch(() => "")) ?.includes("Veikkausliiga") ?? true);
+  ok("  Yhteenvedossa ei Kunto-osiota (käyttäjän valinta 26.10.2026)", (await page.locator(".form-duo").count()) === 0);
   const kt = page.locator(".subtabs button", { hasText: "Kokoonpanot" });
   if (await kt.count()) { await kt.click(); await page.waitForTimeout(800); }
   ok("  kokoonpanot-välilehti: pelaajat näkyvät", (await page.locator("main").innerText()).includes("Pelaaja 2441-1"));
