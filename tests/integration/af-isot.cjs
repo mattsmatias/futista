@@ -131,6 +131,8 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
     const heads = [...document.querySelectorAll("main .panel-head h3")].map((h) => h.textContent);
     return { od: heads.indexOf("Kertoimet"), info: heads.indexOf("Ottelun tiedot"), events: [...document.querySelectorAll("main .panel")].findIndex((p) => p.classList.contains("ev-card")) };
   });
+  const labs = await page.locator(".od-cell .od-lab").evaluateAll((els) => els.map((e) => [e.querySelector("b")?.textContent ?? "", !!e.querySelector(".crest, .badge")]));
+  ok("  koti ja vieras: logo ilman 1/2-merkkiä, tasapeli X (käyttäjän valinta 26.10.2026)", labs.length === 3 && labs[0][1] && labs[2][1] && labs[0][0] === "" && labs[1][0] === "X" && labs[2][0] === "", JSON.stringify(labs));
   ok("  Kertoimet ennen Ottelun tiedot -korttia", ord.od >= 0 && (ord.info < 0 || ord.od < ord.info), JSON.stringify(ord));
   ok("  ei vedonvälittäjien nimiä eikä linkkejä sivulla", !/Bet365|Pinnacle|William Hill/.test(await page.locator("main").innerText()) && (await page.locator(".od-card a").count()) === 0);
   ok("  toteutunut lopputulos korostettu (1–3 → vierasvoitto)", (await page.locator(".od-cell.won").count()) === 1 && (await page.locator(".od-cell").nth(2).getAttribute("class")).includes("won"));

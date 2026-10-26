@@ -1,5 +1,5 @@
 "use client";
-// Ottelun voittajakertoimet (1 / X / 2): keskiarvo vedonvälittäjien yli. Neutraali tieto – ei vedonvälittäjien
+// Ottelun voittajakertoimet (koti / X / vieras; kotona ja vieraana joukkueen logo, ei 1/2-merkkejä): keskiarvo vedonvälittäjien yli. Neutraali tieto – ei vedonvälittäjien
 // nimiä, logoja eikä linkkejä (rahapelien markkinointi). Päättyneessä ottelussa toteutunut lopputulos korostetaan,
 // jos se ratkesi varsinaisella peliajalla (voittajaveto ratkaistaan 90 minuutin tuloksesta).
 import { useEffect, useState } from "react";
@@ -22,9 +22,9 @@ export function OddsCard({ l, d, p, home, away, won }: { l: string; d: string; p
   if (!o) return null;
   const f = (x: number) => x.toLocaleString(LOCALE[lang], { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const cells: { k: "h" | "d" | "a"; label: React.ReactNode; aria: string; v: number }[] = [
-    { k: "h", label: <><Badge t={home} size={18} /><b>1</b></>, aria: home.name, v: o.h },
+    { k: "h", label: <Badge t={home} size={18} />, aria: home.name, v: o.h },
     { k: "d", label: <b>X</b>, aria: t("od_draw"), v: o.d },
-    { k: "a", label: <><b>2</b><Badge t={away} size={18} /></>, aria: away.name, v: o.a },
+    { k: "a", label: <Badge t={away} size={18} />, aria: away.name, v: o.a },
   ];
   return (
     <section className="panel od-card" aria-label={t("od_title")}>
