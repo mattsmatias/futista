@@ -393,13 +393,15 @@ export function PlayersTab({ w, home, away }: { w: Where; home: Team; away: Team
         {seg(who, (v) => setWho(v as "all" | "h" | "a"), [["all", t("ps_all")], ["h", home.name], ["a", away.name]], t("lu_team"))}
       </div>
       {cats.map((c) => <PlayerTop key={c.key + who} cat={c} rows={rows} home={home} away={away} photos={data.source === "API-Football"} />)}
-      <div className="panel lu-legend">
-        {group === "key" && !all.some((r) => r.p.rating !== null) && <p className="pad small muted">{t("ps_noRatings")}</p>}
-        {all.some((r) => r.p.shots != null) && <p className="pad small muted">{t("ps_shotsNote")}</p>}
-        {group === "phys" && <p className="pad small muted">{t("ps_unitNote")}</p>}
-        <p className="pad small muted">{t(all.some((r) => r.p.shots != null) ? "ps_missingEspn" : "ps_missing")}</p>
-        <SourceLine m={data} />
-      </div>
+      {/* laukausselite ja "xG ja syötöt eivät ole saatavilla" -teksti poistettu (käyttäjän valinta 27.10.2026);
+          paneeli vain, jos siinä on näytettävää (ei tyhjää harmaata paneelia) */}
+      {((group === "key" && !all.some((r) => r.p.rating !== null)) || group === "phys") && (
+        <div className="panel lu-legend">
+          {group === "key" && <p className="pad small muted">{t("ps_noRatings")}</p>}
+          {group === "phys" && <p className="pad small muted">{t("ps_unitNote")}</p>}
+          <SourceLine m={data} />
+        </div>
+      )}
     </>
   );
 }
