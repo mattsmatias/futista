@@ -421,7 +421,8 @@ function StatLine({ r }: { r: StatRow }) {
 
 export function StatsTab({ w, home, away }: { w: Where; home: Team; away: Team }) {
   const { t } = useI18n();
-  const { data, error, loading, retry } = useExtra<StResp>("ottelutilastot", w);
+  // käynnissä olevan ottelun tilastot minuutin välein (2. puoliaika tulee näkyviin heti; palvelimen välimuisti 90 s)
+  const { data, error, loading, retry } = useExtra<StResp>("ottelutilastot", w, 60_000);
   const [half, setHalf] = useState<"h1" | "h2" | null>(null);
   if (!data) return error ? <ErrorBox text={t("st_error")} retry={retry} loading={loading} /> : <div className="panel"><p className="muted pad loading">{t("loading")}</p></div>;
   if (data.state === "wait") return <Note text={t(data.phase === "live" ? "st_waitLive" : "st_waitPre")} />;
