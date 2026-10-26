@@ -8,13 +8,14 @@
 //    Mestarien liiga MTV:llä kauden 2026–27, Ruutu+ vasta syksystä 2027 (suomifutis.com 4/2026)
 //  - Veikkausliiga: Ruutu+ kaikki ottelut, osa myös Yle TV2:lla (matchwire.org); Ykkösliiga ja Suomen Cup: Ruutu
 //    (Palloliitto: "Ruutu jatkaa Suomen Cupin ja Ykkösliigan kotina", sopimus 2027 asti); Kansallinen Liiga: Ruutu+ kaikki ottelut (suomifutis.com)
+//  - Englannin liigacup (EFL Cup): Viaplay (etusuora.com 2026–27; EFL:n oikeudet samalla Viaplaylla kuin Championship)
 //  - MLS: Apple TV (Applen tiedote 11/2025: MLS Apple TV -palvelussa vuodesta 2026)
 //  - Huuhkajat (Kansojen liiga, karsinnat): Yle (huuhkajat.com); muut Kansojen liigan ja karsintojen ottelut: MTV (pallomeri.net, etusuora.com)
 // Oikeudet vaihtuvat: tarkista tämä taulukko kauden vaihtuessa.
 export type Tv = { name: string };
 
 const BY_SOURCE: Record<string, string> = {
-  valioliiga: "Viaplay", championship: "Viaplay", facup: "Viaplay", bundesliga: "Viaplay", ligue1: "Viaplay", uel: "Viaplay", uecl: "Viaplay",
+  valioliiga: "Viaplay", championship: "Viaplay", facup: "Viaplay", liigacup: "Viaplay", bundesliga: "Viaplay", ligue1: "Viaplay", uel: "Viaplay", uecl: "Viaplay",
   laliga: "Disney+",
   seriea: "MTV Katsomo", ucl: "MTV Katsomo", allsvenskan: "MTV Katsomo",
   veikkausliiga: "Ruutu+", ykkosliiga: "Ruutu+", suomencup: "Ruutu+", kansallinenliiga: "Ruutu+",

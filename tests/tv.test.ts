@@ -11,6 +11,7 @@ test("lähetys Suomessa: varmistetut sarjat, Huuhkajat Yleltä, muille ei mitä�
   assert.equal(tvFor("mls", "LAFC", "LA Galaxy")?.name, "Apple TV");
   assert.equal(tvFor("kansojenliiga", "Finland", "Greece")?.name, "Yle");
   assert.equal(tvFor("kansojenliiga", "Spain", "Italy")?.name, "MTV Katsomo");
+  assert.equal(tvFor("liigacup", "Arsenal", "Fleetwood")?.name, "Viaplay");
   assert.equal(tvFor("eredivisie", "Ajax", "PSV"), null); // ei varmistettua tietoa → ei keksitä
   assert.equal(tvFor("superlig", "Galatasaray", "Fenerbahce"), null);
 });

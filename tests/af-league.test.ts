@@ -295,7 +295,7 @@ test("poissaolijat: rivit kerran, joukkue tunnisteella, syy luokitellaan, epäva
   assert.deepEqual(parseAfInjuries([], 1, 2), { h: [], a: [] });
 });
 
-test("kertoimet: keskiarvo vedonvälittäjien yli, ei nimiä; puutteelliset rivit pois; alle kaksi → null", async () => {
+test("kertoimet: keskiarvo vedonvälittäjien yli, ei nimiä; puutteelliset rivit pois; ei yhtään → null", async () => {
   const { parseAfOdds } = await import("../lib/af-league-core");
   // rakenne oikeasta vastauksesta 26.10.2026 (odds?fixture=1638112&bet=1, HJK–KuPS), lyhennetty
   const bk = (id: number, name: string, h: string, d: string, a: string) => ({ id, name, bets: [{ id: 1, name: "Match Winner", values: [{ value: "Home", odd: h }, { value: "Draw", odd: d }, { value: "Away", odd: a }] }] });
@@ -304,7 +304,8 @@ test("kertoimet: keskiarvo vedonvälittäjien yli, ei nimiä; puutteelliset rivi
   const o = parseAfOdds(resp)!;
   assert.deepEqual(o, { h: 1.91, d: 3.55, a: 3.72, n: 3, update: "2026-10-25T12:06:15.000Z" });
   assert.ok(!JSON.stringify(o).includes("Bet365"));
-  assert.equal(parseAfOdds([{ bookmakers: [bk(7, "x", "1.9", "3.4", "3.6")] }]), null);
+  assert.deepEqual(parseAfOdds([{ bookmakers: [bk(7, "x", "1.9", "3.4", "3.6")] }]), { h: 1.9, d: 3.4, a: 3.6, n: 1, update: null }); // yksi riittää
+  assert.equal(parseAfOdds([{ bookmakers: [{ id: 1, name: "x", bets: [] }] }]), null);
   assert.equal(parseAfOdds([]), null);
 });
 
@@ -319,4 +320,17 @@ test("ottelun yhdistäminen: turkin ı ja -spor-pääte (oikeat nimet 26.10.2026
   const bl = [{ id: 7, ts: b, home: "Borussia Mönchengladbach", away: "SC Paderborn 07" }, { id: 8, ts: b, home: "FC Schalke 04", away: "RB Leipzig" }];
   assert.equal(pickFixture(bl, b, "M'gladbach", "SC Paderborn"), 7); // oikeat nimet 26.10.2026 (Bundesliga)
   assert.equal(pickFixture(bl, b, "Dortmund", "SC Paderborn"), null);
+});
+
+test("ottelun yhdistäminen: kokonaan eri nimet (oikeat nimet 26.10.2026: Ligue 1, MLS, Liga Portugal, Konferenssiliiga)", () => {
+  const t = Date.parse("2026-10-26T19:30:00Z");
+  const L = [{ id: 1, ts: t, home: "Paris Saint Germain", away: "Lyon" }, { id: 2, ts: t, home: "Nice", away: "Rennes" }, { id: 3, ts: t, home: "Stade Brestois 29", away: "Nice" },
+    { id: 4, ts: t, home: "Los Angeles FC", away: "Los Angeles Galaxy" }, { id: 5, ts: t, home: "Moreirense", away: "Estrela" }, { id: 6, ts: t, home: "Aarhus", away: "SC Braga" }];
+  assert.equal(pickFixture(L, t, "PSG", "Olympique Lyon"), 1);
+  assert.equal(pickFixture(L, t, "Nice", "Stade Rennais"), 2);
+  assert.equal(pickFixture(L, t, "Brest", "Nice"), 3);
+  assert.equal(pickFixture(L, t, "LAFC", "LA Galaxy"), 4);
+  assert.equal(pickFixture(L, t, "Moreirense", "Amadora"), 5);
+  assert.equal(pickFixture(L, t, "AGF", "Braga"), 6);
+  assert.equal(pickFixture(L, t, "Olympique Lyon", "PSG"), null); // käänteinen ei kelpaa
 });

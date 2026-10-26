@@ -368,10 +368,17 @@ export const isKnockout = (round?: string) => !!round && !/^(Regular Season|Grou
 /** Meidän ottelu → API-Footballin ottelu saman kilpailun saman päivän listasta.
  *  Ehdot: MOLEMMAT joukkueet oikeilla paikoilla: koko nimi (alkamisaika ±3 h) tai selvä nimen osa (alkamisaika ±15 min).
  *  Täsmälleen yksi osuma → tunniste; nolla tai useampi → null (epäselvää ei yhdistetä). */
+// Meidän nimi (football-data / ESPN) → API-Footballin nimi, kun ne eroavat kokonaan (oikeat nimet 26.10.2026)
+const AF_NAME: Record<string, string[]> = {
+  psg: ["Paris Saint Germain"], "olympique lyon": ["Lyon"], "stade rennais": ["Rennes"], brest: ["Stade Brestois 29"],
+  lafc: ["Los Angeles FC"], amadora: ["Estrela"], agf: ["Aarhus"],
+};
+const names = (n: string) => [n, ...(AF_NAME[words(n).join(" ")] ?? [])];
+
 export function pickFixture(list: { id: number; ts: number; home: string; away: string }[], kickoff: number | null, home: string, away: string): number | null {
   const near = list.filter((f) => Number.isInteger(f.id) && f.id > 0 && (kickoff === null || (Number.isFinite(f.ts) && Math.abs(f.ts - kickoff) <= 3 * 3600_000)));
   // ensin tiukka (kaikki nimen sanat), vasta sitten väljä (selvä nimen osa); kummassakin oltava täsmälleen yksi osuma
-  const strict = near.filter((f) => sameTeamStrict(home, words(f.home)) && sameTeamStrict(away, words(f.away)));
+  const strict = near.filter((f) => names(home).some((n) => sameTeamStrict(n, words(f.home))) && names(away).some((n) => sameTeamStrict(n, words(f.away))));
   if (strict.length) return strict.length === 1 ? strict[0].id : null;
   // väljä vertailu vain samaan alkamisaikaan (±15 min): estää esim. "Racing Ferrol" ≈ "Racing Santander" eri kellonaikaan
   const loose = near.filter((f) => kickoff !== null && Math.abs(f.ts - kickoff) <= 15 * 60_000 && sameTeam(home, words(f.home)) && sameTeam(away, words(f.away)));
@@ -382,7 +389,7 @@ export function pickFixture(list: { id: number; ts: number; home: string; away: 
 export type AfOdds = { h: number; d: number; a: number; n: number; update: string | null };
 
 /** Ottelun voittajakertoimien keskiarvo vedonvälittäjien yli (1 / X / 2). Vedonvälittäjien nimiä ei palauteta.
- *  Mukaan vain vedonvälittäjät, joilla kaikki kolme kerrointa ovat kelvollisia (> 1). Alle kaksi → null (ei keksitä). */
+ *  Mukaan vain vedonvälittäjät, joilla kaikki kolme kerrointa ovat kelvollisia (> 1). Ei yhtään → null (ei keksitä). */
 export function parseAfOdds(resp: any[]): AfOdds | null {
   const r = Array.isArray(resp) ? resp[0] : null;
   const rows: [number, number, number][] = [];
@@ -392,7 +399,7 @@ export function parseAfOdds(resp: any[]): AfOdds | null {
     const h = v("Home"), d = v("Draw"), a = v("Away");
     if (h && d && a) rows.push([h, d, a]);
   }
-  if (rows.length < 2) return null;
+  if (rows.length < 1) return null; // yksikin kelvollinen vedonvälittäjä riittää (lähde antaa osalle otteluista vain yhden)
   const avg = (i: number) => Math.round((rows.reduce((s, x) => s + x[i], 0) / rows.length) * 100) / 100;
   const upd = str(r?.update);
   return { h: avg(0), d: avg(1), a: avg(2), n: rows.length, update: upd && !Number.isNaN(Date.parse(upd)) ? new Date(upd).toISOString() : null };
