@@ -171,10 +171,10 @@ function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
       <span className="lu-num" aria-hidden="true">{p.number ?? "–"}</span>
       <span className="lu-name">
         <span className="sr-only">{p.number ? `#${p.number} ` : ""}</span>{p.name}
+        {p.role === 0 && <small className="lu-tag"> (<abbr title={t("roleL_0")}>{t("role_0")}</abbr>)</small>}
         {p.captain && <small className="lu-tag"> ({t("lu_captain")})</small>}
         <Marks p={p} />
       </span>
-      <abbr className="lu-role" title={p.role !== null ? t(`roleL_${p.role}` as Key) : undefined}>{p.role !== null ? t(`role_${p.role}` as Key) : "–"}</abbr>
       {showRating && <span className="lu-rating"><RatingBadge r={p.rating} motm={p.motm} /></span>}
     </li>
   );
@@ -199,6 +199,7 @@ function SubInRow({ p, rated, photos }: { p: LPlayer; rated: boolean; photos: bo
       <LuFace id={p.id} number={p.number} photos={photos} />
       <span className="lu-name">
         <span className="sr-only">{p.number ? `#${p.number} ` : ""}</span>{p.name}
+        {p.role === 0 && <small className="lu-tag"> (<abbr title={t("roleL_0")}>{t("role_0")}</abbr>)</small>}
         {p.captain && <small className="lu-tag"> ({t("lu_captain")})</small>}
         <Marks p={{ ...p, subIn: null }} />
         <small className="lu-for" aria-label={sr}><i aria-hidden="true">↻</i> {p.subFor ? <span className="lu-for-n">{p.subFor}</span> : null} {p.subIn}&apos;</small>

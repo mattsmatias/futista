@@ -104,7 +104,10 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   const made = (await page.locator(".lu-made").innerText()).replace(/\s+/g, " ");
   ok("  Vaihdot: sisään tullut, kenen tilalle ja minuutti, arvosana", /Pelaaja 9902-12/.test(made) && /↻ Pelaaja 9902-10 63'/.test(made) && /6,8/.test(made) && (await page.locator(".lu-made .rb").count()) === 1, made.slice(0, 160));
   ok("  vierasjoukkue ilman vaihtoja → '–' (ei keksittyä)", (await page.locator(".lu-made > .lu-cols > section").nth(1).innerText()).includes("–"));
-  ok("  Vaihtopelaajat: lista ilman arvosanoja (arvosanat kentällä)", (await page.locator(".lu-bench .rb").count()) === 0 && (await page.locator(".lu-bench .lu-row").count()) === 2 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
+  ok("  Vaihtopelaajat: lista ilman arvosanoja (arvosanat kentällä)", (await page.locator(".lu-bench .rb").count()) === 0 && (await page.locator(".lu-bench .lu-row").count()) === 4 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
+  const bench = await page.locator(".lu-bench .lu-row").allInnerTexts();
+  ok("  ei pelipaikkasaraketta (KK, H, P); maalivahdille (MV) nimen viereen (käyttäjän valinta 26.10.2026)", (await page.locator(".lu-role").count()) === 0 &&
+    bench.some((x) => /Pelaaja 9902-13 \(MV\)/.test(x.replace(/\s+/g, " "))) && bench.filter((x) => /\(MV\)/.test(x)).length === 2 && !bench.some((x) => /\b(KK|H|P)\b/.test(x)), JSON.stringify(bench).slice(0, 200));
   const miss = (await page.locator(".lu-missing").innerText()).replace(/\s+/g, " ");
   ok("  Poissaolijat: syyt suomeksi, epävarma merkitty, rivi kerran", /K\. Poissa Polvivamma/.test(miss) && /P\. Kielto Pelikielto \(punainen kortti\)/.test(miss) && /E\. Varma Kolhu · epävarma/.test(miss) && (await page.locator(".lu-missing .lu-row").count()) === 3, miss.slice(0, 200));
   await page.setViewportSize({ width: 320, height: 700 }); await page.waitForTimeout(300);

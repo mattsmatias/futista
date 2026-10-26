@@ -102,7 +102,7 @@ function detailOf(fx, grid, lg = 0) {
         { time: { elapsed: 63, extra: null }, team: { id: h }, player: { id: h * 100 + 10, name: `Pitkä Nimi ${h}-10` }, assist: { id: h * 100 + 12, name: `Pitkä Nimi ${h}-12` }, type: "subst", detail: "Substitution 1" },
       ] : []),
     ],
-    lineups: ns ? [] : [h, a].map((tid) => ({ team: { id: tid, name: tid === h ? fx.teams.home.name : fx.teams.away.name }, formation: grid ? "4-3-3" : null, startXI: xi(tid), substitutes: [pl(tid, 12, "F", null)], coach: { name: "Valmentaja" } })),
+    lineups: ns ? [] : [h, a].map((tid) => ({ team: { id: tid, name: tid === h ? fx.teams.home.name : fx.teams.away.name }, formation: grid ? "4-3-3" : null, startXI: xi(tid), substitutes: [pl(tid, 12, "F", null), ...(fx.fixture.id === 990001 ? [pl(tid, 13, "G", null)] : [])], coach: { name: "Valmentaja" } })),
     statistics: ns || lg === 246 ? [] : [h, a].map((tid) => ({ team: { id: tid }, statistics: [{ type: "Ball Possession", value: tid === h ? "55%" : "45%" }, { type: "Total Shots", value: tid === h ? 9 : null }, { type: "Corner Kicks", value: 4 }] })),
     players: ns ? [] : [h, a].map((tid) => ({ team: { id: tid }, players: [{ player: { id: tid * 100 + 9 }, statistics: [{ games: { rating: "7.4", captain: false }, shots: { total: 2, on: 1 }, goals: { saves: null } }] },
       ...(fx.fixture.id === 990001 ? [{ player: { id: tid * 100 + 12 }, statistics: [{ games: { rating: tid === h ? "6.8" : "0" } }] }] : [])] })),

@@ -1378,12 +1378,12 @@ html { touch-action: manipulation; }
 .lu-form { font-family: var(--mono); }
 .lu-h { margin: 0; padding: 12px 16px 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .lu-list { list-style: none; margin: 0; padding: 0 8px 8px; }
-.lu-row { display: grid; grid-template-columns: 2.4em 1fr auto auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.lu-row { display: grid; grid-template-columns: 2.4em 1fr auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .lu-row:last-child { border-bottom: 0; }
 .lu-num { display: grid; place-items: center; width: 2.1em; height: 2.1em; border-radius: 50%; background: var(--surface-2); font: 700 12.5px var(--mono); }
 .lu-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .lu-tag { color: var(--muted); font-weight: 500; }
-.lu-role { text-decoration: none; font: 700 11.5px var(--mono); color: var(--muted); min-width: 2.4em; text-align: center; }
+.lu-tag abbr { text-decoration: none; }
 .lu-rating { font: 700 13px var(--mono); min-width: 2.6em; text-align: right; }
 .lu-avg, .lu-coach { margin: 0; padding-top: 6px; padding-bottom: 10px; }
 /* Vaihdot ja poissaolijat: kuva/numero, nimi ja lisärivi (↻ tilalta lähtenyt + minuutti / poissaolon syy), arvosana oikealla */
