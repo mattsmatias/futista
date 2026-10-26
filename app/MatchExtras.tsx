@@ -269,12 +269,6 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
             </section>
           ))}
         </div>
-        {(h.coach || a.coach) && (
-          <div className="lu-cols lu-coach">
-            <p className="pad"><span className="muted">{t("lu_coach")}:</span> {h.coach ?? "–"}</p>
-            <p className="pad"><span className="muted">{t("lu_coach")}:</span> {a.coach ?? "–"}</p>
-          </div>
-        )}
       </section>
       {anyOut && (
         <section className="panel lu-missing" aria-label={t("lu_missing")}>
@@ -297,6 +291,15 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
                 ) : <p className="muted small pad">–</p>}
               </section>
             ))}
+          </div>
+        </section>
+      )}
+      {(h.coach || a.coach) && (
+        <section className="panel lu-coaches" aria-label={t("lu_coaches")}>
+          <div className="panel-head"><h3>{t("lu_coaches")}</h3></div>
+          <div className="lu-coach-row">
+            <p aria-label={`${home.name}: ${h.coach ?? "–"}`}>{h.coach ?? "–"}</p>
+            <p aria-label={`${away.name}: ${a.coach ?? "–"}`}>{a.coach ?? "–"}</p>
           </div>
         </section>
       )}

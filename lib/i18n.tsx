@@ -494,7 +494,7 @@ const D = {
   lu_pre: ["Lähteen ilmoittama kokoonpano. Lähde ei kerro, onko se vahvistettu.", "Källans laguppställning. Källan anger inte om den är bekräftad.", "Line-up as reported by the source. The source doesn't say whether it's confirmed."],
   lu_team: ["Joukkue", "Lag", "Team"],
   lu_subs: ["Vaihtopelaajat", "Avbytare", "Substitutes"],
-  lu_coach: ["Valmentaja", "Tränare", "Manager"],
+  lu_coaches: ["Valmentajat", "Tränare", "Managers"],
   hl_title: ["Ottelun kohokohdat", "Matchens höjdpunkter", "Match highlights"],
   hl_play: ["Toista ottelun kohokohdat: {t}", "Spela upp höjdpunkterna: {t}", "Play match highlights: {t}"],
   hl_open: ["Avaa YouTubessa", "Öppna på YouTube", "Open on YouTube"],

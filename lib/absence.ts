@@ -31,6 +31,7 @@ const EXACT: Record<string, L3> = {
   "personal reasons": ["Henkilökohtaiset syyt", "Personliga skäl"],
   "coach's decision": ["Valmentajan päätös", "Tränarens beslut"],
   "international duty": ["Maajoukkuetehtävät", "Landslagsuppdrag"],
+  inactive: ["Ei aktiivinen", "Inaktiv"], surgery: ["Leikkaus", "Operation"],
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
@@ -54,6 +55,7 @@ export function reasonText(u: Pick<Unavailable, "reason" | "detail">, lang: "fi"
     if (EXACT[n]) return EXACT[n][i];
     const m = n.match(/^(.+?) (injury|problems?|strain)$/);
     if (m && PART[m[1]]) return PART[m[1]][i];
+    if (/ surgery$/.test(n)) return EXACT.surgery[i]; // esim. "Knee Surgery"
   }
   if (u.reason === "injury") return EXACT.injury[i];
   if (u.reason === "suspension") return EXACT.suspended[i];

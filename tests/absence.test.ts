@@ -24,4 +24,6 @@ test("poissaolon syy: tunnetut käännetään, tuntematon ei keksitä", () => {
   assert.equal(reasonText(u("Pelvis Injury"), "fi"), "Loukkaantuminen"); // tuntematon kehonosa → yleinen luokka
   assert.equal(reasonText(u("Family matter"), "fi"), "Family matter");   // tuntematon muu syy → lähteen teksti
   assert.equal(reasonText(u(null), "fi"), null);
+  assert.equal(reasonText(u("Inactive"), "fi"), "Ei aktiivinen"); // oikea vastaus 26.10.2026 (Göztepe)
+  assert.equal(reasonText(u("Knee Surgery"), "fi"), "Leikkaus");
 });

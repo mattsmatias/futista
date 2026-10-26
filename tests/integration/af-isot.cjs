@@ -98,9 +98,11 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("Kokoonpanot: ei 'Avauskokoonpanot'-tekstiä (käyttäjän valinta 26.10.2026)", !/Avauskokoonpanot/.test(await page.locator("main").innerText()));
   // Flashscoren rakenne (käyttäjän esimerkki 26.10.2026): kenttä → Vaihdot → Vaihtopelaajat → Poissaolijat
   const heads = await page.locator(".tab-pane .panel-head h3, main .panel-head h3").evaluateAll((els) => [...new Set(els.map((e) => e.textContent))]);
-  const order = ["Vaihdot", "Vaihtopelaajat", "Poissaolijat"];
+  const order = ["Vaihdot", "Vaihtopelaajat", "Poissaolijat", "Valmentajat"];
   ok("Kokoonpanot: ei Avauskokoonpano-listaa (käyttäjän valinta 26.10.2026)", !heads.includes("Avauskokoonpano") && (await page.locator(".lu-starters").count()) === 0);
-  ok("  osiot järjestyksessä kenttä → Vaihdot → Vaihtopelaajat → Poissaolijat", order.every((x) => heads.includes(x)) && order.map((x) => heads.indexOf(x)).every((v, i, a) => i === 0 || v > a[i - 1]) && (await page.locator(".pitch-full").count()) === 1, heads.join("|"));
+  const coach = await page.locator(".lu-coaches .lu-coach-row p").evaluateAll((els) => els.map((e) => [e.textContent, getComputedStyle(e).textAlign]));
+  ok("  Valmentajat omana osionaan Poissaolijoiden jälkeen: koti vasemmalla, vieras oikealla (käyttäjän esimerkki 26.10.2026)", coach.length === 2 && coach[0][0] === "Valmentaja" && coach[1][1] === "right" && (await page.locator(".lu-bench").innerText()).indexOf("Valmentaja") < 0, JSON.stringify(coach));
+  ok("  osiot järjestyksessä kenttä → Vaihdot → Vaihtopelaajat → Poissaolijat → Valmentajat", order.every((x) => heads.includes(x)) && order.map((x) => heads.indexOf(x)).every((v, i, a) => i === 0 || v > a[i - 1]) && (await page.locator(".pitch-full").count()) === 1, heads.join("|"));
   const made = (await page.locator(".lu-made").innerText()).replace(/\s+/g, " ");
   ok("  Vaihdot: sisään tullut, kenen tilalle ja minuutti, arvosana", /Pelaaja 9902-12/.test(made) && /↻ Pelaaja 9902-10 63'/.test(made) && /6,8/.test(made) && (await page.locator(".lu-made .rb").count()) === 1, made.slice(0, 160));
   ok("  vierasjoukkue ilman vaihtoja → '–' (ei keksittyä)", (await page.locator(".lu-made > .lu-cols > section").nth(1).innerText()).includes("–"));

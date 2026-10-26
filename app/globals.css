@@ -1385,7 +1385,12 @@ html { touch-action: manipulation; }
 .lu-tag { color: var(--muted); font-weight: 500; }
 .lu-tag abbr { text-decoration: none; }
 .lu-rating { font: 700 13px var(--mono); min-width: 2.6em; text-align: right; }
-.lu-avg, .lu-coach { margin: 0; padding-top: 6px; padding-bottom: 10px; }
+.lu-avg { margin: 0; padding-top: 6px; padding-bottom: 10px; }
+/* Valmentajat: koti vasemmalla, vieras oikealla myös kapealla näytöllä (Flashscoren tapaan) */
+.lu-coaches { margin-top: 16px; }
+.lu-coach-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px 14px; }
+.lu-coach-row p { margin: 0; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.lu-coach-row p + p { text-align: right; }
 /* Vaihdot ja poissaolijat: kuva/numero, nimi ja lisärivi (↻ tilalta lähtenyt + minuutti / poissaolon syy), arvosana oikealla */
 .lu-in, .lu-out-row { grid-template-columns: 36px 1fr auto; }
 .lu-face { display: block; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--surface-2); }
