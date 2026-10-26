@@ -146,7 +146,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  kertoimet mahtuvat (390 px)", odOv);
 
   // Pelaajatilastot: pelaajan kuva lähteen tunnisteella (API-Football); kuvapalvelin simuloidaan 1×1-kuvalla
-  await page.route(/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
+  await page.route(/media\.api-sports\.io\/football\/(players|coachs)\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
   await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
   await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {});
   const faces = await page.locator(".ps-row .ps-face img").evaluateAll((els) => els.map((e) => e.getAttribute("src")));
