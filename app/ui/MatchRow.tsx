@@ -8,6 +8,27 @@ import type { MatchState } from "@/lib/live-core";
 import { useI18n } from "@/lib/i18n";
 import { Num } from "@/lib/fresh";
 import { Badge } from "../Stats";
+import { useEffect, useRef, useState } from "react";
+import { LOCALE } from "@/lib/i18n";
+import { oddsKey, requestOdds, type RowOdds } from "@/lib/odds-client";
+
+/** Rivin kertoimet: haetaan vasta, kun rivi tulee näkyviin (ei peruttuja/siirrettyjä otteluita) */
+function useRowOdds(href: string, s: MatchState) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [o, setO] = useState<RowOdds | null>(null);
+  const key = s.kind === "postponed" || s.kind === "cancelled" ? null : oddsKey(href);
+  useEffect(() => {
+    const el = ref.current;
+    if (!key || !el) return;
+    let on = true;
+    const go = () => requestOdds(key).then((v) => { if (on) setO(v); });
+    if (typeof IntersectionObserver === "undefined") { go(); return () => { on = false; }; }
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); go(); } }, { rootMargin: "200px" });
+    io.observe(el);
+    return () => { on = false; io.disconnect(); };
+  }, [key]);
+  return { ref, o };
+}
 
 export type RowTeam = Team & { display?: string };
 
@@ -36,8 +57,9 @@ export function useStatusText() {
 const RedCards = ({ n }: { n: number }) => n > 0 ? <span className="mrow-rc" aria-hidden="true">{n}</span> : null;
 
 export function MatchRow({ href, home, away, s, time, highlight }: { href: string; home: RowTeam; away: RowTeam; s: MatchState; time: string | null; highlight?: (t: Team) => boolean }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const st = useStatusText()(s, time);
+  const { ref, o } = useRowOdds(href, s);
   const score = hasScore(s);
   const done = s.kind === "ft";
   const hw = done && score && s.hs! > s.as!, aw = done && score && s.as! > s.hs!;
@@ -46,9 +68,12 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
   // punaiset kortit vain käynnissä olevassa ja päättyneessä ottelussa
   const reds = (isLive || done) && s.reds ? s.reds : null;
   const redTxt = (x: RowTeam, n: number) => n > 0 ? ` ${name(x)}: ${n} × ${t("lu_red")}.` : "";
+  // kertoimet: toteutunut lopputulos korostetaan (varsinaisen peliajan tulos; jatkoaika/rangaistuspotkut → ei korostusta)
+  const won = done && score && !s.aet && !s.pens && s.phase !== "pens" ? (s.hs! > s.as! ? "h" : s.hs! < s.as! ? "a" : "d") : null;
+  const fo = (x: number) => x.toLocaleString(LOCALE[lang], { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const label = `${name(home)}${score ? ` ${s.hs}–${s.as}` : ""} ${name(away)}. ${st.long}${s.pens ? ` ${s.pens[0]}–${s.pens[1]}` : ""}${reds ? redTxt(home, reds[0]) + redTxt(away, reds[1]) : ""}`;
   return (
-    <div className={`mrow${isLive ? " is-live" : ""}`}>
+    <div ref={ref} className={`mrow${isLive ? " is-live" : ""}`}>
       <a className="mrow-link" href={href} aria-label={label}>
         <span className={`mrow-st ms-${st.cls}`} aria-hidden="true">
           <span>{st.short}</span>
@@ -61,6 +86,11 @@ export function MatchRow({ href, home, away, s, time, highlight }: { href: strin
           <span className={hw ? "win" : ""}>{score ? <Num v={s.hs} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[0]})</small>}</span>
           <span className={aw ? "win" : ""}>{score ? <Num v={s.as} /> : <b className="nil">&nbsp;</b>}{s.pens && <small>({s.pens[1]})</small>}</span>
         </span>
+        {o && (
+          <span className="mrow-od" aria-label={`${t("od_title")}: 1 ${fo(o.h)}, X ${fo(o.d)}, 2 ${fo(o.a)}`}>
+            {(["h", "d", "a"] as const).map((k, i) => <span key={k} className={won === k ? "won" : ""}><i>{["1", "X", "2"][i]}</i>{fo(o[k])}</span>)}
+          </span>
+        )}
       </a>
     </div>
   );

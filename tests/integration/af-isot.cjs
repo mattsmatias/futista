@@ -147,6 +147,25 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
   ok("  kuva ei lataudu → paitanumero", (await page.locator(".ps-row .ps-face img").count()) === 0 && (await page.locator(".ps-row .ps-num").count()) > 0);
   ok("  ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
+  // Ottelulistojen kertoimet (käyttäjän valinta 26.10.2026): rivin alle 1 / X / 2, haetaan niputettuna näkyville riveille
+  const K = `bundesliga~${D}~mittaus-united--testiseura-kotka`;
+  const ol = await get("kertoimet/lista", `k=${encodeURIComponent(K)},${encodeURIComponent(`bundesliga~${D}~ei-ole--olemassa`)}`);
+  ok("Listan kertoimet: ottelu → keskiarvo, tuntematon → null", ol.status === 200 && JSON.stringify(ol.j?.odds?.[K]) === JSON.stringify({ h: 2.1, d: 3.4, a: 3.3 }) && ol.j?.odds?.[`bundesliga~${D}~ei-ole--olemassa`] === null, JSON.stringify(ol.j));
+  const bad = await get("kertoimet/lista", "k=../../x");
+  ok("  virheellinen avain → 400", bad.status === 400, String(bad.status));
+  const lp = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: "fi-FI" });
+  const listCalls = []; lp.on("request", (r) => { if (r.url().includes("/api/kertoimet/lista")) listCalls.push(r.url()); });
+  await lp.goto(`${APP}/sarjat/bundesliga?v=tulokset`, { waitUntil: "load" });
+  const row = lp.locator(".mrow", { has: lp.locator("a[href*='mittaus-united--testiseura-kotka']") }).first();
+  await row.locator(".mrow-od").waitFor({ timeout: 15000 }).catch(() => {});
+  const odTxt = (await row.locator(".mrow-od").innerText().catch(() => "")).replace(/\s+/g, " ");
+  ok("  sarjan tuloslistassa rivin alla 1 2,10 · X 3,40 · 2 3,30", /1 ?2,10/.test(odTxt) && /X ?3,40/.test(odTxt) && /2 ?3,30/.test(odTxt), odTxt);
+  ok("  toteutunut lopputulos (vierasvoitto) korostettu", (await row.locator(".mrow-od > span").nth(2).getAttribute("class")) === "won" && (await row.locator(".mrow-od .won").count()) === 1);
+  ok("  pyynnöt niputettu (enintään 3 kutsua)", listCalls.length >= 1 && listCalls.length <= 3, String(listCalls.length));
+  ok("  ei vedonvälittäjien nimiä listassa", !/Bet365|Pinnacle|William Hill/.test(await lp.locator("main").innerText()));
+  const rov = await lp.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  ok("  ei vaakavieritystä (390 px)", rov <= 0, String(rov));
+  await lp.close();
   await browser.close();
 
   const fail = results.filter((x) => !x).length;

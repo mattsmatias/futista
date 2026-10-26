@@ -95,20 +95,54 @@ export async function statsResponse(req: Request) {
   return off();
 }
 
-/** Ottelun voittajakertoimet (Yhteenveto). Vain API-Footballin kautta tunnistettava ottelu; vedonvälittäjien nimiä ei välitetä. */
-export async function oddsResponse(req: Request) {
-  const { l, d, p } = params(req);
-  if (!(isAf(l) || afBigOn(l))) return json({ state: "off" }, 200, 86400);
+/** Ottelun voittajakertoimet (Yhteenveto ja ottelulistat). Vain API-Footballin kautta tunnistettava ottelu; vedonvälittäjien nimiä ei välitetä. */
+export async function oddsFor(l: string, d: string, p: string): Promise<{ state: "ok" | "none" | "off" | "notfound" | "unavailable"; phase?: string; odds?: Awaited<ReturnType<typeof afOdds>> }> {
+  if (!(isAf(l) || afBigOn(l))) return { state: "off" };
   let ours = await ourMatch(l, d, p);
   const running = ours === null && afBigOn(l) ? await liveOurMatch(l, d, p) : null;
   if (running) ours = running;
-  if (ours === null) return json({ state: "notfound" }, 404, 600);
-  if (ours === "unavailable") return json({ state: "unavailable" }, 503, 0);
+  if (ours === null) return { state: "notfound" };
+  if (ours === "unavailable") return { state: "unavailable" };
   const phase = running ? "live" : phaseOf(ours.kickoff, Date.now(), ours.finished);
   const afid = ours.afid ?? (afBigOn(l) ? await afFindFixture(l, d, ours.kickoff, ours.home.name, ours.away.name) : null);
-  if (afid === "unavailable") return json({ state: "unavailable" }, 503, 0);
-  if (!afid) return json({ state: "none" }, 200, 3600);
+  if (afid === "unavailable") return { state: "unavailable" };
+  if (!afid) return { state: "none", phase };
   const o = await afOdds(l, afid, phase);
-  if (!o) return json({ state: "none", phase }, 200, phase === "final" ? 86400 : 1800);
-  return json({ state: "ok", phase, odds: o }, 200, phase === "final" ? 86400 : 900);
+  return o ? { state: "ok", phase, odds: o } : { state: "none", phase };
+}
+
+export async function oddsResponse(req: Request) {
+  const { l, d, p } = params(req);
+  const r = await oddsFor(l, d, p);
+  if (r.state === "off") return json(r, 200, 86400);
+  if (r.state === "notfound") return json(r, 404, 600);
+  if (r.state === "unavailable") return json(r, 503, 0);
+  const fin = r.phase === "final";
+  return json(r, 200, r.state === "ok" ? (fin ? 86400 : 900) : (fin ? 86400 : 1800));
+}
+
+/** Ottelulistojen kertoimet: enintään 60 ottelua kerralla (l~päivä~pari). Jokainen ottelu omasta välimuististaan (sama kuin Yhteenveto). */
+const KEY = /^([a-z0-9-]{2,30})~(\d{4}-\d{2}-\d{2})~([a-z0-9-]+--[a-z0-9-]+)$/;
+export async function oddsListResponse(req: Request) {
+  const raw = (new URL(req.url).searchParams.get("k") ?? "").split(",").filter(Boolean);
+  const keys = [...new Set(raw)].filter((k) => KEY.test(k) && k.length <= 160);
+  if (!keys.length || keys.length > 60 || raw.length > 60) return json({ error: "bad keys" }, 400, 3600);
+  const out: Record<string, { h: number; d: number; a: number } | null> = {};
+  let soft = false;
+  // rajattu rinnakkaisuus: lähteen kutsut menevät joka tapauksessa välimuistin ja kiintiövahdin kautta
+  const queue = [...keys];
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    for (let k = queue.shift(); k; k = queue.shift()) {
+      const [, l, d, p] = k.match(KEY)!;
+      // lähde antaa kertoimet ~2 vk ennen ja säilyttää ~1 vk ottelun jälkeen: muita ei haeta (kiintiö)
+      const age = (Date.now() - Date.parse(`${d}T12:00:00Z`)) / 86400_000;
+      if (age > 8 || age < -15) { out[k] = null; continue; }
+      try {
+        const r = await oddsFor(l, d, p);
+        if (r.state === "unavailable") soft = true;
+        out[k] = r.state === "ok" && r.odds ? { h: r.odds.h, d: r.odds.d, a: r.odds.a } : null;
+      } catch { soft = true; out[k] = null; }
+    }
+  }));
+  return json({ odds: out }, 200, soft ? 60 : 900);
 }
