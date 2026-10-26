@@ -163,7 +163,7 @@ function PitchFace({ p, photo }: { p: LPlayer; photo: string | null }) {
   return <span className="pp-shirt">{p.number ?? ""}</span>;
 }
 
-function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
+function PlayerRow({ p, showRating, bench = false }: { p: LPlayer; showRating: boolean; bench?: boolean }) {
   const { t } = useI18n();
   return (
     <li className="lu-row">
@@ -174,7 +174,8 @@ function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
         <Marks p={p} />
       </span>
       <abbr className="lu-role" title={p.role !== null ? t(`roleL_${p.role}` as Key) : undefined}>{p.role !== null ? t(`role_${p.role}` as Key) : "–"}</abbr>
-      {showRating && <span className="lu-rating"><RatingBadge r={p.rating} motm={p.motm} /></span>}
+      {/* vaihtopelaaja, joka ei pelannut (ei arvosanaa): ei arvosanamerkkiä lainkaan, sarake pysyy tasattuna */}
+      {showRating && <span className="lu-rating">{bench && p.rating === null ? null : <RatingBadge r={p.rating} motm={p.motm} />}</span>}
     </li>
   );
 }
@@ -189,7 +190,7 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
   const h = data.home, a = data.away;
   const rated = started(data.phase) && hasRatings([h, a]);
   const label = t("lu_pitchLabel2").replace("{h}", home.name).replace("{hf}", h.formation ?? "–").replace("{a}", away.name).replace("{af}", a.formation ?? "–");
-  const subsRow = (l: Lineup) => <ul className="lu-list lu-subs">{l.subs.map((p, i) => <PlayerRow key={p.id ?? i} p={p} showRating={rated} />)}</ul>;
+  const subsRow = (l: Lineup) => <ul className="lu-list lu-subs">{l.subs.map((p, i) => <PlayerRow key={p.id ?? i} p={p} showRating={rated} bench />)}</ul>;
   const avgText = (l: Lineup) => { const v = rated ? startersAverage(l) : null; return v ? t("lu_avg").replace("{a}", v.avg.toLocaleString(LOCALE[lang], { maximumFractionDigits: 2 })).replace("{n}", String(v.n)).replace("{m}", String(v.of)) : null; };
   return (
     <>

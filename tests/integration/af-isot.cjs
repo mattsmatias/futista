@@ -92,6 +92,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  2. puoliajan luvut vaihtuvat", /2\. puoliaika/.test(await headTxt()) && s1 !== s2 && /\b4\b[\s\S]*\b6\b/.test(s2), `${s1.slice(0, 60)} → ${s2.slice(0, 60)}`);
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click(); await page.waitForTimeout(500);
   ok("Kokoonpanot: ei 'Avauskokoonpanot'-tekstiä (käyttäjän valinta 26.10.2026)", !/Avauskokoonpanot/.test(await page.locator("main").innerText()));
+  ok("  pelaamattomalla vaihtopelaajalla ei arvosanamerkkiä (ei '–' eikä 0,0)", (await page.locator(".lu-subs .lu-row").count()) > 0 && (await page.locator(".lu-subs .rb").count()) === 0 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
 
   // Pelaajatilastot: pelaajan kuva lähteen tunnisteella (API-Football); kuvapalvelin simuloidaan 1×1-kuvalla
   await page.route(/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
