@@ -7,7 +7,7 @@ import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
 import { isDate } from "./day";
 
-export type OurMatch = { source: string; date: string; pair: string; kickoff: number | null; finished: boolean; aet: boolean; eid?: string; afid?: number; home: { name: string; id?: number }; away: { name: string; id?: number } };
+export type OurMatch = { source: string; date: string; pair: string; kickoff: number | null; finished: boolean; aet: boolean; score?: [number, number]; eid?: string; afid?: number; home: { name: string; id?: number }; away: { name: string; id?: number } };
 
 /** null = tuntematon ottelu (404); "unavailable" = sarjan tietoja ei saatu juuri nyt */
 export async function ourMatch(source: string, date: string, pair: string): Promise<OurMatch | null | "unavailable"> {
@@ -25,7 +25,7 @@ export async function ourMatch(source: string, date: string, pair: string): Prom
   return {
     source, date, pair,
     kickoff: /^\d{1,2}:\d{2}$/.test(time) ? helsinkiEpoch(date, time) : null,
-    finished: !!r, aet: !!r?.note, ...(m.eid ? { eid: m.eid } : {}), ...(m.afid ? { afid: m.afid } : {}),
+    finished: !!r, aet: !!r?.note, ...(r ? { score: [r.hs, r.as] as [number, number] } : {}), ...(m.eid ? { eid: m.eid } : {}), ...(m.afid ? { afid: m.afid } : {}),
     home: { name: m.home.name, id: m.home.id }, away: { name: m.away.name, id: m.away.id },
   };
 }

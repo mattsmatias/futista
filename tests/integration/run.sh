@@ -19,6 +19,8 @@ grant usage on schema public to service_role;
 SQL
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_fd_quota.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_news_reactions.sql
+# kohokohdat: vain taulu (ajastusosa vaatii Supabasen pg_cronin)
+sed '/^-- AJASTUS/,$d' supabase/migrations/20261026_yt_videos.sql | psql "$PG_URL" -v ON_ERROR_STOP=1 -q
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)
@@ -28,6 +30,8 @@ export SUPABASE_URL=http://127.0.0.1:9102 SUPABASE_SERVICE_ROLE_KEY=sb_secret_lo
 export APIFOOTBALL_KEY=test-not-a-real-key APIFOOTBALL_BASE_URL=http://127.0.0.1:9101/af
 # muiden sarjojen ottelutiedot API-Footballista pois aiemmista testeistä (ne testaavat ESPN-lähdettä ja "ei käytössä" -tilaa); oma ajo lopussa
 export AF_EXTRAS_OFF=1
+# kohokohdat: simuloitu YouTube (mock-sources.cjs /yt/, /ytimg/); ajastuksen tunniste testissä
+export YT_BASE_URL=http://127.0.0.1:9101/yt YT_IMG_BASE_URL=http://127.0.0.1:9101/ytimg CRON_SECRET=test-cron-not-real
 # pokaalit: simuloitu Wikidata (mock-sources.cjs /wd/sparql)
 export WD_BASE_URL=http://127.0.0.1:9101/wd/sparql
 # Mainosta-lomake: simuloitu Resend (mock-sources.cjs /resend/), testiosoitteet (example.test ei ole oikea verkkotunnus)
@@ -44,6 +48,7 @@ node tests/integration/ui.cjs || rc=1
 node tests/integration/af-kilpailut.cjs || rc=1
 node tests/integration/pokaalit.cjs || rc=1
 node tests/integration/punaiset.cjs || rc=1
+node tests/integration/kohokohdat.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1 RESEND_API_KEY=
 node tests/integration/switches.cjs || rc=1

@@ -2,7 +2,7 @@
 // Kotitekoista dataa, EI yhteyttä oikeisiin rajapintoihin. Tilaa ohjataan:
 //   GET /__mode?fd=ok|down|429&espn=ok|down&h2h=ok|empty|down   GET /__log   GET /__reset
 const http = require("node:http");
-const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", afvar: "0", resend: "ok", wd: "ok" };
+const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", afvar: "0", resend: "ok", wd: "ok", yt: "ok" };
 const afMock = require("./mock-af.cjs");
 const log = [];
 const json = (res, code, body, extra = {}) => { res.writeHead(code, { "content-type": "application/json", ...extra }); res.end(JSON.stringify(body)); };
@@ -247,6 +247,42 @@ function wd(u, res) {
   return b([]);
 }
 
+// Simuloitu YouTube (kohokohdat): Serie A -kanavan syöte kuvitteellisen Serie A:n (SA) päättyneistä otteluista.
+// Päättyneet id-järjestyksessä: [0] kooste + lehdistötilaisuus, [1] upotus estetty, [2] ei koostetta, [3] kooste + väärän
+// tuloksen video, muut kooste. mode.yt: ok | down | empty (syöte tyhjä, esim. kooste pudonnut syötteestä).
+const YT_SA = "UCBJeMCIeLQos7wacox4hmLQ";
+const ytVid = (id, tag = "") => `S${tag}${id}`.padEnd(11, "0").slice(0, 11);
+function ytSA() {
+  const done = gen("SA").matches.filter((x) => x.status === "FINISHED").sort((a, b) => a.id - b.id);
+  const out = [];
+  done.forEach((x, i) => {
+    if (i === 2) return;
+    const H = x.homeTeam.name.toUpperCase(), A = x.awayTeam.name.toUpperCase(), sc = x.score.fullTime;
+    const pub = iso(Date.parse(x.utcDate) + 3 * 3600_000);
+    if (i === 0) out.push({ id: ytVid(x.id, "P"), title: `Conferenza stampa | ${H}-${A}`, pub });
+    if (i === 3) out.push({ id: ytVid(x.id, "W"), title: `${H} ${sc.home + 1}-${sc.away} ${A} | HIGHLIGHTS | SERIE A 2025/26`, pub });
+    out.push({ id: i === 1 ? "BLOCKED0000" : ytVid(x.id), title: `Serata speciale | ${H}-${A} | HIGHLIGHTS | SERIE A ENILIVE 2026/27`, pub });
+  });
+  return { done, out };
+}
+function yt(u, res) {
+  if (mode.yt === "down") return json(res, 503, {});
+  if (u.pathname === "/yt/feeds/videos.xml") {
+    const ch = u.searchParams.get("channel_id") ?? "";
+    const items = ch === YT_SA && mode.yt !== "empty" ? ytSA().out : [];
+    const xml = `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><title>Serie A</title>${items.map((v) => `<entry><yt:videoId>${v.id}</yt:videoId><title>${v.title.replace(/&/g, "&amp;")}</title><published>${v.pub.replace("Z", "+00:00")}</published></entry>`).join("")}</feed>`;
+    res.writeHead(200, { "content-type": "application/atom+xml" }); return res.end(xml);
+  }
+  if (u.pathname === "/yt/oembed") return /BLOCKED/.test(u.searchParams.get("url") ?? "") ? json(res, 401, {}) : json(res, 200, { title: "ok" });
+  if (u.pathname === "/yt/__sa") return json(res, 200, ytSA());
+  return json(res, 404, {});
+}
+function ytimg(u, res) {
+  if (!/^\/ytimg\/vi\/[\w-]{11}\/hqdefault\.jpg$/.test(u.pathname)) return json(res, 404, {});
+  res.writeHead(200, { "content-type": "image/jpeg" });
+  res.end(Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64"));
+}
+
 http.createServer((req, res) => {
   const u = new URL(req.url, "http://x");
   if (u.pathname === "/__mode") { for (const k of Object.keys(mode)) if (u.searchParams.get(k)) mode[k] = u.searchParams.get(k); return json(res, 200, mode); }
@@ -260,5 +296,7 @@ http.createServer((req, res) => {
   if (req.url.startsWith("/feed/")) return feed(req.url.slice(6), res);
   if (req.url.startsWith("/resend/")) return resend(req.url.slice(7), req, res);
   if (u.pathname === "/wd/sparql") return wd(u, res);
+  if (u.pathname.startsWith("/yt/")) return yt(u, res);
+  if (u.pathname.startsWith("/ytimg/")) return ytimg(u, res);
   json(res, 404, {});
 }).listen(Number(process.env.PORT || 9101), "127.0.0.1", () => console.log("mock-sources ready"));

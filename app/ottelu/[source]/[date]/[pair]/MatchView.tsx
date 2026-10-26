@@ -6,7 +6,8 @@ import type { Fixture, LeagueStats, Result, Row, Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
 import { SOURCES } from "@/lib/sources";
 import { norm } from "@/lib/teams";
-import { teamHref } from "@/lib/routes";
+import { teamHref, teamSlug } from "@/lib/routes";
+import { HighlightCard } from "@/app/ui/HighlightCard";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
@@ -201,6 +202,8 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
 
         {tab === "summary" && (
           <>
+            {/* kooste vain päättyneelle ottelulle (Flashscoren tapaan Yhteenvedon alussa) */}
+            {result && <HighlightCard l={s.source} d={m.date} p={`${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`} />}
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
             <div className="panel">

@@ -37,6 +37,25 @@ http.createServer(async (req, res) => {
     finally { await client.query("reset role").catch(() => {}); client.release(); }
     return;
   }
+  // kohokohtavideot: upsert (POST ?on_conflict=video_id) ja haku kanavista aikavälillä (GET)
+  if (req.url.startsWith("/rest/v1/yt_videos?")) {
+    const q = new URL(req.url, "http://x").searchParams;
+    const client = await pool.connect();
+    try {
+      await client.query("set role service_role");
+      if (req.method === "POST") {
+        let body = ""; for await (const c of req) body += c;
+        for (const r of JSON.parse(body)) await client.query("insert into public.yt_videos (video_id, channel_id, title, published_at) values ($1,$2,$3,$4) on conflict (video_id) do update set title = excluded.title, seen_at = now()", [r.video_id, r.channel_id, r.title, r.published_at]);
+        res.writeHead(201); res.end(""); return;
+      }
+      const chans = (q.get("channel_id") ?? "").replace(/^in\.\(|\)$/g, "").split(",");
+      const [gte, lte] = q.getAll("published_at").map((x) => x.replace(/^(gte|lte)\./, ""));
+      const r = await client.query("select video_id, channel_id, title, published_at from public.yt_videos where channel_id = any($1) and published_at >= $2 and published_at <= $3 limit 500", [chans, gte, lte]);
+      res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(r.rows));
+    } catch (e) { res.writeHead(404); res.end(JSON.stringify({ message: String(e.message) })); }
+    finally { await client.query("reset role").catch(() => {}); client.release(); }
+    return;
+  }
   const m = req.url.match(/^\/rest\/v1\/rpc\/(fd_quota_acquire|fd_quota_block)$/);
   if (!m || req.method !== "POST") { res.writeHead(404); res.end("{}"); return; }
   let body = ""; for await (const c of req) body += c;

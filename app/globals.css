@@ -1743,3 +1743,19 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .ms-halves { margin: 0 0 10px; width: 100%; max-width: 420px; }
 .ms-halves button { flex: 1 0 auto; overflow: visible; text-overflow: clip; }
 .ms-halves button:disabled { opacity: .45; cursor: default; }
+
+/* Ottelun kohokohdat (YouTube): pikkukuva + teksti; soitin vasta painalluksesta */
+.hl-card { margin-bottom: 16px; padding: 10px; }
+.hl-open { display: grid; grid-template-columns: minmax(120px, 44%) 1fr; align-items: center; gap: 14px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: var(--r-md); }
+.hl-open:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+.hl-thumb { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.hl-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hl-playbtn { position: absolute; inset: 0; margin: auto; width: 46px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: rgba(0, 0, 0, .72); color: #fff; }
+.hl-open:hover .hl-playbtn { background: #e5322d; }
+.hl-text { display: grid; gap: 4px; min-width: 0; }
+.hl-text b { font-size: 16px; line-height: 1.25; }
+.hl-text small { color: var(--muted); overflow-wrap: anywhere; }
+.hl-frame { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; }
+.hl-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.hl-meta { margin: 8px 2px 0; display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: space-between; }
+.hl-meta span { min-width: 0; overflow-wrap: anywhere; }

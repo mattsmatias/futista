@@ -16,6 +16,7 @@
     "seo.test.ts",
     "trophies.test.ts",
     "absence.test.ts",
+    "highlights.test.ts",
     "reds.test.ts",
     "scorer-rank.test.ts",
     "app-update.test.ts",
