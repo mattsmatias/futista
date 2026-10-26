@@ -179,6 +179,13 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  ei vedonvälittäjien nimiä listassa", !/Bet365|Pinnacle|William Hill/.test(await lp.locator("main").innerText()));
   const rov = await lp.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   ok("  ei vaakavieritystä (390 px)", rov <= 0, String(rov));
+  // Ottelut-etusivulla ei kertoimia (käyttäjän valinta 26.10.2026)
+  const hp = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: "fi-FI" });
+  await hp.goto(`${APP}/`, { waitUntil: "load" }).catch(() => {});
+  await hp.waitForSelector(".mrow", { timeout: 15000 }).catch(() => {});
+  await hp.waitForTimeout(2500);
+  ok("  Ottelut-sivulla ei kertoimia", (await hp.locator(".mrow").count()) > 0 && (await hp.locator(".mrow-od").count()) === 0, `${await hp.locator(".mrow").count()} riviä, ${await hp.locator(".mrow-od").count()} kerroinriviä`);
+  await hp.close();
   await lp.close();
   await browser.close();
 

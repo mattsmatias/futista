@@ -1,4 +1,5 @@
 "use client";
+// Ottelut-sivulla ei kertoimia (käyttäjän valinta 26.10.2026); sarja- ja suosikkisivuilla edelleen
 // Ottelut – Futistan etusivu: päivämäärä, suodatin (Kaikki / Live / Suosikit) ja ottelut kilpailuittain.
 import { useEffect, useMemo, useState } from "react";
 import type { LeagueStats, Team } from "@/lib/stats";
@@ -85,7 +86,7 @@ export default function MatchesHome({ stats: first, today: serverToday }: { stat
         {filter === "all" && favRows.length > 0 && (
           <section className="cgroup cg-fav" aria-labelledby="g-fav">
             <div className="cg-head"><h2 id="g-fav" className="cg-title"><span className="cmark cm-fav" aria-hidden="true">{Icon.favs}</span><span className="cg-name">{t("nav_favs")}</span><span className="cg-n">{favRows.length}</span></h2></div>
-            <div className="cg-list">{favRows.map((r) => <MatchRow key={"f" + r.key} href={r.href} home={r.home} away={r.away} s={r.s} time={r.time} highlight={isFav} />)}</div>
+            <div className="cg-list">{favRows.map((r) => <MatchRow key={"f" + r.key} href={r.href} home={r.home} away={r.away} s={r.s} time={r.time} highlight={isFav} odds={false} />)}</div>
           </section>
         )}
 
@@ -155,7 +156,7 @@ function CompGroup({ c, open, onToggle, isFav }: { c: CompBlock; open: boolean; 
         <a className="cg-link" href={`/sarjat/${c.id}`} aria-label={`${t("openComp")}: ${name}`}>{t("openComp")}{Icon.next}</a>
       </div>
       {open && <div className="cg-list" id={bodyId}>
-        {c.status === "loading" && c.rows.length === 0 ? <MatchRowSkeleton n={2} /> : c.rows.map((r) => <MatchRow key={r.key} href={r.href} home={r.home} away={r.away} s={r.s} time={r.time} highlight={isFav} />)}
+        {c.status === "loading" && c.rows.length === 0 ? <MatchRowSkeleton n={2} /> : c.rows.map((r) => <MatchRow key={r.key} href={r.href} home={r.home} away={r.away} s={r.s} time={r.time} highlight={isFav} odds={false} />)}
       </div>}
     </section>
   );
@@ -180,7 +181,7 @@ function IntlGroup({ games, open, onToggle }: { games: import("@/lib/espn-parse"
         {games.map((g) => (
           <div key={g.id} className="mrow-wrap">
             <span className="mrow-comp">{compName(g, i.lang)}</span>
-            <MatchRow href={g.href ?? `/ottelu/e/${g.id}`} time={g.time} s={gameState(g)}
+            <MatchRow odds={false} href={g.href ?? `/ottelu/e/${g.id}`} time={g.time} s={gameState(g)}
               home={{ name: g.home.name, display: nm(g.home), code: g.home.code, crest: g.home.logo }}
               away={{ name: g.away.name, display: nm(g.away), code: g.away.code, crest: g.away.logo }} />
           </div>
