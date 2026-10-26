@@ -18,13 +18,17 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   const Q = `l=bundesliga&d=${D}&p=mittaus-united--testiseura-kotka`;
   const l = await get("kokoonpanot", Q);
   ok("Bundesliga-ottelu: kokoonpanot API-Footballista (oikea ottelu, ei harhautusta)", l.j?.state === "ok" && l.j?.source === "API-Football" && l.j?.home?.team === "Mittaus United" && l.j?.away?.team === "Testiseura Kotka", `${l.j?.state} ${l.j?.source} ${l.j?.home?.team}`);
-  ok("  tapahtumat mukana", l.j?.hasEvents === true && l.j?.events?.length === 2);
+  ok("  tapahtumat mukana", l.j?.hasEvents === true && l.j?.events?.length === 3);
+  const sub = l.j?.home?.subs?.find((p) => p.id === 990212);
+  ok("  vaihto: kenen tilalle kokoonpanon nimellä (tunnisteella, ei tapahtuman nimimuodolla)", sub?.subIn === 63 && sub?.subFor === "Pelaaja 9902-10", JSON.stringify(sub && [sub.subIn, sub.subFor]));
+  ok("  poissaolijat lähteestä, toistetut rivit kerran, syy ja epävarmuus", JSON.stringify(l.j?.home?.unavailable?.map((u) => [u.name, u.reason, u.detail])) === JSON.stringify([["K. Poissa", "injury", "Knee Injury"]]) &&
+    l.j?.away?.unavailable?.length === 2 && l.j?.away?.unavailable?.[0]?.reason === "suspension" && l.j?.away?.unavailable?.[1]?.doubtful === true, JSON.stringify(l.j?.away?.unavailable));
   const s = await get("ottelutilastot", Q);
   ok("  ottelutilastot API-Footballista", s.j?.state === "ok" && s.j?.source === "API-Football", s.j?.state);
   ok("  päivälista ja ottelu haettu kerran (kokoonpanot + tilastot samalla haulla)", (await afLog(/fixtures\?league=78/)) === 1 && (await afLog(/fixtures\?id=990001/)) === 1, `${await afLog(/fixtures\?league=78/)} / ${await afLog(/fixtures\?id=990001/)}`);
   await get("kokoonpanot", Q);
-  // 3 = päivälista + ottelu + puoliaikatilastot (Tilastot-välilehti, oma haku)
-  ok("  toinen pyyntö välimuistista (ei uusia lähdehakuja)", (await afLog(/./)) === 3 && (await afLog(/fixtures\/statistics\?fixture=990001&half=true/)) === 1, String(await afLog(/./)));
+  // 4 = päivälista + ottelu + poissaolijat (Kokoonpanot) + puoliaikatilastot (Tilastot-välilehti, oma haku)
+  ok("  toinen pyyntö välimuistista (ei uusia lähdehakuja)", (await afLog(/./)) === 4 && (await afLog(/injuries\?fixture=990001/)) === 1 && (await afLog(/fixtures\/statistics\?fixture=990001&half=true/)) === 1, String(await afLog(/./)));
 
   // ottelu, jota API-Footballin listassa ei ole → "ei saatavilla", ei keksittyä kokoonpanoa
   // simuloidun football-datan minuuttiraja voi olla hetken täynnä → odotetaan tuloksia
@@ -92,7 +96,19 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  2. puoliajan luvut vaihtuvat", /2\. puoliaika/.test(await headTxt()) && s1 !== s2 && /\b4\b[\s\S]*\b6\b/.test(s2), `${s1.slice(0, 60)} → ${s2.slice(0, 60)}`);
   await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click(); await page.waitForTimeout(500);
   ok("Kokoonpanot: ei 'Avauskokoonpanot'-tekstiä (käyttäjän valinta 26.10.2026)", !/Avauskokoonpanot/.test(await page.locator("main").innerText()));
-  ok("  pelaamattomalla vaihtopelaajalla ei arvosanamerkkiä (ei '–' eikä 0,0)", (await page.locator(".lu-subs .lu-row").count()) > 0 && (await page.locator(".lu-subs .rb").count()) === 0 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
+  // Flashscoren rakenne (käyttäjän esimerkki 26.10.2026): kenttä → Vaihdot → Avauskokoonpano → Vaihtopelaajat → Poissaolijat
+  const heads = await page.locator(".tab-pane .panel-head h3, main .panel-head h3").evaluateAll((els) => [...new Set(els.map((e) => e.textContent))]);
+  const order = ["Vaihdot", "Avauskokoonpano", "Vaihtopelaajat", "Poissaolijat"];
+  ok("Kokoonpanot: osiot Flashscoren järjestyksessä", order.every((x) => heads.includes(x)) && order.map((x) => heads.indexOf(x)).every((v, i, a) => i === 0 || v > a[i - 1]) && (await page.locator(".pitch-full").count()) === 1, heads.join("|"));
+  const made = (await page.locator(".lu-made").innerText()).replace(/\s+/g, " ");
+  ok("  Vaihdot: sisään tullut, kenen tilalle ja minuutti, arvosana", /Pelaaja 9902-12/.test(made) && /↻ Pelaaja 9902-10 63'/.test(made) && /6,8/.test(made) && (await page.locator(".lu-made .rb").count()) === 1, made.slice(0, 160));
+  ok("  vierasjoukkue ilman vaihtoja → '–' (ei keksittyä)", (await page.locator(".lu-made > .lu-cols > section").nth(1).innerText()).includes("–"));
+  ok("  Avauskokoonpano ja Vaihtopelaajat: listat ilman arvosanoja (arvosanat kentällä)", (await page.locator(".lu-starters .lu-row").count()) === 22 && (await page.locator(".lu-starters .rb, .lu-bench .rb").count()) === 0 && (await page.locator(".lu-bench .lu-row").count()) === 2 && (await page.locator(".pitch-full .pp-r, .pitch-full .rb").count()) > 0);
+  const miss = (await page.locator(".lu-missing").innerText()).replace(/\s+/g, " ");
+  ok("  Poissaolijat: syyt suomeksi, epävarma merkitty, rivi kerran", /K\. Poissa Polvivamma/.test(miss) && /P\. Kielto Pelikielto \(punainen kortti\)/.test(miss) && /E\. Varma Kolhu · epävarma/.test(miss) && (await page.locator(".lu-missing .lu-row").count()) === 3, miss.slice(0, 200));
+  await page.setViewportSize({ width: 320, height: 700 }); await page.waitForTimeout(300);
+  ok("  320 px: ei vaakavieritystä kokoonpanosivulla", await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+  await page.setViewportSize({ width: 390, height: 844 });
 
   // Pelaajatilastot: pelaajan kuva lähteen tunnisteella (API-Football); kuvapalvelin simuloidaan 1×1-kuvalla
   await page.route(/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));

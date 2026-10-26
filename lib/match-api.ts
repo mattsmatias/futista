@@ -4,7 +4,7 @@ import { phaseOf } from "./match-core";
 import { ourMatch, liveOurMatch } from "./match-find";
 import { SOURCES } from "./sources";
 import { espnExtras, ESPN_SOURCE } from "./espn-lineups";
-import { afMatchDetail, afBigOn, afFindFixture, afHalfStats } from "./af-league";
+import { afMatchDetail, afBigOn, afFindFixture, afHalfStats, afInjuries } from "./af-league";
 
 const json = (body: unknown, status: number, maxAge: number) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": maxAge > 0 ? `public, s-maxage=${maxAge}, stale-while-revalidate=60` : "no-store" } });
@@ -65,7 +65,11 @@ async function afResponse(kind: "lineups" | "stats", req: Request) {
   const ev = { events: r.data.events, hasEvents: r.data.hasEvents };
   if (kind === "lineups") {
     if (!r.data.home || !r.data.away) return json({ state: phase === "pre" ? "notpublished" : "nodata", phase, ...ev, ...meta }, 200, 120);
-    return json({ state: "ok", phase, kickoff: ours.kickoff, home: r.data.home, away: r.data.away, ...ev, ...meta }, 200, age);
+    // poissaolijat erillisestä hausta (Flashscoren tapaan kokoonpanon alla); jos lähde ei anna, osio jää pois
+    const inj = await afInjuries(l, afid, phase, r.data.homeId, r.data.awayId);
+    const home = inj ? { ...r.data.home, unavailable: inj.h } : r.data.home;
+    const away = inj ? { ...r.data.away, unavailable: inj.a } : r.data.away;
+    return json({ state: "ok", phase, kickoff: ours.kickoff, home, away, ...ev, ...meta }, 200, age);
   }
   if (!r.data.stats.length) return json({ state: "nodata", phase, ...meta }, 200, 120);
   // puoliajat erikseen (käyttäjän valinta 26.10.2026); jos lähde ei anna, näytetään koko ottelun tilastot

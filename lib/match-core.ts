@@ -11,15 +11,19 @@ export type LPlayer = {
   rating: number | null; captain: boolean; motm: boolean;
   goals: number; ownGoals: number; assists: number; yellow: number; red: number;
   subIn: number | null; subOut: number | null;
+  /** Sisään tulleen vaihtopelaajan tilalta lähtenyt pelaaja (lähteen vaihtotapahtumasta; nimi kokoonpanon muodossa). Puuttuu = ei tiedossa */
+  subFor?: string | null;
   /** Juoksumatka ja huippunopeus, kun lähde antaa ne (havaittu vain osassa otteluita). Yksikköä ei dokumentoida:
    *  arvot vastaavat metrejä (esim. 11295) ja km/h (esim. 31,9). */
   distance: number | null; topSpeed: number | null;
   /** Laukaukset, laukaukset maalia kohti ja torjunnat, kun lähde antaa ne (ESPN) */
   shots?: number | null; shotsOnTarget?: number | null; saves?: number | null;
 };
+/** Poissaolija lähteen mukaan. detail = lähteen oma syyteksti (englanniksi), doubtful = lähde merkitsee epävarmaksi */
+export type Unavailable = { id?: number | null; name: string; reason: "injury" | "suspension" | "other"; detail?: string | null; doubtful?: boolean };
 export type Lineup = {
   team: string; formation: string | null; starters: LPlayer[]; subs: LPlayer[]; coach: string | null;
-  unavailable: { name: string; reason: "injury" | "suspension" | "other" }[];
+  unavailable: Unavailable[];
   /** true = jokaisella avauspelaajalla on lähteen antama kenttäsijainti */
   positioned: boolean;
 };

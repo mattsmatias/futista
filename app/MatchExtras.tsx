@@ -8,6 +8,7 @@ import { useVisibleInterval } from "@/lib/fresh";
 import { createRetryGate } from "@/lib/retry";
 import type { Lineup, LPlayer, StatRow, StatValue } from "@/lib/match-core";
 import { startersAverage, ratingTier, surname } from "@/lib/match-core";
+import { reasonText } from "@/lib/absence";
 import type { Team } from "@/lib/stats";
 import { Badge } from "./Stats";
 
@@ -163,7 +164,7 @@ function PitchFace({ p, photo }: { p: LPlayer; photo: string | null }) {
   return <span className="pp-shirt">{p.number ?? ""}</span>;
 }
 
-function PlayerRow({ p, showRating, bench = false }: { p: LPlayer; showRating: boolean; bench?: boolean }) {
+function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
   const { t } = useI18n();
   return (
     <li className="lu-row">
@@ -174,8 +175,35 @@ function PlayerRow({ p, showRating, bench = false }: { p: LPlayer; showRating: b
         <Marks p={p} />
       </span>
       <abbr className="lu-role" title={p.role !== null ? t(`roleL_${p.role}` as Key) : undefined}>{p.role !== null ? t(`role_${p.role}` as Key) : "–"}</abbr>
-      {/* vaihtopelaaja, joka ei pelannut (ei arvosanaa): ei arvosanamerkkiä lainkaan, sarake pysyy tasattuna */}
-      {showRating && <span className="lu-rating">{bench && p.rating === null ? null : <RatingBadge r={p.rating} motm={p.motm} />}</span>}
+      {showRating && <span className="lu-rating"><RatingBadge r={p.rating} motm={p.motm} /></span>}
+    </li>
+  );
+}
+
+/** Listojen kasvokuva: lähteen kuva pelaajan tunnisteella (API-Football), muuten paitanumero */
+function LuFace({ id, number, photos }: { id: number | null | undefined; number?: string | null; photos: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const src = photos ? afPhoto(id ?? null) : null;
+  if (src && !failed) return <span className="lu-face" aria-hidden="true"><img src={src} alt="" width={36} height={36} loading="lazy" decoding="async" onError={() => setFailed(true)} /></span>;
+  // poissaolijalla ei ole paitanumeroa → tyhjä kuvapaikka (ei "–")
+  if (number === undefined) return <span className="lu-face" aria-hidden="true" />;
+  return <span className="lu-num" aria-hidden="true">{number ?? "–"}</span>;
+}
+
+/** Vaihdot: sisään tullut pelaaja, hänen merkkinsä ja arvosanansa sekä kenen tilalle ja milloin (↻ Nimi 30') */
+function SubInRow({ p, rated, photos }: { p: LPlayer; rated: boolean; photos: boolean }) {
+  const { t } = useI18n();
+  const sr = `${t("lu_subIn")} ${p.subIn}'${p.subFor ? `, ${t("lu_off")}: ${p.subFor}` : ""}`;
+  return (
+    <li className="lu-row lu-in">
+      <LuFace id={p.id} number={p.number} photos={photos} />
+      <span className="lu-name">
+        <span className="sr-only">{p.number ? `#${p.number} ` : ""}</span>{p.name}
+        {p.captain && <small className="lu-tag"> ({t("lu_captain")})</small>}
+        <Marks p={{ ...p, subIn: null }} />
+        <small className="lu-for" aria-label={sr}><i aria-hidden="true">↻</i> {p.subFor ? <span className="lu-for-n">{p.subFor}</span> : null} {p.subIn}&apos;</small>
+      </span>
+      {rated && p.rating !== null && <span className="lu-rating"><RatingBadge r={p.rating} motm={p.motm} /></span>}
     </li>
   );
 }
@@ -189,32 +217,55 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
   if (data.state !== "ok" || !data.home || !data.away) return <Note text={t("lu_none")} />;
   const h = data.home, a = data.away;
   const rated = started(data.phase) && hasRatings([h, a]);
+  const photos = data.source === "API-Football";
+  const pitch = h.positioned && a.positioned;
   const label = t("lu_pitchLabel2").replace("{h}", home.name).replace("{hf}", h.formation ?? "–").replace("{a}", away.name).replace("{af}", a.formation ?? "–");
-  const subsRow = (l: Lineup) => <ul className="lu-list lu-subs">{l.subs.map((p, i) => <PlayerRow key={p.id ?? i} p={p} showRating={rated} bench />)}</ul>;
   const avgText = (l: Lineup) => { const v = rated ? startersAverage(l) : null; return v ? t("lu_avg").replace("{a}", v.avg.toLocaleString(LOCALE[lang], { maximumFractionDigits: 2 })).replace("{n}", String(v.n)).replace("{m}", String(v.of)) : null; };
+  const sides = [{ l: h, tm: home }, { l: a, tm: away }];
+  const cameOn = (l: Lineup) => l.subs.filter((p) => p.subIn !== null).sort((x, y) => x.subIn! - y.subIn!);
+  const anySubs = cameOn(h).length + cameOn(a).length > 0;
+  const anyOut = h.unavailable.length + a.unavailable.length > 0;
+  const head = (tm: Team) => <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}</h4>;
   return (
     <>
       {error && <ErrorBox text={t("lu_error")} retry={retry} loading={loading} />}
       {/* ennen alkua kerrotaan, ettei lähde vahvista kokoonpanoa; "Avauskokoonpanot"-otsikko poistettu (käyttäjän valinta 26.10.2026) */}
       {data.phase === "pre" && <p className="mx-label">{t("lu_pre")}</p>}
-      {h.positioned && a.positioned ? <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} photos={data.source === "API-Football"} /> : (
-        <div className="panel lu-starters" aria-label={t("lu_starters")}>
+      {pitch && <FullPitch h={h} a={a} home={home} away={away} rated={rated} label={label} photos={photos} />}
+      {/* Flashscoren järjestys: kenttä → Vaihdot → Avauskokoonpano → Vaihtopelaajat → Poissaolijat */}
+      {anySubs && (
+        <section className="panel lu-made" aria-label={t("lu_subsMade")}>
+          <div className="panel-head"><h3>{t("lu_subsMade")}</h3></div>
           <div className="lu-cols">
-            {[{ l: h, tm: home }, { l: a, tm: away }].map(({ l, tm }, i) => (
-              <section key={i} className="lu-team" aria-label={tm.name}>
-                <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
-                <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated} />)}</ol>
-                {avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
+            {sides.map(({ l, tm }, i) => (
+              <section key={i} aria-label={tm.name}>{head(tm)}
+                {cameOn(l).length ? <ul className="lu-list">{cameOn(l).map((p, j) => <SubInRow key={p.id ?? j} p={p} rated={rated} photos={photos} />)}</ul> : <p className="muted small pad">–</p>}
               </section>
             ))}
           </div>
-        </div>
+        </section>
       )}
-      <div className="panel">
+      <section className="panel lu-starters" aria-label={t("lu_startXI")}>
+        <div className="panel-head"><h3>{t("lu_startXI")}</h3></div>
+        <div className="lu-cols">
+          {sides.map(({ l, tm }, i) => (
+            <section key={i} className="lu-team" aria-label={tm.name}>
+              <h4 className="lu-h"><Badge t={tm} size={18} /> {tm.name}{l.formation ? ` · ${l.formation}` : ""}</h4>
+              {/* kentällä arvosanat näkyvät jo; ilman kenttää (ei sijainteja) arvosanat tässä listassa */}
+              <ol className="lu-list">{l.starters.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={rated && !pitch} />)}</ol>
+              {!pitch && avgText(l) && <p className="muted small pad lu-avg">{avgText(l)}</p>}
+            </section>
+          ))}
+        </div>
+      </section>
+      <section className="panel lu-bench" aria-label={t("lu_subs")}>
         <div className="panel-head"><h3>{t("lu_subs")}</h3></div>
         <div className="lu-cols">
-          <section aria-label={home.name}><h4 className="lu-h"><Badge t={home} size={18} /> {home.name}</h4>{subsRow(h)}</section>
-          <section aria-label={away.name}><h4 className="lu-h"><Badge t={away} size={18} /> {away.name}</h4>{subsRow(a)}</section>
+          {sides.map(({ l, tm }, i) => (
+            <section key={i} aria-label={tm.name}>{head(tm)}
+              {l.subs.length ? <ul className="lu-list lu-subs">{l.subs.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={false} />)}</ul> : <p className="muted small pad">–</p>}
+            </section>
+          ))}
         </div>
         {(h.coach || a.coach) && (
           <div className="lu-cols lu-coach">
@@ -222,12 +273,31 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
             <p className="pad"><span className="muted">{t("lu_coach")}:</span> {a.coach ?? "–"}</p>
           </div>
         )}
-        {(h.unavailable.length > 0 || a.unavailable.length > 0) && (
-          <div className="lu-cols lu-out small">
-            {[h, a].map((l, i) => <p key={i} className="pad">{l.unavailable.length ? <><span className="muted">{t("lu_out")}:</span> {l.unavailable.map((u) => `${u.name} (${t(u.reason === "injury" ? "lu_injury" : u.reason === "suspension" ? "lu_suspension" : "lu_absent")})`).join(", ")}</> : null}</p>)}
+      </section>
+      {anyOut && (
+        <section className="panel lu-missing" aria-label={t("lu_missing")}>
+          <div className="panel-head"><h3>{t("lu_missing")}</h3></div>
+          <div className="lu-cols">
+            {sides.map(({ l, tm }, i) => (
+              <section key={i} aria-label={tm.name}>{head(tm)}
+                {l.unavailable.length ? (
+                  <ul className="lu-list">{l.unavailable.map((u, j) => {
+                    const why = reasonText(u, lang);
+                    return (
+                      <li key={u.id ?? j} className="lu-row lu-out-row">
+                        <LuFace id={u.id} photos={photos} />
+                        <span className="lu-name">{u.name}
+                          {(why || u.doubtful) && <small className="lu-why">{why}{u.doubtful ? `${why ? " · " : ""}${t("lu_doubt")}` : ""}</small>}
+                        </span>
+                      </li>
+                    );
+                  })}</ul>
+                ) : <p className="muted small pad">–</p>}
+              </section>
+            ))}
           </div>
-        )}
-      </div>
+        </section>
+      )}
       <div className="panel lu-legend">
         <SourceLine m={data} />
       </div>

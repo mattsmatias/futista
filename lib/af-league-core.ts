@@ -5,8 +5,9 @@
 //    Jos lähde ei kerro rangaistuspotkujen lukemaa, sitä ei keksitä (pens = null).
 //  - Ajat Suomen aikaan ottelun aikaleimasta (lähteen UTC-aika), ei lähteen merkkijonosta.
 //  - Naisten kilpailuissa joukkueen nimeen " W", jos lähde ei sitä anna (ei sekoitu miesten joukkueeseen).
+import { reasonKind } from "./absence";
 import type { Fixture, Result, Row, Team, AfLive } from "./stats";
-import type { Lineup, LPlayer, StatRow, StatKey, StatValue } from "./match-core";
+import type { Lineup, LPlayer, StatRow, StatKey, StatValue, Unavailable } from "./match-core";
 import { helsinkiParts, sameTeam, sameTeamStrict, words } from "./live-core";
 
 const num = (v: unknown): number | null => { const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v.replace("%", "")) : NaN; return Number.isFinite(n) ? n : null; };
@@ -175,6 +176,9 @@ function lineupOf(l: any, players: any[] | undefined, events: AfEvent[], side: "
   const stat = new Map<number, any>();
   for (const p of players ?? []) { const id = num(p?.player?.id); if (id !== null) stat.set(id, p?.statistics?.[0] ?? {}); }
   const mine = events.filter((e) => e.side === side);
+  // joukkueen pelaajien nimet tunnisteittain (vaihtotapahtuman nimi voi olla eri muodossa kuin kokoonpanossa)
+  const nameById = new Map<number, string>();
+  for (const x of [...xi, ...subs]) { const i = num(x?.player?.id), n = str(x?.player?.name); if (i !== null && n) nameById.set(i, n); }
   // pelaaja tunnistetaan lähteen tunnisteella; nimellä vain, jos tapahtumassa ei ole tunnistetta
   const isP = (e: AfEvent, id: number | null, name: string) => (e.playerId != null && id !== null ? e.playerId === id : e.player === name);
   const isO = (e: AfEvent, id: number | null, name: string) => (e.otherId != null && id !== null ? e.otherId === id : e.other === name);
@@ -186,7 +190,9 @@ function lineupOf(l: any, players: any[] | undefined, events: AfEvent[], side: "
     const id = num(p.id);
     const s = id !== null ? stat.get(id) : undefined;
     const subOut = mine.find((e) => e.kind === "sub" && isP(e, id, name))?.min ?? null;
-    const subIn = mine.find((e) => e.kind === "sub" && isO(e, id, name))?.min ?? null;
+    const inEv = mine.find((e) => e.kind === "sub" && isO(e, id, name));
+    const subIn = inEv?.min ?? null;
+    const subFor = inEv ? ((inEv.playerId != null ? nameById.get(inEv.playerId) : undefined) ?? inEv.player ?? null) : null;
     // lähde antaa arvosanan 0 pelaajille, jotka eivät pelanneet → ei arvosanaa (asteikko 1–10; 0 ei ole arvosana)
     const rt = num(s?.games?.rating);
     return {
@@ -195,7 +201,7 @@ function lineupOf(l: any, players: any[] | undefined, events: AfEvent[], side: "
       rating: rt !== null && rt > 0 ? rt : null, captain: s?.games?.captain === true, motm: false,
       goals: count(id, name, ["goal", "pen"]), ownGoals: count(id, name, ["own"]), assists: mine.filter((e) => (e.kind === "goal" || e.kind === "pen") && isO(e, id, name)).length,
       yellow: count(id, name, ["yellow", "secondyellow"]), red: count(id, name, ["red", "secondyellow"]),
-      subIn: starter ? null : subIn, subOut, distance: null, topSpeed: null,
+      subIn: starter ? null : subIn, ...(!starter && subIn !== null ? { subFor } : {}), subOut, distance: null, topSpeed: null,
       shots: num(s?.shots?.total), shotsOnTarget: num(s?.shots?.on), saves: num(s?.goals?.saves),
       ...({ _grid: str(p.grid) } as object),
     } as LPlayer;
@@ -280,6 +286,25 @@ export function parseAfDetail(d: any, women: boolean): AfDetail | null {
     hasPlayers: (d.players ?? []).some((p: any) => (p?.players ?? []).length > 0),
     homeId, awayId,
   };
+}
+
+/** Poissaolijat (injuries?fixture=…) joukkueittain. Lähde toistaa rivejä → yksi rivi pelaajaa kohden (tunniste, muuten nimi).
+ *  Tuntematon joukkue tai nimetön rivi jätetään pois. Syy luokitellaan lähteen tekstistä; teksti säilyy (detail). */
+export function parseAfInjuries(resp: any[], homeId: number | null | undefined, awayId: number | null | undefined): { h: Unavailable[]; a: Unavailable[] } {
+  const out = { h: [] as Unavailable[], a: [] as Unavailable[] };
+  const seen = new Set<string>();
+  for (const r of Array.isArray(resp) ? resp : []) {
+    const tid = num(r?.team?.id);
+    const side = tid !== null && tid === homeId ? "h" : tid !== null && tid === awayId ? "a" : null;
+    const name = str(r?.player?.name), id = num(r?.player?.id);
+    if (!side || !name) continue;
+    const k = `${side}:${id ?? "n:" + name}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const detail = str(r?.player?.reason);
+    out[side].push({ id, name, reason: reasonKind(detail), detail, ...(/questionable|doubt/i.test(String(r?.player?.type ?? "")) ? { doubtful: true } : {}) });
+  }
+  return out;
 }
 
 /** Tilastorivit lähteen tyyppi → arvo -kartoista. Puuttuva arvo ei ole nolla (rivi jää pois, jos kummallakaan ei ole). */

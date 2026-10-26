@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, pickSeason, applyLive, afTeam, roundFi, groupFi, isKnockout, splitStages, pickFixture } from "../lib/af-league-core";
+import { parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, pickSeason, applyLive, afTeam, roundFi, groupFi, isKnockout, splitStages, pickFixture, parseAfInjuries } from "../lib/af-league-core";
 import { afMatchState, matchState } from "../lib/live-core";
 import { AF_COMPS } from "../lib/af-registry";
 
@@ -275,4 +275,22 @@ test("kokoonpano: arvosana 0 (ei pelannut) ei ole arvosana; tapahtumat pelaajatu
   assert.equal(ad.subIn, 85);
   assert.equal(ad.yellow, 1);
   assert.equal(r.home!.starters.find((x) => x.id === 17)!.subOut, 85);
+  // kenen tilalle: nimi kokoonpanon muodossa tunnisteella ("A. Gordon", ei tapahtuman "Anthony Gordon")
+  assert.equal(ad.subFor, "A. Gordon");
+  assert.equal(sz.subFor, undefined); // ei pelannut → ei tietoa
+  assert.equal(r.home!.starters.find((x) => x.id === 17)!.subFor, undefined);
+});
+
+test("poissaolijat: rivit kerran, joukkue tunnisteella, syy luokitellaan, epävarma merkitään", () => {
+  // rakenne oikeasta vastauksesta 26.10.2026 (injuries?fixture=1570426): lähde toisti jokaisen rivin kahdesti
+  const row = (team: number, id: number | null, name: string | null, reason: string, type = "Missing Fixture") => ({ team: { id: team }, player: { id, name, type, reason } });
+  const resp = [
+    row(529, 1257, "J. Kounde", "Ankle Injury"), row(541, 762, "Vinicius Junior", "Red Card"), row(541, 341640, "R. Asencio", "Broken Leg"),
+    row(529, 1257, "J. Kounde", "Ankle Injury"), row(541, 762, "Vinicius Junior", "Red Card"),
+    row(529, 5, "X. Epävarma", "Knock", "Questionable"), row(999, 1, "Muu joukkue", "Illness"), row(529, 6, null, "Illness"),
+  ];
+  const r = parseAfInjuries(resp, 529, 541);
+  assert.deepEqual(r.h.map((u) => [u.name, u.reason, u.detail, !!u.doubtful]), [["J. Kounde", "injury", "Ankle Injury", false], ["X. Epävarma", "injury", "Knock", true]]);
+  assert.deepEqual(r.a.map((u) => [u.id, u.reason]), [[762, "suspension"], [341640, "injury"]]);
+  assert.deepEqual(parseAfInjuries([], 1, 2), { h: [], a: [] });
 });

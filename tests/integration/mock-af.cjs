@@ -97,10 +97,15 @@ function detailOf(fx, grid, lg = 0) {
         { time: { elapsed: 70, extra: null }, team: { id: a }, player: { id: a * 100 + 4, name: `Pelaaja ${a}-4` }, assist: { id: null, name: null }, type: "Card", detail: "Second Yellow card" },
         { time: { elapsed: 70, extra: null }, team: { id: a }, player: { id: a * 100 + 4, name: `Pelaaja ${a}-4` }, assist: { id: null, name: null }, type: "Card", detail: "Red Card" },
       ] : []),
+      // Bundesliga-ottelu 990001: vaihto, jossa tapahtuman nimet eri muodossa kuin kokoonpanossa (tunnisteella yhdistetään)
+      ...(fx.fixture.id === 990001 ? [
+        { time: { elapsed: 63, extra: null }, team: { id: h }, player: { id: h * 100 + 10, name: `Pitkä Nimi ${h}-10` }, assist: { id: h * 100 + 12, name: `Pitkä Nimi ${h}-12` }, type: "subst", detail: "Substitution 1" },
+      ] : []),
     ],
     lineups: ns ? [] : [h, a].map((tid) => ({ team: { id: tid, name: tid === h ? fx.teams.home.name : fx.teams.away.name }, formation: grid ? "4-3-3" : null, startXI: xi(tid), substitutes: [pl(tid, 12, "F", null)], coach: { name: "Valmentaja" } })),
     statistics: ns || lg === 246 ? [] : [h, a].map((tid) => ({ team: { id: tid }, statistics: [{ type: "Ball Possession", value: tid === h ? "55%" : "45%" }, { type: "Total Shots", value: tid === h ? 9 : null }, { type: "Corner Kicks", value: 4 }] })),
-    players: ns ? [] : [h, a].map((tid) => ({ team: { id: tid }, players: [{ player: { id: tid * 100 + 9 }, statistics: [{ games: { rating: "7.4", captain: false }, shots: { total: 2, on: 1 }, goals: { saves: null } }] }] })),
+    players: ns ? [] : [h, a].map((tid) => ({ team: { id: tid }, players: [{ player: { id: tid * 100 + 9 }, statistics: [{ games: { rating: "7.4", captain: false }, shots: { total: 2, on: 1 }, goals: { saves: null } }] },
+      ...(fx.fixture.id === 990001 ? [{ player: { id: tid * 100 + 12 }, statistics: [{ games: { rating: tid === h ? "6.8" : "0" } }] }] : [])] })),
   }];
 }
 function standings(lg) {
@@ -134,6 +139,13 @@ function handle(u, send, mode, res, hdr) {
   if (u.pathname === "/fixtures" && u.searchParams.get("date") && u.searchParams.get("league") === "78") {
     const d = u.searchParams.get("date"), list = bigFixtures(now);
     send({ errors: [], response: list.filter((x) => hel(x.fixture.timestamp * 1000) === d) });
+    return true;
+  }
+  // poissaolijat (rakenne oikeasta vastauksesta 26.10.2026: player.type/reason; lähde toistaa rivit) – vain ottelulle 990001
+  if (u.pathname === "/injuries" && u.searchParams.get("fixture")) {
+    const r = (tid, id, name, reason, type = "Missing Fixture") => ({ player: { id, name, photo: "", type, reason }, team: { id: tid }, fixture: { id: 990001 }, league: { id: 78 } });
+    const rows = u.searchParams.get("fixture") === "990001" ? [r(9902, 990290, "K. Poissa", "Knee Injury"), r(9901, 990190, "P. Kielto", "Red Card"), r(9901, 990191, "E. Varma", "Knock", "Questionable")] : [];
+    send({ errors: [], results: rows.length * 2, response: [...rows, ...rows] });
     return true;
   }
   // puoliaikatilastot (rakenne oikeasta vastauksesta 26.10.2026: statistics, statistics_1h, statistics_2h)

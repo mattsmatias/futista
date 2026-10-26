@@ -13,7 +13,7 @@ import { AF_LEAGUE, afSeason } from "./apifootball-core";
 import { AF_COMPS, afCompOn, afComp } from "./af-registry";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
-import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, parseAfHalves, type AfDetail } from "./af-league-core";
+import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, parseAfHalves, parseAfInjuries, type AfDetail } from "./af-league-core";
 import type { LeagueStats, Fixture, Part } from "./stats";
 import type { SourceId } from "./sources";
 
@@ -177,6 +177,24 @@ export async function afHalfStats(id: string, fixtureId: number, phase: "pre" | 
     return parseAfHalves(resp, homeId, awayId);
   } catch (e) {
     console.warn("af-puoliajat", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
+    return null;
+  }
+}
+
+/** Poissaolijat (injuries?fixture=…). Erillinen haku vain Kokoonpanot-välilehdellä; päättynyt 30 vrk, muuten 1 h.
+ *  null = ei saatavilla tai haku epäonnistui (osio jätetään pois; puuttuva tieto ei ole "ei poissaolijoita"). */
+export async function afInjuries(id: string, fixtureId: number, phase: "pre" | "live" | "final", homeId: number | null | undefined, awayId: number | null | undefined) {
+  if (!(on(id) || afBigOn(id)) || !Number.isInteger(fixtureId) || fixtureId <= 0 || homeId == null || awayId == null) return null;
+  try {
+    const resp = await stableCache(async () => {
+      const j = await once(`i${fixtureId}`, () => afGet(`/injuries?fixture=${fixtureId}`));
+      const errs = j?.errors && typeof j.errors === "object" ? Object.keys(j.errors).length : 0;
+      if (!Array.isArray(j?.response) || errs) throw new Error("injuries: unrecognised");
+      return j.response as any[];
+    }, ["af-inj-v1", id, String(fixtureId), phase], { revalidate: phase === "final" ? 30 * DAY : 3600 })();
+    return parseAfInjuries(resp, homeId, awayId);
+  } catch (e) {
+    console.warn("af-poissa", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
     return null;
   }
 }
