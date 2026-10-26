@@ -129,10 +129,10 @@ export function Standings({ s, compact, highlight = [] }: { s: LeagueStats; comp
 }
 
 /** Pelattu ottelu (yhteinen ottelurivi) */
-export function Match({ r, source }: { r: Result; source: string }) {
+export function Match({ r, source, odds = true }: { r: Result; source: string; odds?: boolean }) {
   const { isFav } = useFavorites();
   return <MatchRow href={matchHref(source, r.date, r.home.name, r.away.name)} home={r.home} away={r.away} time={r.time ?? null} highlight={isFav}
-    s={resultState({ ...r, source })} />;
+    s={resultState({ ...r, source })} odds={odds} />;
 }
 
 const hasScore = (s: MatchState) => s.hs !== undefined && s.hs !== null && s.as !== undefined && s.as !== null;

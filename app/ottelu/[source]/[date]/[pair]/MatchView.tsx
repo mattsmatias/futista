@@ -45,7 +45,7 @@ function TeamResults({ team, s }: { team: Team; s: LeagueStats }) {
       {list.map((r) => (
         <div className="day" key={r.date + r.home.name}>
           <div className="day-label">{i.day(r.date)}</div>
-          <Match r={r} source={s.source} />
+          <Match r={r} source={s.source} odds={false} />
         </div>
       ))}
     </div>
@@ -257,7 +257,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
               {meetings.map((r) => (
                 <div className="day" key={r.date}>
                   <div className="day-label">{i.day(r.date)}</div>
-                  <Match r={r} source={s.source} />
+                  <Match r={r} source={s.source} odds={false} />
                 </div>
               ))}
             </div>

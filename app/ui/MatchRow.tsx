@@ -56,10 +56,11 @@ export function useStatusText() {
 /** Punaisten korttien merkki joukkueen nimen perässä (vain kun lähde kertoo ja kortteja on) */
 const RedCards = ({ n }: { n: number }) => n > 0 ? <span className="mrow-rc" aria-hidden="true">{n}</span> : null;
 
-export function MatchRow({ href, home, away, s, time, highlight }: { href: string; home: RowTeam; away: RowTeam; s: MatchState; time: string | null; highlight?: (t: Team) => boolean }) {
+export function MatchRow({ href, home, away, s, time, highlight, odds = true }: { href: string; home: RowTeam; away: RowTeam; s: MatchState; time: string | null; highlight?: (t: Team) => boolean; odds?: boolean }) {
   const { t, lang } = useI18n();
   const st = useStatusText()(s, time);
-  const { ref, o } = useRowOdds(href, s);
+  // odds=false: ottelusivun Keskinäiset- ja viimeiset ottelut -listat ilman kertoimia (käyttäjän valinta 26.10.2026)
+  const { ref, o } = useRowOdds(odds ? href : "", s);
   const score = hasScore(s);
   const done = s.kind === "ft";
   const hw = done && score && s.hs! > s.as!, aw = done && score && s.as! > s.hs!;
