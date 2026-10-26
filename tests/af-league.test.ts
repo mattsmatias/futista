@@ -307,3 +307,12 @@ test("kertoimet: keskiarvo vedonvälittäjien yli, ei nimiä; puutteelliset rivi
   assert.equal(parseAfOdds([{ bookmakers: [bk(7, "x", "1.9", "3.4", "3.6")] }]), null);
   assert.equal(parseAfOdds([]), null);
 });
+
+test("ottelun yhdistäminen: turkin ı ja -spor-pääte (oikeat nimet 26.10.2026, Süper Lig)", () => {
+  const ts = Date.parse("2026-11-01T16:00:00Z"), ts2 = Date.parse("2026-10-31T10:30:00Z");
+  const list = [{ id: 1, ts, home: "Kasımpaşa", away: "Beşiktaş" }, { id: 2, ts: ts2, home: "Erzurumspor FK", away: "Çorum FK" }, { id: 3, ts, home: "Başakşehir", away: "Samsunspor" }];
+  assert.equal(pickFixture(list, ts, "Kasimpasa", "Besiktas"), 1);
+  assert.equal(pickFixture(list, ts2, "Erzurum BB", "Çorum FK"), 2);
+  assert.equal(pickFixture(list, ts, "Istanbul Basaksehir", "Samsunspor"), 3);
+  assert.equal(pickFixture(list, ts, "Besiktas", "Kasimpasa"), null); // käänteinen ei kelpaa
+});

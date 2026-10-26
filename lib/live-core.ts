@@ -121,7 +121,8 @@ export function liveStopwatch(m: { min?: string; periodStart?: number; periodBas
 const FILLER = new Set(["fc", "cf", "afc", "ac", "as", "sk", "vfb", "losc", "sc", "ssc", "sl", "cp", "rc", "rcd", "club", "de", "la", "cd", "ud", "sd", "sad", "fk", "bk", "if", "balompie", "1907", "1909", "1913", "and", "hove", "albion", "calcio", "futbol"]);
 
 export const words = (s: string) =>
-  s.replace(/ø/gi, "o").replace(/æ/gi, "ae").replace(/ß/g, "ss")
+  // turkin pisteetön ı / pisteellinen İ eivät hajoa Unicode-normalisoinnissa (Kasımpaşa → kasimpasa)
+  s.replace(/ı/g, "i").replace(/İ/g, "I").replace(/ø/gi, "o").replace(/æ/gi, "ae").replace(/ß/g, "ss")
     .normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w && !FILLER.has(w));
 
@@ -164,7 +165,8 @@ export function bestTeam<T extends { name: string }>(teams: T[], theirs: string[
 
 /** Löytyykö nimestä vähintään yksi selvä (väh. 4 kirjaimen) sana, esim. "Sabah FC Masazir" ↔ "Sabah" */
 function partly(ours: string, theirs: string[]) {
-  return words(ours).some((x) => x.length >= 4 && theirs.includes(x));
+  // sama sana, tai pitkä sana on toisen alku (Erzurum BB ↔ Erzurumspor FK); vain väljässä vertailussa
+  return words(ours).some((x) => x.length >= 4 && (theirs.includes(x) || (x.length >= 6 && theirs.some((t) => t.length >= 6 && (t.startsWith(x) || x.startsWith(t))))));
 }
 
 function tzOffset(epoch: number) {
