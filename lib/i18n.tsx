@@ -497,8 +497,6 @@ const D = {
   lu_coaches: ["Valmentajat", "Tränare", "Managers"],
   od_title: ["Kertoimet", "Odds", "Odds"],
   od_draw: ["Tasapeli", "Oavgjort", "Draw"],
-  od_note: ["Keskiarvo {n} vedonvälittäjältä ennen ottelua", "Genomsnitt av {n} spelbolag före matchen", "Average of {n} bookmakers before the match"],
-  od_updated: ["päivitetty {t}", "uppdaterad {t}", "updated {t}"],
   hl_title: ["Ottelun kohokohdat", "Matchens höjdpunkter", "Match highlights"],
   hl_play: ["Toista ottelun kohokohdat: {t}", "Spela upp höjdpunkterna: {t}", "Play match highlights: {t}"],
   hl_open: ["Avaa YouTubessa", "Öppna på YouTube", "Open on YouTube"],

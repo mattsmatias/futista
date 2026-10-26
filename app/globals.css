@@ -1776,7 +1776,7 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .od-lab b { font: 700 13px var(--mono); }
 .od-lab .crest, .od-lab .badge { flex: none; }
 .od-val { font: 700 15px var(--mono); }
-.od-note { margin: 0; padding: 6px 16px 12px; }
+.od-row { padding-bottom: 12px; }
 @media (max-width: 360px) { .od-cell { flex-direction: column; gap: 2px; padding: 8px; } }
 
 /* Ottelurivin kertoimet (1 / X / 2, keskiarvo; ei vedonvälittäjiä) */

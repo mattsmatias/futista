@@ -21,7 +21,6 @@ export function OddsCard({ l, d, p, home, away, won }: { l: string; d: string; p
   }, [l, d, p]);
   if (!o) return null;
   const f = (x: number) => x.toLocaleString(LOCALE[lang], { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const when = o.update ? new Date(o.update).toLocaleString(LOCALE[lang], { timeZone: "Europe/Helsinki", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : null;
   const cells: { k: "h" | "d" | "a"; label: React.ReactNode; aria: string; v: number }[] = [
     { k: "h", label: <><Badge t={home} size={18} /><b>1</b></>, aria: home.name, v: o.h },
     { k: "d", label: <b>X</b>, aria: t("od_draw"), v: o.d },
@@ -38,7 +37,6 @@ export function OddsCard({ l, d, p, home, away, won }: { l: string; d: string; p
           </div>
         ))}
       </div>
-      <p className="od-note muted small">{t("od_note").replace("{n}", String(o.n))}{when ? ` · ${t("od_updated").replace("{t}", when)}` : ""}</p>
     </section>
   );
 }

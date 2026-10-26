@@ -125,7 +125,7 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.locator(".subtabs button", { hasText: /^Yhteenveto$/ }).click();
   await page.waitForSelector(".od-card", { timeout: 15000 }).catch(() => {});
   const odt = (await page.locator(".od-card").innerText().catch(() => "")).replace(/\s+/g, " ");
-  ok("  Yhteenvedossa Kertoimet-kortti: 1 / X / 2 pilkulla, huomautus keskiarvosta", /Kertoimet/.test(odt) && /2,10/.test(odt) && /3,40/.test(odt) && /3,30/.test(odt) && /Keskiarvo 3 vedonvälittäjältä/.test(odt), odt);
+  ok("  Yhteenvedossa Kertoimet-kortti: 1 / X / 2 pilkulla, ei keskiarvo-/päivitysriviä (käyttäjän valinta 26.10.2026)", /Kertoimet/.test(odt) && /2,10/.test(odt) && /3,40/.test(odt) && /3,30/.test(odt) && !/Keskiarvo|vedonvälittäj|päivitetty/.test(odt), odt);
   ok("  ei vedonvälittäjien nimiä eikä linkkejä sivulla", !/Bet365|Pinnacle|William Hill/.test(await page.locator("main").innerText()) && (await page.locator(".od-card a").count()) === 0);
   ok("  toteutunut lopputulos korostettu (1–3 → vierasvoitto)", (await page.locator(".od-cell.won").count()) === 1 && (await page.locator(".od-cell").nth(2).getAttribute("class")).includes("won"));
   const odOv = await page.locator(".od-cell").evaluateAll((els) => els.every((e) => e.scrollWidth <= e.clientWidth + 1));
