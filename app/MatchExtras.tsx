@@ -164,11 +164,12 @@ function PitchFace({ p, photo }: { p: LPlayer; photo: string | null }) {
   return <span className="pp-shirt">{p.number ?? ""}</span>;
 }
 
-function PlayerRow({ p, showRating }: { p: LPlayer; showRating: boolean }) {
+function PlayerRow({ p, showRating, photos = false }: { p: LPlayer; showRating: boolean; photos?: boolean }) {
   const { t } = useI18n();
   return (
     <li className="lu-row">
-      <span className="lu-num" aria-hidden="true">{p.number ?? "–"}</span>
+      {/* kuva lähteen pelaajatunnisteella (API-Football); ilman kuvaa paitanumero */}
+      <LuFace id={p.id} number={p.number ?? null} photos={photos} />
       <span className="lu-name">
         <span className="sr-only">{p.number ? `#${p.number} ` : ""}</span>{p.name}
         {p.role === 0 && <small className="lu-tag"> (<abbr title={t("roleL_0")}>{t("role_0")}</abbr>)</small>}
@@ -265,7 +266,7 @@ export function LineupsTab({ w, home, away }: { w: Where; home: Team; away: Team
         <div className="lu-cols">
           {sides.map(({ l, tm }, i) => (
             <section key={i} aria-label={tm.name}>{head(tm)}
-              {l.subs.length ? <ul className="lu-list lu-subs">{l.subs.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={false} />)}</ul> : <p className="muted small pad">–</p>}
+              {l.subs.length ? <ul className="lu-list lu-subs">{l.subs.map((p, j) => <PlayerRow key={p.id ?? j} p={p} showRating={false} photos={photos} />)}</ul> : <p className="muted small pad">–</p>}
             </section>
           ))}
         </div>

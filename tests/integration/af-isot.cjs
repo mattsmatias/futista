@@ -153,6 +153,15 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("Pelaajatilastot: pelaajien kuvat lähteen tunnisteella", faces.length > 0 && faces.every((x) => /^https:\/\/media\.api-sports\.io\/football\/players\/9902\d{2}\.png$|^https:\/\/media\.api-sports\.io\/football\/players\/9901\d{2}\.png$/.test(x || "")), JSON.stringify(faces.slice(0, 3)));
   const pov = await page.evaluate(() => [...document.querySelectorAll(".ps-row")].some((r) => r.scrollWidth > r.clientWidth + 1));
   ok("  rivit mahtuvat (390 px)", !pov);
+  // Vaihtopelaajat: profiilikuvat lähteen tunnisteella (käyttäjän valinta 26.10.2026)
+  await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
+  await page.waitForSelector(".lu-bench .lu-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(500);
+  const bf = await page.locator(".lu-bench .lu-row").evaluateAll((els) => els.map((e) => e.querySelector(".lu-face img")?.getAttribute("src") ?? null));
+  ok("Vaihtopelaajat: profiilikuvat lähteen tunnisteella", bf.length === 4 && bf.every((x) => /^https:\/\/media\.api-sports\.io\/football\/players\/990[12]\d{2}\.png$/.test(x || "")), JSON.stringify(bf));
+  const bov = await page.evaluate(() => [...document.querySelectorAll(".lu-bench .lu-row")].some((r) => r.scrollWidth > r.clientWidth + 1));
+  ok("  rivit mahtuvat (390 px)", !bov);
+  await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
+  await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {});
   // latautumaton kuva → paitanumero (ei rikkinäistä kuvaa)
   await page.unroute(/media\.api-sports\.io/);
   await page.route(/media\.api-sports\.io/, (r) => r.fulfill({ status: 404, body: "" }));
@@ -160,6 +169,9 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();
   await page.waitForSelector(".ps-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
   ok("  kuva ei lataudu → paitanumero", (await page.locator(".ps-row .ps-face img").count()) === 0 && (await page.locator(".ps-row .ps-num").count()) > 0);
+  await page.locator(".subtabs button", { hasText: /^Kokoonpanot$/ }).click();
+  await page.waitForSelector(".lu-bench .lu-row", { timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
+  ok("  Vaihtopelaajat: kuva ei lataudu → paitanumero", (await page.locator(".lu-bench .lu-face img").count()) === 0 && (await page.locator(".lu-bench .lu-num").count()) === 4);
   ok("  ei sivuvirheitä", errs.length === 0, errs.slice(0, 2).join(" | "));
   // Ottelulistojen kertoimet (käyttäjän valinta 26.10.2026): rivin alle 1 / X / 2, haetaan niputettuna näkyville riveille
   const K = `bundesliga~${D}~mittaus-united--testiseura-kotka`;
