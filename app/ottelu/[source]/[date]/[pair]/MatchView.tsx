@@ -9,6 +9,7 @@ import { norm } from "@/lib/teams";
 import { teamHref, teamSlug } from "@/lib/routes";
 import { HighlightCard } from "@/app/ui/HighlightCard";
 import { OddsCard } from "@/app/ui/OddsCard";
+import { tvFor } from "@/lib/tv";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
@@ -149,6 +150,7 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
   // kellonaika vasta selaimessa (palvelimen välimuistiin tallennettu sivu voi olla vanha)
   const [nowMs, setNowMs] = useState<number | null>(null);
   useEffect(() => setNowMs(Date.now()), []);
+  const tv = tvFor(s.source, m.home.name, m.away.name);
   const started = !!result || ["live", "ht", "ft", "unconfirmed"].includes(st.kind);
   const showExtras = !!extras && (started || (kick !== null && nowMs !== null && nowMs >= kick - 3600_000));
   useEffect(() => {
@@ -172,6 +174,13 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
           <div className="mh-meta">
             <CompLogoChip id={s.source} name={i.league(s.source, s.league)} />
             <span>{i.day(m.date)}{fixture?.time ? ` · ${fixture.time}` : ""}</span>
+            {/* lähetys Suomessa (sarjan oikeudenhaltija, lib/tv.ts) – vain tulevalle ja käynnissä olevalle ottelulle */}
+            {!result && tv && (
+              <span className="mh-tv" title={t("tv_title").replace("{n}", tv.name)}>
+                <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 7h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Zm4-4 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <span className="sr-only">{t("tv_sr")} </span>{tv.name}
+              </span>
+            )}
           </div>
           <div className="mh-row">
             <a className={`mh-team${aw ? " lost" : ""}`} href={teamHref(s.source, m.home.name)}>

@@ -1784,3 +1784,7 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .mrow-od > span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: var(--surface-2); color: var(--fg); }
 .mrow-od i { font-style: normal; color: var(--muted); }
 .mrow-od > span.won { box-shadow: inset 0 0 0 1.5px var(--win); }
+
+/* Lähetys Suomessa (sarjan oikeudenhaltija) ottelun yläosassa */
+.mh-tv { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--surface-2) 80%, transparent); font-weight: 650; }
+.mh-tv svg { flex: none; }

@@ -90,6 +90,22 @@ const ytCalls = async () => (await mj("/__log")).filter((x) => x.url.startsWith(
     ok(`${w}px:   ei sivuvirheitä`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
+  // lähetys Suomessa (Serie A → MTV Katsomo): tulevassa ottelussa ottelun yläosassa, päättyneessä ei
+  {
+    const all = (await (await fetch(`${MOCK}/v4/competitions/SA/matches`)).json()).matches ?? [];
+    const up = all.find((x) => x.status === "TIMED" && !/Järvenpää/.test(x.homeTeam.name + x.awayTeam.name));
+    const c2 = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
+    const p2 = await c2.newPage();
+    if (up) {
+      await p2.goto(`${APP}/ottelu/seriea/${hel(Date.parse(up.utcDate))}/${slug(up.homeTeam.name)}--${slug(up.awayTeam.name)}`, { waitUntil: "load" });
+      const tvt = (await p2.locator(".mh-tv").innerText().catch(() => "")).replace(/\s+/g, " ");
+      ok("tuleva ottelu: lähetys Suomessa (Serie A → MTV Katsomo) ottelun yläosassa", /MTV Katsomo/.test(tvt) && (await p2.locator(".match-hero .mh-tv").count()) === 1, tvt);
+    } else ok("tuleva ottelu löytyy simuloidusta Serie A:sta", false);
+    const [, d0, p0] = q(m0).match(/d=([^&]+)&p=(.+)$/);
+    await p2.goto(`${APP}/ottelu/seriea/${d0}/${p0}`, { waitUntil: "load" });
+    ok("  päättyneessä ottelussa ei lähetystietoa", (await p2.locator(".mh-tv").count()) === 0);
+    await c2.close();
+  }
   // ottelu ilman koostetta: ei korttia
   const ctx = await browser.newContext({ locale: "fi-FI" });
   const page = await ctx.newPage();

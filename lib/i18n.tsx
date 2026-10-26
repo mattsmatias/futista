@@ -495,6 +495,8 @@ const D = {
   lu_team: ["Joukkue", "Lag", "Team"],
   lu_subs: ["Vaihtopelaajat", "Avbytare", "Substitutes"],
   lu_coaches: ["Valmentajat", "Tränare", "Managers"],
+  tv_title: ["Lähetys Suomessa: {n} (sarjan esitysoikeuksien haltija)", "Sänds i Finland: {n} (ligans rättighetsinnehavare)", "Shown in Finland on {n} (league rights holder)"],
+  tv_sr: ["Lähetys Suomessa:", "Sänds i Finland:", "Shown in Finland on"],
   od_title: ["Kertoimet", "Odds", "Odds"],
   od_draw: ["Tasapeli", "Oavgjort", "Draw"],
   hl_title: ["Ottelun kohokohdat", "Matchens höjdpunkter", "Match highlights"],
