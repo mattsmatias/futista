@@ -58,7 +58,28 @@ const finland = stableCache(async () => {
   return (j?.response ?? []).map((r: any) => ({ id: r.league?.id, name: r.league?.name, type: r.league?.type, seasons: (r.seasons ?? []).filter((s: any) => s.year >= 2023).map((s: any) => ({ year: s.year, current: s.current, start: s.start, end: s.end })) }));
 }, ["af-tarkistus-fi-v1"], { revalidate: 6 * 3600 });
 
+// VÄLIAIKAINEN (esikatselu): miksi kertoimia ei löydy – päivän ottelut, API-Footballin nimet ja yhdistäminen
+import { getStatsWith } from "@/lib/stats";
+import { afFindFixture, afOdds } from "@/lib/af-league";
+import { helsinkiEpoch } from "@/lib/live-core";
+async function findCheck(l: string, d: string) {
+  const s = (await getStatsWith([l as any]).catch(() => null))?.find((x) => x.source === l);
+  const ms = [...(s?.fixtures ?? []), ...(s?.results ?? [])].filter((x) => x.date === d);
+  const af = await afGet(`/fixtures?league=${({ superlig: 203, laliga: 140, bundesliga: 78, seriea: 135, ligue1: 61, mls: 253, eredivisie: 88, primeira: 94 } as any)[l]}&date=${d}&season=2026&timezone=Europe/Helsinki`).catch(() => null);
+  const afl = (af?.response ?? []).map((f: any) => `${f.teams?.home?.name} – ${f.teams?.away?.name} ${String(f.fixture?.date).slice(11, 16)}`);
+  const out = [];
+  for (const m of ms) {
+    const k = (m as any).time && /^\d{1,2}:\d{2}$/.test((m as any).time) ? helsinkiEpoch(m.date, (m as any).time) : null;
+    const id = await afFindFixture(l, d, k, m.home.name, m.away.name);
+    const o = typeof id === "number" ? await afOdds(l, id, "far") : null;
+    out.push([`${m.home.name} – ${m.away.name} ${(m as any).time ?? ""}`, id, o ? `${o.h}/${o.d}/${o.a} n${o.n}` : null]);
+  }
+  return { l, d, ours: out, af: afl, afErrors: af?.errors };
+}
+
 export async function GET(req: Request) {
+  const fq = new URL(req.url).searchParams;
+  if (fq.get("find") && process.env.VERCEL_ENV !== "production" && hasApiFootball()) return NextResponse.json(await findCheck(fq.get("find")!, fq.get("d") ?? ""), { headers: { "Cache-Control": "no-store" } });
   if (process.env.VERCEL_ENV === "production" || !hasApiFootball()) return NextResponse.json({ error: "off" }, { status: 404 });
   const q = new URL(req.url).searchParams.get("id") ?? "";
   try {
