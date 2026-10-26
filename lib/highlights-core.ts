@@ -72,16 +72,29 @@ export const windowOf = (m: HlMatch): [number, number] => {
 const GENERIC = new Set(["real", "borussia", "athletic", "atletico", "sporting", "olympique", "stade", "racing", "dynamo", "union", "united", "city",
   "town", "rovers", "west", "inter", "deportivo", "eintracht", "hertha", "werder", "bayer", "vitoria", "academico", "sparta", "young", "boys"]);
 // sanat samat, tai pidempi sana päättyy lyhyempään (mönchengladbach ↔ gladbach), vähintään 6 kirjainta
-const tokEq = (x: string, t: string) => x === t || (t.length >= 6 && x.endsWith(t)) || (x.length >= 6 && t.endsWith(x));
+// tai alkaa sillä (erzurum ↔ erzurumspor)
+const tokEq = (x: string, t: string) => x === t || (t.length >= 6 && (x.endsWith(t) || x.startsWith(t))) || (x.length >= 6 && (t.endsWith(x) || t.startsWith(x)));
+// turkin pisteetön ı ei hajoa Unicode-normalisoinnissa (Kasımpaşa → kasimpasa)
+const tw0 = (s: string) => words(s.replace(/ı/g, "i").replace(/İ/g, "I"));
+
+// Tietolähteen nimi → nimi, jolla kanavat otsikoivat (tarkistettu oikeista otsikoista 26.10.2026)
+const TITLE_ALIAS: Record<string, string[]> = {
+  "hjk helsinki": ["HJK"], "inter turku": ["FC Inter"], "turku ps": ["TPS"], hsv: ["Hamburger SV"],
+};
 
 /** Joukkueen sijainti otsikon sanoissa: kaikki nimen sanat löytyvät, tai muuten nimen tunnistava (ei yleinen) sana; -1 = ei löydy */
 export function posOf(team: string, tw: string[]): number {
-  const w = words(team);
+  const alts = TITLE_ALIAS[tw0(team).join(" ")] ?? [];
+  const all = [team, ...alts].map((x) => pos1(x, tw)).filter((i) => i >= 0);
+  return all.length ? Math.min(...all) : -1;
+}
+function pos1(team: string, tw: string[]): number {
+  const w = tw0(team);
   if (!w.length) return -1;
   const at = (x: string) => tw.findIndex((t) => tokEq(x, t));
   const all = w.map(at);
   if (all.every((i) => i >= 0)) return Math.min(...all);
-  const key = w.filter((x) => x.length >= 4 && !GENERIC.has(x)).map(at).filter((i) => i >= 0);
+  const key = w.filter((x) => x.length >= 3 && !GENERIC.has(x)).map(at).filter((i) => i >= 0);
   return key.length ? Math.min(...key) : -1;
 }
 
@@ -108,7 +121,7 @@ export function pickHighlight(videos: YtVideo[], m: HlMatch, channels: YtChannel
     if (!ch.c.must.test(v.title) || ch.c.reject?.test(v.title) || NO.test(v.title)) return false;
     const d = dateIn(v.title);
     if (d && d !== m.date) return false;
-    const tw = words(v.title);
+    const tw = tw0(v.title);
     const h = posOf(m.home, tw), a = posOf(m.away, tw);
     if (h < 0 || a < 0 || h >= a) return false; // molemmat joukkueet, koti ensin
     const sc = scoresIn(v.title);

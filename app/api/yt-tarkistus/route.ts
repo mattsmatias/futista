@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { nodeFetch } from "@/lib/http";
+import { getStatsWith } from "@/lib/stats";
+import { getHighlight } from "@/lib/highlights";
+import { HL_CHANNELS } from "@/lib/highlights-core";
+import { helsinkiEpoch } from "@/lib/live-core";
+import { teamSlug } from "@/lib/routes";
 
 // VÄLIAIKAINEN kehitystyökalu (vain esikatselussa): virallisten YouTube-kanavien tunnisteet ja viimeisimmät videot
 // kohokohtavideoiden lähteiden varmentamiseksi. Vain kiinteä kanavalista → ei avoin välityspalvelin. Poistetaan ennen julkaisua.
@@ -68,6 +73,18 @@ export async function GET(req: Request) {
   if (process.env.VERCEL_ENV === "production") return new NextResponse("Not found", { status: 404 });
   const sp = new URL(req.url).searchParams;
   const h = { "cache-control": "no-store", "x-robots-tag": "noindex" };
+  const hl = sp.get("hl");
+  if (hl && HL_CHANNELS[hl]) {
+    const from = sp.get("from") ?? "2026-10-23";
+    const s = (await getStatsWith([hl as any]).catch(() => null))?.find((x) => x.source === hl);
+    const rs = (s?.results ?? []).filter((r) => r.date >= from).slice(0, 25);
+    const out = await Promise.all(rs.map(async (r) => {
+      const k = r.time && /^\d{1,2}:\d{2}$/.test(r.time) ? helsinkiEpoch(r.date, r.time) : null;
+      const v = await getHighlight(hl, `chk/${r.date}/${teamSlug(r.home.name)}--${teamSlug(r.away.name)}`, { date: r.date, kickoff: k, home: r.home.name, away: r.away.name, score: [r.hs, r.as] });
+      return [r.date, `${r.home.name} ${r.hs}-${r.as} ${r.away.name}`, v ? v.title : null];
+    }));
+    return NextResponse.json({ hl, n: out.length, found: out.filter((x) => x[2]).length, out }, { headers: h });
+  }
   if (sp.get("q") !== null) { const i = Number(sp.get("q")); const qs = Number.isInteger(i) && QUERIES[i] ? [QUERIES[i]] : QUERIES.slice(0, 4); const o = []; for (const q of qs) o.push(await search(q)); return NextResponse.json(o, { headers: h }); }
   const ch = sp.get("ch");
   if (ch && /^UC[\w-]{22}$/.test(ch)) return NextResponse.json(await playlists(ch), { headers: h });

@@ -57,10 +57,26 @@ test("eri sarjojen otsikkomuodot", () => {
   assert.equal(id("ligue1", "Olympique Marseille", "Le Havre", "2026-10-25", [4, 3]), "l11");
   assert.equal(id("ligue1", "Olympique Marseille", "Le Havre", "2026-10-25", [3, 3]), null);
   assert.equal(id("veikkausliiga", "HJK", "KuPS", "2026-10-25", [2, 2]), "hjk");
+  // tietolähteen nimet (Veikkausliigan taulukko 26.10.2026): "HJK Helsinki", "Inter Turku", "Turku PS"
+  assert.equal(id("veikkausliiga", "HJK Helsinki", "KuPS", "2026-10-25", [2, 2]), "hjk");
+  assert.equal(id("veikkausliiga", "Inter Turku", "Turku PS", "2026-05-23", [2, 1]), "tps");
   assert.equal(id("veikkausliiga", "Ilves", "FF Jaro", "2026-09-08", [1, 0]), "ilv");
   assert.equal(id("veikkausliiga", "Ilves", "FF Jaro", "2026-09-07", [1, 0]), null); // otsikon päivämäärä ei täsmää
   assert.equal(id("veikkausliiga", "FC Inter", "TPS", "2026-05-23", [2, 1]), "tps");
   assert.equal(id("primeira", "Gil Vicente", "FC Porto", "2026-10-25", [0, 1]), "vsp");
+});
+
+test("nimierot oikeasta datasta (tietolähde ↔ kanavan otsikko)", () => {
+  const BE = "UCPe9vNjHF1kEExT5kHwc7aw";
+  const vids = [
+    v("t1", BE, "Eyüpspor - Kasımpaşa - Highlights/Özet | Trendyol Süper Lig - 2026/27", "2026-10-24T20:00:00Z"),
+    v("t2", BE, "Gaziantep FK - Erzurumspor FK - Highlights/Özet | Trendyol Süper Lig - 2026/27", "2026-10-24T20:00:00Z"),
+    v("b1", BL, "It Had To Be Philippe! | SC PADERBORN - HAMBURGER SV | Highlights | Matchday 7 – Bundesliga 2026/27", "2026-10-25T23:00:00Z"),
+  ];
+  const m = (home: string, away: string, score: [number, number]) => ({ date: "2026-10-24", kickoff: Date.parse("2026-10-24T15:00:00Z"), home, away, score });
+  assert.equal(pickHighlight(vids, m("Eyupspor", "Kasimpasa", [0, 1]), HL_CHANNELS.superlig)?.id, "t1xxxxxxxxx");
+  assert.equal(pickHighlight(vids, m("Gaziantep FK", "Erzurum BB", [1, 3]), HL_CHANNELS.superlig)?.id, "t2xxxxxxxxx");
+  assert.equal(pickHighlight(vids, m("SC Paderborn", "HSV", [1, 0]), HL_CHANNELS.bundesliga)?.id, "b1xxxxxxxxx");
 });
 
 test("tulos ja päivämäärä otsikosta (kaudet ja vuosiluvut eivät ole tuloksia)", () => {
