@@ -8,6 +8,7 @@ import { SOURCES } from "@/lib/sources";
 import { norm } from "@/lib/teams";
 import { teamHref, teamSlug } from "@/lib/routes";
 import { HighlightCard } from "@/app/ui/HighlightCard";
+import { OddsCard } from "@/app/ui/OddsCard";
 import { Badge, FormPills, Match, Standings } from "../../../../Stats";
 import Flag from "../../../../Flag";
 import type { MatchExtra, Meeting } from "@/lib/match-extra";
@@ -206,6 +207,9 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
             {result && <HighlightCard l={s.source} d={m.date} p={`${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`} />}
             {extra && (extra.ht || extra.referee || extra.matchday != null) && <Info e={extra} />}
             {extras?.af && <EventsCard w={extras} home={m.home} away={m.away} />}
+            {/* voittajakertoimet (keskiarvo, ei vedonvälittäjien nimiä); toteutunut korostetaan, jos ratkesi varsinaisella peliajalla */}
+            <OddsCard l={s.source} d={m.date} p={`${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`} home={m.home} away={m.away}
+              won={result && !result.note ? (result.hs > result.as ? "h" : result.hs < result.as ? "a" : "d") : null} />
             <div className="panel">
               {formAll && formAll.home.length > 0 && formAll.away.length > 0 ? <>
                 <div className="panel-head"><h3>{t("form")}</h3></div>

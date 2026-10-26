@@ -141,6 +141,14 @@ function handle(u, send, mode, res, hdr) {
     send({ errors: [], response: list.filter((x) => hel(x.fixture.timestamp * 1000) === d) });
     return true;
   }
+  // kertoimet (rakenne oikeasta vastauksesta 26.10.2026: odds?fixture=…&bet=1) – vain ottelulle 990001; yksi rikkinäinen rivi
+  if (u.pathname === "/odds" && u.searchParams.get("fixture")) {
+    const bk = (id, name, h, d, a) => ({ id, name, bets: [{ id: 1, name: "Match Winner", values: [{ value: "Home", odd: h }, { value: "Draw", odd: d }, { value: "Away", odd: a }] }] });
+    const rows = u.searchParams.get("fixture") === "990001" ? [{ league: { id: 78 }, fixture: { id: 990001 }, update: "2026-10-20T10:00:00+00:00",
+      bookmakers: [bk(7, "William Hill", "2.10", "3.40", "3.20"), bk(8, "Bet365", "2.00", "3.50", "3.40"), bk(4, "Pinnacle", "2.20", "3.30", "3.30"), { id: 99, name: "Rikki", bets: [] }] }] : [];
+    send({ errors: [], results: rows.length, response: rows });
+    return true;
+  }
   // poissaolijat (rakenne oikeasta vastauksesta 26.10.2026: player.type/reason; lähde toistaa rivit) – vain ottelulle 990001
   if (u.pathname === "/injuries" && u.searchParams.get("fixture")) {
     const r = (tid, id, name, reason, type = "Missing Fixture") => ({ player: { id, name, photo: "", type, reason }, team: { id: tid }, fixture: { id: 990001 }, league: { id: 78 } });

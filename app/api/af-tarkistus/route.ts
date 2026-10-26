@@ -58,25 +58,7 @@ const finland = stableCache(async () => {
   return (j?.response ?? []).map((r: any) => ({ id: r.league?.id, name: r.league?.name, type: r.league?.type, seasons: (r.seasons ?? []).filter((s: any) => s.year >= 2023).map((s: any) => ({ year: s.year, current: s.current, start: s.start, end: s.end })) }));
 }, ["af-tarkistus-fi-v1"], { revalidate: 6 * 3600 });
 
-// VÄLIAIKAINEN: kertoimien rakenne (seuraava ja viimeisin ottelu, Match Winner -veto). Poistetaan ennen julkaisua.
-const oddsCheck = (id: number) => stableCache(async () => {
-  const out: any = { id };
-  for (const k of ["next", "last"]) {
-    const fj = await afGet(`/fixtures?league=${id}&${k}=1&timezone=Europe/Helsinki`);
-    const f = fj?.response?.[0];
-    if (!f) { out[k] = null; continue; }
-    const oj = await afGet(`/odds?fixture=${f.fixture.id}&bet=1`);
-    const r = oj?.response?.[0];
-    out[k] = { fixture: f.fixture.id, date: f.fixture.date, teams: [f.teams?.home?.name, f.teams?.away?.name], errors: oj?.errors, results: oj?.results, paging: oj?.paging,
-      keys: r ? Object.keys(r) : null, update: r?.update, nBook: r?.bookmakers?.length,
-      books: (r?.bookmakers ?? []).slice(0, 30).map((b: any) => [b.id, b.name, (b.bets ?? []).map((x: any) => [x.id, x.name, (x.values ?? []).map((v: any) => `${v.value}:${v.odd}`).join(" ")])]) };
-  }
-  return out;
-}, ["af-tarkistus-odds-v1", String(id)], { revalidate: 3 * 3600 })();
-
 export async function GET(req: Request) {
-  const oq = new URL(req.url).searchParams.get("odds");
-  if (oq && process.env.VERCEL_ENV !== "production" && hasApiFootball() && [140, 244, 78, 39].includes(Number(oq))) return NextResponse.json(await oddsCheck(Number(oq)), { headers: { "Cache-Control": "no-store" } });
   if (process.env.VERCEL_ENV === "production" || !hasApiFootball()) return NextResponse.json({ error: "off" }, { status: 404 });
   const q = new URL(req.url).searchParams.get("id") ?? "";
   try {

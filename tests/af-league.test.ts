@@ -294,3 +294,16 @@ test("poissaolijat: rivit kerran, joukkue tunnisteella, syy luokitellaan, epäva
   assert.deepEqual(r.a.map((u) => [u.id, u.reason]), [[762, "suspension"], [341640, "injury"]]);
   assert.deepEqual(parseAfInjuries([], 1, 2), { h: [], a: [] });
 });
+
+test("kertoimet: keskiarvo vedonvälittäjien yli, ei nimiä; puutteelliset rivit pois; alle kaksi → null", async () => {
+  const { parseAfOdds } = await import("../lib/af-league-core");
+  // rakenne oikeasta vastauksesta 26.10.2026 (odds?fixture=1638112&bet=1, HJK–KuPS), lyhennetty
+  const bk = (id: number, name: string, h: string, d: string, a: string) => ({ id, name, bets: [{ id: 1, name: "Match Winner", values: [{ value: "Home", odd: h }, { value: "Draw", odd: d }, { value: "Away", odd: a }] }] });
+  const resp = [{ update: "2026-10-25T12:06:15+00:00", bookmakers: [bk(7, "William Hill", "1.91", "3.40", "3.60"), bk(8, "Bet365", "1.85", "3.60", "3.60"), bk(4, "Pinnacle", "1.96", "3.66", "3.96"),
+    { id: 99, name: "Rikki", bets: [{ id: 1, name: "Match Winner", values: [{ value: "Home", odd: "2.00" }] }] }] }];
+  const o = parseAfOdds(resp)!;
+  assert.deepEqual(o, { h: 1.91, d: 3.55, a: 3.72, n: 3, update: "2026-10-25T12:06:15.000Z" });
+  assert.ok(!JSON.stringify(o).includes("Bet365"));
+  assert.equal(parseAfOdds([{ bookmakers: [bk(7, "x", "1.9", "3.4", "3.6")] }]), null);
+  assert.equal(parseAfOdds([]), null);
+});

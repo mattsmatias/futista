@@ -1766,3 +1766,15 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .hl-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .hl-meta { margin: 8px 2px 0; display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: space-between; }
 .hl-meta span { min-width: 0; overflow-wrap: anywhere; }
+
+/* Kertoimet (1 / X / 2, keskiarvo) – neutraali tieto, ei vedonvälittäjiä */
+.od-card { margin-bottom: 16px; }
+.od-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 12px 4px; }
+.od-cell { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.od-cell.won { box-shadow: inset 0 0 0 2px var(--win); }
+.od-lab { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.od-lab b { font: 700 13px var(--mono); }
+.od-lab .crest, .od-lab .badge { flex: none; }
+.od-val { font: 700 15px var(--mono); }
+.od-note { margin: 0; padding: 6px 16px 12px; }
+@media (max-width: 360px) { .od-cell { flex-direction: column; gap: 2px; padding: 8px; } }

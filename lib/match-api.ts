@@ -4,7 +4,7 @@ import { phaseOf } from "./match-core";
 import { ourMatch, liveOurMatch } from "./match-find";
 import { SOURCES } from "./sources";
 import { espnExtras, ESPN_SOURCE } from "./espn-lineups";
-import { afMatchDetail, afBigOn, afFindFixture, afHalfStats, afInjuries } from "./af-league";
+import { afMatchDetail, afBigOn, afFindFixture, afHalfStats, afInjuries, afOdds } from "./af-league";
 
 const json = (body: unknown, status: number, maxAge: number) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": maxAge > 0 ? `public, s-maxage=${maxAge}, stale-while-revalidate=60` : "no-store" } });
@@ -93,4 +93,22 @@ export async function statsResponse(req: Request) {
   if (isAf(l) || afBigOn(l)) return afResponse("stats", req);
   if (espnSlug(l)) return espnResponse("stats", req);
   return off();
+}
+
+/** Ottelun voittajakertoimet (Yhteenveto). Vain API-Footballin kautta tunnistettava ottelu; vedonvälittäjien nimiä ei välitetä. */
+export async function oddsResponse(req: Request) {
+  const { l, d, p } = params(req);
+  if (!(isAf(l) || afBigOn(l))) return json({ state: "off" }, 200, 86400);
+  let ours = await ourMatch(l, d, p);
+  const running = ours === null && afBigOn(l) ? await liveOurMatch(l, d, p) : null;
+  if (running) ours = running;
+  if (ours === null) return json({ state: "notfound" }, 404, 600);
+  if (ours === "unavailable") return json({ state: "unavailable" }, 503, 0);
+  const phase = running ? "live" : phaseOf(ours.kickoff, Date.now(), ours.finished);
+  const afid = ours.afid ?? (afBigOn(l) ? await afFindFixture(l, d, ours.kickoff, ours.home.name, ours.away.name) : null);
+  if (afid === "unavailable") return json({ state: "unavailable" }, 503, 0);
+  if (!afid) return json({ state: "none" }, 200, 3600);
+  const o = await afOdds(l, afid, phase);
+  if (!o) return json({ state: "none", phase }, 200, phase === "final" ? 86400 : 1800);
+  return json({ state: "ok", phase, odds: o }, 200, phase === "final" ? 86400 : 900);
 }

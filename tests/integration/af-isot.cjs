@@ -117,6 +117,20 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   ok("  320 px: ei vaakavieritystä kokoonpanosivulla", await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
   await page.setViewportSize({ width: 390, height: 844 });
 
+  // Kertoimet (Yhteenveto): keskiarvo vedonvälittäjien yli, ei nimiä; toteutunut lopputulos korostettu
+  const od = await get("kertoimet", Q);
+  ok("Kertoimet: keskiarvo (2,10 / 3,40 / 3,30), 3 vedonvälittäjää, rikkinäinen rivi pois, ei nimiä", od.j?.state === "ok" && od.j?.odds?.h === 2.1 && od.j?.odds?.d === 3.4 && od.j?.odds?.a === 3.3 && od.j?.odds?.n === 3 && !/Bet365|Pinnacle|William/.test(JSON.stringify(od.j)), JSON.stringify(od.j));
+  const od2 = await get("kertoimet", `l=bundesliga&d=${D}&p=mittaus-reserve--kotka-city`);
+  ok("  ottelu ilman kertoimia → none (ei keksittyä)", od2.j?.state === "none" || od2.j?.state === "notfound", JSON.stringify(od2.j));
+  await page.locator(".subtabs button", { hasText: /^Yhteenveto$/ }).click();
+  await page.waitForSelector(".od-card", { timeout: 15000 }).catch(() => {});
+  const odt = (await page.locator(".od-card").innerText().catch(() => "")).replace(/\s+/g, " ");
+  ok("  Yhteenvedossa Kertoimet-kortti: 1 / X / 2 pilkulla, huomautus keskiarvosta", /Kertoimet/.test(odt) && /2,10/.test(odt) && /3,40/.test(odt) && /3,30/.test(odt) && /Keskiarvo 3 vedonvälittäjältä/.test(odt), odt);
+  ok("  ei vedonvälittäjien nimiä eikä linkkejä sivulla", !/Bet365|Pinnacle|William Hill/.test(await page.locator("main").innerText()) && (await page.locator(".od-card a").count()) === 0);
+  ok("  toteutunut lopputulos korostettu (1–3 → vierasvoitto)", (await page.locator(".od-cell.won").count()) === 1 && (await page.locator(".od-cell").nth(2).getAttribute("class")).includes("won"));
+  const odOv = await page.locator(".od-cell").evaluateAll((els) => els.every((e) => e.scrollWidth <= e.clientWidth + 1));
+  ok("  kertoimet mahtuvat (390 px)", odOv);
+
   // Pelaajatilastot: pelaajan kuva lähteen tunnisteella (API-Football); kuvapalvelin simuloidaan 1×1-kuvalla
   await page.route(/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
   await page.locator(".subtabs button", { hasText: /^Pelaajatilastot$/ }).click();

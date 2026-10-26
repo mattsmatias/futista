@@ -13,7 +13,7 @@ import { AF_LEAGUE, afSeason } from "./apifootball-core";
 import { AF_COMPS, afCompOn, afComp } from "./af-registry";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
-import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, parseAfHalves, parseAfInjuries, type AfDetail } from "./af-league-core";
+import { pickSeason, parseAfFixtures, parseAfStandings, parseAfScorers, parseAfDetail, applyLive, inLiveWindow, splitStages, pickFixture, afReds, parseAfHalves, parseAfInjuries, parseAfOdds, type AfDetail } from "./af-league-core";
 import type { LeagueStats, Fixture, Part } from "./stats";
 import type { SourceId } from "./sources";
 
@@ -195,6 +195,26 @@ export async function afInjuries(id: string, fixtureId: number, phase: "pre" | "
     return parseAfInjuries(resp, homeId, awayId);
   } catch (e) {
     console.warn("af-poissa", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
+    return null;
+  }
+}
+
+/** Voittajakertoimet (odds?fixture=…&bet=1), keskiarvo vedonvälittäjien yli. Lähde säilyttää kertoimet noin viikon
+ *  ottelun jälkeen: päättynyt 30 vrk, muuten 1 h. null = ei saatavilla tai haku epäonnistui (osio jätetään pois). */
+export async function afOdds(id: string, fixtureId: number, phase: "far" | "pre" | "live" | "final") {
+  if (!(on(id) || afBigOn(id)) || !Number.isInteger(fixtureId) || fixtureId <= 0) return null;
+  // käynnissä olevalle ottelulle ennen alkua tallennetut kertoimet (ei live-kertoimia)
+  const key = phase === "final" ? "final" : phase === "live" ? "live" : "pre";
+  try {
+    const resp = await stableCache(async () => {
+      const j = await once(`o${fixtureId}`, () => afGet(`/odds?fixture=${fixtureId}&bet=1`));
+      const errs = j?.errors && typeof j.errors === "object" ? Object.keys(j.errors).length : 0;
+      if (!Array.isArray(j?.response) || errs) throw new Error("odds: unrecognised");
+      return j.response as any[];
+    }, ["af-odds-v1", id, String(fixtureId), key], { revalidate: key === "final" ? 30 * DAY : key === "live" ? 6 * 3600 : 3600 })();
+    return parseAfOdds(resp);
+  } catch (e) {
+    console.warn("af-kertoimet", id, fixtureId, (e as { code?: string })?.code ?? (e as Error)?.message);
     return null;
   }
 }

@@ -377,3 +377,23 @@ export function pickFixture(list: { id: number; ts: number; home: string; away: 
   const loose = near.filter((f) => kickoff !== null && Math.abs(f.ts - kickoff) <= 15 * 60_000 && sameTeam(home, words(f.home)) && sameTeam(away, words(f.away)));
   return loose.length === 1 ? loose[0].id : null;
 }
+
+// ---------------- Kertoimet (odds?fixture=…&bet=1, "Match Winner") ----------------
+export type AfOdds = { h: number; d: number; a: number; n: number; update: string | null };
+
+/** Ottelun voittajakertoimien keskiarvo vedonvälittäjien yli (1 / X / 2). Vedonvälittäjien nimiä ei palauteta.
+ *  Mukaan vain vedonvälittäjät, joilla kaikki kolme kerrointa ovat kelvollisia (> 1). Alle kaksi → null (ei keksitä). */
+export function parseAfOdds(resp: any[]): AfOdds | null {
+  const r = Array.isArray(resp) ? resp[0] : null;
+  const rows: [number, number, number][] = [];
+  for (const b of r?.bookmakers ?? []) {
+    const bet = (b?.bets ?? []).find((x: any) => num(x?.id) === 1 || x?.name === "Match Winner");
+    const v = (k: string) => { const x = Number((bet?.values ?? []).find((y: any) => y?.value === k)?.odd); return Number.isFinite(x) && x > 1 && x < 1000 ? x : null; };
+    const h = v("Home"), d = v("Draw"), a = v("Away");
+    if (h && d && a) rows.push([h, d, a]);
+  }
+  if (rows.length < 2) return null;
+  const avg = (i: number) => Math.round((rows.reduce((s, x) => s + x[i], 0) / rows.length) * 100) / 100;
+  const upd = str(r?.update);
+  return { h: avg(0), d: avg(1), a: avg(2), n: rows.length, update: upd && !Number.isNaN(Date.parse(upd)) ? new Date(upd).toISOString() : null };
+}
