@@ -58,7 +58,31 @@ const finland = stableCache(async () => {
   return (j?.response ?? []).map((r: any) => ({ id: r.league?.id, name: r.league?.name, type: r.league?.type, seasons: (r.seasons ?? []).filter((s: any) => s.year >= 2023).map((s: any) => ({ year: s.year, current: s.current, start: s.start, end: s.end })) }));
 }, ["af-tarkistus-fi-v1"], { revalidate: 6 * 3600 });
 
+// VÄLIAIKAINEN (esikatselu): kertoimien ja lähetystiedon kattavuus sarjoittain oikealla datalla
+import { getStatsWith } from "@/lib/stats";
+import { oddsFor } from "@/lib/match-api";
+import { tvFor } from "@/lib/tv";
+import { teamSlug } from "@/lib/routes";
+import { SOURCES } from "@/lib/sources";
+async function audit(l: string) {
+  const s = (await getStatsWith([l as any]).catch(() => null))?.find((x) => x.source === l);
+  const today = new Date().toISOString().slice(0, 10);
+  const up = (s?.fixtures ?? []).filter((f) => f.date >= today).slice(0, 4);
+  const done = (s?.results ?? []).slice(0, 2);
+  const rows = [];
+  for (const m of [...up, ...done]) {
+    const r = await oddsFor(l, m.date, `${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`).catch((e) => ({ state: "error:" + (e as Error).message } as any));
+    rows.push([m.date, `${m.home.name} – ${m.away.name}`, "hs" in m ? "pelattu" : "tuleva", r.state, r.odds ? `${r.odds.h}/${r.odds.d}/${r.odds.a}` : null]);
+  }
+  return { l, tv: tvFor(l, "x", "y")?.name ?? null, fixtures: s?.fixtures?.length ?? null, failed: s?.failed ?? null, rows };
+}
+
 export async function GET(req: Request) {
+  const aq = new URL(req.url).searchParams.get("audit");
+  if (aq && process.env.VERCEL_ENV !== "production") {
+    if (aq === "list") return NextResponse.json(SOURCES.map((x) => x.id));
+    return NextResponse.json(await audit(aq), { headers: { "Cache-Control": "no-store" } });
+  }
   if (process.env.VERCEL_ENV === "production" || !hasApiFootball()) return NextResponse.json({ error: "off" }, { status: 404 });
   const q = new URL(req.url).searchParams.get("id") ?? "";
   try {
