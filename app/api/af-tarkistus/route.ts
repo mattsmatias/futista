@@ -64,6 +64,10 @@ import { oddsFor } from "@/lib/match-api";
 import { tvFor } from "@/lib/tv";
 import { teamSlug } from "@/lib/routes";
 import { SOURCES } from "@/lib/sources";
+import { afFindFixture } from "@/lib/af-league";
+import { helsinkiEpoch } from "@/lib/live-core";
+import { AF_LEAGUE } from "@/lib/apifootball-core";
+import { afComp } from "@/lib/af-registry";
 async function audit(l: string) {
   const s = (await getStatsWith([l as any]).catch(() => null))?.find((x) => x.source === l);
   const today = new Date().toISOString().slice(0, 10);
@@ -72,7 +76,16 @@ async function audit(l: string) {
   const rows = [];
   for (const m of [...up, ...done]) {
     const r = await oddsFor(l, m.date, `${teamSlug(m.home.name)}--${teamSlug(m.away.name)}`).catch((e) => ({ state: "error:" + (e as Error).message } as any));
-    rows.push([m.date, `${m.home.name} – ${m.away.name}`, "hs" in m ? "pelattu" : "tuleva", r.state, r.odds ? `${r.odds.h}/${r.odds.d}/${r.odds.a}` : null]);
+    let dbg: unknown = null;
+    if (r.state !== "ok") {
+      const k = m.time && /^\d{1,2}:\d{2}$/.test(m.time) ? helsinkiEpoch(m.date, m.time) : null;
+      const afl = AF_LEAGUE[l] ?? afComp(l)?.af;
+      const fid = (m as any).afid ?? await afFindFixture(l, m.date, k, m.home.name, m.away.name).catch(() => "err");
+      const day = afl ? await afGet(`/fixtures?league=${afl}&date=${m.date}&timezone=Europe/Helsinki${AF_LEAGUE[l] ? "&season=" + (l === "mls" ? 2026 : 2026) : ""}`).catch(() => null) : null;
+      const odds = typeof fid === "number" ? await afGet(`/odds?fixture=${fid}&bet=1`).catch(() => null) : null;
+      dbg = { time: m.time, fid, oddsResults: odds?.results ?? null, afDay: (day?.response ?? []).map((f: any) => `${f.teams?.home?.name} – ${f.teams?.away?.name} ${String(f.fixture?.date).slice(11, 16)}`).slice(0, 12) };
+    }
+    rows.push([m.date, `${m.home.name} – ${m.away.name}`, "hs" in m ? "pelattu" : "tuleva", r.state, r.odds ? `${r.odds.h}/${r.odds.d}/${r.odds.a}` : null, dbg]);
   }
   return { l, tv: tvFor(l, "x", "y")?.name ?? null, fixtures: s?.fixtures?.length ?? null, failed: s?.failed ?? null, rows };
 }
