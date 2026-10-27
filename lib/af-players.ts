@@ -31,9 +31,9 @@ export function squadLeagues(): SquadLeague[] {
   return [...own, ...espn];
 }
 
-// Kokoonpanohaut jonossa: yksi kerrallaan ja vähintään SPACING_MS välein (≤ 150 hakua/min instanssia kohden), jotta
+// Kokoonpanohaut jonossa: yksi kerrallaan ja vähintään SPACING_MS välein (≤ 75 hakua/min instanssia kohden), jotta
 // kylmä täyttö ei ylitä lähteen minuuttirajaa eikä hidasta live-tuloksia. Välimuistiosumat eivät käytä jonoa.
-const SPACING_MS = 400;
+const SPACING_MS = 800;
 let chain: Promise<unknown> = Promise.resolve();
 function queued<T>(f: () => Promise<T>): Promise<T> {
   const run = chain.then(f, f);
