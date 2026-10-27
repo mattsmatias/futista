@@ -438,7 +438,8 @@ const MIN = 60_000;
       await page.locator(".tr-panel").first().waitFor({ timeout: 15000 }).catch(() => {});
       await fetch(APP + "/api/siirrot?l=superlig&t=testispor-ankara");
       const afLog = (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => x.url.startsWith("/af/"));
-      ok("  välimuisti: joukkuelista ja siirrot haettu lähteestä kerran", afLog.filter((x) => x.url.includes("/transfers")).length === 1 && afLog.filter((x) => x.url.includes("/teams")).length === 1, afLog.map((x) => x.url).join(" "));
+      // joukkuelista voi olla jo välimuistissa pelaajahaun jäljiltä (sama välimuisti) → enintään yksi haku
+      ok("  välimuisti: joukkuelista ja siirrot haettu lähteestä enintään kerran", afLog.filter((x) => x.url.includes("/transfers")).length === 1 && afLog.filter((x) => x.url.includes("/teams?league=203")).length <= 1, afLog.map((x) => x.url).join(" "));
       // tuntematon joukkue → 404 ilman lähdehakua; joukkue, jota ei löydy lähteestä → nomatch (ei arvata)
       const before = afLog.length;
       const r404 = await fetch(APP + "/api/siirrot?l=superlig&t=ei-ole-olemassa");
