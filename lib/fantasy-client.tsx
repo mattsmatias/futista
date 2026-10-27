@@ -11,7 +11,7 @@ export type FState = {
   rounds: { no: number; deadline: string; first: string; locked: boolean; status: string }[];
   next: number | null; current: number | null;
   team: null | {
-    id: number; name: string; first_round: number | null; version: number; picks: Picks | null; base: Picks | null;
+    id: number; name: string; logo: unknown; first_round: number | null; version: number; picks: Picks | null; base: Picks | null;
     free: number | null; made: number; cost: number; total: number; rank: { rank: number; of: number } | null; joined_late: boolean;
     points: { round: number; points: number; hits: number; total: number; provisional: boolean }[];
   };
@@ -67,6 +67,8 @@ export const ERR_TEXT: Record<string, string> = {
   cost: "Siirtojen pistevähennys muuttui. Tarkista ja vahvista uudelleen.",
   rules: "Joukkue ei täytä sääntöjä.",
   forbidden: "Ei oikeutta tähän toimintoon.",
+  logo: "Logon tiedot ovat virheelliset. Tarkista valinnat ja yritä uudelleen.",
+  logo_setup: "Logon tallennus vaatii tietokantapäivityksen, jota ei ole vielä ajettu (ylläpito: 20261027b_fantasy_logo.sql).",
   picks: "Joukkueen tiedot ovat virheelliset. Lataa sivu uudelleen.",
 };
 export const errText = (e: ApiErr | null) => (e ? ERR_TEXT[e.error] ?? ERR_TEXT.unavailable : "");

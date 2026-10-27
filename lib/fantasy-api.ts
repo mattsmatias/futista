@@ -72,3 +72,10 @@ export async function readJson(req: Request): Promise<any> {
   if (len > 20_000) return null;
   try { return await req.json(); } catch { return null; }
 }
+
+/** Joukkueiden logot ({id: logo}); ilman logomigraatiota (20261027b) tyhjä → oletuslogot */
+export async function teamLogos(compId: string, ids: number[]): Promise<Record<string, unknown>> {
+  if (!ids.length) return {};
+  try { return (await rpc<Record<string, unknown>>("f_team_logos", { p_comp: compId, p_ids: ids.slice(0, 200) })) ?? {}; }
+  catch (e) { if (e instanceof FantasyDbError && e.code === "missing") return {}; throw e; }
+}

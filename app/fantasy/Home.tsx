@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { api, useLoad, fmtM, localTime, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import type { Picks } from "@/lib/fantasy-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus } from "./ui";
+import { TeamLogo } from "./TeamLogo";
+import { LogoEditor } from "./LogoEditor";
 
 export function FantasyHome() {
   const st = useLoad<FState>("/api/fantasy/tila");
@@ -48,7 +50,8 @@ export function Logout() {
   return <button type="button" className="btn sm ghost" disabled={busy} onClick={async () => { setBusy(true); await api("/api/fantasy/tili", { action: "logout" }); location.href = "/fantasy"; }}>Kirjaudu ulos</button>;
 }
 
-function Home({ s }: { s: FState; reload: () => void }) {
+function Home({ s, reload }: { s: FState; reload: () => void }) {
+  const [logoEd, setLogoEd] = useState(false);
   const t = s.team!;
   const pl = useLoad<{ players: FPlayerRow[] }>("/api/fantasy/pelaajat");
   const players = useMemo(() => new Map((pl.data?.players ?? []).map((p) => [p.id, p])), [pl.data]);
@@ -68,9 +71,13 @@ function Home({ s }: { s: FState; reload: () => void }) {
   return (
     <>
       <section className="fx-summary" aria-label="Joukkueen tiedot">
-        <div className="fx-sum-main">
-          <h2>{t.name}</h2>
-          <p className="muted">{s.comp.name} · {s.user?.username}</p>
+        <div className="fx-sum-main fx-sum-team">
+          <TeamLogo logo={t.logo} name={t.name} size={64} />
+          <div>
+            <h2>{t.name}</h2>
+            <p className="muted">{s.comp.name} · {s.user?.username}</p>
+            <button type="button" className="btn sm ghost" aria-expanded={logoEd} aria-controls="fx-logo-panel" onClick={() => setLogoEd((v) => !v)}>{t.logo ? "Muokkaa logoa" : "Tee logo"}</button>
+          </div>
         </div>
         <dl className="fx-kpis">
           <div><dt>{next ? `Kierros ${next.no} – määräaika` : "Määräaika"}</dt><dd>{next ? localTime(next.deadline) : "Ei tulevia kierroksia"}</dd></div>
@@ -81,6 +88,7 @@ function Home({ s }: { s: FState; reload: () => void }) {
         </dl>
         <div className="fx-row"><Link className="btn" href="/fantasy/siirrot">{t.picks ? "Muokkaa joukkuetta ja siirrot" : "Valitse pelaajat"}</Link><Logout /></div>
       </section>
+      {logoEd && <div id="fx-logo-panel"><LogoEditor name={t.name} logo={t.logo} onSaved={reload} onCancel={() => setLogoEd(false)} /></div>}
       <DataStatus updated={s.data.updated} stale={s.data.stale} />
       {t.joined_late && <Notice>Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {t.first_round} alkaen.</Notice>}
       {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {next?.no ?? ""} määräaikaa.</Notice>}

@@ -1,11 +1,12 @@
-import { rpc } from "@/lib/fantasy-db";
+import { rpc, FantasyDbError } from "@/lib/fantasy-db";
+import { normalizeLogo } from "@/lib/fantasy-logo";
 import { squadErrors, lineupErrors, cleanName, type Picks } from "@/lib/fantasy-core";
 import { DEFAULT_COMP, playersMap } from "@/lib/fantasy-sync";
 import { j, fail, dbFail, withUser, loadState, roundInfo, transferInfo, readJson } from "@/lib/fantasy-api";
 
 // Oma fantasy-joukkue.
 //  GET ?round=N → kierroksen tilannekuva ja pisteiden erittely (vain oma joukkue)
-//  POST {action:"create", name} | {action:"rename", name} | {action:"save", round, version, picks, cost}
+//  POST {action:"create", name} | {action:"rename", name} | {action:"logo", logo} | {action:"save", round, version, picks, cost}
 // Tallennus: kaikki säännöt tarkistetaan palvelimella; kierroksen on oltava seuraava avoin (tietokannan kello);
 // versio estää kaksoisvahvistuksen; siirtojen pistevähennys lasketaan palvelimella ja sen on vastattava käyttäjän vahvistamaa.
 export const dynamic = "force-dynamic";
@@ -43,6 +44,16 @@ export async function POST(req: Request) {
       if (!st.team) return fail("noteam", 404);
       await rpc("f_team_rename", { p_team: st.team.id, p_user: a.user.user_id, p_name: name });
       return j({ ok: true });
+    }
+    if (action === "logo") {
+      // logo = kuvaus (muoto, kuvio, värit, symboli, nimikirjaimet), ei kuvatiedosto; null palauttaa oletuslogon
+      const logo = b?.logo === null ? null : normalizeLogo(b?.logo);
+      if (b?.logo !== null && !logo) return fail("logo");
+      const st = await loadState(comp, a.user.user_id);
+      if (!st.team) return fail("noteam", 404);
+      try { await rpc("f_team_logo", { p_team: st.team.id, p_user: a.user.user_id, p_logo: logo }); }
+      catch (e) { if (e instanceof FantasyDbError && e.code === "missing") return fail("logo_setup", 503); throw e; }
+      return j({ ok: true, logo });
     }
     if (action !== "save") return fail("action");
     const st = await loadState(comp, a.user.user_id);

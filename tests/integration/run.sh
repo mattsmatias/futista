@@ -22,6 +22,7 @@ psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261021_news_reacti
 # kohokohdat: vain taulu (ajastusosa vaatii Supabasen pg_cronin)
 sed '/^-- AJASTUS/,$d' supabase/migrations/20261026_yt_videos.sql | psql "$PG_URL" -v ON_ERROR_STOP=1 -q
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261027_fantasy.sql
+psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261027b_fantasy_logo.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)

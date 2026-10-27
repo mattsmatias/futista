@@ -4,7 +4,7 @@ Haara `feature/fantasy`. **Ei tuotannossa eikä mainissa** ennen erillistä pä�
 
 ## Käyttöönotto
 
-1. Aja `supabase/migrations/20261027_fantasy.sql` Supabasen SQL Editorissa (lisää vain `fantasy_*`-taulut ja `f_*`-funktiot;
+1. Aja `supabase/migrations/20261027_fantasy.sql` ja sen jälkeen `20261027b_fantasy_logo.sql` Supabasen SQL Editorissa (lisää vain `fantasy_*`-taulut ja `f_*`-funktiot;
    idempotentti; poisto-ohje tiedoston lopussa). Ilman migraatiota fantasy-sivut näyttävät viestin
    "tietokantaa ei ole vielä otettu käyttöön" eivätkä muuta mitään.
 2. Ympäristömuuttujat ovat jo olemassa: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APIFOOTBALL_KEY`, `CRON_SECRET`.
@@ -64,6 +64,15 @@ vahvistettava sama vähennys (`cost`), ja versio (`version`) estää kaksoisvahv
 Yksi avoin liiga, sama kaikille (käyttäjän päätös 27.10.2026): jokainen tallennettu joukkue on mukana automaattisesti,
 sijoitus kauden kokonaispisteistä (`f_ranking`, `p_league = null`), sivu `/fantasy/liigat`. Omia/yksityisiä liigoja ja
 liittymiskoodeja ei ole käyttöliittymässä eikä rajapinnassa (migraation `fantasy_leagues*`-taulut jäävät käyttämättä).
+
+## Joukkueen logo
+
+Logoeditori (Oma joukkue → "Tee logo"/"Muokkaa logoa"): muoto (kilpi, ympyrä, neliö, kuusikulmio), kuvio (yksivärinen,
+pystyraidat, puolikkaat, vinonauha, vaakanauha, kulma), kolme väriä (valmiit tai oma), symboli (tähti, salama, kruunu,
+pallo, kuusi) ja 0–3 nimikirjainta. Tallennetaan kuvauksena (`fantasy_teams.logo`, jsonb ≤ 400 tavua), ei kuvatiedostona:
+ei latauksia, ei moderointia vaativia kuvia, ei seurojen logoja. Palvelin hyväksyy vain sallitut arvot (`lib/fantasy-logo.ts`).
+Logo näkyy omalla sivulla ja Futista-liigan taulukossa; ilman omaa logoa joukkue saa nimestä muodostetun oletuslogon.
+Vaatii migraation `20261027b_fantasy_logo.sql`; ilman sitä peli toimii oletuslogoilla ja tallennus kertoo puuttuvasta päivityksestä.
 
 ## Hinnat
 

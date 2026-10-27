@@ -247,3 +247,25 @@ test("liittymiskoodi: 8 merkkiä, ei sekoittuvia merkkejä", () => {
   assert.ok(codeOk(c));
   assert.ok(!codeOk("ABCDEF0O"));
 });
+
+import { normalizeLogo, defaultLogo, cleanLogoText, contrast } from "../lib/fantasy-logo";
+test("joukkueen logo: vain sallitut osat, värit #rrggbb, nimikirjaimet 0–3 (A–Ö, numerot)", () => {
+  const ok = { shape: "shield", pattern: "stripes", symbol: "star", c1: "#0B1F3A", c2: "#ffffff", c3: "#facc15", text: "hjk" };
+  assert.deepEqual(normalizeLogo(ok), { ...ok, c1: "#0b1f3a", text: "HJK" });
+  assert.equal(normalizeLogo({ ...ok, shape: "lion" }), null);
+  assert.equal(normalizeLogo({ ...ok, c1: "red" }), null);
+  assert.equal(normalizeLogo({ ...ok, c2: "url(javascript:x)" }), null);
+  assert.equal(normalizeLogo({ ...ok, text: "ABCD" }), null);
+  assert.equal(normalizeLogo({ ...ok, text: "<b>" }), null);
+  assert.equal(normalizeLogo([ok]), null);
+  assert.equal(normalizeLogo(null), null);
+  assert.equal(cleanLogoText("öä 1"), "ÖÄ1");
+  assert.equal(normalizeLogo({ ...ok, text: "" })?.text, "");
+  // ylimääräiset kentät jätetään pois
+  assert.deepEqual(Object.keys(normalizeLogo({ ...ok, evil: 1 })!).sort(), ["c1", "c2", "c3", "pattern", "shape", "symbol", "text"]);
+  assert.equal(defaultLogo("Testi FC").text, "TF");
+  assert.equal(defaultLogo("Kaverit").text, "KA");
+  assert.deepEqual(defaultLogo("Kaverit"), defaultLogo("Kaverit"));
+  assert.ok(normalizeLogo(defaultLogo("!!!")));
+  assert.ok(contrast("#ffffff", "#000000") > 20 && contrast("#ffffff", "#ffffff") === 1);
+});

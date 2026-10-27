@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useLoad } from "@/lib/fantasy-client";
 import { ErrorBox } from "../ui";
+import { TeamLogo } from "../TeamLogo";
 
-type R = { round: number; offset: number; page: number; count: number; rows: { rank: number; team_id: number; name: string; round: number; total: number }[]; me: any; tie: string };
+type R = { round: number; offset: number; page: number; count: number; rows: { rank: number; team_id: number; name: string; logo: unknown; round: number; total: number }[]; me: any; tie: string };
 
 export function Ranking() {
   const [offset, setOffset] = useState(0);
@@ -23,11 +24,11 @@ export function Ranking() {
             <tbody>
               {d.rows.map((x) => (
                 <tr key={x.team_id} className={d.me?.team_id === x.team_id ? "me" : ""} aria-current={d.me?.team_id === x.team_id ? "true" : undefined}>
-                  <td>{x.rank}</td><th scope="row">{x.name}{d.me?.team_id === x.team_id && <span className="sr-only"> (oma joukkue)</span>}</th><td>{x.round}</td><td><b>{x.total}</b></td>
+                  <td>{x.rank}</td><th scope="row"><span className="fx-rteam"><TeamLogo logo={x.logo} name={x.name} size={24} decorative /><span>{x.name}</span></span>{d.me?.team_id === x.team_id && <span className="sr-only"> (oma joukkue)</span>}</th><td>{x.round}</td><td><b>{x.total}</b></td>
                 </tr>
               ))}
               {d.me && !meOnPage && (
-                <tr className="me gap"><td>{d.me.rank}</td><th scope="row">{d.me.name} <span className="muted small">(oma)</span></th><td>{d.me.round}</td><td><b>{d.me.total}</b></td></tr>
+                <tr className="me gap"><td>{d.me.rank}</td><th scope="row"><span className="fx-rteam"><TeamLogo logo={d.me.logo} name={d.me.name} size={24} decorative /><span>{d.me.name} <span className="muted small">(oma)</span></span></span></th><td>{d.me.round}</td><td><b>{d.me.total}</b></td></tr>
               )}
             </tbody>
           </table>

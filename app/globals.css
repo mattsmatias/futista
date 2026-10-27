@@ -1947,3 +1947,28 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .fx-entry:focus-visible { outline: 3px solid var(--pl); outline-offset: 2px; }
 .fx .panel-head h2 { margin: 0; font: 750 17px/1.3 var(--display); }
 .fx-pname b .fx-cap { position: static; display: inline-grid; margin-left: 6px; vertical-align: 1px; }
+
+/* Fantasy: joukkueen logo */
+.fx-logo { display: block; flex: none; }
+.fx-sum-team { display: flex; gap: 14px; align-items: flex-start; }
+.fx-sum-team > div { min-width: 0; }
+.fx-sum-team .btn { margin-top: 8px; }
+.fx-rteam { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.fx-rteam > span { overflow-wrap: anywhere; }
+.fx-logo-ed .pad { display: grid; gap: 14px; }
+.fx-logo-preview { display: flex; gap: 14px; align-items: center; }
+.fx-logo-preview p { margin: 4px 0 0; }
+.fx-logo-set { border: 0; margin: 0; padding: 0; min-width: 0; }
+.fx-logo-set legend { font-weight: 700; font-size: 14px; margin-bottom: 6px; padding: 0; }
+.fx-logo-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.fx-logo-opt { display: grid; justify-items: center; gap: 4px; padding: 8px 4px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); color: inherit; font: inherit; font-size: 12px; cursor: pointer; text-align: center; }
+.fx-logo-opt[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); font-weight: 700; }
+.fx-logo-opt:focus-visible, .fx-swatch:focus-visible { outline: 2px solid var(--accent, #1d4ed8); outline-offset: 2px; }
+.fx-swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fx-swatch { width: 32px; height: 32px; border-radius: 50%; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); cursor: pointer; padding: 0; }
+.fx-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--fg); }
+.fx-swatch-custom input { width: 40px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
+.fx-logo-note { margin: 0; color: #9a5b00; font-weight: 600; }
+.fx-logo-saved { margin: 0; color: var(--win); font-weight: 600; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fx-logo-note { color: #f3b85b; } }
+:root[data-theme="dark"] .fx-logo-note { color: #f3b85b; }

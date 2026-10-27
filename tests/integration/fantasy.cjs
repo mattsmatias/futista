@@ -45,7 +45,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   ok("  tila: 84 pelaajaa, kierros 1 lukittu (määräaika ohi), kierros 2 auki", st0.j?.players === 84 && st0.j?.rounds?.[0]?.locked === true && st0.j?.rounds?.[1]?.locked === false && st0.j?.rounds?.[0]?.with_stats === 3, JSON.stringify(st0.j?.rounds));
 
   // ---------- tilit ----------
-  const A = client(), B = client(), C = client();
+  const A = client(), B = client(), C = client(), D = client();
   ok("tila ilman kirjautumista: ei käyttäjää", (await A.call("/api/fantasy/tila")).j?.user === null);
   ok("rekisteröinti: virheellinen tunnus → 400", (await A.call("/api/fantasy/tili", { action: "register", username: "A!", password: "salasana-123" })).j?.error === "username");
   ok("  liian lyhyt salasana → 400", (await A.call("/api/fantasy/tili", { action: "register", username: "pelaaja_a", password: "lyhyt" })).j?.error === "password");
@@ -114,7 +114,19 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   await sync({ refetch: true });
   t = (await A.call("/api/fantasy/tila")).j;
   ok("lähteen korjaus → pisteet lasketaan uudelleen (47 → 36)", t.team.total === 36, JSON.stringify(t.team.points));
+  // ---------- joukkueen logo ----------
+  const LOGO = { shape: "circle", pattern: "halves", symbol: "bolt", c1: "#0B1F3A", c2: "#facc15", c3: "#ffffff", text: "tfc" };
+  ok("logo: virheellinen (tuntematon muoto / väri / liian pitkä teksti) → 400", (await A.call("/api/fantasy/joukkue", { action: "logo", logo: { ...LOGO, shape: "lion" } })).j?.error === "logo"
+    && (await A.call("/api/fantasy/joukkue", { action: "logo", logo: { ...LOGO, c1: "url(x)" } })).status === 400 && (await A.call("/api/fantasy/joukkue", { action: "logo", logo: { ...LOGO, text: "ABCD" } })).status === 400);
+  await D.call("/api/fantasy/tili", { action: "register", username: "pelaaja_d", password: "salasana-000" });
+  ok("  ilman joukkuetta ei logoa → 404", (await D.call("/api/fantasy/joukkue", { action: "logo", logo: LOGO })).status === 404);
+  const lgs = await A.call("/api/fantasy/joukkue", { action: "logo", logo: { ...LOGO, extra: "x" } });
+  ok("  tallennus: palvelin normalisoi (pienet heksat, isot kirjaimet, ei ylimääräisiä kenttiä)", lgs.status === 200 && JSON.stringify(lgs.j?.logo) === JSON.stringify({ shape: "circle", pattern: "halves", symbol: "bolt", c1: "#0b1f3a", c2: "#facc15", c3: "#ffffff", text: "TFC" }), JSON.stringify(lgs.j));
+  const tl = (await A.call("/api/fantasy/tila")).j;
+  ok("  tila palauttaa oman logon; toisen joukkueen logo ei muuttunut", tl.team?.logo?.shape === "circle" && tl.team?.logo?.text === "TFC" && (await B.call("/api/fantasy/tila")).j.team?.logo === null, JSON.stringify(tl.team?.logo));
+  ok("  CSRF: logon tallennus ilman omaa otsaketta hylätään", (await A.call("/api/fantasy/joukkue", { action: "logo", logo: LOGO }, { noHeader: true })).status === 403);
   const rk = (await A.call("/api/fantasy/ranking")).j;
+  ok("  ranking: logo mukana (oma), muilla null → oletuslogo", rk.rows.find((x) => x.name === "Testi FC")?.logo?.symbol === "bolt" && rk.rows.find((x) => x.name !== "Testi FC")?.logo === null, JSON.stringify(rk.rows.map((x) => x.logo)));
   ok("  ranking: tasapisteet 36 = sama sija 1, aiemmin perustettu ensin; joukkue ilman valintoja ei mukana", rk.count === 2 && rk.rows[0].rank === 1 && rk.rows[1].rank === 1 && rk.rows[0].name === "Testi FC" && rk.me?.team_id === rk.rows[0].team_id, JSON.stringify(rk.rows));
 
   // ---------- siirrot ----------
@@ -155,6 +167,20 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   määräaika ja sijoitus näkyvät`, /kierros 3/i.test(kp) && /1 \/ 2/.test(kp), kp);
     await page.locator(".fx-pitch .fx-tok").first().click();
     ok(`${w}px:   pelaajakortti avautuu ja sulkeutuu Escillä`, (await page.locator(".fx-card[role=dialog]").count()) === 1 && (await page.keyboard.press("Escape"), (await page.locator(".fx-card").count()) === 0));
+    // logo: oma logo näkyy, editori avautuu, valinta + tallennus
+    ok(`${w}px: oma logo näkyy joukkueen nimen vieressä`, (await page.locator('.fx-summary svg.fx-logo[role=img]').count()) === 1);
+    await page.locator("button", { hasText: "Muokkaa logoa" }).click();
+    await page.waitForSelector(".fx-logo-ed", { timeout: 5000 }).catch(() => {});
+    await page.locator(".fx-logo-set", { hasText: "Muoto" }).locator("button", { hasText: "Kilpi" }).click();
+    await page.locator(".fx-logo-set", { hasText: "Symboli" }).locator("button", { hasText: "Kruunu" }).click();
+    await page.fill("#fx-logo-t", "TF");
+    const pressed = await page.locator(".fx-logo-opt[aria-pressed=true]").allInnerTexts();
+    await shot(page, `logo-${w}`);
+    const ovL = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    await page.locator("button", { hasText: "Tallenna logo" }).click();
+    await page.waitForSelector(".fx-logo-saved", { timeout: 8000 }).catch(() => {});
+    const saved = (await A.call("/api/fantasy/tila")).j.team?.logo;
+    ok(`${w}px:   logoeditori: valinnat merkitty, tallennus palvelimelle, ei vaakavieritystä`, pressed.join("|").includes("Kilpi") && pressed.join("|").includes("Kruunu") && saved?.shape === "shield" && saved?.symbol === "crown" && saved?.text === "TF" && ovL <= 0, `${pressed} ${JSON.stringify(saved)} ${ovL}`);
     await page.goto(`${APP}/fantasy/siirrot`, { waitUntil: "load" });
     await page.waitForSelector(".fx-plist li", { timeout: 15000 }).catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
@@ -176,6 +202,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.waitForSelector(".fx-rtbl tr.me", { timeout: 15000 }).catch(() => {});
     await shot(page, `liigat-${w}`);
     const ltxt = await page.locator("main").innerText();
+    ok(`${w}px: Liiga – joukkueiden logot taulukossa (koristeena, nimi tekstinä)`, (await page.locator(".fx-rtbl tbody svg.fx-logo[aria-hidden=true]").count()) === 2);
     ok(`${w}px: Liiga – avoin Futista-liiga, taulukko (oma korostettu), ei koodeja`, /Futista-liiga/.test(ltxt) && (await page.locator(".fx-rtbl tbody tr").count()) === 2 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && !/koodi/i.test(ltxt), ltxt.slice(0, 200));
     await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
     ok(`${w}px: Säännöt`, /Nollapeli/.test(await page.locator("main").innerText()) && /1 ilmaisen siirron/.test(await page.locator("main").innerText()));
