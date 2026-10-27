@@ -774,7 +774,9 @@ details.fold[open] > summary::after { transform: rotate(180deg); }
 
 /* ===== Pehmeys: sivun vaihto, päivittyvät tiedot ja latausnäkymät ===== */
 @media (prefers-reduced-motion: no-preference) {
-  main, .entity { animation: pagein .28s cubic-bezier(.2,.7,.2,1) both; }
+  /* backwards (ei both): animaation jälkeen sivulle ei jää transformia – iOS Safarissa jäänyt transform teki sivun
+     sisällä olevista kiinteistä ikkunoista (position: fixed) sivun kokoisia, jolloin ikkuna jäi näkymän ulkopuolelle */
+  main, .entity { animation: pagein .28s cubic-bezier(.2,.7,.2,1) backwards; }
   @keyframes pagein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .bump { animation: bump 1.6s ease-out; border-radius: 6px; }
   @keyframes bump {

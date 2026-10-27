@@ -210,6 +210,17 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.waitForTimeout(500);
     const imgs = await page.locator(".fx-plist .fx-face img").evaluateAll((xs) => xs.filter((x) => x.complete && x.naturalWidth > 0).length);
     ok(`${w}px: Siirrot – pelaajakuvat (lähteen id:llä); kuvattomalla pelipaikan lyhenne`, imgs > 0 && (await page.locator(".fx-plist .fx-face-pos.only").count()) > 0 && (await page.locator(".fx-plist .fx-face-pos:not(.only)").count()) === imgs, String(imgs));
+    // iOS Safari: sivun animaation jälkeen jäänyt transform teki kiinteästä ikkunasta sivun kokoisen → ikkuna näkymän ulkopuolella.
+    // Simuloidaan sama (transform sivulla), vieritetään listaan ja avataan pelaaja: kortin pitää näkyä ruudulla.
+    await page.addStyleTag({ content: "main { transform: translateY(0) !important; }" });
+    await page.locator(".fx-plist li").nth(3).scrollIntoViewIfNeeded();
+    await page.locator(".fx-plist li .fx-prow-btn").nth(3).click();
+    await page.waitForSelector(".fx-card[role=dialog]", { timeout: 5000 }).catch(() => {});
+    const box = await page.locator(".fx-card[role=dialog]").boundingBox().catch(() => null);
+    const vh = page.viewportSize().height;
+    const inBody = await page.evaluate(() => !!document.querySelector("body > .fx-scrim .fx-card"));
+    ok(`${w}px: pelaajakortti näkyy ruudulla myös vieritetyssä listassa (ikkuna body-tasolla)`, !!box && box.y >= 0 && box.y + Math.min(box.height, 200) <= vh && inBody, JSON.stringify(box));
+    await page.keyboard.press("Escape");
     await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click().catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
     await shot(page, `siirrot-${w}`);

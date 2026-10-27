@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, type FPlayerRow, type ApiErr } from "@/lib/fantasy-client";
 import type { Picks, Pos } from "@/lib/fantasy-core";
 
@@ -140,6 +141,19 @@ export function Pitch({ picks, players, badge, onSelect, label, empty }: {
 }
 
 /** Pelaajakortti (modaali): tiedot ja valinnaiset toiminnot */
+/** Ikkuna sivun päälle: body-tasolle (portaali), jotta sivun animaatiot tai pinoamiskontekstit eivät siirrä tai peitä sitä */
+export function Overlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  // ikkunat avataan vain käyttäjän toiminnosta (ei palvelinrenderöinnissä) → body on aina saatavilla heti
+  const host = typeof document !== "undefined" ? document.body : null;
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+  if (!host) return null;
+  return createPortal(<div className="fx-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>{children}</div>, host);
+}
+
 /** Pelaajan kuva lähteen pelaajatunnisteen mukaan (API-Football, sama id – ei nimen perusteella); puuttuva tai
  *  latautumaton kuva → pelipaikan lyhenne. Pelipaikka näkyy aina kuvan kulmassa. */
 const okPhoto = (u: string | null | undefined) => (u && /^https:\/\/media\.api-sports\.io\/football\/players\/\d+\.png$/.test(u) ? u : null);
@@ -164,7 +178,7 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
     return () => { document.removeEventListener("keydown", key); prev?.focus?.(); };
   }, [onClose]);
   return (
-    <div className="fx-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Overlay onClose={onClose}>
       <div className="fx-card" role="dialog" aria-modal="true" aria-labelledby="fx-card-h" ref={ref}>
         <div className="fx-card-head">
           <PlayerFace p={p} size={56} />
@@ -190,7 +204,7 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
         )}
         <p className="muted small">Saatavuustietoa (loukkaantumiset, pelikiellot) ei vielä näytetä: luotettavaa lähdettä ei ole otettu käyttöön.</p>
       </div>
-    </div>
+    </Overlay>
   );
 }
 

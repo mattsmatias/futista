@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api, useLoad, errText, fmtM, localTime, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
-import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, DataStatus } from "../ui";
+import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus } from "../ui";
 
 type Draft = Picks;
 const EMPTY: Draft = { squad: [], xi: [], bench: [], captain: 0, vice: 0 };
@@ -122,7 +122,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
         <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} />
       </div>
       {confirm && (
-        <div className="fx-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirm(false); }}>
+        <Overlay onClose={() => setConfirm(false)}>
           <div className="fx-card" role="dialog" aria-modal="true" aria-labelledby="fx-conf-h">
             <h2 id="fx-conf-h">Vahvista joukkue – kierros {next.no}</h2>
             <dl className="facts fx-facts">
@@ -139,7 +139,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
               <button type="button" className="btn ghost" onClick={() => setConfirm(false)}>Takaisin</button>
             </div>
           </div>
-        </div>
+        </Overlay>
       )}
       {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} />}
     </>
