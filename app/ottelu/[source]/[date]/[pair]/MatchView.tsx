@@ -9,6 +9,7 @@ import { norm } from "@/lib/teams";
 import { teamHref, teamSlug } from "@/lib/routes";
 import { HighlightCard } from "@/app/ui/HighlightCard";
 import { OddsCard } from "@/app/ui/OddsCard";
+import { CupBracket } from "@/app/ui/CupBracket";
 import { tvFor } from "@/lib/tv";
 import { Badge, Match, Standings } from "../../../../Stats";
 import Flag from "../../../../Flag";
@@ -149,7 +150,8 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
   const tabs: { id: Tab; label: Key }[] = [
     { id: "summary", label: "summary" },
     ...(showExtras ? [{ id: "lineups" as Tab, label: "tab_lineups" as Key }, { id: "mstats" as Tab, label: "tab_mstats" as Key }, { id: "players" as Tab, label: "tab_players" as Key }] : []),
-    { id: "h2h", label: "tab_h2h" }, { id: "table", label: "tab_table" },
+    // cupissa ei sarjataulukkoa: sen tilalla kaavio (käyttäjän valinta 27.10.2026)
+    { id: "h2h", label: "tab_h2h" }, { id: "table", label: s.kind === "cup" ? "tab_bracket" : "tab_table" },
   ];
 
   return (
@@ -244,7 +246,9 @@ export default function MatchView({ s, result, fixture, extra = null, extras = n
           </>
         )}
 
-        {tab === "table" && <Standings s={s} highlight={[m.home.name, m.away.name]} />}
+        {tab === "table" && (s.kind === "cup"
+          ? <CupBracket s={s} current={{ date: m.date, home: m.home.name, away: m.away.name, round: m.round }} />
+          : <Standings s={s} highlight={[m.home.name, m.away.name]} />)}
       </main>
       <Footer />
     </>

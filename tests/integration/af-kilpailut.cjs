@@ -104,6 +104,20 @@ const DAY = 86400_000;
   ok("  FA Cup: ei maalintekijät-välilehteä (lähteen data ei varmennettu)", !ftabs.some((x) => /maalintekij/i.test(x)), ftabs.join("|"));
   await page.locator(".etabs [role=tab]", { hasText: /tulokset/i }).click(); await page.waitForTimeout(300);
   ok("  tulokset kierroksittain (kierroksen nimi suomeksi)", (await page.locator(".cup-round-h").count()) > 0, (await page.locator(".cup-round-h").allTextContents()).join(" | "));
+  // cupin ottelusivulla Sarjataulukko-välilehden tilalla Kaavio (käyttäjän valinta 27.10.2026)
+  const cupHref = await page.locator(".cup-round a[href^='/ottelu/facup/']").first().getAttribute("href").catch(() => null);
+  if (cupHref) {
+    await page.goto(APP + cupHref, { waitUntil: "load" });
+    const stabs = await page.locator(".subtabs button").allTextContents();
+    ok("FA Cup -ottelu: Kaavio-välilehti, ei Sarjataulukkoa", stabs.includes("Kaavio") && !stabs.some((x) => /Sarjataulukko/.test(x)), stabs.join("|"));
+    await page.locator(".subtabs button", { hasText: /^Kaavio$/ }).click(); await page.waitForTimeout(300);
+    const rnd = await page.locator(".cb-rounds button").allTextContents();
+    const on = await page.locator(".cb-rounds button[aria-pressed=true]").innerText().catch(() => "");
+    ok("  kierrokset lähteen mukaan suomeksi, ottelun oma kierros valittuna ja ottelu korostettu", rnd.includes("32 parhaan kierros") && rnd.includes("16 parhaan kierros") && on === "32 parhaan kierros" && (await page.locator(".cb-tie.cur").count()) === 1, `${rnd.join("|")} / ${on}`);
+    await page.locator(".cb-rounds button", { hasText: "16 parhaan kierros" }).click(); await page.waitForTimeout(200);
+    ok("  toinen kierros: sen ottelut (tulevat ilman tulosta)", (await page.locator(".cb-tie").count()) > 0 && (await page.locator(".cb-tie .cb-sc").count()) === 0);
+    ok("  390 px: ei vaakavieritystä", !(await wide()));
+  } else ok("FA Cup -ottelu löytyy tuloslistasta", false);
 
   await go("/sarjat/mmkisat");
   ok("MM-kisat (päättynyt kausi): avautuu tuloksiin", (await page.locator(".etabs [role=tab][aria-selected=true]").innerText()).match(/tulokset/i));

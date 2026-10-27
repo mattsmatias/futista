@@ -357,7 +357,7 @@ export const secondHalfStarted = (status: string, elapsed: number | null) =>
 const ROUND_FI: [RegExp, string | ((m: RegExpMatchArray) => string)][] = [
   [/^Final$/i, "Finaali"], [/^Semi-finals$/i, "Välierät"], [/^Quarter-finals$/i, "Puolivälierät"], [/^3rd Place Final$/i, "Pronssiottelu"],
   [/^Round of (\d+)$/i, (m) => `${m[1]} parhaan kierros`], [/^1\/(\d+)-finals$/i, (m) => `1/${m[1]}-finaalit`],
-  [/^Preliminary Round$/i, "Alkukierros"],
+  [/^Preliminary Round$/i, "Alkukierros"], [/^(\d)(?:st|nd|rd|th) Round$/i, (m) => `${m[1]}. kierros`],
   [/^(\d)(?:st|nd|rd|th) Round Qualifying( Replays)?$/i, (m) => `${m[1]}. karsintakierros${m[2] ? " (uusinnat)" : ""}`],
   [/^(\d)(?:st|nd|rd|th) Qualifying Round(?: - (.+))?$/i, (m) => `${m[1]}. karsintakierros${m[2] ? `, ${roundFi(m[2]).toLowerCase()}` : ""}`],
   [/^Regular Season - (\d+)$/i, (m) => `${m[1]}. kierros`],

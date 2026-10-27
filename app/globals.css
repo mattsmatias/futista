@@ -1789,3 +1789,18 @@ th abbr[title] { text-decoration: none; cursor: help; }
 /* Lähetys Suomessa (sarjan oikeudenhaltija) ottelun yläosassa */
 .mh-tv { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--surface-2) 80%, transparent); font-weight: 650; }
 .mh-tv svg { flex: none; }
+
+/* Cupin kaavio ottelusivulla (Sarjataulukko-välilehden tilalla cupeissa) */
+.cb { padding: 12px 0 4px; }
+.cb-rounds { margin: 0 12px 10px; max-width: calc(100% - 24px); overflow-x: auto; scrollbar-width: none; width: fit-content; }
+.cb-rounds::-webkit-scrollbar { display: none; }
+.cb-list { list-style: none; margin: 0; padding: 0 12px 8px; display: grid; gap: 8px; }
+.cb-tie a { display: block; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); color: inherit; text-decoration: none; }
+.cb-tie.cur a { outline: 2px solid var(--accent, var(--fg)); outline-offset: -2px; }
+.cb-teams { display: grid; gap: 6px; }
+.cb-tm { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cb-tm .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-tm.w .nm, .cb-tm.w .cb-sc { font-weight: 700; }
+.cb-sc { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cb-sc small { font-weight: 500; color: var(--muted); }
+.cb-when { display: block; margin-top: 6px; }

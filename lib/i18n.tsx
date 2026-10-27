@@ -560,6 +560,8 @@ const D = {
   formLosses: ["Häviöt", "Förluster", "Losses"],
   tab_h2h: ["Keskinäiset", "Inbördes", "Head-to-head"],
   tab_table: ["Sarjataulukko", "Serietabell", "Standings"],
+  tab_bracket: ["Kaavio", "Spelträd", "Bracket"],
+  bracketNone: ["Lähde ei kerro tämän cupin kierroksia.", "Källan anger inte cupens omgångar.", "The source doesn't list this cup's rounds."],
   gdFull: ["Maaliero", "Målskillnad", "Goal difference"],
   ptsFull: ["Pisteet", "Poäng", "Points"],
   abbr: ["Lyhenteet", "Förkortningar", "Abbreviations"],
