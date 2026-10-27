@@ -1,6 +1,8 @@
 # Futista Fantasy (beta)
 
-Haara `feature/fantasy`. **Ei tuotannossa eikä mainissa** ennen erillistä päätöstä.
+Tuotannossa **piilotettuna testausta varten** (käyttäjän päätös 27.10.2026): osoite `/fantasy` toimii suoraan, mutta
+sivustolla ei ole linkkiä siihen, sivut ovat `noindex, nofollow` eikä osoite ole robots.txt:ssä eikä sivukartassa.
+Julkinen avaus = linkki sivustolle (esim. Sarjat-sivu) ja noindexin poisto `app/fantasy/layout.tsx`:stä.
 
 ## Käyttöönotto
 

@@ -55,8 +55,6 @@ export default function CompsDirectory() {
       <main className="wrap dirpage">
         {/* sivun otsikko vain ruudunlukijalle ja hakukoneille (näkyvä "Sarjat"-otsikko poistettu) */}
         <h1 className="sr-only">{t("nav_comps")}</h1>
-        {/* Futista Fantasy (beta, vain tässä haarassa): sisäänkäynti Sarjat-sivulta */}
-        <a className="fx-entry" href="/fantasy"><b>Futista Fantasy</b><span>Kokoa Valioliiga-joukkue, kerää pisteitä ja haasta kaverit · beta</span></a>
         {list("popularComps", popular)}
         {list("otherComps", other)}
         {list("nationalTeams", nations)}
