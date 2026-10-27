@@ -120,7 +120,8 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
   const raw: any[] = [];
   for (const L of leagues) {
     try {
-      raw.push(...(weekly ? await seasonFixtures(L.af, L.season) : (await once(`ffx${L.af}/${L.season}`, () => afGet(`/fixtures?league=${L.af}&season=${L.season}`)))?.response ?? []));
+      // ylläpidon refetch ohittaa välimuistin (esim. ajankohtien muutokset heti)
+      raw.push(...(weekly && !refetch ? await seasonFixtures(L.af, L.season) : (await once(`ffx${L.af}/${L.season}`, () => afGet(`/fixtures?league=${L.af}&season=${L.season}`)))?.response ?? []));
     } catch (e) { if (!weekly) throw e; stepErrors.push(`fixtures${L.af}:${errCode(e)}`); }
   }
   const src = raw.map(srcFixture).filter((x: SrcFixture | null): x is SrcFixture => !!x);
