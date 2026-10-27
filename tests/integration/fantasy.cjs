@@ -158,6 +158,21 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 844 } });
     const page = await ctx.newPage();
     const errs = []; page.on("pageerror", (x) => errs.push(String(x)));
+    if (w === 390) {
+      // piilotettu sisäänkäynti haun kautta (kotivalikon sovelluksessa ei ole osoiteriviä)
+      await page.goto(`${APP}/sarjat`, { waitUntil: "load" });
+      await page.locator(".search-btn").first().click();
+      await page.waitForSelector(".s-dialog input", { timeout: 5000 }).catch(() => {});
+      await page.fill(".s-dialog input", "fan");
+      await page.waitForTimeout(400);
+      const partial = await page.locator('.s-dialog a[href="/fantasy"]').count();
+      await page.fill(".s-dialog input", "Fantasy");
+      await page.waitForSelector('.s-dialog a[href="/fantasy"]', { timeout: 5000 }).catch(() => {});
+      const full = await page.locator('.s-dialog a[href="/fantasy"]').count();
+      await page.keyboard.press("Enter");
+      await page.waitForURL(/\/fantasy$/, { timeout: 8000 }).catch(() => {});
+      ok(`${w}px: haku "fantasy" näyttää pelin ja Enter avaa sen; osittainen haku ("fan") ei näytä`, partial === 0 && full === 1 && /\/fantasy$/.test(page.url()), `${partial} ${full} ${page.url()}`);
+    }
     await page.goto(`${APP}/fantasy`, { waitUntil: "load" });
     await page.waitForSelector("#fx-u", { timeout: 15000 }).catch(() => {});
     ok(`${w}px: kirjautumaton → kirjautumislomake`, (await page.locator("#fx-u").count()) === 1 && (await page.locator("h2", { hasText: "Kirjaudu sisään" }).count()) === 1);

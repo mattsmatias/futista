@@ -80,7 +80,10 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
     }, 250);
     return () => { clearTimeout(t); ctl.abort(); };
   }, [q]);
-  const flat: (SearchTeam | SearchComp | SearchNation | SearchPlayer)[] = [...res.teams, ...res.comps, ...res.nations, ...players];
+  // Futista Fantasy (piilotettu beta): ei linkkiä sivustolla; löytyy vain kirjoittamalla haun hakusanan "fantasy"/"fantasia".
+  // Näin peliin pääsee myös kotivalikkoon asennetusta sovelluksesta, jossa ei ole osoiteriviä.
+  const fantasy: { kind: "link"; href: string }[] = /^(futista\s+)?fantas(y|ia)$/i.test(q.trim()) ? [{ kind: "link", href: "/fantasy" }] : [];
+  const flat: ({ kind: "link"; href: string } | SearchTeam | SearchComp | SearchNation | SearchPlayer)[] = [...fantasy, ...res.teams, ...res.comps, ...res.nations, ...players];
   useEffect(() => { setActive(0); }, [q]);
 
   const close = () => { setQ(""); onClose(); };
@@ -155,6 +158,21 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
             </section>
           )}
           {q.trim().length < 2 && <p className="muted pad">{t("searchMin")} {t("searchHint")}</p>}
+          {fantasy.length > 0 && (() => {
+            n++;
+            const idx = n;
+            return (
+              <section className="s-group" aria-label="Futista Fantasy">
+                <ul role="presentation">
+                  <li role="presentation" className={`s-row${active === idx ? " on" : ""}`} onMouseEnter={() => setActive(idx)}>
+                    <a id={optId(idx)} role="option" aria-selected={active === idx} href="/fantasy" onClick={(e) => { e.preventDefault(); go("/fantasy"); }}>
+                      <span className="s-fx" aria-hidden="true">F</span><span className="s-name">Futista Fantasy</span><span className="s-sub">beta</span>
+                    </a>
+                  </li>
+                </ul>
+              </section>
+            );
+          })()}
           {group("searchTeams", res.teams, (x) => (
             <><Badge t={{ name: x.name, code: x.code, crest: x.crest }} size={24} /><span className="s-name">{x.name}</span>
               <span className="s-sub">{x.comps.map((c) => i.league(c, SOURCES.find((s) => s.id === c)?.league ?? c)).join(" · ")}</span></>

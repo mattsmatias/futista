@@ -1129,6 +1129,7 @@ div.match { cursor: default; }
 .s-name { font-weight: 650; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .s-sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .s-flag { width: 24px; height: 16px; border-radius: 2px; object-fit: cover; background: var(--surface-2); display: inline-block; }
+.s-fx { width: 24px; height: 24px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; background: var(--fg); color: var(--bg); font: 800 13px/1 var(--display); }
 /* Puhelimessa haku koko näytölle: puhelimen oma yläpalkki (kello, akku) ja alareunan eleet jäävät vapaiksi
    (kotivalikon sovelluksessa sivu ulottuu yläpalkin alle) */
 @media (max-width: 640px) { .s-scrim { padding: 0; background: var(--surface); } .s-dialog { margin: 0; width: 100%; max-height: none; height: 100%; border-radius: 0; border: 0; box-shadow: none; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } }
