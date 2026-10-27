@@ -9,7 +9,7 @@ import type { Picks, Pos } from "@/lib/fantasy-core";
 const TABS = [
   { href: "/fantasy", label: "Oma joukkue" },
   { href: "/fantasy/siirrot", label: "Siirrot" },
-  { href: "/fantasy/liigat", label: "Liigat" },
+  { href: "/fantasy/liigat", label: "Liiga" },
   { href: "/fantasy/pisteet", label: "Pisteet" },
   { href: "/fantasy/saannot", label: "Säännöt" },
 ];

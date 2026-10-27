@@ -35,7 +35,7 @@ export function squadLeagues(): SquadLeague[] {
 // kylmä täyttö ei ylitä lähteen minuuttirajaa eikä hidasta live-tuloksia. Välimuistiosumat eivät käytä jonoa.
 const SPACING_MS = 800;
 let chain: Promise<unknown> = Promise.resolve();
-function queued<T>(f: () => Promise<T>): Promise<T> {
+export function queued<T>(f: () => Promise<T>): Promise<T> {
   const run = chain.then(f, f);
   chain = run.then(() => new Promise((r) => setTimeout(r, SPACING_MS)), () => new Promise((r) => setTimeout(r, SPACING_MS)));
   return run;

@@ -1,5 +1,5 @@
 // Futista Fantasy: koko ketju simuloidulla API-Footballilla (mock-fantasy.cjs) ja oikealla PostgreSQL:llä (REST-emulaattori).
-// Tilit, joukkue, säännöt, lukitus, pisteytys, automaattiset vaihdot, korjaukset, siirrot, liigat, ranking, oikeudet ja käyttöliittymä.
+// Tilit, joukkue, säännöt, lukitus, pisteytys, automaattiset vaihdot, korjaukset, siirrot, avoin Futista-liiga (ranking), oikeudet ja käyttöliittymä.
 //   APP=http://localhost:3100 MOCK=http://127.0.0.1:9101 CHROME=... CRON_SECRET=... node tests/integration/fantasy.cjs
 const { chromium } = require("playwright-core");
 const APP = process.env.APP || "http://localhost:3100";
@@ -87,22 +87,10 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   ok("toinen käyttäjä: oma joukkue", (await B.call("/api/fantasy/joukkue", { action: "save", round: 2, version: tb.team.version, cost: 0, picks: { ...A_PICKS, captain: 390411, vice: 390110 } })).status === 200);
   await C.call("/api/fantasy/joukkue", { action: "create", name: "Myöhäinen" });
 
-  // ---------- liigat ----------
-  const lg = await A.call("/api/fantasy/liigat", { action: "create", name: "Työkaverit" });
-  ok("liiga perustettu, koodi palvelimelta (8 merkkiä)", lg.status === 200 && /^[A-HJ-NP-Z2-9]{8}$/.test(lg.j?.code || ""), JSON.stringify(lg.j));
-  ok("  väärä koodi → 404", (await B.call("/api/fantasy/liigat", { action: "join", code: "AAAAAAAA" })).status === 404);
-  ok("  liittyminen koodilla", (await B.call("/api/fantasy/liigat", { action: "join", code: lg.j.code })).status === 200);
-  const lr = await B.call(`/api/fantasy/ranking?league=${lg.j.id}`);
-  ok("  jäsen näkee liigan (2 joukkuetta)", lr.status === 200 && lr.j?.count === 2 && lr.j?.league?.code === lg.j.code, JSON.stringify(lr.j).slice(0, 200));
-  ok("  ei-jäsen ei näe liigaa → 404", (await C.call(`/api/fantasy/ranking?league=${lg.j.id}`)).status === 404);
-  ok("  jäsen (ei perustaja) ei voi vaihtaa koodia → 403", (await B.call("/api/fantasy/liigat", { action: "rotate", league: lg.j.id })).status === 403);
-  const rot = await A.call("/api/fantasy/liigat", { action: "rotate", league: lg.j.id });
-  ok("  perustaja vaihtaa koodin; vanha ei enää toimi", rot.status === 200 && rot.j.code !== lg.j.code && (await C.call("/api/fantasy/liigat", { action: "join", code: lg.j.code })).status === 404);
-  let thr = 0;
-  for (let i = 0; i < 12; i++) if ((await C.call("/api/fantasy/liigat", { action: "join", code: `ZZZZZZZ${i % 8 + 2}` })).status === 429) thr++;
-  ok("  koodin arvailu rajoitettu (429)", thr > 0, String(thr));
-  ok("  poistuminen liigasta", (await B.call("/api/fantasy/liigat", { action: "leave", league: lg.j.id })).status === 200 && (await B.call(`/api/fantasy/ranking?league=${lg.j.id}`)).status === 404);
-  await B.call("/api/fantasy/liigat", { action: "join", code: rot.j.code });
+  // ---------- Futista-liiga (avoin, sama kaikille; ei omia liigoja) ----------
+  ok("omien liigojen rajapintaa ei ole (404)", (await A.call("/api/fantasy/liigat", { action: "create", name: "Työkaverit" })).status === 404);
+  const lr0 = await C.call("/api/fantasy/ranking?league=1");
+  ok("  ranking on sama kaikille (league-parametri ei rajaa)", lr0.status === 200 && lr0.j?.league === undefined, JSON.stringify(lr0.j).slice(0, 200));
 
   // ---------- lukitus, pisteytys ----------
   await mock("r2=played&fix=0");
@@ -180,16 +168,15 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   ei vaakavieritystä`, ov2 <= 0, String(ov2));
     await page.goto(`${APP}/fantasy/pisteet`, { waitUntil: "load" });
     await page.waitForSelector(".fx-breakdown li", { timeout: 15000 }).catch(() => {});
-    await page.waitForSelector(".fx-rtbl tr.me", { timeout: 15000 }).catch(() => {});
     await shot(page, `pisteet-${w}`);
-    const bd = await page.locator(".fx-breakdown > li").count(), me = await page.locator(".fx-rtbl tr.me").count(), sum = await page.locator(".fx-pts-sum").innerText().catch(() => "");
-    ok(`${w}px: Pisteet – erittely ja ranking (oma korostettu)`, bd === 15 && me >= 1 && /lopullinen/i.test(sum), `${bd} ${me} ${sum}`);
+    const bd = await page.locator(".fx-breakdown > li").count(), sum = await page.locator(".fx-pts-sum").innerText().catch(() => "");
+    const lnk = await page.locator('a[href="/fantasy/liigat"]').count();
+    ok(`${w}px: Pisteet – erittely ja linkki Futista-liigaan`, bd === 15 && lnk >= 1 && /lopullinen/i.test(sum), `${bd} ${lnk} ${sum}`);
     await page.goto(`${APP}/fantasy/liigat`, { waitUntil: "load" });
-    await page.waitForSelector(".fx-lg", { timeout: 15000 }).catch(() => {});
-    await page.locator(".fx-lg").first().click();
-    await page.waitForSelector(".fx-code-v", { timeout: 10000 }).catch(() => {});
+    await page.waitForSelector(".fx-rtbl tr.me", { timeout: 15000 }).catch(() => {});
     await shot(page, `liigat-${w}`);
-    ok(`${w}px: Liigat – oma liiga, koodi ja taulukko`, (await page.locator(".fx-code-v").innerText().catch(() => "")) === rot.j.code && (await page.locator(".fx-rtbl tbody tr").count()) === 2);
+    const ltxt = await page.locator("main").innerText();
+    ok(`${w}px: Liiga – avoin Futista-liiga, taulukko (oma korostettu), ei koodeja`, /Futista-liiga/.test(ltxt) && (await page.locator(".fx-rtbl tbody tr").count()) === 2 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && !/koodi/i.test(ltxt), ltxt.slice(0, 200));
     await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
     ok(`${w}px: Säännöt`, /Nollapeli/.test(await page.locator("main").innerText()) && /1 ilmaisen siirron/.test(await page.locator("main").innerText()));
     ok(`${w}px: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));

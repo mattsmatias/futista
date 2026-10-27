@@ -67,11 +67,10 @@ export default function Page() {
           </ul>
         </section>
         <section>
-          <h3>Liigat ja ranking</h3>
+          <h3>Futista-liiga</h3>
           <ul>
-            <li>Kokonaisranking ja kaveriliigat vertailevat samaa joukkuettasi kauden kokonaispisteillä.</li>
+            <li>Liiga on avoin ja sama kaikille: jokainen tallennettu joukkue on mukana automaattisesti. Sijoitus lasketaan kauden kokonaispisteistä.</li>
             <li>Tasapisteissä joukkueet jakavat saman sijan (1, 2, 2, 4). Tasapisteissä aiemmin perustettu joukkue näytetään ensin.</li>
-            <li>Liittymiskoodi luodaan palvelimella. Liigan perustaja voi luoda uuden koodin, jolloin vanha lakkaa toimimasta. Jäsen voi poistua liigasta.</li>
           </ul>
         </section>
         <section>

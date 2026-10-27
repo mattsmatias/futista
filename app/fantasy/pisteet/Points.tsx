@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { useLoad, fmtM, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { AuthBox, ErrorBox, Loading, Notice, DataStatus } from "../ui";
 import { RoundItems } from "../Home";
-import { Ranking } from "./Ranking";
 
 export function Points() {
   const st = useLoad<FState>("/api/fantasy/tila");
@@ -63,10 +62,7 @@ export function Points() {
           </>
         )}
       </section>
-      <section className="panel" aria-labelledby="fx-rank-h">
-        <div className="panel-head"><h2 id="fx-rank-h">Kokonaisranking</h2>{s.team.rank && <span className="muted small">Sijasi {s.team.rank.rank} / {s.team.rank.of}</span>}</div>
-        <Ranking />
-      </section>
+      <p className="small"><Link href="/fantasy/liigat">Futista-liigan sarjataulukko →</Link></p>
       <p className="muted small">Joukkueen arvo ja hinnat ovat pelin sisäistä valuuttaa ({fmtM(s.comp.budget)} budjetti), eivät oikeaa rahaa eivätkä pelaajien markkina-arvoja.</p>
     </>
   );

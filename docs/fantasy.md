@@ -9,7 +9,9 @@ Haara `feature/fantasy`. **Ei tuotannossa eikä mainissa** ennen erillistä pä�
    "tietokantaa ei ole vielä otettu käyttöön" eivätkä muuta mitään.
 2. Ympäristömuuttujat ovat jo olemassa: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APIFOOTBALL_KEY`, `CRON_SECRET`.
    Uusia salaisuuksia ei tarvita. `FANTASY_OFF=1` sulkee fantasy-rajapinnat.
-3. Ensimmäinen avaus (`/fantasy`) käynnistää datan haun taustalla. Ylläpito voi ajaa sen heti (alla).
+3. Päivitys on vaiheittainen: jos lähde on tauolla (kiintiö), jo haetut vaiheet (ottelut, kierrokset) jäävät talteen ja
+   puuttuvat (pelaajat, tilastot) yritetään uudelleen aikaisintaan 2 min päästä.
+4. Ensimmäinen avaus (`/fantasy`) käynnistää datan haun taustalla. Ylläpito voi ajaa sen heti (alla).
 
 ## Data (API-Football, varmennettu oikeista vastauksista 27.10.2026)
 
@@ -57,6 +59,12 @@ vaihdon minuutilla) tai vastustaja ei tehnyt maaleja; muuten ei pisteitä ("ei v
 edellisen kierroksen tilannekuvassa (edestakainen muutos ei ole siirto). Palvelin laskee määrän ja vähennyksen; käyttäjän on
 vahvistettava sama vähennys (`cost`), ja versio (`version`) estää kaksoisvahvistuksen.
 
+## Futista-liiga
+
+Yksi avoin liiga, sama kaikille (käyttäjän päätös 27.10.2026): jokainen tallennettu joukkue on mukana automaattisesti,
+sijoitus kauden kokonaispisteistä (`f_ranking`, `p_league = null`), sivu `/fantasy/liigat`. Omia/yksityisiä liigoja ja
+liittymiskoodeja ei ole käyttöliittymässä eikä rajapinnassa (migraation `fantasy_leagues*`-taulut jäävät käyttämättä).
+
 ## Hinnat
 
 Uuden pelaajan hinta kerran kauden sarjatilastoista (pisteet joukkueen pelattua kierrosta kohden, 0,5 M€ portain,
@@ -75,7 +83,7 @@ POST /api/fantasy/yllapito {"action":"price","player":ID,"price":6.5}
 ## Turvallisuus
 
 Tilit: tunnus + salasana (scrypt), istunto httpOnly-evästeessä (tietokannassa vain SHA-256), muuttavat pyynnöt vaativat saman
-alkuperän ja oman otsakkeen, yritysrajoitus (rekisteröinti, kirjautuminen, liittymiskoodit). Taulut RLS:n takana ilman
+alkuperän ja oman otsakkeen, yritysrajoitus (rekisteröinti, kirjautuminen). Taulut RLS:n takana ilman
 selainkäyttöä; kaikki SECURITY DEFINER -funktioiden kautta, jotka tarkistavat omistajuuden. Salasanan palautusta ei ole (ei
 sähköpostia).
 
@@ -84,4 +92,4 @@ sähköpostia).
 - `tests/fantasy.test.ts` (yksikkö): säännöt, pisteytys, kapteeni, automaattiset vaihdot, siirrot, kierrokset, ottelun tilastot
   (oma maali, vaihdon suunta, täsmäämätön data), uudelleenlaskenta, hinnat, koodit.
 - `tests/integration/fantasy.cjs` (koko ketju, simuloitu API-Football `mock-fantasy.cjs` + PostgreSQL): tilit, oikeudet, CSRF,
-  lukitus, pisteet käsin laskettua vastaan, korjaus, tuplaus, ranking ja tasapisteet, liigat, siirrot, käyttöliittymä 390/320 px.
+  lukitus, pisteet käsin laskettua vastaan, korjaus, tuplaus, ranking ja tasapisteet, avoin liiga, siirrot, käyttöliittymä 390/320 px.

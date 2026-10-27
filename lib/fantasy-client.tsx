@@ -66,9 +66,6 @@ export const ERR_TEXT: Record<string, string> = {
   conflict: "Joukkuetta muutettiin toisessa ikkunassa. Lataa joukkue uudelleen ja tarkista muutokset.",
   cost: "Siirtojen pistevähennys muuttui. Tarkista ja vahvista uudelleen.",
   rules: "Joukkue ei täytä sääntöjä.",
-  notfound: "Liigaa ei löytynyt tällä koodilla.",
-  full: "Liiga on täynnä.",
-  limit: "Voit perustaa enintään 20 liigaa.",
   forbidden: "Ei oikeutta tähän toimintoon.",
   picks: "Joukkueen tiedot ovat virheelliset. Lataa sivu uudelleen.",
 };

@@ -9,7 +9,7 @@
 // Ajetaan enintään kerran 5 minuutissa (tietokannan lukko), kun joku avaa fantasy-sivun, sekä ylläpidon/ajastuksen kutsusta.
 import { stableCache } from "./stable-cache";
 import { afGet, hasApiFootball, once, afTeamsCached } from "./apifootball";
-import { afSquadOf } from "./af-players";
+import { afSquadOf, queued } from "./af-players";
 import { rpc } from "./fantasy-db";
 import {
   buildRounds, fixtureStats, fixtureClosed, fixtureFinished, fixtureLive, initialPrice, scoreLine, scoreTeam,
@@ -28,7 +28,7 @@ const REFRESH_FINISHED_MS = 4 * DAY * 1000;
 
 // Kauden sarjatilastot hinnoittelua varten (sivu kerrallaan, 7 vrk)
 const statsPage = stableCache(async (league: number, season: number, page: number) => {
-  const j = await once(`fps${league}/${season}/${page}`, () => afGet(`/players?league=${league}&season=${season}&page=${page}`));
+  const j = await once(`fps${league}/${season}/${page}`, () => queued(() => afGet(`/players?league=${league}&season=${season}&page=${page}`)));
   if (!j || !Array.isArray(j.response)) throw new Error("players page: unrecognised");
   const rows = j.response.map((r: any) => {
     const s = (r?.statistics ?? []).find((x: any) => x?.league?.id === league) ?? null;
@@ -42,7 +42,9 @@ async function seasonStats(c: Comp): Promise<Map<number, SeasonStat>> {
   const out = new Map<number, SeasonStat>();
   const first = await statsPage(c.af, c.season, 1);
   const pages = Math.min(first.total, 40);
-  const rest = await Promise.allSettled([...Array(pages - 1).keys()].map((i) => statsPage(c.af, c.season, i + 2)));
+  // sivut jonossa (ei purskeena): minuuttiraja jaetaan muun sivuston kanssa
+  const rest: PromiseSettledResult<Awaited<ReturnType<typeof statsPage>>>[] = [];
+  for (let i = 2; i <= pages; i++) rest.push(await statsPage(c.af, c.season, i).then((value) => ({ status: "fulfilled" as const, value }), (reason) => ({ status: "rejected" as const, reason })));
   for (const p of [first, ...rest.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []))]) for (const r of p.rows as any[]) if (Number.isInteger(r.id)) out.set(r.id, r);
   return out;
 }
@@ -59,12 +61,16 @@ export type SyncResult = { skipped?: boolean; rounds?: number; locked?: number[]
 
 export async function syncComp(c: Comp, opts: { force?: boolean; refetch?: boolean } = {}): Promise<SyncResult> {
   if (!hasApiFootball()) return { error: "af off" };
-  await rpc("f_comp_ensure", { p_comp: c.id, p_name: c.name, p_af: c.af, p_season: c.season });
+  const comp = await rpc<{ sync_error_at: string | null; sync_ok_at: string | null }>("f_comp_ensure", { p_comp: c.id, p_name: c.name, p_af: c.af, p_season: c.season });
+  // epäonnistunut päivitys: uusi yritys aikaisintaan 2 min päästä (ei kuormiteta lähdettä tauon aikana)
+  const errAt = comp?.sync_error_at ? Date.parse(comp.sync_error_at) : 0;
+  if (!opts.force && errAt && (!comp?.sync_ok_at || errAt > Date.parse(comp.sync_ok_at)) && Date.now() - errAt < 120_000) return { skipped: true };
   const claim = await rpc<{ claim: boolean }>("f_sync_claim", { p_comp: c.id, p_min_s: opts.force ? 0 : 300, p_stale_s: 240 });
   if (!claim?.claim) return { skipped: true };
   try {
     const r = await runSync(c, !!opts.refetch);
-    await rpc("f_sync_done", { p_comp: c.id, p_ok: true, p_error: null });
+    if (r.error) console.warn("fantasy-sync", c.id, r.error); // osittainen: valmiit vaiheet tallessa, loput uudelleen myöhemmin
+    await rpc("f_sync_done", { p_comp: c.id, p_ok: !r.error, p_error: r.error ?? null });
     return r;
   } catch (e) {
     const msg = String((e as { code?: string })?.code ?? (e as Error)?.message ?? e).slice(0, 200);
@@ -90,7 +96,8 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
 
   // 2) pelaajat (6 h välein): kokoonpanot + hinnat uusille pelaajille
   const playersStale = !comp?.players_at || Date.now() - Date.parse(comp.players_at) > 6 * 3600_000;
-  if (playersStale) {
+  const stepErrors: string[] = [];
+  if (playersStale) try {
     const teams = await afTeamsCached(c.af, c.season);
     const squads = await Promise.all(teams.map((t) => afSquadOf(t.id))); // virhe → koko päivitys yritetään uudelleen (valmiit seurat välimuistissa)
     const stats = await seasonStats(c).catch(() => new Map<number, SeasonStat>());
@@ -110,7 +117,7 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     // kokonainen lista vain, jos jokainen seura saatiin (muuten puuttuvia ei merkitä epäaktiivisiksi)
     await rpc("f_players_upsert", { p_comp: c.id, p_rows: rows, p_full: squads.every((s) => !!s && s.players.length > 0) });
     out.players = rows.length;
-  }
+  } catch (e) { stepErrors.push(`players:${errCode(e)}`); } // ei kaada koko päivitystä: kierrokset/lukitus/pisteet jatkuvat
 
   // 3) lukitus
   const lk = await rpc<{ locked: number[] }>("f_lock_due", { p_comp: c.id });
@@ -131,7 +138,9 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
   const touched = new Set<number>(out.locked);
   for (let i = 0; i < need.length; i += 20) {
     const ids = need.slice(i, i + 20).map((f) => f.fixture_id);
-    const dj = await afGet(`/fixtures?ids=${ids.join("-")}`);
+    let dj: any;
+    try { dj = await afGet(`/fixtures?ids=${ids.join("-")}`); }
+    catch (e) { stepErrors.push(`stats:${errCode(e)}`); break; } // loput seuraavalla kerralla (stats_at ei päivittynyt)
     for (const d of dj?.response ?? []) {
       const st = fixtureStats(d);
       if (!st) continue;
@@ -153,8 +162,11 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     recomputed.push(round);
   }
   out.recomputed = recomputed;
+  if (stepErrors.length) out.error = stepErrors.join(",");
   return out;
 }
+
+const errCode = (e: unknown) => String((e as { code?: string })?.code ?? (e as Error)?.message ?? e).slice(0, 80);
 
 export async function playersMap(comp: string): Promise<Map<number, FPlayer>> {
   const list = await rpc<FPlayer[]>("f_players", { p_comp: comp });
