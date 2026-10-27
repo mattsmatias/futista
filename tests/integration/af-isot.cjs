@@ -206,6 +206,16 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   await hp.waitForTimeout(2500);
   ok("  Ottelut-sivulla ei kertoimia", (await hp.locator(".mrow").count()) > 0 && (await hp.locator(".mrow-od").count()) === 0, `${await hp.locator(".mrow").count()} riviä, ${await hp.locator(".mrow-od").count()} kerroinriviä`);
   await hp.close();
+  // Suosikit-sivulla ei kertoimia (käyttäjän valinta 27.10.2026)
+  const fctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "fi-FI" });
+  await fctx.addInitScript(() => { try { localStorage.removeItem("futista-suosikit-v2"); localStorage.setItem("futista-suosikit", JSON.stringify(["Mittaus United", "Testiseura Kotka", "Mittaus Reserve", "Kotka City"])); } catch {} });
+  const fp = await fctx.newPage();
+  const favOdds = []; fp.on("request", (r) => { if (r.url().includes("/api/kertoimet")) favOdds.push(r.url()); });
+  await fp.goto(`${APP}/suosikit`, { waitUntil: "load" }).catch(() => {});
+  await fp.waitForSelector(".mrow", { timeout: 15000 }).catch(() => {});
+  await fp.waitForTimeout(2500);
+  ok("  Suosikit-sivulla ei kertoimia", (await fp.locator(".mrow").count()) > 0 && (await fp.locator(".mrow-od").count()) === 0 && favOdds.length === 0, `${await fp.locator(".mrow").count()} riviä, ${await fp.locator(".mrow-od").count()} kerroinriviä, ${favOdds.length} hakua`);
+  await fctx.close();
   await lp.close();
   await browser.close();
 

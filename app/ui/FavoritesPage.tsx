@@ -95,7 +95,7 @@ export default function FavoritesPage({ stats: first, articles, today: serverTod
                   <div className="mrow-wrap" key={source + f.date + f.home.name}>
                     <span className="mrow-comp"><CompMark id={source} small />{i.day(f.date)} · {i.league(source, source)}</span>
                     <MatchRow href={matchHref(source, f.date, f.home.name, f.away.name)} home={f.home} away={f.away} time={f.time}
-                      s={matchState({ ...f, source }, live, now)} highlight={isFav} />
+                      s={matchState({ ...f, source }, live, now)} highlight={isFav} odds={false} />
                   </div>
                 ))}
               </div>
