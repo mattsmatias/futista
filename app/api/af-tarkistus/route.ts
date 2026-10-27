@@ -99,11 +99,35 @@ const fantasy = (id: number) => stableCache(async () => {
   return out;
 }, ["af-tarkistus-fantasy-v1", String(id)], { revalidate: 6 * 3600 })();
 
+// Omien maalien merkintä (kumman joukkueen nimissä tapahtuma on): 2 × 20 viimeisintä päättynyttä Valioliigan ottelua
+const ownGoals = stableCache(async () => {
+  const fxj = await afGet(`/fixtures?league=39&season=2026&status=FT`);
+  const ids = (fxj?.response ?? []).sort((a: any, b: any) => (b.fixture?.timestamp ?? 0) - (a.fixture?.timestamp ?? 0)).slice(0, 40).map((f: any) => f.fixture.id);
+  const out: any[] = [];
+  for (const chunk of [ids.slice(0, 20), ids.slice(20, 40)]) {
+    if (!chunk.length) continue;
+    const dj = await afGet(`/fixtures?ids=${chunk.join("-")}`);
+    for (const d of dj?.response ?? []) {
+      const ev = d.events ?? [];
+      const og = ev.filter((e: any) => e.type === "Goal" && /own/i.test(e.detail ?? ""));
+      if (!og.length) continue;
+      const by = (team: number, own: boolean) => ev.filter((e: any) => e.type === "Goal" && e.team?.id === team && /own/i.test(e.detail ?? "") === own && !/missed/i.test(e.detail ?? "")).length;
+      out.push({ id: d.fixture?.id, home: d.teams?.home?.name, away: d.teams?.away?.name, goals: d.goals,
+        ownGoals: og.map((e: any) => ({ t: e.time?.elapsed, eventTeam: e.team?.id === d.teams?.home?.id ? "home" : "away" })),
+        homeNormal: by(d.teams?.home?.id, false), awayNormal: by(d.teams?.away?.id, false),
+        players: (d.players ?? []).map((t: any) => ({ team: t.team?.id === d.teams?.home?.id ? "home" : "away", goals: (t.players ?? []).reduce((n: number, p: any) => n + (p?.statistics?.[0]?.goals?.total ?? 0), 0) })),
+        detailTypes: [...new Set(ev.map((e: any) => `${e.type}/${e.detail}`))] });
+    }
+  }
+  return { scanned: ids.length, withOwnGoals: out };
+}, ["af-tarkistus-og-v1"], { revalidate: 6 * 3600 });
+
 export async function GET(req: Request) {
   if (process.env.VERCEL_ENV === "production" || !hasApiFootball()) return NextResponse.json({ error: "off" }, { status: 404 });
   const q = new URL(req.url).searchParams.get("id") ?? "";
   try {
     if (q === "fi") return NextResponse.json({ finland: await finland() });
+    if (q === "fantasyog") return NextResponse.json(await ownGoals(), { headers: { "Cache-Control": "no-store" } });
     if (q === "fantasy39" || q === "fantasy244") return NextResponse.json(await fantasy(Number(q.slice(7))), { headers: { "Cache-Control": "no-store" } });
     const id = Number(q);
     if (!Number.isInteger(id) || !ALLOWED.has(id)) return NextResponse.json({ error: "not allowed" }, { status: 400 });
