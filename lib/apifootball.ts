@@ -93,7 +93,7 @@ export function once<T>(k: string, f: () => Promise<T>): Promise<T> {
   return p;
 }
 
-const teamsCached = stableCache(async (league: number, season: number): Promise<AfTeam[]> => {
+export const afTeamsCached = stableCache(async (league: number, season: number): Promise<AfTeam[]> => {
   const t = parseTeams(await once(`t${league}/${season}`, () => afGet(`/teams?league=${league}&season=${season}`)));
   if (!t || !t.length) throw new AfError("empty teams");
   return t;
@@ -118,7 +118,7 @@ export async function getTeamTransfers(source: string, teamName: string): Promis
   const cal = !!src?.calendarYear;
   const season = afSeason(todayHel(), cal);
   try {
-    const teams = await teamsCached(AF_LEAGUE[source], season);
+    const teams = await afTeamsCached(AF_LEAGUE[source], season);
     const hit = matchTeam(teamName, teams);
     if (!hit) return { state: "nomatch" };
     const data = await transfersCached(hit.id, transferFrom(season, cal));
