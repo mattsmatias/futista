@@ -51,7 +51,7 @@ export function Points() {
                     <details>
                       <summary>
                         <span className="fx-pos">{pl1 ? POS_SHORT[pl1.pos] : "?"}</span>
-                        <span className="fx-pname"><b>{pl1?.name ?? x.player_id}</b>{x.player_id === p.breakdown.captain ? <em className="fx-cap c" title="Kapteeni">C</em> : null}<small className="muted">{pl1?.team ?? ""}{x.mult === 0 ? " · penkki" : ""}</small></span>
+                        <span className="fx-pname"><b>{pl1?.name ?? x.player_id}{x.player_id === p.breakdown.captain ? <em className="fx-cap c" title="Kapteeni"><span aria-hidden="true">C</span><span className="sr-only">kapteeni</span></em> : null}</b><small className="muted">{pl1?.team ?? ""}{x.mult === 0 ? " · penkki" : ""}</small></span>
                         <b className="fx-pnum">{x.points * (x.mult || 1)} p</b>
                       </summary>
                       <RoundItems row={x} />

@@ -58,7 +58,10 @@ function Home({ s }: { s: FState; reload: () => void }) {
   const snap = useLoad<{ snapshot: Picks | null; points: any; status: string | null }>(showRound ? `/api/fantasy/joukkue?round=${showRound}` : null);
   const [sel, setSel] = useState<number | null>(null);
   const last = t.points.find((p) => p.round === cur) ?? null;
-  const picks: Picks | null = showRound ? snap.data?.snapshot ?? null : t.picks;
+  // lukitun kierroksen kentällä automaattisten vaihtojen jälkeinen kokoonpano (sisään tullut avaukseen, pelaamaton penkille)
+  const rawPicks: Picks | null = showRound ? snap.data?.snapshot ?? null : t.picks;
+  const subs: { out: number; in: number }[] = showRound ? snap.data?.points?.breakdown?.subs ?? [] : [];
+  const picks: Picks | null = rawPicks && subs.length ? subs.reduce((p, x) => ({ ...p, xi: p.xi.map((y) => (y === x.out ? x.in : y)), bench: p.bench.map((y) => (y === x.in ? x.out : y)) }), rawPicks) : rawPicks;
   const ptsOf = (id: number) => (snap.data?.points?.breakdown?.players ?? []).find((x: any) => x.player_id === id);
   const budgetLeft = t.picks && players.size ? s.comp.budget - t.picks.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0) : null;
   const lockedNow = s.rounds.find((r) => r.no === cur);

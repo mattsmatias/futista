@@ -8,6 +8,8 @@ const SECRET = process.env.CRON_SECRET || "test-cron-not-real";
 const results = [];
 const ok = (name, cond, info = "") => { results.push(!!cond); console.log(`${cond ? "OK  " : "VIRHE"} ${name}${info ? "  – " + String(info).slice(0, 300) : ""}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// SHOTS=hakemisto → kuvakaappaukset ulkoasun tarkistusta varten (ei vaikuta tuloksiin)
+const shot = async (page, name) => { if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/${name}.png`, fullPage: true }).catch(() => {}); };
 
 function client() {
   let cookie = "";
@@ -111,7 +113,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   ok("  pisteet: 47 (MV 7, nollapelit, torjunnat, maali, syöttö, kapteeni ×2, automaattinen vaihto)", p2?.total === 47 && p2?.provisional === false && t.current === 2 && t.next === 3, JSON.stringify(p2));
   const det = (await A.call("/api/fantasy/joukkue?round=2")).j;
   const row = (id) => det?.points?.breakdown?.players?.find((x) => x.player_id === id);
-  ok("  automaattinen vaihto: pelaamaton puolustaja → penkin ensimmäinen kelvollinen (keskikenttä)", JSON.stringify(det?.points?.breakdown?.subs) === JSON.stringify([{ out: 390513, in: 390406 }]), JSON.stringify(det?.points?.breakdown?.subs));
+  ok("  automaattinen vaihto: pelaamaton puolustaja → penkin ensimmäinen kelvollinen (keskikenttä)", det?.points?.breakdown?.subs?.length === 1 && det.points.breakdown.subs[0].out === 390513 && det.points.breakdown.subs[0].in === 390406, JSON.stringify(det?.points?.breakdown?.subs));
   ok("  erittely: maalivahti 2+4+1, alle 60 min 1, kapteeni ×2", row(390101)?.points === 7 && row(390202)?.points === 1 && row(390110)?.mult === 2 && row(390110)?.points === 6 && row(390502)?.mult === 0, JSON.stringify([row(390101), row(390202), row(390110)]));
   ok("  oma maali: ei maali tekijälle, vastustajan nollapeli ei toteudu", row(390502)?.items?.every((i) => i.k !== "cs"), JSON.stringify(row(390502)));
   const tB = (await B.call("/api/fantasy/tila")).j;
@@ -156,16 +158,19 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.fill("#fx-u", "pelaaja_a"); await page.fill("#fx-p", "salasana-123");
     await page.locator("button[type=submit]").click();
     await page.waitForSelector(".fx-pitch", { timeout: 15000 }).catch(() => {});
+    await shot(page, `koti-${w}`);
     const toks = await page.locator(".fx-pitch .fx-tok").count(), bench = await page.locator(".fx-bench .fx-tok").count();
     ok(`${w}px: Oma joukkue – kenttä (11) ja penkki (4), kierroksen pisteet, C-merkki`, toks === 11 && bench === 4 && (await page.locator(".fx-cap.c").count()) === 1 && /36 p/.test(await page.locator(".fx-summary").innerText()), `${toks}/${bench}`);
     const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     ok(`${w}px:   ei vaakavieritystä`, ov <= 0, String(ov));
-    ok(`${w}px:   määräaika ja sijoitus näkyvät`, /Kierros 3/.test(await page.locator(".fx-kpis").innerText()) && /1 \/ 2/.test(await page.locator(".fx-kpis").innerText()));
+    const kp = (await page.locator(".fx-kpis").innerText()).replace(/\s+/g, " ");
+    ok(`${w}px:   määräaika ja sijoitus näkyvät`, /kierros 3/i.test(kp) && /1 \/ 2/.test(kp), kp);
     await page.locator(".fx-pitch .fx-tok").first().click();
     ok(`${w}px:   pelaajakortti avautuu ja sulkeutuu Escillä`, (await page.locator(".fx-card[role=dialog]").count()) === 1 && (await page.keyboard.press("Escape"), (await page.locator(".fx-card").count()) === 0));
     await page.goto(`${APP}/fantasy/siirrot`, { waitUntil: "load" });
     await page.waitForSelector(".fx-plist li", { timeout: 15000 }).catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
+    await shot(page, `siirrot-${w}`);
     await page.fill("#fx-q", "Featherstonehaugh");
     await page.waitForTimeout(200);
     const longRow = page.locator(".fx-plist li").first();
@@ -175,11 +180,15 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   ei vaakavieritystä`, ov2 <= 0, String(ov2));
     await page.goto(`${APP}/fantasy/pisteet`, { waitUntil: "load" });
     await page.waitForSelector(".fx-breakdown li", { timeout: 15000 }).catch(() => {});
-    ok(`${w}px: Pisteet – erittely ja ranking (oma korostettu)`, (await page.locator(".fx-breakdown li").count()) === 15 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && /lopullinen/.test(await page.locator(".fx-pts-sum").innerText()));
+    await page.waitForSelector(".fx-rtbl tr.me", { timeout: 15000 }).catch(() => {});
+    await shot(page, `pisteet-${w}`);
+    const bd = await page.locator(".fx-breakdown > li").count(), me = await page.locator(".fx-rtbl tr.me").count(), sum = await page.locator(".fx-pts-sum").innerText().catch(() => "");
+    ok(`${w}px: Pisteet – erittely ja ranking (oma korostettu)`, bd === 15 && me >= 1 && /lopullinen/i.test(sum), `${bd} ${me} ${sum}`);
     await page.goto(`${APP}/fantasy/liigat`, { waitUntil: "load" });
     await page.waitForSelector(".fx-lg", { timeout: 15000 }).catch(() => {});
     await page.locator(".fx-lg").first().click();
     await page.waitForSelector(".fx-code-v", { timeout: 10000 }).catch(() => {});
+    await shot(page, `liigat-${w}`);
     ok(`${w}px: Liigat – oma liiga, koodi ja taulukko`, (await page.locator(".fx-code-v").innerText().catch(() => "")) === rot.j.code && (await page.locator(".fx-rtbl tbody tr").count()) === 2);
     await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
     ok(`${w}px: Säännöt`, /Nollapeli/.test(await page.locator("main").innerText()) && /1 ilmaisen siirron/.test(await page.locator("main").innerText()));
