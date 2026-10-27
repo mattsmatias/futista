@@ -44,6 +44,7 @@ create table if not exists public.fantasy_comps (
   sync_ok_at      timestamptz,
   sync_error      text,
   sync_error_at   timestamptz,
+  players_at      timestamptz,
   created_at      timestamptz not null default now()
 );
 
@@ -105,6 +106,7 @@ create table if not exists public.fantasy_player_stats (
   yellow      integer not null default 0,
   red         integer not null default 0,
   conceded    integer,             -- päästetyt maalit pelaajan kentälläoloaikana; null = ei voida määrittää luotettavasti
+  points      integer not null default 0, -- fantasy-pisteet tästä ottelusta (lasketaan palvelimella samalla säännöllä kuin joukkueille)
   primary key (comp, fixture_id, player_id),
   foreign key (comp, fixture_id) references public.fantasy_fixtures(comp, fixture_id) on delete cascade
 );
@@ -245,7 +247,7 @@ create or replace function public.f_comp_ensure(p_comp text, p_name text, p_af i
 language sql security definer set search_path = '' as $$
   insert into public.fantasy_comps (id, name, af_league, season) values (p_comp, p_name, p_af, p_season)
   on conflict (id) do update set name = excluded.name
-  returning jsonb_build_object('id', id, 'budget', budget, 'sync_ok_at', sync_ok_at, 'sync_error', sync_error, 'sync_error_at', sync_error_at)
+  returning jsonb_build_object('id', id, 'budget', budget, 'sync_ok_at', sync_ok_at, 'sync_error', sync_error, 'sync_error_at', sync_error_at, 'players_at', players_at)
 $$;
 
 -- Yksi päivittäjä kerrallaan: true, jos edellisestä onnistuneesta yli p_min_s ja käynnissä olevaa ei ole (tai se on jumissa yli p_stale_s)
@@ -285,6 +287,7 @@ begin
     name = excluded.name, team_id = excluded.team_id, team_name = excluded.team_name, team_logo = excluded.team_logo,
     position = excluded.position, photo = excluded.photo, active = true, updated_at = now();
   get diagnostics v_n = row_count;
+  update public.fantasy_comps set players_at = now() where id = p_comp;
   if p_full then
     update public.fantasy_players set active = false, updated_at = now()
     where comp = p_comp and active and player_id not in (select (r->>'player_id')::int from jsonb_array_elements(p_rows) r);
@@ -332,9 +335,9 @@ create or replace function public.f_stats_replace(p_comp text, p_fixture integer
 language plpgsql security definer set search_path = '' as $$
 begin
   delete from public.fantasy_player_stats where comp = p_comp and fixture_id = p_fixture;
-  insert into public.fantasy_player_stats (comp, fixture_id, player_id, team_id, minutes, goals, assists, saves, yellow, red, conceded)
+  insert into public.fantasy_player_stats (comp, fixture_id, player_id, team_id, minutes, goals, assists, saves, yellow, red, conceded, points)
   select p_comp, p_fixture, (x->>'player_id')::int, (x->>'team_id')::int, (x->>'minutes')::int, (x->>'goals')::int, (x->>'assists')::int,
-         (x->>'saves')::int, (x->>'yellow')::int, (x->>'red')::int, (x->>'conceded')::int
+         (x->>'saves')::int, (x->>'yellow')::int, (x->>'red')::int, (x->>'conceded')::int, coalesce((x->>'points')::int, 0)
   from jsonb_array_elements(p_rows) x;
   update public.fantasy_fixtures set consistent = p_consistent, stats_at = now() where comp = p_comp and fixture_id = p_fixture;
   return jsonb_build_object('rows', jsonb_array_length(p_rows));
@@ -413,6 +416,41 @@ language sql security definer set search_path = '' as $$
   select coalesce(jsonb_agg(jsonb_build_object('id', p.player_id, 'name', p.name, 'team_id', p.team_id, 'team', p.team_name, 'logo', p.team_logo,
            'pos', p.position, 'price', p.price, 'active', p.active, 'photo', p.photo) order by p.price desc, p.name), '[]'::jsonb)
   from public.fantasy_players p where p.comp = p_comp
+$$;
+
+-- Pelaajien kauden pisteet ja viimeisimmän pelatun kierroksen pisteet
+create or replace function public.f_player_points(p_comp text) returns jsonb
+language sql security definer set search_path = '' as $$
+  with last_round as (
+    select max(f.round_no) as r from public.fantasy_fixtures f where f.comp = p_comp and f.stats_at is not null
+  )
+  select coalesce(jsonb_object_agg(x.player_id::text, jsonb_build_array(x.season, x.last, x.minutes)), '{}'::jsonb)
+  from (
+    select s.player_id, sum(s.points) as season,
+      sum(case when f.round_no = (select r from last_round) then s.points else 0 end) as last, sum(s.minutes) as minutes
+    from public.fantasy_player_stats s join public.fantasy_fixtures f on f.comp = s.comp and f.fixture_id = s.fixture_id
+    where s.comp = p_comp group by s.player_id
+  ) x
+$$;
+
+-- Otteluiden tilastotila päivittäjälle
+create or replace function public.f_fixture_list(p_comp text) returns jsonb
+language sql security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(jsonb_build_object('fixture_id', fixture_id, 'round_no', round_no, 'status', status, 'stats_at', stats_at, 'kickoff', kickoff)), '[]'::jsonb)
+  from public.fantasy_fixtures where comp = p_comp
+$$;
+
+-- Joukkueiden seuraavat ottelut (pelaajakorttia varten): kunkin seuran seuraava alkamaton ottelu
+create or replace function public.f_next_fixtures(p_comp text) returns jsonb
+language sql security definer set search_path = '' as $$
+  select coalesce(jsonb_object_agg(t.team_id::text, t.fx), '{}'::jsonb) from (
+    select distinct on (x.team_id) x.team_id, jsonb_build_object('round_no', x.round_no, 'kickoff', x.kickoff, 'home', x.home, 'opp', x.opp) as fx
+    from (
+      select home_id as team_id, round_no, kickoff, true as home, away_name as opp from public.fantasy_fixtures where comp = p_comp and status in ('NS','TBD') and kickoff > now()
+      union all
+      select away_id, round_no, kickoff, false, home_name from public.fantasy_fixtures where comp = p_comp and status in ('NS','TBD') and kickoff > now()
+    ) x order by x.team_id, x.kickoff
+  ) t
 $$;
 
 create or replace function public.f_team_create(p_comp text, p_user bigint, p_name text) returns jsonb
@@ -567,7 +605,7 @@ do $$ declare f text; begin
     'f_throttle(text,integer,integer)','f_comp_ensure(text,text,integer,integer)','f_sync_claim(text,integer,integer)','f_sync_done(text,boolean,text)',
     'f_players_upsert(text,jsonb,boolean)','f_price_set(text,integer,numeric)','f_rounds_upsert(text,jsonb)','f_fixtures_upsert(text,jsonb)',
     'f_stats_replace(text,integer,jsonb,boolean)','f_lock_due(text)','f_round_inputs(text,integer)','f_points_store(text,integer,jsonb,text)',
-    'f_state(text,bigint)','f_players(text)','f_team_create(text,bigint,text)','f_team_rename(bigint,bigint,text)',
+    'f_state(text,bigint)','f_players(text)','f_player_points(text)','f_fixture_list(text)','f_next_fixtures(text)','f_team_create(text,bigint,text)','f_team_rename(bigint,bigint,text)',
     'f_picks_save(bigint,bigint,integer,integer,jsonb,integer,integer)','f_ranking(text,bigint,integer,integer,integer,bigint)',
     'f_league_create(bigint,bigint,text,text)','f_league_join(bigint,bigint,text)','f_league_leave(bigint,bigint,bigint)',
     'f_league_rotate(bigint,bigint,bigint,text)','f_leagues_of(bigint,bigint)','f_league_get(bigint,bigint,bigint)','f_status(text)'] loop

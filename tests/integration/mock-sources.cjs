@@ -4,6 +4,7 @@
 const http = require("node:http");
 const mode = { fd: "ok", espn: "ok", h2h: "ok", af: "ok", afvar: "0", resend: "ok", wd: "ok", yt: "ok" };
 const afMock = require("./mock-af.cjs");
+const fantasyMock = require("./mock-fantasy.cjs");
 const log = [];
 const json = (res, code, body, extra = {}) => { res.writeHead(code, { "content-type": "application/json", ...extra }); res.end(JSON.stringify(body)); };
 const now = Date.now();
@@ -174,8 +175,10 @@ function af(path, req, res) {
   if (mode.af === "down") return json(res, 503, {});
   const hdr = { "x-ratelimit-requests-limit": "7500", "x-ratelimit-requests-remaining": "7000" };
   const send = (body) => { res.writeHead(200, { "content-type": "application/json", ...hdr }); res.end(JSON.stringify(body)); };
+  if (path.startsWith("/__fantasy")) { fantasyMock.handle(new URL(path, "http://x"), send, res); return; }
   if (!req.headers["x-apisports-key"]) return send({ errors: { token: "Error/Missing application key" }, response: [] });
   const u = new URL(path, "http://x");
+  if (fantasyMock.handle(u, send, res)) return;
   if (u.pathname === "/teams") {
     const own = afMock.teamsFor(Number(u.searchParams.get("league")));
     if (own) return send({ errors: [], response: own.map((team) => ({ team })) });

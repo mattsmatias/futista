@@ -40,6 +40,8 @@ export function backFallback(path: string): string | null {
   if (/^\/uutiset\/.+/.test(path)) return "/uutiset";
   if (/^\/sarjat\/.+/.test(path)) return "/sarjat";
   if (path === "/tietoa" || path === "/tietosuoja") return "/";
+  if (/^\/fantasy\/.+/.test(path)) return "/fantasy";
+  if (path === "/fantasy") return "/sarjat";
   return null;
 }
 

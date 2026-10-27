@@ -41,7 +41,7 @@ function queued<T>(f: () => Promise<T>): Promise<T> {
   return run;
 }
 
-const squadOf = stableCache(async (team: number): Promise<AfSquad | null> => {
+export const afSquadOf = stableCache(async (team: number): Promise<AfSquad | null> => {
   const s = parseSquad(await once(`sq${team}`, () => queued(() => afGet(`/players/squads?team=${team}`))));
   if (s === undefined) throw new AfError("squad: unrecognised");
   return s; // null = lähteellä ei kokoonpanoa (tallennetaan: lähde vastasi)
@@ -62,7 +62,7 @@ const phaseTeams = stableCache(async (league: number, season: number): Promise<A
 export async function squadsFor(l: SquadLeague, deadline: Promise<"late">): Promise<{ squads: AfSquad[]; complete: boolean }> {
   const season = afSeason(todayHel(), l.calendar);
   const teams = await (l.europe ? phaseTeams(l.af, season) : afTeamsCached(l.af, season));
-  const all = teams.map((t) => squadOf(t.id));
+  const all = teams.map((t) => afSquadOf(t.id));
   const got = await Promise.all(all.map((p) => Promise.race([p.then((v) => ({ v }), () => ({ v: undefined })), deadline.then(() => "late" as const)])));
   const late = all.filter((_, k) => got[k] === "late");
   if (late.length) waitUntil(Promise.allSettled(late));

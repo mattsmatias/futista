@@ -56,6 +56,24 @@ http.createServer(async (req, res) => {
     finally { await client.query("reset role").catch(() => {}); client.release(); }
     return;
   }
+  // Fantasy (supabase/migrations/20261027_fantasy.sql): PostgREST-tyyppinen RPC nimetyin parametrein; paluu = funktion jsonb
+  const fm = req.method === "POST" && req.url.match(/^\/rest\/v1\/rpc\/(f_[a-z_]+)$/);
+  if (fm) {
+    let body = ""; for await (const c of req) body += c;
+    const a = JSON.parse(body || "{}");
+    const keys = Object.keys(a).filter((k) => /^p_[a-z_]+$/.test(k));
+    const vals = keys.map((k) => (a[k] !== null && typeof a[k] === "object" ? JSON.stringify(a[k]) : a[k]));
+    const client = await pool.connect();
+    try {
+      await client.query("set role service_role");
+      const exists = await client.query("select 1 from pg_proc where proname = $1", [fm[1]]);
+      if (!exists.rowCount) { res.writeHead(404); res.end(JSON.stringify({ code: "PGRST202", message: "Could not find the function" })); return; }
+      const r = await client.query(`select public.${fm[1]}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as v`, vals);
+      res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(r.rows[0].v));
+    } catch (e) { res.writeHead(400); res.end(JSON.stringify({ message: String(e.message) })); }
+    finally { await client.query("reset role").catch(() => {}); client.release(); }
+    return;
+  }
   const m = req.url.match(/^\/rest\/v1\/rpc\/(fd_quota_acquire|fd_quota_block)$/);
   if (!m || req.method !== "POST") { res.writeHead(404); res.end("{}"); return; }
   let body = ""; for await (const c of req) body += c;
