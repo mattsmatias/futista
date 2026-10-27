@@ -26,7 +26,9 @@ export const TOP5: League[] = [
 ];
 export const COMPS: Comp[] = [
   // yksi yhteinen peli: pelaajat viidestä isosta sarjasta, kierros = viikko (käyttäjän valinta 27.10.2026)
-  { id: "top5-2026", name: "Euroopan isot sarjat 2026–27", af: 39, season: 2026, leagues: TOP5, anchor: "2026-07-28" },
+  // viikko perjantaista torstaihin (ankkuri pe 31.7.2026). Uusi tunniste: ensimmäinen versio (top5-2026, viikko ti–ma) jäi
+  // tietokantaan käyttämättömäksi – siinä ei ollut joukkueita.
+  { id: "top5f-2026", name: "Euroopan isot sarjat 2026–27", af: 39, season: 2026, leagues: TOP5, anchor: "2026-07-31" },
   { id: "pl-2026", name: "Valioliiga 2026–27", af: 39, season: 2026 },
 ];
 /** Pelattava kilpailu (FANTASY_COMP vain testeille / siirtymään) */
@@ -212,7 +214,7 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
   const touched = new Set<number>(out.locked);
   // pelaajalista puuttuu (esim. ensimmäinen päivitys, jossa pelaajavaihe epäonnistui) → tilastoja ei tallenneta, koska
   // pelaajien ottelukohtaiset pisteet (kauden pisteet) laskettaisiin ilman pelipaikkaa nollaksi; haetaan seuraavalla kerralla
-  if (players.size === 0 && need.length) { stepErrors.push("stats:noplayers"); need.length = 0; }
+  if (players.size === 0 && need.length) { if (!out.partial) stepErrors.push("stats:noplayers"); need.length = 0; } // pelaajahaku kesken → ei virhe
   const fresh: (SrcFixture & { round_no: number })[] = [];
   for (let i = 0; i < need.length; i += 20) {
     const ids = need.slice(i, i + 20).map((f) => f.fixture_id);

@@ -56,7 +56,7 @@ node tests/integration/punaiset.cjs || rc=1
 node tests/integration/kohokohdat.cjs || rc=1
 node tests/integration/fantasy.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
-start env FANTASY_COMP=top5-2026
+start env FANTASY_COMP=top5f-2026
 node tests/integration/fantasy-multi.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1 RESEND_API_KEY=

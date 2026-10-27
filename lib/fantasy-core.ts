@@ -255,12 +255,13 @@ export function buildRounds(fx: SrcFixture[]): RoundRow[] {
 }
 
 // ---------------- Viikkokierrokset (useamman sarjan peli) ----------------
-// Sarjojen kierrokset eivät osu samoille päiville, joten kierros = viikko tiistai 00:00 – maanantai 23:59 Suomen aikaa
-// (viikonlopun ottelut ja niitä edeltävät keskiviikon ottelut samaan kierrokseen). Kierroksen numero = viikon järjestysluku
+// Sarjojen kierrokset eivät osu samoille päiville, joten kierros = viikko. Viikon alkupäivä = ankkurin viikonpäivä:
+// isoissa sarjoissa perjantai 00:00 – torstai 23:59 Suomen aikaa (viikonloppu ja sitä seuraavat keskiviikon ottelut samaan
+// kierrokseen; määräaika ennen viikonloppua, kuten tavallisissa fantasy-peleissä). Kierroksen numero = viikon järjestysluku
 // kauden aloitusviikosta (kiinteä ankkuri) → numerot eivät muutu, vaikka otteluita siirrettäisiin; maaottelutauot jäävät
 // numeroinnissa aukoiksi. Näytettävä nimi on juokseva ("Kierros 7").
 const HEL = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Helsinki", year: "numeric", month: "2-digit", day: "2-digit" });
-/** Viikon järjestysluku (1 = ankkuriviikko). anchor = ankkuriviikon tiistai muodossa YYYY-MM-DD. */
+/** Viikon järjestysluku (1 = ankkuriviikko). anchor = ankkuriviikon ensimmäinen päivä muodossa YYYY-MM-DD (määrää viikon alkupäivän). */
 export function weekRound(kickoff: string, anchor: string): number | null {
   const t = Date.parse(kickoff);
   if (!Number.isFinite(t)) return null;

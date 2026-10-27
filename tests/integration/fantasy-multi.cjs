@@ -1,4 +1,4 @@
-// Futista Fantasy, monisarjainen peli (FANTASY_COMP=top5-2026): pelaajat useasta sarjasta, kierros = viikko.
+// Futista Fantasy, monisarjainen peli (FANTASY_COMP=top5f-2026): pelaajat useasta sarjasta, kierros = viikko.
 // Simuloitu API-Football (mock-fantasy.cjs, multi=1): Valioliiga (39) ja La Liga (140) samoilla viikoilla, muut sarjat tyhjiä.
 //   APP=http://localhost:3100 MOCK=http://127.0.0.1:9101 CHROME=... node tests/integration/fantasy-multi.cjs
 const { chromium } = require("playwright-core");
@@ -38,7 +38,7 @@ const mock = (q) => fetch(`${MOCK}/af/__fantasy?${q}`).then((r) => r.json());
   const lg = await A.call("/api/fantasy/tili", { action: "login", username: "pelaaja_d", password: "salasana-000" });
   ok("kirjautuminen samalla tilillä", lg.status === 200, JSON.stringify(lg.j));
   let t = (await A.call("/api/fantasy/tila")).j;
-  ok("tila: kilpailu = isot sarjat, 5 sarjaa, ei vielä joukkuetta tässä pelissä", t.comp?.id === "top5-2026" && t.comp?.leagues?.length === 5 && t.team === null, JSON.stringify(t.comp));
+  ok("tila: kilpailu = isot sarjat, 5 sarjaa, ei vielä joukkuetta tässä pelissä", t.comp?.id === "top5f-2026" && t.comp?.leagues?.length === 5 && t.team === null, JSON.stringify(t.comp));
   const labels = t.rounds.map((r) => r.label);
   const nos = t.rounds.map((r) => r.no);
   ok("  kierrokset: juokseva nimi (Kierros 1–3), sisäinen numero viikkonumero ja peräkkäiset viikot", JSON.stringify(labels) === JSON.stringify(["Kierros 1", "Kierros 2", "Kierros 3"]) && nos[1] === nos[0] + 1 && nos[2] === nos[1] + 1 && nos[0] > 3, JSON.stringify(t.rounds.map((r) => [r.no, r.label])));
@@ -99,7 +99,7 @@ const mock = (q) => fetch(`${MOCK}/af/__fantasy?${q}`).then((r) => r.json());
   await shot(page, "multi-siirrot-390");
   await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
   const rules = await page.locator("main").innerText();
-  ok("Säännöt: sarjat ja viikkokierros kerrottu", /La Liga/.test(rules) && /tiistaista maanantaihin/.test(rules));
+  ok("Säännöt: sarjat ja viikkokierros kerrottu", /La Liga/.test(rules) && /perjantaista torstaihin/.test(rules));
   ok("ei sivuvirheitä", errs.length === 0, errs.join(" | "));
   await browser.close();
 

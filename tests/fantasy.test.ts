@@ -303,3 +303,12 @@ test("ilmaiset siirrot kertyvät vain oikeista kierroksista (viikkonumeroinnin a
   assert.equal(freeTransfers(3, 8, []), 2);
   assert.equal(freeTransfers(1, 3, []), 2);
 });
+
+test("viikkokierros pe–to (isot sarjat): viikonloppu ja sitä seuraava keskiviikko samaan kierrokseen", () => {
+  const A = "2026-07-31"; // perjantai
+  const fri = weekRound("2026-10-30T19:00:00Z", A), sun = weekRound("2026-11-01T15:00:00Z", A), wed = weekRound("2026-11-04T20:00:00Z", A);
+  assert.ok(fri !== null && fri === sun && sun === wed);
+  assert.equal(weekRound("2026-10-29T20:00:00Z", A)! + 1, fri); // torstai kuuluu edelliseen
+  assert.equal(weekRound("2026-11-05T21:59:00Z", A), fri); // to 23:59 Suomessa
+  assert.equal(weekRound("2026-11-05T22:01:00Z", A), fri! + 1); // pe 00:01 Suomessa
+});

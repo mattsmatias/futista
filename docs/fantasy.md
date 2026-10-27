@@ -18,10 +18,11 @@ Julkinen avaus = linkki sivustolle (esim. Sarjat-sivu) ja noindexin poisto `app/
 
 ## Monisarjainen peli (oletus 28.10.2026 alkaen)
 
-Kilpailu `top5-2026` (`lib/fantasy-sync.ts` COMPS): pelaajat Valioliigasta, La Ligasta, Bundesligasta, Serie A:sta ja
+Kilpailu `top5f-2026` (`lib/fantasy-sync.ts` COMPS): pelaajat Valioliigasta, La Ligasta, Bundesligasta, Serie A:sta ja
 Ligue 1:stä yhteen joukkueeseen, yksi Futista-liiga kaikille (käyttäjän päätös 27.10.2026).
-- Kierros = viikko tiistai 00:00 – maanantai 23:59 Suomen aikaa (`weekRound`). Kierroksen sisäinen numero on viikon
-  järjestysluku kiinteästä ankkurista (28.7.2026), joten numerot eivät muutu otteluita siirrettäessä; maaottelutauot ovat
+- Kierros = viikko perjantai 00:00 – torstai 23:59 Suomen aikaa (`weekRound`; viikonloppu + seuraava keskiviikko; ensimmäinen
+  versio `top5-2026` käytti viikkoa ti–ma, jolloin viikonlopun määräaika osui jo tiistaille – vaihdettu 27.10.2026). Kierroksen sisäinen numero on viikon
+  järjestysluku kiinteästä ankkurista (pe 31.7.2026), joten numerot eivät muutu otteluita siirrettäessä; maaottelutauot ovat
   numeroinnissa aukkoja. Näytettävä nimi on juokseva ("Kierros 7"). Ilmaiset siirrot kertyvät vain oikeista kierroksista.
 - Määräaika = viikon ensimmäinen (ei siirretty) ottelu missä tahansa sarjassa − 90 min.
 - Lukitun kierroksen ottelu pysyy kierroksessaan, vaikka sen ajankohta muuttuu (`assignWeek` + `f_fixtures_upsert`).

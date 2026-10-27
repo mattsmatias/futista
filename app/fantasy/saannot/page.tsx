@@ -30,7 +30,7 @@ export default function Page() {
           <h3>Kierrokset ja määräajat</h3>
           <ul>
             {weekly
-              ? <li>Kierros on viikko tiistaista maanantaihin (Suomen aikaa): kierrokseen kuuluvat kaikkien sarjojen sillä viikolla pelattavat ottelut. Jos pelaajan joukkue pelaa viikolla kahdesti, molemmat ottelut lasketaan. Viikot, joilla ei pelata (maaotteluviikot), eivät ole kierroksia. Muutokset sulkeutuvat {RULES.deadlineMinutes} minuuttia ennen viikon ensimmäistä ottelua missä tahansa sarjassa (määräaika näkyy omassa aikavyöhykkeessäsi).</li>
+              ? <li>Kierros on viikko perjantaista torstaihin (Suomen aikaa): kierrokseen kuuluvat kaikkien sarjojen viikonlopun ottelut ja niitä seuraavat viikon keskiviikko-ottelut. Jos pelaajan joukkue pelaa viikolla kahdesti, molemmat ottelut lasketaan. Viikot, joilla ei pelata (maaotteluviikot), eivät ole kierroksia. Muutokset sulkeutuvat {RULES.deadlineMinutes} minuuttia ennen viikon ensimmäistä ottelua missä tahansa sarjassa (määräaika näkyy omassa aikavyöhykkeessäsi).</li>
               : <li>Kierrokset ovat sarjan omat kierrokset. Muutokset sulkeutuvat {RULES.deadlineMinutes} minuuttia ennen kierroksen ensimmäistä ottelua (määräaika näkyy omassa aikavyöhykkeessäsi).</li>}
             <li>Määräajan tarkistaa palvelin. Määräajalla joukkueesta tallennetaan muuttumaton tilannekuva, jonka perusteella kierros pisteytetään.</li>
             <li>Määräajan jälkeen tehdyt muutokset koskevat seuraavaa kierrosta.</li>
