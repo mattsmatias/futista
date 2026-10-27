@@ -136,6 +136,9 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
   }).slice(0, 60);
   const players = await playersMap(c.id);
   const touched = new Set<number>(out.locked);
+  // pelaajalista puuttuu (esim. ensimmäinen päivitys, jossa pelaajavaihe epäonnistui) → tilastoja ei tallenneta, koska
+  // pelaajien ottelukohtaiset pisteet (kauden pisteet) laskettaisiin ilman pelipaikkaa nollaksi; haetaan seuraavalla kerralla
+  if (players.size === 0 && need.length) { stepErrors.push("stats:noplayers"); need.length = 0; }
   for (let i = 0; i < need.length; i += 20) {
     const ids = need.slice(i, i + 20).map((f) => f.fixture_id);
     let dj: any;
