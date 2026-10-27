@@ -55,7 +55,7 @@ export default function PlayerView({ p }: { p: PlayerData }) {
             {born && <div><dt>{t("born")}</dt><dd>{born}{age != null ? ` (${age} ${t("years")})` : ""}</dd></div>}
             {p.shirtNumber != null && <div><dt>{t("shirt")}</dt><dd>{p.shirtNumber}</dd></div>}
             {p.af?.fullName && <div><dt>{t("fullName")}</dt><dd>{p.af.fullName}</dd></div>}
-            {p.af?.height && <div><dt>{t("height")}</dt><dd>{p.af.height}</dd></div>}
+            {p.af?.height && <div><dt>{t("height")}</dt><dd>{/^\d{2,3}$/.test(p.af.height) ? `${p.af.height} cm` : p.af.height}</dd></div>}
             {p.club && <div><dt>{t("club")}</dt><dd>{p.club.href ? <a href={p.club.href}>{p.club.name}</a> : p.club.name}</dd></div>}
           </dl>
         </section>
