@@ -24,13 +24,15 @@ export async function GET(req: Request) {
         (e) => console.warn("af-pelaajat", l.key, (e as { code?: string })?.code ?? (e as Error)?.message));
       const r = await Promise.race([p.then((s): AfSquad[] | null => s, () => null), deadline]);
       if (r === "late") { console.info("af-pelaajat kesken", l.key, waitUntil(p) ? "taustalla" : "ei taustatyötä"); return null; }
-      return r ? { squads: r, europe: l.europe } : null;
+      return r ? { squads: r, europe: l.europe, key: l.key } : null;
     })),
   ]);
-  const afRows = buildAfPlayers(af.filter((x): x is { squads: AfSquad[]; europe: boolean } => !!x), fdr.teams);
+  const afRows = buildAfPlayers(af.filter((x): x is { squads: AfSquad[]; europe: boolean; key: string } => !!x), fdr.teams);
   const players = searchPlayers([...fdr.rows, ...afRows], q);
   const partial = fdr.partial || af.some((x) => !x);
-  return NextResponse.json({ players, partial }, {
+  // kattavuus sarjoittain (joukkueita / pelaajia; null = ei vielä ladattu) – vianetsintää varten, ei henkilötietoja
+  const cover = Object.fromEntries(leagues.map((l, k) => [l.key, af[k] ? [af[k]!.squads.length, af[k]!.squads.reduce((n, s) => n + s.players.length, 0)] : null]));
+  return NextResponse.json({ players, partial, cover, fd: !fdr.partial }, {
     headers: { "Cache-Control": partial || !fdr.rows.length ? "public, s-maxage=300" : "public, s-maxage=3600, stale-while-revalidate=86400" },
   });
 }
