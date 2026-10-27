@@ -230,6 +230,82 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
+  // ---------- tili kotivalikon sovelluksessa: avausnäkymä (kirjaudu / luo tili / vieraana) ----------
+  const STANDALONE = () => {
+    const mm = window.matchMedia.bind(window);
+    window.matchMedia = (q) => (/display-mode:\s*standalone/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent() { return false; } } : mm(q));
+  };
+  {
+    const web = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
+    const wp = await web.newPage();
+    await wp.goto(`${APP}/`, { waitUntil: "load" }); await wp.waitForTimeout(1500);
+    ok("selain (ei asennettu): ei avausnäkymää", (await wp.locator(".acc-dialog").count()) === 0);
+    await web.close();
+    for (const w of [390, 320]) {
+      const app = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 700 } });
+      await app.addInitScript(STANDALONE);
+      const ap = await app.newPage();
+      const errs = []; ap.on("pageerror", (x) => errs.push(String(x)));
+      await ap.goto(`${APP}/`, { waitUntil: "load" });
+      await ap.waitForSelector(".acc-dialog", { timeout: 10000 }).catch(() => {});
+      const dlg = ap.locator(".acc-dialog[role=dialog][aria-modal=true]");
+      const txt = await dlg.innerText().catch(() => "");
+      await shot(ap, `tili-avaus-${w}`);
+      const ov = await ap.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      ok(`${w}px sovellus: avausnäkymä – Kirjaudu sisään / Luo tili / Jatka vieraana, kohdistus tunnuskenttään, ei vaakavieritystä`,
+        (await dlg.count()) === 1 && /Kirjaudu sisään/.test(txt) && /Luo tili/.test(txt) && /Jatka vieraana/.test(txt) && (await ap.evaluate(() => document.activeElement?.getAttribute("autocomplete"))) === "username" && ov <= 0, `${txt.slice(0, 80)} ${ov}`);
+      if (w === 390) {
+        // väärä salasana → virhe; vieraana → suljetaan ja muistetaan
+        await dlg.locator("input").first().fill("pelaaja_a"); await dlg.locator("input[type=password]").fill("vaara-salasana-1");
+        await dlg.locator("button[type=submit]").click();
+        await ap.waitForSelector(".acc-err", { timeout: 8000 }).catch(() => {});
+        ok("  väärä salasana → selkeä virhe", /Väärä käyttäjätunnus tai salasana/.test(await ap.locator(".acc-err").innerText().catch(() => "")));
+        await dlg.locator("button", { hasText: "Jatka vieraana" }).click();
+        const closed = (await ap.locator(".acc-dialog").count()) === 0;
+        await ap.reload({ waitUntil: "load" }); await ap.waitForTimeout(1500);
+        ok("  Jatka vieraana: näkymä sulkeutuu eikä tule uudelleen", closed && (await ap.locator(".acc-dialog").count()) === 0);
+        await ap.locator(".set-btn").click();
+        const menu = await ap.locator(".set-menu").innerText().catch(() => "");
+        ok("  asetuksissa: Tili – Vieraana, Kirjaudu sisään, Luo tili", /Vieraana/.test(menu) && /Kirjaudu sisään/.test(menu) && /Luo tili/.test(menu), menu.replace(/\s+/g, " "));
+        await ap.locator(".set-menu button", { hasText: "Luo tili" }).click();
+        await ap.waitForSelector(".acc-dialog", { timeout: 5000 }).catch(() => {});
+        // tilinluonti: tässä ajossa samasta IP:stä on jo luotu 5 tiliä tunnin sisällä → palvelimen rajoitus näkyy selkokielisenä
+        const regHints = await ap.locator(".acc-dialog .acc-hint").count();
+        await ap.locator(".acc-dialog input").first().fill("sovellus_e"); await ap.locator(".acc-dialog input[type=password]").fill("salasana-sovellus");
+        await ap.locator(".acc-dialog button[type=submit]").click();
+        await ap.waitForSelector(".acc-err", { timeout: 8000 }).catch(() => {});
+        ok("  Luo tili asetuksista: ohjeet näkyvät; rajoitus (5 tiliä / IP / h) näytetään selkokielisenä", regHints === 2 && /Liian monta yritystä/.test(await ap.locator(".acc-err").innerText().catch(() => "")));
+        await ap.locator(".acc-tabs button", { hasText: "Kirjaudu sisään" }).click();
+        await ap.locator(".acc-dialog input").first().fill("pelaaja_d"); await ap.locator(".acc-dialog input[type=password]").fill("salasana-000");
+        await Promise.all([ap.waitForNavigation({ timeout: 10000 }).catch(() => {}), ap.locator(".acc-dialog button[type=submit]").click()]);
+        await ap.waitForLoadState("load"); await ap.waitForTimeout(800);
+        await ap.locator(".set-btn").click();
+        await ap.waitForSelector(".set-menu .acc-who", { timeout: 5000 }).catch(() => {});
+        const menu2 = await ap.locator(".set-menu").innerText().catch(() => "");
+        ok("  kirjautuminen asetuksista → kirjautunut (asetuksissa tunnus + Kirjaudu ulos)", /Kirjautunut:\s*pelaaja_d/.test(menu2) && /Kirjaudu ulos/.test(menu2), menu2.replace(/\s+/g, " "));
+        await ap.keyboard.press("Escape");
+        await ap.goto(`${APP}/fantasy`, { waitUntil: "load" });
+        await ap.waitForSelector("#fx-tn, #fx-u", { timeout: 10000 }).catch(() => {});
+        ok("  sama tili fantasyssa: kirjautuneena suoraan joukkueen luontiin", (await ap.locator("#fx-tn").count()) === 1 && (await ap.locator("#fx-u").count()) === 0);
+        await ap.locator(".set-btn").click();
+        await Promise.all([ap.waitForNavigation({ timeout: 10000 }).catch(() => {}), ap.locator(".set-menu button", { hasText: "Kirjaudu ulos" }).click()]);
+        await ap.waitForSelector("#fx-u", { timeout: 10000 }).catch(() => {});
+        ok("  Kirjaudu ulos asetuksista → uloskirjattu (fantasy pyytää kirjautumaan)", (await ap.locator("#fx-u").count()) === 1 && (await ap.locator(".acc-dialog").count()) === 0);
+      } else {
+        // kirjautuminen avausnäkymästä
+        await dlg.locator("input").first().fill("pelaaja_b"); await dlg.locator("input[type=password]").fill("salasana-456");
+        await dlg.locator("button[type=submit]").click();
+        await ap.waitForSelector(".acc-dialog", { state: "detached", timeout: 8000 }).catch(() => {});
+        const me = await ap.evaluate(() => fetch("/api/fantasy/tili").then((r) => r.json()));
+        ok(`${w}px sovellus: kirjautuminen avausnäkymästä → istunto palvelimella`, (await ap.locator(".acc-dialog").count()) === 0 && me?.user?.username === "pelaaja_b", JSON.stringify(me));
+        // kirjautunut, tyhjä laitemuisti → avausnäkymää ei näytetä
+        await ap.evaluate(() => localStorage.clear()); await ap.reload({ waitUntil: "load" }); await ap.waitForTimeout(1500);
+        ok("  kirjautuneelle ei avausnäkymää", (await ap.locator(".acc-dialog").count()) === 0);
+      }
+      ok(`${w}px sovellus: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));
+      await app.close();
+    }
+  }
   await browser.close();
   await mock("r2=future&fix=0");
   const pass = results.filter(Boolean).length;

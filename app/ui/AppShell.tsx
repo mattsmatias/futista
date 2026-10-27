@@ -10,6 +10,7 @@ import NotifyCard from "./NotifyCard";
 import { useBackgroundPrefetch, askServedFromCache } from "@/lib/prefetch";
 import { useI18n, LANGS, type Key } from "@/lib/i18n";
 import SearchDialog from "./Search";
+import { AccountMenu, AccountWelcome } from "./Account";
 import { Icon } from "./Icons";
 
 type NavId = "matches" | "favs" | "live" | "comps" | "news";
@@ -140,11 +141,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
       <SearchDialog open={searchOpen} onClose={closeSearch} />
+      <AccountWelcome />
     </SearchCtx.Provider>
   );
 }
 
-/** Asetukset: kieli + tietosivut */
+/** Asetukset: kieli, ilmoitukset, tili (kotivalikon sovelluksessa) + tietosivut */
 function Settings() {
   const { lang, setLang, t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -152,7 +154,8 @@ function Settings() {
   const btn = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
-    const off = (e: Event) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    // tilidialogi on body-tasolla (portaali), mutta kuuluu valikkoon → sen napautukset eivät sulje valikkoa
+    const off = (e: Event) => { if (!ref.current?.contains(e.target as Node) && !(e.target as Element)?.closest?.(".acc-scrim")) setOpen(false); };
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); btn.current?.focus(); } };
     document.addEventListener("pointerdown", off);
     document.addEventListener("keydown", esc);
@@ -175,6 +178,7 @@ function Settings() {
             </button>
           ))}
           <NotifyCard inMenu />
+          <AccountMenu onAction={() => setOpen(false)} />
           <hr />
           <a role="menuitem" href="/tietoa" onClick={() => setOpen(false)}>{t("about")}</a>
           <a role="menuitem" href="/tietosuoja" onClick={() => setOpen(false)}>{t("privacy")}</a>

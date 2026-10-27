@@ -92,6 +92,13 @@ POST /api/fantasy/yllapito {"action":"recompute","round":N}
 POST /api/fantasy/yllapito {"action":"price","player":ID,"price":6.5}
 ```
 
+## Tili kotivalikon sovelluksessa
+
+Kotivalikkoon asennettu sovellus näyttää ensimmäisellä avauksella valinnan Kirjaudu sisään / Luo tili / Jatka vieraana
+(`app/ui/Account.tsx`; valinta muistetaan laitteessa, kirjautuneelle ei näytetä). Asetusvalikossa (vain sovelluksessa) on
+Tili-osio: tunnus + Kirjaudu ulos tai vieraalle Kirjaudu / Luo tili. Sama tili ja istunto kuin fantasyssa
+(`/api/fantasy/tili`). Selaimessa sivusto toimii kuten ennen. Tekstit suomeksi, ruotsiksi ja englanniksi.
+
 ## Turvallisuus
 
 Tilit: tunnus + salasana (scrypt), istunto httpOnly-evästeessä (tietokannassa vain SHA-256), muuttavat pyynnöt vaativat saman

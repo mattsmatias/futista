@@ -1969,3 +1969,25 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .fx-logo-saved { margin: 0; color: var(--win); font-weight: 600; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fx-logo-note { color: #f3b85b; } }
 :root[data-theme="dark"] .fx-logo-note { color: #f3b85b; }
+
+/* Tili (kotivalikon sovellus): avausnäkymä ja asetusvalikon tiliosio */
+.acc-scrim { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background: rgba(5, 8, 14, .55); overflow-y: auto; }
+.acc-dialog { width: 100%; max-width: 420px; display: grid; gap: 12px; padding: 22px 20px; border-radius: var(--r-lg); background: var(--surface); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 30px 70px -20px rgba(0,0,0,.6); }
+.acc-dialog h2 { margin: 0; font: 800 24px/1.15 var(--display); }
+.acc-dialog > p { margin: 0; }
+.acc-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); }
+.acc-tabs button { min-height: 40px; border-radius: 9px; font-weight: 700; font-size: 14.5px; color: var(--muted); }
+.acc-tabs button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.acc-form { display: grid; gap: 6px; }
+.acc-form label { font-weight: 700; font-size: 14px; margin-top: 4px; }
+.acc-form input { min-height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-size: 16px; }
+.acc-form input:focus-visible { outline: 2px solid var(--pl); outline-offset: 1px; }
+.acc-hint { margin: 0; font-size: 12.5px; color: var(--muted); }
+.acc-err { margin: 4px 0 0; color: #c4232f; font-weight: 600; font-size: 14px; }
+.acc-main { margin-top: 8px; min-height: 48px; width: 100%; justify-content: center; }
+.acc-guest { min-height: 46px; width: 100%; justify-content: center; }
+.acc-tabs button:focus-visible, .acc-guest:focus-visible, .acc-main:focus-visible { outline: 2px solid var(--pl); outline-offset: 2px; }
+.set-menu .acc-who { margin: 2px 12px 4px; font-size: 13.5px; color: var(--muted); }
+.set-menu .acc-who b { color: var(--fg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .acc-err { color: #ff7b80; } }
+:root[data-theme="dark"] .acc-err { color: #ff7b80; }
