@@ -77,7 +77,11 @@ export async function getAfPlayer(id: number): Promise<AfPlayerOutcome> {
 
 /** Vercelin taustatyö: vastaus lähtee heti, kesken jäänyt haku jatkuu funktion elinajan (maxDuration) puitteissa.
  *  Sama mekanismi kuin @vercel/functions-paketin waitUntil; muualla (paikallinen palvelin) lupaus jatkuu itsestään. */
-export function waitUntil(p: Promise<unknown>): void {
+export function waitUntil(p: Promise<unknown>): boolean {
   p.catch(() => {});
-  try { (globalThis as any)[Symbol.for("@vercel/request-context")]?.get?.()?.waitUntil?.(p); } catch { /* ei Vercel-ympäristö */ }
+  try {
+    const ctx = (globalThis as any)[Symbol.for("@vercel/request-context")]?.get?.();
+    if (typeof ctx?.waitUntil === "function") { ctx.waitUntil(p); return true; }
+  } catch { /* ei Vercel-ympäristö */ }
+  return false;
 }

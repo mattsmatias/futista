@@ -18,9 +18,12 @@ export async function GET(req: Request) {
   const [fdr, af] = await Promise.all([
     getPlayerRows(),
     Promise.all(leagues.map(async (l) => {
+      const t0 = Date.now();
       const p = squadsFor(l);
+      p.then((s) => { if (Date.now() - t0 > AF_WAIT_MS) console.info("af-pelaajat valmis", l.key, s.length, Date.now() - t0); },
+        (e) => console.warn("af-pelaajat", l.key, (e as { code?: string })?.code ?? (e as Error)?.message));
       const r = await Promise.race([p.then((s): AfSquad[] | null => s, () => null), deadline]);
-      if (r === "late") { waitUntil(p); return null; }
+      if (r === "late") { console.info("af-pelaajat kesken", l.key, waitUntil(p) ? "taustalla" : "ei taustatyötä"); return null; }
       return r ? { squads: r, europe: l.europe } : null;
     })),
   ]);
