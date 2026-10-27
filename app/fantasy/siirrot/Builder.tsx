@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api, useLoad, errText, fmtM, localTime, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
-import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus } from "../ui";
+import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, DataStatus } from "../ui";
 
 type Draft = Picks;
 const EMPTY: Draft = { squad: [], xi: [], bench: [], captain: 0, vice: 0 };
@@ -235,7 +235,7 @@ function PlayerList({ list, why, onPick, picked }: { list: FPlayerRow[]; why: (p
           return (
             <li key={p.id} className={sel ? "sel" : ""}>
               <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}, ${fmtM(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
-                <span className="fx-pos">{POS_SHORT[p.pos]}</span>
+                <PlayerFace p={p} />
                 <span className="fx-pname"><b>{p.name}</b><small className="muted">{p.team}</small></span>
                 <span className="fx-pnum">{fmtM(p.price)}<small className="muted">{p.season} p</small></span>
                 <span className={`fx-padd${w ? " off" : ""}`} aria-hidden="true">{sel ? "✓" : w ? "–" : "+"}</span>

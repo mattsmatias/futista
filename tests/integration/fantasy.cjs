@@ -156,6 +156,8 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   const browser = await chromium.launch({ executablePath: process.env.CHROME });
   for (const w of [390, 320]) {
     const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 844 } });
+    // pelaajakuvat: lähteen kuvapalvelin simuloituna (1×1 PNG)
+    await ctx.route(/^https:\/\/media\.api-sports\.io\/football\/players\/\d+\.png$/, (r) => r.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64") }));
     const page = await ctx.newPage();
     const errs = []; page.on("pageerror", (x) => errs.push(String(x)));
     if (w === 390) {
@@ -204,6 +206,11 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   logoeditori: valinnat merkitty, tallennus palvelimelle, ei vaakavieritystä`, pressed.join("|").includes("Kilpi") && pressed.join("|").includes("Kruunu") && saved?.shape === "shield" && saved?.symbol === "crown" && saved?.text === "TF" && ovL <= 0, `${pressed} ${JSON.stringify(saved)} ${ovL}`);
     await page.goto(`${APP}/fantasy/siirrot`, { waitUntil: "load" });
     await page.waitForSelector(".fx-plist li", { timeout: 15000 }).catch(() => {});
+    await page.locator(".fx-filters button", { hasText: /^MV$/ }).click().catch(() => {});
+    await page.waitForTimeout(500);
+    const imgs = await page.locator(".fx-plist .fx-face img").evaluateAll((xs) => xs.filter((x) => x.complete && x.naturalWidth > 0).length);
+    ok(`${w}px: Siirrot – pelaajakuvat (lähteen id:llä); kuvattomalla pelipaikan lyhenne`, imgs > 0 && (await page.locator(".fx-plist .fx-face-pos.only").count()) > 0 && (await page.locator(".fx-plist .fx-face-pos:not(.only)").count()) === imgs, String(imgs));
+    await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click().catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
     await shot(page, `siirrot-${w}`);
     await page.fill("#fx-q", "Featherstonehaugh");

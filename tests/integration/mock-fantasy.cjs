@@ -72,7 +72,7 @@ function handle(u, send, res) {
   if (u.pathname === "/teams" && lg === "39") { send({ errors: [], response: T.map((team) => ({ team })) }); return true; }
   if (u.pathname === "/players/squads" && T.some((t) => String(t.id) === u.searchParams.get("team"))) {
     const t = T.find((x) => String(x.id) === u.searchParams.get("team"));
-    send({ errors: [], response: [{ team: t, players: [...Array(14).keys()].map((i) => ({ id: pid(t.id, i + 1), name: name(t.id, i + 1), number: i + 1, position: POS(i + 1), photo: null })) }] });
+    send({ errors: [], response: [{ team: t, players: [...Array(14).keys()].map((i) => ({ id: pid(t.id, i + 1), name: name(t.id, i + 1), number: i + 1, position: POS(i + 1), photo: i === 0 ? `https://media.api-sports.io/football/players/${pid(t.id, i + 1)}.png` : null })) }] });
     return true;
   }
   if (u.pathname === "/players" && lg === "39") {

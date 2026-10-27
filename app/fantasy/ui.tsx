@@ -140,6 +140,20 @@ export function Pitch({ picks, players, badge, onSelect, label, empty }: {
 }
 
 /** Pelaajakortti (modaali): tiedot ja valinnaiset toiminnot */
+/** Pelaajan kuva lähteen pelaajatunnisteen mukaan (API-Football, sama id – ei nimen perusteella); puuttuva tai
+ *  latautumaton kuva → pelipaikan lyhenne. Pelipaikka näkyy aina kuvan kulmassa. */
+const okPhoto = (u: string | null | undefined) => (u && /^https:\/\/media\.api-sports\.io\/football\/players\/\d+\.png$/.test(u) ? u : null);
+export function PlayerFace({ p, size = 40 }: { p: Pick<FPlayerRow, "photo" | "pos">; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const src = failed ? null : okPhoto(p.photo);
+  return (
+    <span className="fx-face" style={{ width: size, height: size }} aria-hidden="true">
+      {src ? <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : null}
+      <span className={`fx-face-pos${src ? "" : " only"}`}>{POS_SHORT[p.pos]}</span>
+    </span>
+  );
+}
+
 export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onClose: () => void; actions?: { label: string; onClick: () => void; disabled?: boolean; hint?: string }[]; extra?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -153,7 +167,8 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
     <div className="fx-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="fx-card" role="dialog" aria-modal="true" aria-labelledby="fx-card-h" ref={ref}>
         <div className="fx-card-head">
-          <div>
+          <PlayerFace p={p} size={56} />
+          <div className="fx-card-title">
             <h2 id="fx-card-h">{p.name}</h2>
             <p className="muted">{POS_LONG[p.pos]} · {p.team}</p>
           </div>
