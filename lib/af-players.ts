@@ -31,23 +31,44 @@ export function squadLeagues(): SquadLeague[] {
   return [...own, ...espn];
 }
 
+// Kokoonpanohaut jonossa: yksi kerrallaan ja vähintään SPACING_MS välein (≤ 150 hakua/min instanssia kohden), jotta
+// kylmä täyttö ei ylitä lähteen minuuttirajaa eikä hidasta live-tuloksia. Välimuistiosumat eivät käytä jonoa.
+const SPACING_MS = 400;
+let chain: Promise<unknown> = Promise.resolve();
+function queued<T>(f: () => Promise<T>): Promise<T> {
+  const run = chain.then(f, f);
+  chain = run.then(() => new Promise((r) => setTimeout(r, SPACING_MS)), () => new Promise((r) => setTimeout(r, SPACING_MS)));
+  return run;
+}
+
 const squadOf = stableCache(async (team: number): Promise<AfSquad | null> => {
-  const s = parseSquad(await once(`sq${team}`, () => afGet(`/players/squads?team=${team}`)));
+  const s = parseSquad(await once(`sq${team}`, () => queued(() => afGet(`/players/squads?team=${team}`))));
   if (s === undefined) throw new AfError("squad: unrecognised");
   return s; // null = lähteellä ei kokoonpanoa (tallennetaan: lähde vastasi)
 }, ["af-squad-v1"], { revalidate: 3 * DAY });
 
-/** Sarjan kaikkien joukkueiden kokoonpanot. Heittää, jos yksikin joukkue puuttuu (osittaista koontia ei tallenneta). */
-const leagueSquads = stableCache(async (af: number, season: number): Promise<AfSquad[]> => {
-  const teams: AfTeam[] = await afTeamsCached(af, season);
-  const got = await Promise.allSettled(teams.map((t) => squadOf(t.id)));
-  const failed = got.filter((g) => g.status === "rejected").length;
-  if (failed) throw new AfError(`squads ${teams.length - failed}/${teams.length}`);
-  return got.flatMap((g) => (g.status === "fulfilled" && g.value ? [g.value] : []));
-}, ["af-league-squads-v1"], { revalidate: DAY });
+/** Eurooppa-liiga ja Konferenssiliiga: vain liigavaiheen joukkueet (sarjataulukosta), ei karsintojen satoja joukkueita */
+const phaseTeams = stableCache(async (league: number, season: number): Promise<AfTeam[]> => {
+  const j = await once(`pst${league}/${season}`, () => afGet(`/standings?league=${league}&season=${season}`));
+  const rows: any[] = (j?.response?.[0]?.league?.standings ?? []).flat();
+  const seen = new Map<number, AfTeam>();
+  for (const r of rows) if (Number.isInteger(r?.team?.id) && typeof r?.team?.name === "string") seen.set(r.team.id, { id: r.team.id, name: r.team.name, logo: r.team.logo ?? null });
+  if (!seen.size) throw new AfError("standings: empty");
+  return [...seen.values()];
+}, ["af-phase-teams-v1"], { revalidate: DAY });
 
-export function squadsFor(l: SquadLeague): Promise<AfSquad[]> {
-  return leagueSquads(l.af, afSeason(todayHel(), l.calendar));
+/** Sarjan kokoonpanot aikarajan sisällä: valmiit (välimuistista tai juuri haetut) heti, kesken jääneet jatkuvat
+ *  taustalla (waitUntil) ja tallentuvat joukkue kerrallaan. complete = kaikki joukkueet mukana. */
+export async function squadsFor(l: SquadLeague, deadline: Promise<"late">): Promise<{ squads: AfSquad[]; complete: boolean }> {
+  const season = afSeason(todayHel(), l.calendar);
+  const teams = await (l.europe ? phaseTeams(l.af, season) : afTeamsCached(l.af, season));
+  const all = teams.map((t) => squadOf(t.id));
+  const got = await Promise.all(all.map((p) => Promise.race([p.then((v) => ({ v }), () => ({ v: undefined })), deadline.then(() => "late" as const)])));
+  const late = all.filter((_, k) => got[k] === "late");
+  if (late.length) waitUntil(Promise.allSettled(late));
+  const squads = got.flatMap((g) => (g !== "late" && g.v ? [g.v] : []));
+  const complete = got.every((g) => g !== "late" && g.v !== undefined);
+  return { squads, complete };
 }
 
 const playerSeason = stableCache(async (id: number, season: number): Promise<AfPlayer | null> => {

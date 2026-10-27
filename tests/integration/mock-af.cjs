@@ -145,6 +145,8 @@ function handle(u, send, mode, res, hdr) {
   if (u.pathname === "/players/squads" && u.searchParams.get("team")) { send({ errors: [], response: squad(Number(u.searchParams.get("team"))) }); return true; }
   if (u.pathname === "/players" && u.searchParams.get("id")) { send({ errors: [], response: player(Number(u.searchParams.get("id")), Number(u.searchParams.get("season"))) }); return true; }
   const lg = Number(u.searchParams.get("league") ?? u.searchParams.get("id"));
+  // Eurooppa-liiga / Konferenssiliiga (pelaajahaku: liigavaiheen joukkueet sarjataulukosta)
+  if (u.pathname === "/standings" && (lg === 3 || lg === 848)) { send({ errors: [], response: [{ league: { id: lg, standings: [[{ rank: 1, team: { id: lg * 10 + 1, name: `Eurooppaseura ${lg}`, logo: null }, points: 3, all: { played: 1, win: 1, draw: 0, lose: 0, goals: { for: 1, against: 0 } } }]] } }] }); return true; }
   if (u.pathname === "/leagues" && u.searchParams.get("id")) {
     const L = LEAGUES[lg];
     if (!L) return send({ errors: [], response: [] }), true;

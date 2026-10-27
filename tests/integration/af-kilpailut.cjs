@@ -147,7 +147,7 @@ const DAY = 86400_000;
 
   // ---------- Pelaajahaku: kaikkien sarjojen pelaajat (käyttäjän toive 27.10.2026) ----------
   let ps = null;
-  for (let k = 0; k < 6; k++) { ps = await (await fetch(`${APP}/api/pelaajat?q=hakulainen`)).json().catch(() => null); if (ps && !ps.partial && ps.players?.length) break; await new Promise((r) => setTimeout(r, 1500)); }
+  for (let k = 0; k < 14; k++) { ps = await (await fetch(`${APP}/api/pelaajat?q=hakulainen`)).json().catch(() => null); if (ps && !ps.partial && ps.players?.length) break; await new Promise((r) => setTimeout(r, 1500)); }
   ok("Pelaajahaku: Veikkausliigan pelaaja löytyy (API-Football) → profiili /pelaaja/af-{id}", ps?.players?.[0]?.href === "/pelaaja/af-244102" && ps.players[0].team === "Pohjoisseura 244" && ps.players[0].photo === "https://media.api-sports.io/football/players/244102.png", JSON.stringify(ps).slice(0, 200));
   const ps2 = await (await fetch(`${APP}/api/pelaajat?q=jukka%20virtanen`)).json().catch(() => null);
   ok("  lähteen lyhennetty nimi (J. Virtanen) löytyy koko nimellä", ps2?.players?.[0]?.href === "/pelaaja/af-244101", JSON.stringify(ps2).slice(0, 160));
