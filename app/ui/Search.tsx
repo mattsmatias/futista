@@ -11,7 +11,7 @@ import { COMP_META, COMP_ORDER } from "@/lib/comps";
 import { country } from "@/lib/flags";
 import { HeartButton, useFavorites } from "@/lib/favorites";
 
-type SearchPlayer = { kind: "player"; id: number; name: string; team: string; crest?: string; position: string | null; href: string };
+type SearchPlayer = { kind: "player"; id: number; name: string; team: string; crest?: string; position: string | null; href: string; photo?: string | null };
 import { norm } from "@/lib/teams";
 import { Badge } from "../Stats";
 import PlayerPhoto from "../PlayerPhoto";
@@ -167,7 +167,7 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
               <span className="s-name">{x.name}</span><span className="s-sub">{t("nationalTeamMen")}</span></>
           ))}
           {group("searchPlayers", players, (x) => (
-            <><PlayerPhoto name={x.name} team={x.team} size={32} className="s-pphoto" /><span className="s-name">{x.name}</span>
+            <><PlayerPhoto name={x.name} team={x.team} size={32} className="s-pphoto" {...(x.photo ? { initial: x.photo } : {})} /><span className="s-name">{x.name}</span>
               <span className="s-sub">{x.team}</span></>
           ))}
           {q.trim().length >= 2 && state !== "loading" && !pLoading && flat.length === 0 && (

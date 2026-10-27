@@ -116,9 +116,34 @@ function standings(lg) {
   const groups = L.kind === "tournament" ? [[row(0, 1, "Group A"), row(1, 2, "Group A")], [row(2, 1, "Group B"), row(3, 2, "Group B")]] : [[0, 1, 2, 3].map((k) => row(k, k + 1, L.name))];
   return [{ league: { id: lg, standings: groups } }];
 }
+// Pelaajahaku (lib/af-players.ts): sarjan joukkueet, joukkueen kokoonpano ja pelaajaprofiili.
+// Pohjoisseura 244 (2441): "J. Virtanen" (MV) ja "Aleksi Hakulainen"; muilla joukkueilla yksi pelaaja; joukkueella 2444 ei kokoonpanoa.
+const teamsFor = (lg) => (LEAGUES[lg] && LEAGUES[lg].kind === "league" ? [0, 1, 2, 3].map((k) => team(lg, k)) : null);
+function squad(tid) {
+  if (tid === 2444) return [];
+  const tm = Object.keys(LEAGUES).map(Number).flatMap((lg) => [0, 1, 2, 3].map((k) => team(lg, k))).find((x) => x.id === tid) ?? { id: tid, name: `Seura ${tid}`, logo: null };
+  const players = tid === 2441
+    ? [{ id: 244101, name: "J. Virtanen", age: 27, number: 1, position: "Goalkeeper", photo: "https://media.api-sports.io/football/players/244101.png" },
+       { id: 244102, name: "Aleksi Hakulainen", age: 22, number: 9, position: "Attacker", photo: "https://media.api-sports.io/football/players/244102.png" }]
+    : [{ id: tid * 100 + 50, name: `Hakupelaaja ${tid}`, age: 25, number: 5, position: "Midfielder", photo: null }];
+  return [{ team: { id: tm.id, name: tm.name, logo: tm.logo }, players }];
+}
+function player(id, season) {
+  if (id !== 244101) return [];
+  return [{
+    player: { id, name: "J. Virtanen", firstname: "Jukka", lastname: "Virtanen", age: 27, birth: { date: "1999-03-14", place: "Tampere", country: "Finland" }, nationality: "Finland", height: "189 cm", photo: "https://media.api-sports.io/football/players/244101.png" },
+    statistics: [
+      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 244, name: "Veikkausliiga", logo: null, season }, games: { appearences: 20, minutes: 1800, number: 1, position: "Goalkeeper" }, goals: { total: 0, assists: 1 }, cards: { yellow: 2, red: null } },
+      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 246, name: "Suomen Cup", logo: null, season }, games: { appearences: 2, minutes: 180, number: 1, position: "Goalkeeper" }, goals: { total: null, assists: null }, cards: { yellow: 0, red: 0 } },
+      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 999, name: "Club Friendlies", logo: null, season }, games: { appearences: 0, minutes: 0, number: null, position: "Goalkeeper" }, goals: { total: null, assists: null }, cards: { yellow: null, red: null } },
+    ],
+  }];
+}
 function handle(u, send, mode, res, hdr) {
   const now = Date.now();
   if (mode.af === "429") { res.writeHead(429, { "content-type": "application/json", "retry-after": "30", ...hdr }); res.end(JSON.stringify({ message: "Too many requests" })); return true; }
+  if (u.pathname === "/players/squads" && u.searchParams.get("team")) { send({ errors: [], response: squad(Number(u.searchParams.get("team"))) }); return true; }
+  if (u.pathname === "/players" && u.searchParams.get("id")) { send({ errors: [], response: player(Number(u.searchParams.get("id")), Number(u.searchParams.get("season"))) }); return true; }
   const lg = Number(u.searchParams.get("league") ?? u.searchParams.get("id"));
   if (u.pathname === "/leagues" && u.searchParams.get("id")) {
     const L = LEAGUES[lg];
@@ -174,4 +199,4 @@ function handle(u, send, mode, res, hdr) {
   }
   return false;
 }
-module.exports = { handle, LEAGUES };
+module.exports = { handle, LEAGUES, teamsFor };

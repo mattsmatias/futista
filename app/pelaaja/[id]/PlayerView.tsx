@@ -9,6 +9,7 @@ import Flag from "../../Flag";
 import PlayerPhoto from "../../PlayerPhoto";
 import Footer from "../../Footer";
 import { MatchRow } from "../../ui/MatchRow";
+import type { AfSeasonLine } from "@/lib/af-players-core";
 
 export type PlayerMatch = {
   source: string | null; comp: string; emblem: string | null; date: string; time: string;
@@ -20,6 +21,8 @@ export type PlayerData = {
   club: { name: string; crest?: string; href: string | null } | null;
   photo: string | null;
   matches: PlayerMatch[];
+  /** API-Footballin pelaaja (muut sarjat): koko nimi, pituus ja kauden tilastot kilpailuittain */
+  af?: { fullName: string | null; height: string | null; season: AfSeasonLine[] };
 };
 
 const POS = ["Goalkeeper", "Defence", "Midfield", "Offence"];
@@ -51,10 +54,41 @@ export default function PlayerView({ p }: { p: PlayerData }) {
             {pos && <div><dt>{t("playerPos")}</dt><dd>{pos}</dd></div>}
             {born && <div><dt>{t("born")}</dt><dd>{born}{age != null ? ` (${age} ${t("years")})` : ""}</dd></div>}
             {p.shirtNumber != null && <div><dt>{t("shirt")}</dt><dd>{p.shirtNumber}</dd></div>}
+            {p.af?.fullName && <div><dt>{t("fullName")}</dt><dd>{p.af.fullName}</dd></div>}
+            {p.af?.height && <div><dt>{t("height")}</dt><dd>{p.af.height}</dd></div>}
             {p.club && <div><dt>{t("club")}</dt><dd>{p.club.href ? <a href={p.club.href}>{p.club.name}</a> : p.club.name}</dd></div>}
           </dl>
         </section>
 
+        {p.af ? (
+          <section className="panel">
+            <div className="panel-head"><h3>{t("seasonStats")}</h3></div>
+            {p.af.season.length === 0 ? <p className="muted pad">{t("noPlayed")}</p> : (
+              <div className="tbl-wrap">
+                <table className="tbl pl-season">
+                  <thead><tr>
+                    <th scope="col">{t("competition")}</th>
+                    <th scope="col"><abbr title={t("statApps")}>{t("statAppsS")}</abbr></th>
+                    <th scope="col"><abbr title={t("statMin")}>{t("statMinS")}</abbr></th>
+                    <th scope="col"><abbr title={t("statGoals")}>{t("statGoalsS")}</abbr></th>
+                    <th scope="col"><abbr title={t("statAssists")}>{t("statAssistsS")}</abbr></th>
+                    <th scope="col"><abbr title={t("statYellow")}>{t("statYellowS")}</abbr></th>
+                    <th scope="col"><abbr title={t("statRed")}>{t("statRedS")}</abbr></th>
+                  </tr></thead>
+                  <tbody>
+                    {p.af.season.map((s, n) => (
+                      <tr key={n}>
+                        <th scope="row"><span className="pl-comp">{s.league}</span><small className="muted">{s.team}</small></th>
+                        {[s.apps, s.minutes, s.goals, s.assists, s.yellow, s.red].map((v, k) => <td key={k}>{v ?? "–"}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="panel-src">{t("source")}: API-Football</div>
+          </section>
+        ) : (
         <section className="panel">
           <div className="panel-head"><h3>{t("lastMatches")}</h3></div>
           {p.matches.length === 0 && <p className="muted pad">{t("noPlayed")}</p>}
@@ -72,6 +106,7 @@ export default function PlayerView({ p }: { p: PlayerData }) {
           ))}
           <div className="panel-src">{t("playerNote")} {t("source")}: football-data.org</div>
         </section>
+        )}
       </main>
       <Footer />
     </>

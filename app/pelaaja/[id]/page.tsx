@@ -8,6 +8,8 @@ import { matchHref, teamHref } from "@/lib/routes";
 import { getPhoto } from "@/lib/photos";
 import { fdScore } from "@/lib/score";
 import PlayerView, { type PlayerData } from "./PlayerView";
+import { getAfPlayer } from "@/lib/af-players";
+import { AF_COMPS } from "@/lib/af-registry";
 
 export const revalidate = 1800;
 export const maxDuration = 60;
@@ -28,7 +30,26 @@ function ours(stats: LeagueStats[], source: string | undefined, id: number): Tea
  *  jossa on uudelleenyritys. Virhettä ei tallenneta välimuistiin, joten seuraava pyyntö yrittää uudelleen. */
 class PlayerUnavailable extends Error {}
 
+/** API-Footballin pelaaja (haku muista sarjoista, /pelaaja/af-{id}): henkilötiedot ja kauden tilastot */
+async function loadAf(id: number): Promise<PlayerData | null> {
+  const r = await getAfPlayer(id);
+  if (r.state === "notfound") return null;
+  if (r.state !== "ok") throw new PlayerUnavailable(r.state);
+  const p = r.player;
+  // seuran sivu vain API-Footballin omissa sarjoissa (sama nimi kuin sivuston taulukossa); muuten pelkkä nimi
+  const comp = p.team ? AF_COMPS.find((c) => p.season.some((s) => s.teamId === p.team!.id && s.leagueId === c.af) && c.kind === "league") : undefined;
+  return {
+    id: p.id, name: p.name, photo: p.photo, dateOfBirth: p.dateOfBirth, nationality: p.nationality,
+    position: p.position, shirtNumber: p.number,
+    club: p.team ? { name: p.team.name, crest: p.team.logo ?? undefined, href: comp ? teamHref(comp.id, p.team.name) : null } : null,
+    matches: [],
+    af: { fullName: p.fullName, height: p.height, season: p.season },
+  };
+}
+
 async function load(id: string): Promise<PlayerData | null> {
+  const af = id.match(/^af-(\d{1,9})$/);
+  if (af) return loadAf(Number(af[1]));
   // 404 vain, kun pelaajan puuttuminen on varmistettu: virheellinen tunniste tai lähteen 404
   if (!/^\d{1,9}$/.test(id)) return null;
   const [pr, pm] = await Promise.all([

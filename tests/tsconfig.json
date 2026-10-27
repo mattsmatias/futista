@@ -33,6 +33,7 @@
     "espn-lineups.test.ts",
     "af-league.test.ts",
     "apifootball.test.ts",
-    "contact.test.ts"
+    "contact.test.ts",
+    "af-players.test.ts"
   ]
 }

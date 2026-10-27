@@ -177,6 +177,8 @@ function af(path, req, res) {
   if (!req.headers["x-apisports-key"]) return send({ errors: { token: "Error/Missing application key" }, response: [] });
   const u = new URL(path, "http://x");
   if (u.pathname === "/teams") {
+    const own = afMock.teamsFor(Number(u.searchParams.get("league")));
+    if (own) return send({ errors: [], response: own.map((team) => ({ team })) });
     if (u.searchParams.get("league") !== "203") return send({ errors: [], response: [{ team: { id: 9990, name: "Muu Seura" } }] });
     return send({ errors: [], response: [[5001, "Testispor Ankara"], [5002, "Mittaspor Izmir"], [5003, "Koespor"]].map(([id, name]) => ({ team: { id, name, logo: null } })) });
   }

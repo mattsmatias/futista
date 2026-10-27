@@ -1804,3 +1804,10 @@ th abbr[title] { text-decoration: none; cursor: help; }
 .cb-sc { font-weight: 600; font-variant-numeric: tabular-nums; }
 .cb-sc small { font-weight: 500; color: var(--muted); }
 .cb-when { display: block; margin-top: 6px; }
+
+/* Pelaajaprofiili (API-Footballin pelaaja): kauden tilastot kilpailuittain */
+.pl-season tbody th { text-align: left; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--fg); font-weight: 600; padding: 10px 6px 10px 16px; }
+.pl-season tbody th small { display: block; font-weight: 500; font-size: 12px; }
+.pl-season thead th:first-child { text-align: left; padding-left: 16px; }
+.pl-season td { text-align: center; padding: 10px 6px; }
+.pl-comp { display: block; }

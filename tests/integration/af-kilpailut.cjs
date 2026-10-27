@@ -145,6 +145,25 @@ const DAY = 86400_000;
   const yj = JSON.stringify(ylu ?? {});
   ok("Ykkösliiga: kokoonpano ilman ruudukkoa → ei kenttäsijainteja", ylu?.state === "ok" && !/"grid":"\d/.test(yj) && !/"x":\d/.test(yj), ylu?.state);
 
+  // ---------- Pelaajahaku: kaikkien sarjojen pelaajat (käyttäjän toive 27.10.2026) ----------
+  let ps = null;
+  for (let k = 0; k < 6; k++) { ps = await (await fetch(`${APP}/api/pelaajat?q=hakulainen`)).json().catch(() => null); if (ps && !ps.partial && ps.players?.length) break; await new Promise((r) => setTimeout(r, 1500)); }
+  ok("Pelaajahaku: Veikkausliigan pelaaja löytyy (API-Football) → profiili /pelaaja/af-{id}", ps?.players?.[0]?.href === "/pelaaja/af-244102" && ps.players[0].team === "Pohjoisseura 244" && ps.players[0].photo === "https://media.api-sports.io/football/players/244102.png", JSON.stringify(ps).slice(0, 200));
+  const ps2 = await (await fetch(`${APP}/api/pelaajat?q=jukka%20virtanen`)).json().catch(() => null);
+  ok("  lähteen lyhennetty nimi (J. Virtanen) löytyy koko nimellä", ps2?.players?.[0]?.href === "/pelaaja/af-244101", JSON.stringify(ps2).slice(0, 160));
+  const ps3 = await (await fetch(`${APP}/api/pelaajat?q=hakupelaaja%201131`)).json().catch(() => null);
+  ok("  muiden sarjojen pelaajat (esim. Allsvenskan) mukana", ps3?.players?.[0]?.href === "/pelaaja/af-113150", JSON.stringify(ps3).slice(0, 160));
+  await page.goto(`${APP}/pelaaja/af-244101`, { waitUntil: "load" });
+  const ph1 = await page.locator("h1").innerText().catch(() => "");
+  const facts = (await page.locator(".facts").innerText().catch(() => "")).replace(/\s+/g, " ");
+  ok("  profiili: nimi, koko nimi, pituus, pelipaikka, seura", ph1 === "J. Virtanen" && /Jukka Virtanen/.test(facts) && /189 cm/.test(facts) && /Maalivahti/.test(facts) && /Pohjoisseura 244/.test(facts), `${ph1} | ${facts}`);
+  const srows = await page.locator(".pl-season tbody tr").allInnerTexts();
+  ok("  kauden tilastot kilpailuittain (pelaamaton pois, puuttuva luku '–' eikä 0)", srows.length === 2 && /Veikkausliiga/.test(srows[0]) && /1800/.test(srows[0]) && /Suomen Cup/.test(srows[1]) && /–/.test(srows[1]), JSON.stringify(srows));
+  ok("  seura linkkinä joukkuesivulle", (await page.locator(".facts a[href^='/joukkue/veikkausliiga/']").count()) === 1);
+  ok("  390 px: ei vaakavieritystä", !(await wide()));
+  await page.goto(`${APP}/pelaaja/af-999999`, { waitUntil: "load" });
+  ok("  tuntematon pelaaja → Pelaajaa ei löytynyt", (await page.locator("h1").innerText().catch(() => "")) === "Pelaajaa ei löytynyt");
+
   // ---------- Etusivu ----------
   await go("/");
   await page.waitForTimeout(1500);

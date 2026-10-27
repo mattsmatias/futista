@@ -14,12 +14,13 @@ const int = (v: unknown): number | null => (typeof v === "number" && Number.isIn
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 const url = (v: unknown): string | null => (typeof v === "string" && /^https:\/\/media\.api-sports\.io\//.test(v) ? v : null);
 
-export function parseSquad(j: any): AfSquad | null {
-  if (!j || !Array.isArray(j.response)) return null;
+/** undefined = tunnistamaton vastaus (virhe, ei tallenneta); null = lähteellä ei kokoonpanoa tälle joukkueelle */
+export function parseSquad(j: any): AfSquad | null | undefined {
+  if (!j || !Array.isArray(j.response)) return undefined;
   const r = j.response[0];
   if (!r) return null; // tyhjä vastaus: joukkueella ei kokoonpanoa
   const tid = int(r.team?.id), tname = str(r.team?.name);
-  if (!tid || !tname) return null;
+  if (!tid || !tname) return undefined;
   const players = (Array.isArray(r.players) ? r.players : [])
     .map((p: any): AfSquadPlayer | null => {
       const id = int(p?.id), name = str(p?.name);

@@ -31,19 +31,19 @@ export function squadLeagues(): SquadLeague[] {
   return [...own, ...espn];
 }
 
-const squadOf = stableCache(async (team: number): Promise<AfSquad> => {
+const squadOf = stableCache(async (team: number): Promise<AfSquad | null> => {
   const s = parseSquad(await once(`sq${team}`, () => afGet(`/players/squads?team=${team}`)));
-  if (!s) throw new AfError("squad: unrecognised");
-  return s;
+  if (s === undefined) throw new AfError("squad: unrecognised");
+  return s; // null = lähteellä ei kokoonpanoa (tallennetaan: lähde vastasi)
 }, ["af-squad-v1"], { revalidate: 3 * DAY });
 
 /** Sarjan kaikkien joukkueiden kokoonpanot. Heittää, jos yksikin joukkue puuttuu (osittaista koontia ei tallenneta). */
 const leagueSquads = stableCache(async (af: number, season: number): Promise<AfSquad[]> => {
   const teams: AfTeam[] = await afTeamsCached(af, season);
   const got = await Promise.allSettled(teams.map((t) => squadOf(t.id)));
-  const ok = got.flatMap((g) => (g.status === "fulfilled" ? [g.value] : []));
-  if (ok.length < teams.length) throw new AfError(`squads ${ok.length}/${teams.length}`);
-  return ok;
+  const failed = got.filter((g) => g.status === "rejected").length;
+  if (failed) throw new AfError(`squads ${teams.length - failed}/${teams.length}`);
+  return got.flatMap((g) => (g.status === "fulfilled" && g.value ? [g.value] : []));
 }, ["af-league-squads-v1"], { revalidate: DAY });
 
 export function squadsFor(l: SquadLeague): Promise<AfSquad[]> {
