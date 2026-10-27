@@ -2,7 +2,7 @@
 // Pisteet: oman joukkueen kierroskohtainen erittely (mistä pisteet muodostuvat) ja kokonaisranking.
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useLoad, fmtM, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
+import { useLoad, fmtM, roundName, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { AuthBox, ErrorBox, Loading, Notice, DataStatus } from "../ui";
 import { RoundItems } from "../Home";
 
@@ -29,7 +29,7 @@ export function Points() {
           <h2 id="fx-pts-h">Kierroksen pisteet</h2>
           {rounds.length > 0 && (
             <select className="fx-input" aria-label="Kierros" value={r ?? ""} onChange={(e) => setRound(Number(e.target.value))}>
-              {rounds.map((x) => <option key={x} value={x}>Kierros {x}</option>)}
+              {rounds.map((x) => <option key={x} value={x}>{roundName(s, x)}</option>)}
             </select>
           )}
         </div>

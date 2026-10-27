@@ -1,10 +1,15 @@
 import { RULES, POINTS, PRICE } from "@/lib/fantasy-core";
-import { DEFAULT_COMP } from "@/lib/fantasy-sync";
+import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
+
+// kilpailu ympäristön mukaan (FANTASY_COMP) → renderöidään pyynnöstä, ei käännösvaiheessa
+export const dynamic = "force-dynamic";
 
 // Säännöt suoraan pelin vakioista (sama lähde kuin palvelimen tarkistuksilla ja pisteytyksellä)
 const m = (n: number) => `${n.toFixed(1).replace(".", ",")} M€`;
 
 export default function Page() {
+  const weekly = !!DEFAULT_COMP.anchor;
+  const leagues = compLeagues(DEFAULT_COMP).map((l) => l.name);
   return (
     <article className="panel fx-rules">
       <div className="panel-head"><h2>Säännöt – {DEFAULT_COMP.name}</h2></div>
@@ -12,6 +17,7 @@ export default function Page() {
         <section>
           <h3>Joukkue</h3>
           <ul>
+            {weekly && <li>Pelaajia voi valita näistä sarjoista: {leagues.join(", ")}. Kaikki pelaavat samaa peliä ja ovat samassa Futista-liigassa.</li>}
             <li>{RULES.squadSize} pelaajaa: {RULES.quota.GK} maalivahtia, {RULES.quota.DEF} puolustajaa, {RULES.quota.MID} keskikenttäpelaajaa ja {RULES.quota.FWD} hyökkääjää.</li>
             <li>Budjetti {m(RULES.budget)} pelin sisäistä valuuttaa. Oikeat rahasummat eivät liity peliin.</li>
             <li>Enintään {RULES.clubMax} pelaajaa samasta seurasta.</li>
@@ -23,7 +29,9 @@ export default function Page() {
         <section>
           <h3>Kierrokset ja määräajat</h3>
           <ul>
-            <li>Kierrokset ovat sarjan omat kierrokset. Muutokset sulkeutuvat {RULES.deadlineMinutes} minuuttia ennen kierroksen ensimmäistä ottelua (määräaika näkyy omassa aikavyöhykkeessäsi).</li>
+            {weekly
+              ? <li>Kierros on viikko tiistaista maanantaihin (Suomen aikaa): kierrokseen kuuluvat kaikkien sarjojen sillä viikolla pelattavat ottelut. Jos pelaajan joukkue pelaa viikolla kahdesti, molemmat ottelut lasketaan. Viikot, joilla ei pelata (maaotteluviikot), eivät ole kierroksia. Muutokset sulkeutuvat {RULES.deadlineMinutes} minuuttia ennen viikon ensimmäistä ottelua missä tahansa sarjassa (määräaika näkyy omassa aikavyöhykkeessäsi).</li>
+              : <li>Kierrokset ovat sarjan omat kierrokset. Muutokset sulkeutuvat {RULES.deadlineMinutes} minuuttia ennen kierroksen ensimmäistä ottelua (määräaika näkyy omassa aikavyöhykkeessäsi).</li>}
             <li>Määräajan tarkistaa palvelin. Määräajalla joukkueesta tallennetaan muuttumaton tilannekuva, jonka perusteella kierros pisteytetään.</li>
             <li>Määräajan jälkeen tehdyt muutokset koskevat seuraavaa kierrosta.</li>
             <li>Siirretty ottelu kuuluu edelleen alkuperäiseen kierrokseensa: sen pisteet lasketaan kyseisen kierroksen tilannekuvalla, kun ottelu pelataan. Kierroksen pisteet ovat alustavia siihen asti. Peruttu ottelu ei anna pisteitä.</li>

@@ -40,6 +40,12 @@ export async function loadState(comp: Comp, userId: number): Promise<State> {
   return { ...s, rounds: s?.rounds ?? [], team: s?.team ?? null };
 }
 
+/** Näytettävä kierroksen nimi: viikkokierroksissa juokseva "Kierros k", sarjakierroksissa lähteen numero */
+export const roundLabel = (r: { round_no: number; label?: string | null }) => {
+  const m = r.label?.match(/^Regular Season - (\d+)$/);
+  return m ? `Kierros ${m[1]}` : r.label && /^Kierros \d+$/.test(r.label) ? r.label : `Kierros ${r.round_no}`;
+};
+
 /** Seuraava avoin kierros (määräaika tulevaisuudessa palvelimen kellolla) ja viimeisin lukittu */
 export function roundInfo(st: State) {
   const now = Date.parse(st.now);
@@ -50,11 +56,11 @@ export function roundInfo(st: State) {
 }
 
 /** Siirtotilanne seuraavalle kierrokselle: edellinen lukittu joukkue, ilmaiset siirrot, tehdyt siirrot ja vähennys */
-export function transferInfo(team: TeamState | null, next: number | null, pending?: Picks | null) {
+export function transferInfo(team: TeamState | null, next: number | null, pending?: Picks | null, rounds?: number[]) {
   if (!team || next === null) return { base: null as Picks | null, free: Infinity, made: 0, cost: 0 };
   const started = team.first_round !== null && next > team.first_round;
   const base = started ? picksAt(team.picks, next - 1) : null;
-  const free = freeTransfers(team.first_round, next, team.transfers.filter((t) => t.round_no < next));
+  const free = freeTransfers(team.first_round, next, team.transfers.filter((t) => t.round_no < next), rounds);
   const cur = pending ?? picksAt(team.picks, next);
   const made = base && cur ? transfersBetween(base.squad, cur.squad) : 0;
   return { base, free, made, cost: transferCost(made, free) };

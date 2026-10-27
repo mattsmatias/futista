@@ -7,7 +7,7 @@ Julkinen avaus = linkki sivustolle (esim. Sarjat-sivu) ja noindexin poisto `app/
 
 ## Käyttöönotto
 
-1. Aja `supabase/migrations/20261027_fantasy.sql` ja sen jälkeen `20261027b_fantasy_logo.sql` Supabasen SQL Editorissa (lisää vain `fantasy_*`-taulut ja `f_*`-funktiot;
+1. Aja `supabase/migrations/20261027_fantasy.sql`, sitten `20261027b_fantasy_logo.sql` ja `20261028_fantasy_multi.sql` Supabasen SQL Editorissa (lisää vain `fantasy_*`-taulut ja `f_*`-funktiot;
    idempotentti; poisto-ohje tiedoston lopussa). Ilman migraatiota fantasy-sivut näyttävät viestin
    "tietokantaa ei ole vielä otettu käyttöön" eivätkä muuta mitään.
 2. Ympäristömuuttujat ovat jo olemassa: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APIFOOTBALL_KEY`, `CRON_SECRET`.
@@ -15,6 +15,23 @@ Julkinen avaus = linkki sivustolle (esim. Sarjat-sivu) ja noindexin poisto `app/
 3. Päivitys on vaiheittainen: jos lähde on tauolla (kiintiö), jo haetut vaiheet (ottelut, kierrokset) jäävät talteen ja
    puuttuvat (pelaajat, tilastot) yritetään uudelleen aikaisintaan 2 min päästä.
 4. Ensimmäinen avaus (`/fantasy`) käynnistää datan haun taustalla. Ylläpito voi ajaa sen heti (alla).
+
+## Monisarjainen peli (oletus 28.10.2026 alkaen)
+
+Kilpailu `top5-2026` (`lib/fantasy-sync.ts` COMPS): pelaajat Valioliigasta, La Ligasta, Bundesligasta, Serie A:sta ja
+Ligue 1:stä yhteen joukkueeseen, yksi Futista-liiga kaikille (käyttäjän päätös 27.10.2026).
+- Kierros = viikko tiistai 00:00 – maanantai 23:59 Suomen aikaa (`weekRound`). Kierroksen sisäinen numero on viikon
+  järjestysluku kiinteästä ankkurista (28.7.2026), joten numerot eivät muutu otteluita siirrettäessä; maaottelutauot ovat
+  numeroinnissa aukkoja. Näytettävä nimi on juokseva ("Kierros 7"). Ilmaiset siirrot kertyvät vain oikeista kierroksista.
+- Määräaika = viikon ensimmäinen (ei siirretty) ottelu missä tahansa sarjassa − 90 min.
+- Lukitun kierroksen ottelu pysyy kierroksessaan, vaikka sen ajankohta muuttuu (`assignWeek` + `f_fixtures_upsert`).
+  Lukitsemattomat kierrokset, joilta kaikki ottelut siirtyivät pois, poistetaan.
+- Otteluohjelmat 10 min välimuistista (5 hakua / 10 min); käynnissä olevien otteluiden tila ja tilastot ottelukohtaisista
+  hauista. Pelaajat sarja kerrallaan 30 s aikabudjetilla; sarja tulee mukaan, kun sen kaikki kokoonpanot ja kauden
+  tilastot on saatu (hinta lasketaan kerran). Ensimmäinen täyttö vie useita päivityksiä (5 min välein).
+- Vaatii migraation `20261028_fantasy_multi.sql` (pelaajan sarja, jäädytetyt ottelukierrokset).
+- Vanha kilpailu `pl-2026` (vain Valioliiga, sarjakierrokset) jää tietokantaan; `FANTASY_COMP=pl-2026` palauttaa sen
+  (testit käyttävät sitä). Siinä tehdyt joukkueet eivät siirry uuteen peliin.
 
 ## Data (API-Football, varmennettu oikeista vastauksista 27.10.2026)
 

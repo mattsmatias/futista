@@ -1,8 +1,8 @@
 import { rpc, fantasyDbOn } from "@/lib/fantasy-db";
 import { currentUser } from "@/lib/fantasy-auth";
 import { picksAt } from "@/lib/fantasy-core";
-import { DEFAULT_COMP } from "@/lib/fantasy-sync";
-import { j, fail, dbFail, loadState, roundInfo, transferInfo, kick, teamLogos } from "@/lib/fantasy-api";
+import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
+import { j, fail, dbFail, loadState, roundInfo, roundLabel, transferInfo, kick, teamLogos } from "@/lib/fantasy-api";
 
 // Fantasy-näkymän tila: kilpailu, kierrokset ja määräajat (palvelimen kello), oma joukkue, pisteet, sijoitus, datan tuoreus.
 // Avaus käynnistää taustapäivityksen, jos edellisestä on yli 5 min.
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     kick(comp);
     const { next, current } = roundInfo(st);
     const t = st.team;
-    const tr = transferInfo(t, next?.round_no ?? null);
+    const tr = transferInfo(t, next?.round_no ?? null, null, st.rounds.map((r) => r.round_no));
     let rank = null;
     if (t?.first_round != null) {
       const r = await rpc<any>("f_ranking", { p_comp: comp.id, p_league: null, p_round: current?.round_no ?? 0, p_limit: 1, p_offset: 0, p_team: t.id });
@@ -30,9 +30,9 @@ export async function GET(req: Request) {
     const syncOk = st.comp?.sync_ok_at ? Date.parse(st.comp.sync_ok_at) : null;
     return j({
       now: st.now, user: user ? { username: user.username } : null,
-      comp: { id: comp.id, name: comp.name, budget: Number(st.comp?.budget ?? 100) },
+      comp: { id: comp.id, name: comp.name, budget: Number(st.comp?.budget ?? 100), leagues: compLeagues(comp).map((l) => ({ id: l.af, name: l.name })) },
       data: { updated: st.comp?.sync_ok_at ?? null, stale: !syncOk || Date.now() - syncOk > STALE_MS, error: st.comp?.sync_error ? true : false },
-      rounds: st.rounds.map((r) => ({ no: r.round_no, deadline: r.deadline_at, first: r.first_kickoff, locked: r.locked, status: r.status })),
+      rounds: st.rounds.map((r) => ({ no: r.round_no, label: roundLabel(r), deadline: r.deadline_at, first: r.first_kickoff, locked: r.locked, status: r.status })),
       next: next?.round_no ?? null, current: current?.round_no ?? null,
       team: t ? {
         id: t.id, name: t.name, logo, first_round: t.first_round, version: t.version,

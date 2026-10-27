@@ -3,7 +3,7 @@
 // Rakenne oikeiden vastausten mukainen (tarkistettu oikeasta API:sta 27.10.2026: /fixtures/players-kentät,
 // oma maali tapahtumassa hyötyvän joukkueen nimissä, vaihdon suunta epäluotettava). EI todiste oikeasta kattavuudesta.
 //   GET /af/__fantasy?r2=future|played&fix=0|1  (fix=1: lähde korjaa ottelun 39021 20. minuutin maalin pois → 1–0)
-const state = { r2: "future", fix: "0" };
+const state = { r2: "future", fix: "0", multi: "0" };
 const T = [1, 2, 3, 4, 5, 6].map((k) => ({ id: 3900 + k, name: `Fantasia ${["Kotka", "Pori", "Oulu", "Vaasa", "Lahti", "Kuopio"][k - 1]}`, logo: null }));
 // pelaajat: 1 MV · 2–5 P · 6–9 KK · 10–11 H (avaus) · 12 MV · 13 P · 14 H (vaihdot)
 const POS = (n) => (n === 1 || n === 12 ? "Goalkeeper" : (n >= 2 && n <= 5) || n === 13 ? "Defender" : n >= 6 && n <= 9 ? "Midfielder" : "Attacker");
@@ -65,10 +65,58 @@ function detail(id, now) {
   return { ...fx, events, lineups, players };
 }
 
+// ---- Monisarjainen peli (multi=1): toinen sarja (140) samoilla otteluajoilla +30 min; sarjat 78/135/61 tyhjiä ----
+const L = [1, 2, 3, 4, 5, 6].map((k) => ({ id: 1400 + k, name: `Liga ${["Alfa", "Beta", "Gamma", "Delta", "Eta", "Zeta"][k - 1]}`, logo: null }));
+const lname = (team, n) => `${["Iker", "Pau", "Dani", "Sergi", "Jordi", "Unai", "Marc", "Alex", "Hugo", "Raúl", "Pablo", "Mario", "Luis", "Rubén"][n - 1]} ${L.find((t) => t.id === team).name.split(" ")[1]}`;
+function ligaFixtures(now) {
+  const base = fixtures(now);
+  const map = { 39011: 14011, 39012: 14012, 39013: 14013, 39021: 14021, 39022: 14022, 39023: 14023, 39031: 14031, 39032: 14032, 39033: 14033 };
+  return base.map((f) => {
+    const id = map[f.fixture.id], t = Date.parse(f.fixture.date) + 1800_000, played = f.fixture.status.short === "FT";
+    const hi = T.findIndex((x) => x.id === f.teams.home.id), ai = T.findIndex((x) => x.id === f.teams.away.id);
+    return { fixture: { id, date: new Date(t).toISOString(), timestamp: Math.floor(t / 1000), status: f.fixture.status },
+      league: { id: 140, season: 2026, round: f.league.round }, teams: { home: L[hi], away: L[ai] },
+      goals: played ? { home: id === 14021 ? 1 : 0, away: 0 } : { home: null, away: null } };
+  });
+}
+function ligaDetail(id, now) {
+  const fx = ligaFixtures(now).find((x) => x.fixture.id === id);
+  if (!fx) return null;
+  const h = fx.teams.home.id, a = fx.teams.away.id;
+  const lineups = [h, a].map((t) => ({ team: { id: t }, startXI: [...Array(11).keys()].map((i) => ({ player: { id: pid(t, i + 1) } })), substitutes: [12, 13, 14].map((n) => ({ player: { id: pid(t, n) } })) }));
+  const events = id === 14021 && fx.fixture.status.short === "FT" ? [ev(30, "Goal", "Normal Goal", h, 140110)] : [];
+  const players = [h, a].map((t) => ({ team: { id: t, name: L.find((x) => x.id === t).name }, players: [...Array(14).keys()].map((i) => ({
+    player: { id: pid(t, i + 1), name: String(pid(t, i + 1)) },
+    statistics: [{ games: { minutes: i < 11 ? 90 : null, position: "M", substitute: i >= 11 }, goals: { total: id === 14021 && pid(t, i + 1) === 140110 ? 1 : null, assists: null, saves: i === 0 ? 0 : null, conceded: 0 }, cards: { yellow: 0, red: 0 } }],
+  })) }));
+  return { ...fx, events, lineups, players };
+}
+
 function handle(u, send, res) {
   const now = Date.now();
   if (u.pathname === "/__fantasy") { for (const k of Object.keys(state)) if (u.searchParams.get(k)) state[k] = u.searchParams.get(k); send(state); return true; }
   const lg = u.searchParams.get("league");
+  if (state.multi === "1") {
+    if (["78", "135", "61"].includes(lg) && u.searchParams.get("season") === "2026") {
+      if (u.pathname === "/teams" || u.pathname === "/fixtures") { send({ errors: [], response: [] }); return true; }
+      if (u.pathname === "/players") { send({ errors: [], paging: { current: 1, total: 1 }, response: [] }); return true; }
+    }
+    if (lg === "140" && u.searchParams.get("season") === "2026") {
+      if (u.pathname === "/teams") { send({ errors: [], response: L.map((team) => ({ team })) }); return true; }
+      if (u.pathname === "/fixtures") { send({ errors: [], response: ligaFixtures(now) }); return true; }
+      if (u.pathname === "/players") { send({ errors: [], paging: { current: 1, total: 1 }, response: [] }); return true; }
+    }
+    if (u.pathname === "/players/squads" && L.some((t) => String(t.id) === u.searchParams.get("team"))) {
+      const t = L.find((x) => String(x.id) === u.searchParams.get("team"));
+      send({ errors: [], response: [{ team: t, players: [...Array(14).keys()].map((i) => ({ id: pid(t.id, i + 1), name: lname(t.id, i + 1), number: i + 1, position: POS(i + 1), photo: null })) }] });
+      return true;
+    }
+    const ids = u.searchParams.get("ids");
+    if (u.pathname === "/fixtures" && ids && ids.split("-").every((x) => /^(390|140)\d\d$/.test(x))) {
+      send({ errors: [], response: ids.split("-").map((x) => (x.startsWith("140") ? ligaDetail(Number(x), now) : detail(Number(x), now))).filter(Boolean) });
+      return true;
+    }
+  }
   if (u.pathname === "/teams" && lg === "39") { send({ errors: [], response: T.map((team) => ({ team })) }); return true; }
   if (u.pathname === "/players/squads" && T.some((t) => String(t.id) === u.searchParams.get("team"))) {
     const t = T.find((x) => String(x.id) === u.searchParams.get("team"));

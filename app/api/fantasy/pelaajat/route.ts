@@ -1,5 +1,5 @@
 import { rpc, fantasyDbOn } from "@/lib/fantasy-db";
-import { DEFAULT_COMP } from "@/lib/fantasy-sync";
+import { DEFAULT_COMP, leagueName } from "@/lib/fantasy-sync";
 import { fail, dbFail } from "@/lib/fantasy-api";
 import { NextResponse } from "next/server";
 
@@ -18,7 +18,7 @@ export async function GET() {
     ]);
     const list = (players ?? []).map((p) => {
       const x = pts?.[String(p.id)];
-      return { ...p, price: Number(p.price), season: x ? x[0] : 0, last: x ? x[1] : null, minutes: x ? x[2] : 0, next: next?.[String(p.team_id)] ?? null };
+      return { ...p, league: p.league ?? null, league_name: leagueName(comp, p.league), price: Number(p.price), season: x ? x[0] : 0, last: x ? x[1] : null, minutes: x ? x[2] : 0, next: next?.[String(p.team_id)] ?? null };
     });
     return NextResponse.json({ players: list }, { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" } });
   } catch (e) { return dbFail(e); }

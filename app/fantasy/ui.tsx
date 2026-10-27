@@ -184,7 +184,7 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
           <PlayerFace p={p} size={56} />
           <div className="fx-card-title">
             <h2 id="fx-card-h">{p.name}</h2>
-            <p className="muted">{POS_LONG[p.pos]} · {p.team}</p>
+            <p className="muted">{POS_LONG[p.pos]} · {p.team}{p.league_name ? ` · ${p.league_name}` : ""}</p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Sulje">✕</button>
         </div>

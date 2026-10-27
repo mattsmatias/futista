@@ -4,7 +4,7 @@
 
 export type Pos = "GK" | "DEF" | "MID" | "FWD";
 export const POSITIONS: Pos[] = ["GK", "DEF", "MID", "FWD"];
-export type FPlayer = { id: number; name: string; team_id: number; team: string; logo?: string | null; pos: Pos; price: number; active: boolean; photo?: string | null };
+export type FPlayer = { id: number; name: string; team_id: number; team: string; logo?: string | null; pos: Pos; price: number; active: boolean; photo?: string | null; league?: number | null };
 /** squad = 15 pelaajaa; xi = 11 avauspelaajaa; bench = 4 vaihtopelaajaa järjestyksessä (bench[0] = vaihtomaalivahti) */
 export type Picks = { squad: number[]; xi: number[]; bench: number[]; captain: number; vice: number };
 
@@ -209,10 +209,14 @@ export const transfersBetween = (prev: number[], next: number[]) => next.filter(
 
 /** Ilmaiset siirrot kierrokselle `round`. Ennen ensimmäistä lukitusta (round <= firstRound tai joukkue uusi) rajaton.
  *  Sen jälkeen 1 / kierros, käyttämätön siirtyy, enintään 2. history = tehdyt siirrot kierroksittain. */
-export function freeTransfers(firstRound: number | null, round: number, history: { round_no: number; transfers: number }[]): number {
+/** rounds = olemassa olevat kierrosnumerot (viikkokierroksissa numeroinnissa on aukkoja maaottelutaukojen kohdalla:
+ *  ilmainen siirto kertyy vain oikeista kierroksista). Ilman listaa kierrokset oletetaan juokseviksi. */
+export function freeTransfers(firstRound: number | null, round: number, history: { round_no: number; transfers: number }[], rounds?: number[]): number {
   if (firstRound === null || round <= firstRound) return Infinity;
   let free = 1;
-  for (let r = firstRound + 1; r < round; r++) {
+  const between = rounds ? [...new Set(rounds)].filter((r) => r > firstRound && r < round).sort((a, b) => a - b)
+    : Array.from({ length: Math.max(0, round - firstRound - 1) }, (_, i) => firstRound + 1 + i);
+  for (const r of between) {
     const t = history.find((h) => h.round_no === r)?.transfers ?? 0;
     free = Math.min(RULES.freeTransfersMax, Math.max(0, free - t) + 1);
   }
@@ -228,7 +232,7 @@ export function picksAt(history: { from_round: number; picks: Picks }[], round: 
 }
 
 // ---------------- Kierrokset ----------------
-export type SrcFixture = { fixture_id: number; round: string; kickoff: string | null; status: string; home_id: number; away_id: number; home_name: string; away_name: string; home_goals: number | null; away_goals: number | null };
+export type SrcFixture = { fixture_id: number; league?: number; round: string; kickoff: string | null; status: string; home_id: number; away_id: number; home_name: string; away_name: string; home_goals: number | null; away_goals: number | null };
 export type RoundRow = { round_no: number; label: string; deadline_at: string; first_kickoff: string; status: "upcoming" | "live" | "provisional" | "final" };
 
 export const roundNo = (label: string): number | null => { const m = label.match(/^Regular Season - (\d+)$/); return m ? Number(m[1]) : null; };
@@ -248,6 +252,47 @@ export function buildRounds(fx: SrcFixture[]): RoundRow[] {
     out.push({ round_no: n, label: l[0].round, deadline_at: new Date(first - RULES.deadlineMinutes * 60_000).toISOString(), first_kickoff: new Date(first).toISOString(), status });
   }
   return out;
+}
+
+// ---------------- Viikkokierrokset (useamman sarjan peli) ----------------
+// Sarjojen kierrokset eivät osu samoille päiville, joten kierros = viikko tiistai 00:00 – maanantai 23:59 Suomen aikaa
+// (viikonlopun ottelut ja niitä edeltävät keskiviikon ottelut samaan kierrokseen). Kierroksen numero = viikon järjestysluku
+// kauden aloitusviikosta (kiinteä ankkuri) → numerot eivät muutu, vaikka otteluita siirrettäisiin; maaottelutauot jäävät
+// numeroinnissa aukoiksi. Näytettävä nimi on juokseva ("Kierros 7").
+const HEL = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Helsinki", year: "numeric", month: "2-digit", day: "2-digit" });
+/** Viikon järjestysluku (1 = ankkuriviikko). anchor = ankkuriviikon tiistai muodossa YYYY-MM-DD. */
+export function weekRound(kickoff: string, anchor: string): number | null {
+  const t = Date.parse(kickoff);
+  if (!Number.isFinite(t)) return null;
+  const [y, m, d] = HEL.format(new Date(t)).split("-").map(Number);
+  const day = Date.UTC(y, m - 1, d) / 86400_000; // paikallinen kalenteripäivä päivinä
+  const [ay, am, ad] = anchor.split("-").map(Number);
+  const a = Date.UTC(ay, am - 1, ad) / 86400_000;
+  const n = Math.floor((day - a) / 7) + 1;
+  return n >= 1 ? n : null;
+}
+/** Viikkokierrokset otteluista, joilla on jo kierros (round_no). Nimi "Kierros k" juoksevasti. */
+export function buildWeekRounds(fx: (SrcFixture & { round_no: number })[]): RoundRow[] {
+  const by = new Map<number, SrcFixture[]>();
+  for (const f of fx) by.set(f.round_no, [...(by.get(f.round_no) ?? []), f]);
+  const out: RoundRow[] = [];
+  let k = 0;
+  for (const [n, l] of [...by.entries()].sort((a, b) => a[0] - b[0])) {
+    const active = l.filter((f) => f.status !== "PST" && f.status !== "CANC" && f.kickoff);
+    const times = (active.length ? active : l).map((f) => f.kickoff).filter((x): x is string => !!x).map((x) => Date.parse(x)).sort((a, b) => a - b);
+    if (!times.length) continue;
+    k++;
+    const first = times[0];
+    const status: RoundRow["status"] = l.some((f) => fixtureLive(f.status)) ? "live" : l.every((f) => fixtureClosed(f.status)) ? "provisional" : l.some((f) => fixtureClosed(f.status)) ? "live" : "upcoming";
+    out.push({ round_no: n, label: `Kierros ${k}`, deadline_at: new Date(first - RULES.deadlineMinutes * 60_000).toISOString(), first_kickoff: new Date(first).toISOString(), status });
+  }
+  return out;
+}
+/** Ottelun kierros: lukitun kierroksen ottelu pysyy kierroksessaan (siirretty ottelu pisteytetään alkuperäisellä
+ *  tilannekuvalla, kuten sarjakierroksissa); muuten viikko alkamisajan mukaan. */
+export function assignWeek(f: SrcFixture, anchor: string, prev: { round_no: number } | undefined, lockedRounds: Set<number>): number | null {
+  if (prev && lockedRounds.has(prev.round_no)) return prev.round_no;
+  return f.kickoff ? weekRound(f.kickoff, anchor) : prev?.round_no ?? null;
 }
 
 // ---------------- Ottelun pelaajatilastot lähteestä ----------------

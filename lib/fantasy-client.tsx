@@ -6,9 +6,9 @@ import type { Picks, Pos } from "./fantasy-core";
 
 export type FState = {
   now: string; user: { username: string } | null;
-  comp: { id: string; name: string; budget: number };
+  comp: { id: string; name: string; budget: number; leagues?: { id: number; name: string }[] };
   data: { updated: string | null; stale: boolean; error: boolean };
-  rounds: { no: number; deadline: string; first: string; locked: boolean; status: string }[];
+  rounds: { no: number; label?: string; deadline: string; first: string; locked: boolean; status: string }[];
   next: number | null; current: number | null;
   team: null | {
     id: number; name: string; logo: unknown; first_round: number | null; version: number; picks: Picks | null; base: Picks | null;
@@ -16,7 +16,7 @@ export type FState = {
     points: { round: number; points: number; hits: number; total: number; provisional: boolean }[];
   };
 };
-export type FPlayerRow = { id: number; name: string; team_id: number; team: string; logo: string | null; pos: Pos; price: number; active: boolean; photo: string | null;
+export type FPlayerRow = { id: number; name: string; team_id: number; team: string; league?: number | null; league_name?: string | null; logo: string | null; pos: Pos; price: number; active: boolean; photo: string | null;
   season: number; last: number | null; minutes: number; next: { round_no: number; kickoff: string; home: boolean; opp: string } | null };
 
 export type ApiErr = { error: string; [k: string]: any };
@@ -79,3 +79,10 @@ export const localTime = (iso: string) => DTF.format(new Date(iso));
 export const POS_SHORT: Record<Pos, string> = { GK: "MV", DEF: "P", MID: "KK", FWD: "H" };
 export const POS_LONG: Record<Pos, string> = { GK: "Maalivahti", DEF: "Puolustaja", MID: "Keskikenttäpelaaja", FWD: "Hyökkääjä" };
 export const fmtM = (n: number) => `${n.toFixed(1).replace(".", ",")} M€`;
+
+/** Kierroksen näytettävä nimi ("Kierros 7"); viikkokierroksissa numero on juokseva, ei sisäinen viikkonumero */
+export const roundName = (s: Pick<FState, "rounds"> | null | undefined, no: number | null | undefined) =>
+  no == null ? "" : s?.rounds.find((r) => r.no === no)?.label ?? `Kierros ${no}`;
+/** Kierroksen näytettävä numero (taivutettuihin teksteihin: "kierrokselle 7") */
+export const roundNum = (s: Pick<FState, "rounds"> | null | undefined, no: number | null | undefined) =>
+  no == null ? "" : (roundName(s, no).match(/(\d+)$/)?.[1] ?? String(no));

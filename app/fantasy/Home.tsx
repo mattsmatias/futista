@@ -2,7 +2,7 @@
 // Oma joukkue: nimi, kierros ja määräaika, pisteet, sijoitus, budjetti, kokoonpano kentällä.
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { api, useLoad, fmtM, localTime, type FState, type FPlayerRow } from "@/lib/fantasy-client";
+import { api, useLoad, fmtM, localTime, roundName, roundNum, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import type { Picks } from "@/lib/fantasy-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus } from "./ui";
 import { TeamLogo } from "./TeamLogo";
@@ -33,7 +33,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
       <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2><Logout /></div>
       <form className="adv-form pad" onSubmit={submit}>
         <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti {fmtM(s.comp.budget)}, 15 pelaajaa.</p>
-        {next && <p className="muted">Ehdit mukaan kierrokselle {next.no}: määräaika {localTime(next.deadline)}. Aiemmilta kierroksilta ei saa pisteitä.</p>}
+        {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}. Aiemmilta kierroksilta ei saa pisteitä.</p>}
         <div className="adv-field">
           <label htmlFor="fx-tn">Joukkueen nimi</label>
           <input id="fx-tn" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} required />
@@ -80,8 +80,8 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
           </div>
         </div>
         <dl className="fx-kpis">
-          <div><dt>{next ? `Kierros ${next.no} – määräaika` : "Määräaika"}</dt><dd>{next ? localTime(next.deadline) : "Ei tulevia kierroksia"}</dd></div>
-          <div><dt>{cur ? `Kierros ${cur}` : "Viimeisin kierros"}</dt><dd>{last ? `${last.total} p${last.provisional ? " (alustava)" : ""}` : "–"}</dd></div>
+          <div><dt>{next ? `${roundName(s, next.no)} – määräaika` : "Määräaika"}</dt><dd>{next ? localTime(next.deadline) : "Ei tulevia kierroksia"}</dd></div>
+          <div><dt>{cur ? roundName(s, cur) : "Viimeisin kierros"}</dt><dd>{last ? `${last.total} p${last.provisional ? " (alustava)" : ""}` : "–"}</dd></div>
           <div><dt>Kausi yhteensä</dt><dd>{t.total} p</dd></div>
           <div><dt>Sijoitus</dt><dd>{t.rank ? `${t.rank.rank.toLocaleString("fi-FI")} / ${t.rank.of.toLocaleString("fi-FI")}` : "–"}</dd></div>
           <div><dt>Budjettia jäljellä</dt><dd>{budgetLeft !== null ? fmtM(Math.round(budgetLeft * 10) / 10) : "–"}</dd></div>
@@ -90,17 +90,17 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       </section>
       {logoEd && <div id="fx-logo-panel"><LogoEditor name={t.name} logo={t.logo} onSaved={reload} onCancel={() => setLogoEd(false)} /></div>}
       <DataStatus updated={s.data.updated} stale={s.data.stale} />
-      {t.joined_late && <Notice>Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {t.first_round} alkaen.</Notice>}
-      {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {next?.no ?? ""} määräaikaa.</Notice>}
+      {t.joined_late && <Notice>Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {roundNum(s, t.first_round)} alkaen.</Notice>}
+      {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {roundNum(s, next?.no)} määräaikaa.</Notice>}
       {showRound && lockedNow && (
         <Notice kind={snap.data?.points?.provisional === false ? "ok" : "info"}>
-          Kierros {showRound} on lukittu. {snap.data?.points?.provisional === false ? "Pisteet ovat lopulliset." : "Pisteet ovat alustavia ja päivittyvät otteluiden edetessä; automaattiset vaihdot tehdään, kun kierroksen kaikki ottelut ovat valmiit."}
-          {next ? ` Muutokset koskevat nyt kierrosta ${next.no}.` : ""}
+          {roundName(s, showRound)} on lukittu. {snap.data?.points?.provisional === false ? "Pisteet ovat lopulliset." : "Pisteet ovat alustavia ja päivittyvät otteluiden edetessä; automaattiset vaihdot tehdään, kun kierroksen kaikki ottelut ovat valmiit."}
+          {next ? ` Muutokset koskevat nyt kierrosta ${roundNum(s, next.no)}.` : ""}
         </Notice>
       )}
       {pl.err && <ErrorBox err={pl.err} retry={pl.reload} />}
       {picks && players.size > 0 && (
-        <Pitch picks={picks} players={players} label={showRound ? `Kierroksen ${showRound} kokoonpano ja pisteet` : "Tuleva kokoonpano"} onSelect={setSel}
+        <Pitch picks={picks} players={players} label={showRound ? `Kierroksen ${roundNum(s, showRound)} kokoonpano ja pisteet` : "Tuleva kokoonpano"} onSelect={setSel}
           badge={(id) => {
             if (!showRound) { const p = players.get(id); return p ? { text: fmtM(p.price), tone: "price" } : null; }
             const x = ptsOf(id);

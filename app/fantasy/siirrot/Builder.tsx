@@ -3,7 +3,7 @@
 // siirtojen ja pistevähennyksen näyttö ennen vahvistusta. Palvelin tarkistaa kaiken uudelleen tallennettaessa.
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { api, useLoad, errText, fmtM, localTime, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
+import { api, useLoad, errText, fmtM, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus } from "../ui";
 
@@ -76,7 +76,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
     setBusy(true); setMsg(null);
     const r = await api<{ made: number; cost: number }>("/api/fantasy/joukkue", { action: "save", round: next.no, version: t.version, picks: d, cost: hit });
     setBusy(false); setConfirm(false);
-    if (r.ok) { setMsg({ kind: "ok", text: `Joukkue tallennettu kierrokselle ${next.no}.${r.data.cost ? ` Pistevähennys ${r.data.cost} p.` : ""}` }); reload(); return; }
+    if (r.ok) { setMsg({ kind: "ok", text: `Joukkue tallennettu kierrokselle ${roundNum(s, next.no)}.${r.data.cost ? ` Pistevähennys ${r.data.cost} p.` : ""}` }); reload(); return; }
     if (r.err.error === "rules") setMsg({ kind: "error", text: "Joukkue ei täytä sääntöjä:", list: (r.err.errors ?? []).map((e: any) => e.text) });
     else if (r.err.error === "cost") setMsg({ kind: "error", text: `Pistevähennys on ${r.err.cost} p (${r.err.made} siirtoa). Tarkista ja vahvista uudelleen.` });
     else setMsg({ kind: "error", text: errText(r.err) });
@@ -98,7 +98,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
   return (
     <>
       <section className="fx-buildbar" aria-label="Joukkueen tila">
-        <div><span className="muted">Kierros {next.no} · määräaika</span><b>{localTime(next.deadline)}</b></div>
+        <div><span className="muted">{roundName(s, next.no)} · määräaika</span><b>{localTime(next.deadline)}</b></div>
         <div><span className="muted">Pelaajia</span><b>{d.squad.length} / {RULES.squadSize}</b></div>
         <div><span className="muted">Budjettia jäljellä</span><b className={left < 0 ? "neg" : ""}>{fmtM(left)}</b></div>
         {t.base && <div><span className="muted">Siirrot</span><b>{made} / {free === Infinity ? "∞" : `${free} ilmaista`}</b></div>}
@@ -119,12 +119,12 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
           </div>
           {full && <p className="muted small">Paina pelaajaa: kapteeni, varakapteeni, vaihto penkin ja avauksen välillä, penkkijärjestys tai poisto.</p>}
         </div>
-        <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} />
+        <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} leagues={s.comp.leagues} />
       </div>
       {confirm && (
         <Overlay onClose={() => setConfirm(false)}>
           <div className="fx-card" role="dialog" aria-modal="true" aria-labelledby="fx-conf-h">
-            <h2 id="fx-conf-h">Vahvista joukkue – kierros {next.no}</h2>
+            <h2 id="fx-conf-h">Vahvista joukkue – kierros {roundNum(s, next.no)}</h2>
             <dl className="facts fx-facts">
               <div><dt>Siirrot</dt><dd>{t.base ? `${made} (${free === Infinity ? "rajattomasti" : `${free} ilmaista`})` : "Vapaa rakentaminen"}</dd></div>
               <div><dt>Pistevähennys</dt><dd>{hit ? `−${hit} p` : "Ei vähennystä"}</dd></div>
@@ -195,19 +195,22 @@ function swapOptions(d: Draft, id: number, players: Map<number, FPlayer>): numbe
 }
 
 const PAGE = 40;
-function PlayerList({ list, why, onPick, picked }: { list: FPlayerRow[]; why: (p: FPlayerRow) => string | null; onPick: (id: number) => void; picked: number[] }) {
+function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]; why: (p: FPlayerRow) => string | null; onPick: (id: number) => void; picked: number[]; leagues?: { id: number; name: string }[] }) {
   const [pos, setPos] = useState<Pos | "ALL">("ALL");
+  const [league, setLeague] = useState<number>(0);
   const [team, setTeam] = useState<number>(0);
+  const multi = (leagues?.length ?? 0) > 1;
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"price" | "season">("price");
   const [n, setN] = useState(PAGE);
-  const teams = useMemo(() => [...new Map(list.map((p) => [p.team_id, p.team])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi")), [list]);
+  const teams = useMemo(() => [...new Map(list.filter((p) => !league || p.league === league).map((p) => [p.team_id, p.team])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi")), [list, league]);
+  useEffect(() => { if (team && !teams.some(([id]) => id === team)) setTeam(0); }, [teams, team]);
   const fold = (x: string) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const rows = useMemo(() => list
     .filter((p) => p.active || picked.includes(p.id))
-    .filter((p) => (pos === "ALL" || p.pos === pos) && (!team || p.team_id === team) && (!q || fold(p.name).includes(fold(q)) || fold(p.team).includes(fold(q))))
-    .sort((a, b) => (sort === "price" ? b.price - a.price : b.season - a.season) || a.name.localeCompare(b.name, "fi")), [list, pos, team, q, sort, picked]);
-  useEffect(() => setN(PAGE), [pos, team, q, sort]);
+    .filter((p) => (pos === "ALL" || p.pos === pos) && (!league || p.league === league) && (!team || p.team_id === team) && (!q || fold(p.name).includes(fold(q)) || fold(p.team).includes(fold(q))))
+    .sort((a, b) => (sort === "price" ? b.price - a.price : b.season - a.season) || a.name.localeCompare(b.name, "fi")), [list, pos, league, team, q, sort, picked]);
+  useEffect(() => setN(PAGE), [pos, league, team, q, sort]);
   return (
     <section className="panel fx-list" aria-labelledby="fx-list-h">
       <div className="panel-head"><h2 id="fx-list-h">Pelaajat</h2><span className="muted small">{rows.length}</span></div>
@@ -217,6 +220,15 @@ function PlayerList({ list, why, onPick, picked }: { list: FPlayerRow[]; why: (p
         </div>
         <label className="sr-only" htmlFor="fx-q">Hae pelaajaa</label>
         <input id="fx-q" className="fx-input" type="search" placeholder="Hae nimellä tai seuralla" value={q} onChange={(e) => setQ(e.target.value)} />
+        {multi && (
+          <>
+            <label className="sr-only" htmlFor="fx-league">Sarja</label>
+            <select id="fx-league" className="fx-input" value={league} onChange={(e) => setLeague(Number(e.target.value))}>
+              <option value={0}>Kaikki sarjat</option>
+              {leagues!.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </>
+        )}
         <div className="fx-row">
           <label className="sr-only" htmlFor="fx-team">Seura</label>
           <select id="fx-team" className="fx-input" value={team} onChange={(e) => setTeam(Number(e.target.value))}>
@@ -234,9 +246,9 @@ function PlayerList({ list, why, onPick, picked }: { list: FPlayerRow[]; why: (p
           const w = why(p), sel = picked.includes(p.id);
           return (
             <li key={p.id} className={sel ? "sel" : ""}>
-              <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}, ${fmtM(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
+              <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}${multi && p.league_name ? `, ${p.league_name}` : ""}, ${fmtM(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
                 <PlayerFace p={p} />
-                <span className="fx-pname"><b>{p.name}</b><small className="muted">{p.team}</small></span>
+                <span className="fx-pname"><b>{p.name}</b><small className="muted">{p.team}{multi && p.league_name ? ` · ${p.league_name}` : ""}</small></span>
                 <span className="fx-pnum">{fmtM(p.price)}<small className="muted">{p.season} p</small></span>
                 <span className={`fx-padd${w ? " off" : ""}`} aria-hidden="true">{sel ? "✓" : w ? "–" : "+"}</span>
               </button>

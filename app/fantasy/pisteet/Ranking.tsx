@@ -5,7 +5,7 @@ import { useLoad } from "@/lib/fantasy-client";
 import { ErrorBox } from "../ui";
 import { TeamLogo } from "../TeamLogo";
 
-type R = { round: number; offset: number; page: number; count: number; rows: { rank: number; team_id: number; name: string; logo: unknown; round: number; total: number }[]; me: any; tie: string };
+type R = { round: number; round_label?: string | null; offset: number; page: number; count: number; rows: { rank: number; team_id: number; name: string; logo: unknown; round: number; total: number }[]; me: any; tie: string };
 
 export function Ranking() {
   const [offset, setOffset] = useState(0);
@@ -20,7 +20,7 @@ export function Ranking() {
         <div className="tbl-wrap">
           <table className="tbl fx-rtbl">
             <caption className="sr-only">Futista-liigan sarjataulukko</caption>
-            <thead><tr><th scope="col">Sija</th><th scope="col">Joukkue</th><th scope="col">{d.round ? `Kierros ${d.round}` : "Kierros"}</th><th scope="col">Yht.</th></tr></thead>
+            <thead><tr><th scope="col">Sija</th><th scope="col">Joukkue</th><th scope="col">{d.round_label ?? (d.round ? `Kierros ${d.round}` : "Kierros")}</th><th scope="col">Yht.</th></tr></thead>
             <tbody>
               {d.rows.map((x) => (
                 <tr key={x.team_id} className={d.me?.team_id === x.team_id ? "me" : ""} aria-current={d.me?.team_id === x.team_id ? "true" : undefined}>

@@ -269,3 +269,37 @@ test("joukkueen logo: vain sallitut osat, värit #rrggbb, nimikirjaimet 0–3 (A
   assert.ok(normalizeLogo(defaultLogo("!!!")));
   assert.ok(contrast("#ffffff", "#000000") > 20 && contrast("#ffffff", "#ffffff") === 1);
 });
+
+import { weekRound, buildWeekRounds, assignWeek } from "../lib/fantasy-core";
+test("viikkokierrokset: ti 00:00 – ma 23:59 Suomen aikaa, kiinteä ankkuri, aukot taukoviikoilla", () => {
+  const A = "2026-07-28"; // tiistai
+  assert.equal(weekRound("2026-07-28T00:30:00+03:00", A), 1);
+  assert.equal(weekRound("2026-08-03T23:30:00+03:00", A), 1); // maanantai-ilta → sama viikko
+  assert.equal(weekRound("2026-08-03T21:30:00Z", A), 2); // UTC-maanantai, mutta Suomessa jo tiistai 00:30
+  assert.equal(weekRound("2026-07-27T12:00:00Z", A), null); // ennen ankkuria
+  // talviaika (EET) ei siirrä rajaa: ti 27.10.2026 klo 00:10 Suomessa = ma 22:10 UTC
+  assert.equal(weekRound("2026-10-26T22:10:00Z", A), weekRound("2026-11-02T21:00:00Z", A));
+  assert.equal(weekRound("2026-10-26T21:50:00Z", A)! + 1, weekRound("2026-10-26T22:10:00Z", A));
+  const fx = (id: number, kickoff: string, status = "NS") => ({ fixture_id: id, round: "x", kickoff, status, home_id: 1, away_id: 2, home_name: "", away_name: "", home_goals: null, away_goals: null });
+  const rows = [fx(1, "2026-08-14T19:00:00Z", "FT"), fx(2, "2026-08-16T13:00:00Z", "FT"), fx(3, "2026-09-12T14:00:00Z"), fx(4, "2026-09-09T18:30:00Z"), fx(5, "2026-09-13T15:00:00Z", "PST")]
+    .map((f) => ({ ...f, round_no: weekRound(f.kickoff, A)! }));
+  const r = buildWeekRounds(rows);
+  assert.deepEqual(r.map((x) => [x.round_no, x.label]), [[3, "Kierros 1"], [7, "Kierros 2"]]); // viikot 4–6 tauko: numerossa aukko, nimi juokseva
+  assert.equal(r[1].first_kickoff, "2026-09-09T18:30:00.000Z"); // keskiviikon ottelu aloittaa viikon kierroksen
+  assert.equal(r[1].deadline_at, "2026-09-09T17:00:00.000Z"); // −90 min
+  assert.equal(r[0].status, "provisional");
+  // lukitun kierroksen ottelu ei siirry, vaikka ajankohta muuttuu; lukitsemattoman siirtyy
+  const moved = fx(9, "2026-10-20T18:00:00Z");
+  assert.equal(assignWeek(moved, A, { round_no: 7 }, new Set([7])), 7);
+  assert.equal(assignWeek(moved, A, { round_no: 7 }, new Set()), weekRound("2026-10-20T18:00:00Z", A));
+});
+
+test("ilmaiset siirrot kertyvät vain oikeista kierroksista (viikkonumeroinnin aukot eivät anna lisää)", () => {
+  // kierrokset 3, 7, 8 (4–6 taukoa): joukkue aloitti 3, kierroksella 8 → välissä vain 7 → 2 ilmaista
+  assert.equal(freeTransfers(3, 8, [], [3, 7, 8]), 2);
+  assert.equal(freeTransfers(3, 7, [], [3, 7, 8]), 1);
+  assert.equal(freeTransfers(3, 8, [{ round_no: 7, transfers: 1 }], [3, 7, 8]), 1);
+  // ilman listaa entinen käytös (juoksevat kierrokset)
+  assert.equal(freeTransfers(3, 8, []), 2);
+  assert.equal(freeTransfers(1, 3, []), 2);
+});

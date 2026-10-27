@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     const picks = sanitize(b?.picks);
     if (!picks) return fail("picks");
     const players = await playersMap(comp.id);
-    const tr = transferInfo(st.team, next.round_no, picks);
+    const tr = transferInfo(st.team, next.round_no, picks, st.rounds.map((r) => r.round_no));
     const errors = [...squadErrors(picks.squad, players, Number(st.comp?.budget ?? 100), tr.base?.squad ?? picksSquad(st, next.round_no)), ...lineupErrors(picks, players)];
     if (errors.length) return fail("rules", 422, { errors });
     // käyttäjän näkemä pistevähennys ≠ palvelimen laskema → näytä uudelleen ennen vahvistusta

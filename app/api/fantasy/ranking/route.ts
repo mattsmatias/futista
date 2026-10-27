@@ -1,6 +1,6 @@
 import { rpc } from "@/lib/fantasy-db";
 import { DEFAULT_COMP } from "@/lib/fantasy-sync";
-import { j, dbFail, withUser, loadState, roundInfo, teamLogos } from "@/lib/fantasy-api";
+import { j, dbFail, withUser, loadState, roundInfo, roundLabel, teamLogos } from "@/lib/fantasy-api";
 
 // Futista-liiga (avoin, kaikki joukkueet): GET ?offset=N (50 / sivu) &round=N (kierroksen pisteet; oletus viimeisin lukittu).
 // Näkyy kirjautuneelle (oma joukkue korostettuna). Omia/yksityisiä liigoja ei ole (käyttäjän valinta 27.10.2026).
@@ -22,6 +22,7 @@ export async function GET(req: Request) {
     const rows: any[] = r?.rows ?? [], me = r?.me ?? null;
     const logos = await teamLogos(comp.id, [...rows.map((x) => x.team_id), ...(me ? [me.team_id] : [])]);
     const withLogo = (x: any) => ({ ...x, logo: logos[String(x.team_id)] ?? null });
-    return j({ round, offset, page: PAGE, count: r?.count ?? 0, rows: rows.map(withLogo), me: me ? withLogo(me) : null, tie: "Tasapisteissä sama sija; järjestys tasapisteissä: aiemmin perustettu joukkue ensin." });
+    const rr = st.rounds.find((x) => x.round_no === round);
+    return j({ round, round_label: rr ? roundLabel(rr) : null, offset, page: PAGE, count: r?.count ?? 0, rows: rows.map(withLogo), me: me ? withLogo(me) : null, tie: "Tasapisteissä sama sija; järjestys tasapisteissä: aiemmin perustettu joukkue ensin." });
   } catch (e) { return dbFail(e); }
 }
