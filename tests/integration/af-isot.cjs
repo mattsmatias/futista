@@ -190,12 +190,13 @@ const get = async (kind, q) => { const r = await fetch(`${APP}/api/${kind}?${q}`
   const lp = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: "fi-FI" });
   const listCalls = []; lp.on("request", (r) => { if (r.url().includes("/api/kertoimet/lista")) listCalls.push(r.url()); });
   await lp.goto(`${APP}/sarjat/bundesliga?v=tulokset`, { waitUntil: "load" });
-  const row = lp.locator(".mrow", { has: lp.locator("a[href*='mittaus-united--testiseura-kotka']") }).first();
-  await row.locator(".mrow-od").waitFor({ timeout: 15000 }).catch(() => {});
-  const odTxt = (await row.locator(".mrow-od").innerText().catch(() => "")).replace(/\s+/g, " ");
-  ok("  sarjan tuloslistassa rivin alla 1 2,10 · X 3,40 · 2 3,30", /1 ?2,10/.test(odTxt) && /X ?3,40/.test(odTxt) && /2 ?3,30/.test(odTxt), odTxt);
-  ok("  toteutunut lopputulos (vierasvoitto) korostettu", (await row.locator(".mrow-od > span").nth(2).getAttribute("class")) === "won" && (await row.locator(".mrow-od .won").count()) === 1);
-  ok("  pyynnöt niputettu (enintään 3 kutsua)", listCalls.length >= 1 && listCalls.length <= 3, String(listCalls.length));
+  await lp.waitForSelector(".mrow", { timeout: 15000 }).catch(() => {}); await lp.waitForTimeout(2500);
+  const resRows = await lp.locator(".mrow").count();
+  // sarjasivuilla ei kertoimia (käyttäjän valinta 27.10.2026): ei kerroinrivejä eikä kerroinhakuja
+  ok("  sarjan tuloslistassa ei kertoimia (käyttäjän valinta 27.10.2026)", resRows > 0 && (await lp.locator(".mrow-od").count()) === 0, `${resRows} riviä, ${await lp.locator(".mrow-od").count()} kerroinriviä`);
+  await lp.goto(`${APP}/sarjat/veikkausliiga`, { waitUntil: "load" });
+  await lp.waitForSelector(".mrow", { timeout: 15000 }).catch(() => {}); await lp.waitForTimeout(2500);
+  ok("  sarjan otteluohjelmassa ei kertoimia", (await lp.locator(".mrow").count()) > 0 && (await lp.locator(".mrow-od").count()) === 0 && listCalls.length === 0, `${await lp.locator(".mrow").count()} riviä, ${listCalls.length} kerroinhakua`);
   ok("  ei vedonvälittäjien nimiä listassa", !/Bet365|Pinnacle|William Hill/.test(await lp.locator("main").innerText()));
   const rov = await lp.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   ok("  ei vaakavieritystä (390 px)", rov <= 0, String(rov));
