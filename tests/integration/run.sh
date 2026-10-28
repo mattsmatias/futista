@@ -45,7 +45,7 @@ export RESEND_API_KEY=test-not-a-real-key RESEND_BASE_URL=http://127.0.0.1:9101/
 [ "${SKIP_BUILD:-}" = 1 ] || npx next build
 rm -rf .next/cache/fetch-cache   # testit alkavat tyhjästä datavälimuistista
 # palvelin omaan prosessiryhmäänsä, jotta pysäytys sulkee myös next-serverin
-start() { setsid "$@" npx next start -p 3100 > /tmp/futista-it-server.log 2>&1 & srv=$!; pids+=($srv); for i in $(seq 40); do curl -sf -o /dev/null localhost:3100/tietoa && return; sleep 0.5; done; echo "palvelin ei käynnistynyt"; exit 1; }
+start() { echo "=== palvelin: $* ===" >> "${SERVER_LOG:-/tmp/futista-it-server.log}"; setsid "$@" npx next start -p 3100 >> "${SERVER_LOG:-/tmp/futista-it-server.log}" 2>&1 & srv=$!; pids+=($srv); for i in $(seq 40); do curl -sf -o /dev/null localhost:3100/tietoa && return; sleep 0.5; done; echo "palvelin ei käynnistynyt"; exit 1; }
 start env
 rc=0
 node tests/integration/chain.cjs || rc=1

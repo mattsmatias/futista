@@ -20,6 +20,11 @@ export const afSupported = (source: string) => source in AF_LEAGUE;
 
 const reserve = () => { const n = Number(process.env.APIFOOTBALL_RESERVE); return Number.isFinite(n) && n >= 0 ? Math.round(n) : 200; };
 let blockedUntil = 0;
+/** Tauko lähteeseen (syy lokiin ilman avaimia/osoitteita, jotta pitkä tauko on jäljitettävissä) */
+function pauseUntil(t: number, why: string) {
+  if (t > blockedUntil) console.warn(`api-football pause ${Math.round((t - Date.now()) / 1000)}s: ${why}`);
+  blockedUntil = Math.max(blockedUntil, t);
+}
 export const afQuotaSeen: { remaining: number | null; at: number | null } = { remaining: null, at: null };
 
 export class AfError extends Error { constructor(public code: string) { super(code); } }
@@ -53,18 +58,18 @@ async function afGetNow(path: string): Promise<any> {
   if (rem && /^\d+$/.test(rem.trim())) {
     const n = Number(rem);
     Object.assign(afQuotaSeen, { remaining: n, at: Date.now() });
-    if (n <= reserve()) { const d = new Date(); blockedUntil = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1); }
+    if (n <= reserve()) { const d = new Date(); pauseUntil(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1), `daily quota reserve (${n} left)`); }
   }
   if (res.status === 429) {
     // Retry-After (sekunteina tai päivämääränä) jos lähde kertoo; muuten minuutti. Ei uudelleenyritystä tässä.
     const ra = res.headers.get("retry-after");
     const sec = ra && /^\d+$/.test(ra.trim()) ? Number(ra) : ra && Number.isFinite(Date.parse(ra)) ? (Date.parse(ra) - Date.now()) / 1000 : 60;
-    blockedUntil = Math.max(blockedUntil, Date.now() + Math.min(3600, Math.max(5, sec)) * 1000);
+    pauseUntil(Date.now() + Math.min(3600, Math.max(5, sec)) * 1000, "429");
     throw new AfError("rate");
   }
   // lähteen häiriö (5xx): lyhyt tauko, jottei jokainen kävijä käynnistä uutta hakua
-  if (res.status >= 500) { blockedUntil = Math.max(blockedUntil, Date.now() + 30_000); throw new AfError(`http ${res.status}`); }
-  if (res.status === 401 || res.status === 403) { blockedUntil = Math.max(blockedUntil, Date.now() + 3600_000); throw new AfError("auth"); }
+  if (res.status >= 500) { pauseUntil(Date.now() + 30_000, `http ${res.status}`); throw new AfError(`http ${res.status}`); }
+  if (res.status === 401 || res.status === 403) { pauseUntil(Date.now() + 3600_000, `http ${res.status}`); throw new AfError("auth"); }
   if (!res.ok) throw new AfError(`http ${res.status}`);
   let j: any;
   try { j = JSON.parse(await res.text()); } catch { throw new AfError("parse"); }
@@ -73,7 +78,7 @@ async function afGetNow(path: string): Promise<any> {
     // minuuttiraja, päiväraja tai avainongelma rungossa: tauko, ettei kiintiötä kuluteta turhaan
     // (minuuttiraja EI saa pysäyttää hakuja koko päiväksi)
     const pause = afErrorPause(err);
-    if (pause !== null) blockedUntil = Math.max(blockedUntil, Date.now() + pause);
+    if (pause !== null) pauseUntil(Date.now() + pause, `source error: ${err.slice(0, 80)}`);
     throw new AfError(`source: ${err}`);
   }
   return j;
