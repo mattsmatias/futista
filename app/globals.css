@@ -1185,6 +1185,9 @@ div.match { cursor: default; }
 .dir-name { font-weight: 700; }
 .dir-sub { font-size: 12.5px; color: var(--muted); }
 .dir-flag { width: 30px; height: 20px; border-radius: 3px; object-fit: cover; }
+.dir-cc { display: inline-flex; align-items: center; flex: none; }
+.dir-cc .dir-flag { width: 24px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px var(--line); }
+.dir-globe { font-size: 17px; line-height: 1; }
 .dir-sec { display: grid; }
 
 /* Kilpailu- ja kohdesivujen kompakti yläosa + välilehdet */

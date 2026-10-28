@@ -9,15 +9,34 @@ import { useI18n, type Key } from "@/lib/i18n";
 import Footer from "../Footer";
 import { CompMark } from "./CompMark";
 import { Icon } from "./Icons";
+import { useState } from "react";
+import type { CompCountry } from "@/lib/comps";
+
+// Sarjan maa lippuna (käyttäjän valinta 28.10.2026). Sama lippulähde kuin pelaajien kansallisuuksissa (flagcdn).
+// Maan nimi säilyy ruudunlukijalle; jos kuva ei lataudu, näytetään nimi tekstinä.
+const FLAG: Partial<Record<CompCountry, string>> = { es: "es", en: "gb-eng", eu: "eu", de: "de", it: "it", fr: "fr", nl: "nl", pt: "pt", tr: "tr", us: "us", fi: "fi", se: "se", no: "no", dk: "dk" };
+function DirCountry({ cc, name }: { cc?: CompCountry; name: string }) {
+  const [broken, setBroken] = useState(false);
+  const code = cc ? FLAG[cc] : undefined;
+  if (cc === "world") return <span className="dir-sub dir-cc" title={name}><span className="dir-globe" aria-hidden="true">🌍</span><span className="sr-only">{name}</span></span>;
+  if (!code || broken) return <span className="dir-sub">{name}</span>;
+  return (
+    <span className="dir-sub dir-cc" title={name}>
+      <img className="dir-flag" src={`https://flagcdn.com/w40/${code}.png`} alt="" width={24} height={16} loading="lazy" decoding="async" onError={() => setBroken(true)} />
+      <span className="sr-only">{name}</span>
+    </span>
+  );
+}
 
 export default function CompsDirectory() {
   const i = useI18n();
   const { t } = i;
   const item = (id: string) => {
     const s = SOURCES.find((x) => x.id === id)!;
-    const country = t(`c_${COMP_META[id as keyof typeof COMP_META].country}` as Key);
+    const cc = COMP_META[id as keyof typeof COMP_META].country;
+    const country = t(`c_${cc}` as Key);
     // naisten kilpailut ovat omassa Naisten jalkapallo -ryhmässään → maan viereen ei "Naiset"-merkintää (käyttäjän valinta 24.10.2026)
-    return { id, name: i.league(id, s.league), country, href: `/sarjat/${id}` };
+    return { id, name: i.league(id, s.league), country, cc, href: `/sarjat/${id}` };
   };
   // API-Football-kilpailut ryhmittäin (sama kilpailu voi näkyä useassa ryhmässä; linkki ja sivu ovat yksi)
   const af = activeAfComps().filter((c) => !DIR_HIDDEN.includes(c.id));
@@ -35,7 +54,7 @@ export default function CompsDirectory() {
     ...afGroup("nt"),
   ];
   const GROUP_TITLE: Record<Exclude<AfGroup, "nt">, Key> = { fi: "grp_fi", cups: "grp_cups", nordic: "grp_nordic", women: "grp_women" };
-  const list = (title: Key, items: { id: string; name: string; country: string; href: string }[]) => items.length > 0 && (
+  const list = (title: Key, items: { id: string; name: string; country: string; cc?: CompCountry; href: string }[]) => items.length > 0 && (
     <section className="dir-sec" aria-labelledby={`d-${title}`}>
       <h2 id={`d-${title}`} className="sub-h">{t(title)}</h2>
       <ul className="dir-list">
@@ -43,7 +62,7 @@ export default function CompsDirectory() {
           <li key={x.id}>
             <a href={x.href}>
               {x.id === "fin" ? <span className="cmark cmark-logo cmark-crest" aria-hidden="true"><img src="/icons/huuhkajat.png" alt="" width={22} height={28} /></span> : <CompMark id={x.id} />}
-              <span className="dir-name">{x.name}</span><span className="dir-sub">{x.country}</span>{Icon.next}
+              <span className="dir-name">{x.name}</span><DirCountry cc={x.cc} name={x.country} />{Icon.next}
             </a>
           </li>
         ))}

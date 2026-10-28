@@ -82,6 +82,17 @@ const DAY = 86400_000;
   ok("  Eurooppa-liiga ja Konferenssiliiga eivät toistu Muut sarjat -ryhmässä", dirNames.filter((n) => n === "Eurooppa-liiga").length === 1 && dirNames.filter((n) => n === "Konferenssiliiga").length === 1);
   const wsub = await page.locator(".dir-sec", { has: page.locator("h2", { hasText: /^Naisten jalkapallo$/ }) }).locator(".dir-sub").allTextContents();
   ok("  Naisten jalkapallo: maan vieressä ei Naiset-tekstiä", wsub.length >= 3 && wsub.every((x) => !/Naiset/.test(x)), wsub.join(" | "));
+  // maat lippuina (flagcdn simuloitu: 1×1 png); nimi ruudunlukijalle; lipputon (Kansainvälinen) tekstinä
+  await page.route(/flagcdn\.com\/w40\/[a-z-]+\.png$/, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
+  await go("/sarjat");
+  const fl = await page.evaluate(() => {
+    const row = (name) => [...document.querySelectorAll(".dir-list a")].find((a) => a.querySelector(".dir-name")?.textContent === name);
+    const f = (name) => { const a = row(name); const img = a?.querySelector("img.dir-flag"); return a ? { src: img?.getAttribute("src") ?? null, sr: a.querySelector(".dir-cc .sr-only")?.textContent ?? null, vis: a.querySelector(".dir-sub")?.innerText ?? "" } : null; };
+    return { laliga: f("La Liga"), pl: f("Valioliiga"), vl: f("Veikkausliiga"), ucl: f("Mestarien liiga"), intl: row("Maajoukkueet")?.querySelector(".dir-sub")?.textContent ?? null };
+  });
+  ok("  maat lippuina: La Liga 🇪🇸, Valioliiga Englanti, Veikkausliiga Suomi, Mestarien liiga Eurooppa; nimi vain ruudunlukijalle", /\/es\.png$/.test(fl.laliga?.src) && fl.laliga.sr === "Espanja" && fl.laliga.vis.trim() === "" && /\/gb-eng\.png$/.test(fl.pl?.src) && /\/fi\.png$/.test(fl.vl?.src) && /\/eu\.png$/.test(fl.ucl?.src), JSON.stringify(fl));
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/sarjat-liput.png` }).catch(() => {});
+  await page.unroute(/flagcdn/);
   const hd = await page.evaluate(() => ({ inputs: document.querySelectorAll("main input").length, h1: [...document.querySelectorAll("main h1")].map((h) => ({ txt: h.textContent, w: h.getBoundingClientRect().width, cls: h.className })) }));
   ok("  ei näkyvää Sarjat-otsikkoa eikä rajauskenttää (käyttäjän valinta 25.10.2026)", hd.inputs === 0 && hd.h1.length === 1 && hd.h1[0].txt === "Sarjat" && hd.h1[0].w <= 1, JSON.stringify(hd));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
