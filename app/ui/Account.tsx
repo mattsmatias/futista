@@ -19,7 +19,7 @@ export const isStandaloneApp = () =>
     window.matchMedia("(display-mode: minimal-ui)").matches ||
     (navigator as any).standalone === true);
 
-type Me = { username: string } | null;
+type Me = { username: string; admin?: boolean } | null;
 /** Kirjautunut käyttäjä palvelimelta; undefined = ei tiedossa (tili ei käytössä tai yhteysvirhe) */
 let cached: Me | undefined; // viimeisin tieto (asetusvalikko näyttää sen heti avattaessa ja päivittää taustalla)
 export async function fetchMe(): Promise<Me | undefined> {
@@ -148,6 +148,7 @@ export function AccountMenu({ onAction }: { onAction: () => void }) {
       {me ? (
         <>
           <p className="acc-who">{t("acc_signed_in")}: <b>{me.username}</b></p>
+          {me.admin && <a role="menuitem" href="/hallinta" onClick={onAction}>Hallintapaneeli</a>}
           <button role="menuitem" type="button" onClick={async () => { await post({ action: "logout" }); setMe(null); onAction(); location.reload(); }}>{t("acc_logout")}</button>
         </>
       ) : (

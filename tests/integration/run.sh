@@ -24,6 +24,7 @@ sed '/^-- AJASTUS/,$d' supabase/migrations/20261026_yt_videos.sql | psql "$PG_UR
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261027_fantasy.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261027b_fantasy_logo.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261028_fantasy_multi.sql
+psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261029_site_stats.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)
@@ -35,6 +36,8 @@ export APIFOOTBALL_KEY=test-not-a-real-key APIFOOTBALL_BASE_URL=http://127.0.0.1
 export AF_EXTRAS_OFF=1
 # fantasy: yhden sarjan peli (Valioliiga, sarjakierrokset) koko ketjun testeissä; monisarjainen peli omalla palvelimella lopussa
 export FANTASY_COMP=pl-2026
+# hallintapaneeli: testin ylläpitäjätunnus (fantasy.cjs luo sen)
+export FUTISTA_ADMINS=pelaaja_a
 # kohokohdat: simuloitu YouTube (mock-sources.cjs /yt/, /ytimg/); ajastuksen tunniste testissä
 export YT_BASE_URL=http://127.0.0.1:9101/yt YT_IMG_BASE_URL=http://127.0.0.1:9101/ytimg CRON_SECRET=test-cron-not-real
 # pokaalit: simuloitu Wikidata (mock-sources.cjs /wd/sparql)
@@ -55,6 +58,7 @@ node tests/integration/pokaalit.cjs || rc=1
 node tests/integration/punaiset.cjs || rc=1
 node tests/integration/kohokohdat.cjs || rc=1
 node tests/integration/fantasy.cjs || rc=1
+node tests/integration/hallinta.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 # viikkoraja 3 päivää ennen tätä päivää (Helsinki): simuloidut ottelut (nyt −7 vrk … nyt +8 vrk) eivät osu rajalle ajankohdasta riippuen
 start env FANTASY_COMP=top5f-2026 FANTASY_TEST_ANCHOR="$(TZ=Europe/Helsinki date -d "-73 days" +%F)"

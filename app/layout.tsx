@@ -10,6 +10,7 @@ import { LiveProvider } from "@/lib/live";
 import FastLinks from "./FastLinks";
 import { ScrollMemory } from "@/lib/persist";
 import AppShell from "./ui/AppShell";
+import StatsBeacon from "./ui/StatsBeacon";
 import { Unbounded, Onest, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--f-display", display: "swap" });
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <LiveProvider><AppShell>{children}</AppShell></LiveProvider>
             <OfflineBanner />
             <InstallApp />
+            <StatsBeacon />
             <FastLinks />
             <ScrollMemory />
           </FavoritesProvider>

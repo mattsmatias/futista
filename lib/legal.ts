@@ -8,7 +8,7 @@ export type Doc = { title: string; intro: string; sections: Section[] };
 export const PRIVACY: Record<Lang, Doc> = {
   fi: {
     title: "Tietosuoja",
-    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse ota ilmoituksia käyttöön tai lähetä yhteydenottopyyntöä Mainosta-sivun lomakkeella. Sivulla ei ole rekisteröitymistä eikä mainosseurantaa, eikä Futistan oma sivukoodi sisällä analytiikkaa tai aseta evästeitä. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
+    intro: "Futista ei kerää sinusta henkilötietoja, ellet itse luo käyttäjätiliä (Fantasy), ota ilmoituksia käyttöön tai lähetä yhteydenottopyyntöä Mainosta-sivun lomakkeella. Sivulla ei ole mainosseurantaa. Futista laskee kävijämääriä ja niiden lähteitä omalla, evästeettömällä tilastoinnillaan (ks. Kävijätilasto). Evästettä käytetään vain kirjautumiseen, jos luot tilin. Sivuston liikenne kulkee Cloudflaren ja Vercelin kautta, ja Cloudflare lisää sivulle kävijätilastojen keräyksen (Cloudflare Web Analytics; ks. Palvelin ja lokitiedot).",
     sections: [
       {
         h: "Rekisterinpitäjä ja yhteystiedot",
@@ -23,6 +23,22 @@ export const PRIVACY: Record<Lang, Doc> = {
           "Jakopainikkeet (WhatsApp, Facebook, X, Telegram, sähköposti) ovat tavallisia linkkejä: sivulle ei ladata näiden palvelujen skriptejä, eikä niille välity mitään ennen kuin painat painiketta. Painaessasi avautuu valitsemasi palvelu, joka käsittelee tietoja omien käytäntöjensä mukaisesti.",
           "Lisäksi sivu tallentaa selaimen välilehtikohtaiseen muistiin (sessionStorage) käyttöliittymän tilan, jotta palatessasi edelliselle sivulle näkymä on ennallaan: sivun vierityskohdan sekä valitut suodattimet ja välilehdet (esim. sarja, uutisten tyyppi tai kilpailu). Tiedot eivät sisällä henkilötietoja, eikä niitä lähetetä meille. Selain poistaa ne, kun suljet välilehden.",
           "Sivu tallentaa selaimen välimuistiin (service worker) myös kopion enintään 30 viimeksi avatusta sivusta enintään 3 vuorokaudeksi, jotta ne näkyvät ilman verkkoyhteyttä. Kopiot eivät sisällä ilmoitusten tai muiden palvelinkutsujen tietoja.",
+        ],
+      },
+      {
+        h: "Kävijätilasto",
+        p: [
+          "Kun avaat sivun, selain lähettää Futistan palvelimelle tilastomerkinnän: avatun sivun polun (ilman osoitteen kyselyosaa), laitetyypin (puhelin, tabletti tai tietokone) sekä ensimmäisellä sivulla saapumisen lähteen eli viittaavan sivuston verkkotunnuksen (esim. google.com), linkin utm_source-merkinnän tai tiedon, että sivu avattiin Instagramin, Facebookin, TikTokin tai muun sovelluksen sisäisessä selaimessa tai Futista-sovelluksena kotivalikosta.",
+          "Saman päivän käynnit yhdistetään päivittäin vaihtuvalla tunnisteella, joka lasketaan palvelimella IP-osoitteestasi ja selaimesi tunnistetiedoista salaisen, päiväkohtaisen avaimen avulla. IP-osoitetta ei tallenneta, eikä tunnistetta voi yhdistää eri päivien välillä eikä palauttaa IP-osoitteeksi. Evästeitä tai selaimen tallennustilaa ei käytetä.",
+          "Tietoja käytetään vain koottuihin kävijätilastoihin (montako kävijää päivässä ja mistä he tulivat), jotka näkyvät Futistan ylläpidolle. Käsittelyn perusteena on oikeutettu etu palvelun kehittämiseen. Merkinnät säilytetään [Supabasen](https://supabase.com/privacy) palvelimella ja poistetaan 400 päivän jälkeen. Botteja ja automaattisia selaimia ei tilastoida.",
+        ],
+      },
+      {
+        h: "Käyttäjätili (Fantasy)",
+        p: [
+          "Jos luot tilin, tallennamme käyttäjätunnuksesi, salasanastasi muodostetun tiivisteen (salasanaa ei tallenneta) sekä Fantasy-joukkueesi tiedot (joukkueen nimi ja logo, pelaajavalinnat, siirrot ja pisteet). Joukkueen nimi, logo ja pisteet näkyvät muille pelaajille Futista-liigassa; käyttäjätunnus näkyy vain sinulle.",
+          "Kirjautuminen pidetään voimassa evästeellä (ff_s), joka sisältää satunnaisen istuntotunnisteen. Se on voimassa 30 päivää tai kunnes kirjaudut ulos. Kirjautumis- ja rekisteröintiyritysten määrää rajoitetaan väärinkäytön estämiseksi IP-osoitteesta muodostetun tiivisteen perusteella (selväkielistä IP-osoitetta ei tallenneta).",
+          "Tiedot säilytetään [Supabasen](https://supabase.com/privacy) palvelimella niin kauan kuin tili on olemassa. Tilin ja joukkueen poistoa voit pyytää osoitteesta {email}.",
         ],
       },
       {
@@ -58,7 +74,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Oikeutesi",
         p: [
-          "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Jos olet lähettänyt yhteydenottopyynnön, voit pyytää viestisi poistamista tai pääsyä siihen ottamalla yhteyttä samalla lomakkeella. Muita tietoja meillä ei sinusta ole.",
+          "Ilmoitusten tiedot poistat kytkemällä ilmoitukset pois. Jos olet lähettänyt yhteydenottopyynnön, voit pyytää viestisi poistamista tai pääsyä siihen ottamalla yhteyttä samalla lomakkeella. Käyttäjätilin ja sen tietojen poistoa tai niihin pääsyä voit pyytää osoitteesta {email}. Kävijätilaston merkintöjä ei voi yhdistää sinuun, joten niitä ei voi hakea tai poistaa henkilökohtaisesti.",
           "Sinulla on oikeus tehdä valitus [tietosuojavaltuutetulle](https://tietosuoja.fi).",
         ],
       },
@@ -66,7 +82,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   sv: {
     title: "Integritet",
-    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv slår på aviseringar eller skickar en kontaktförfrågan via formuläret på sidan Annonsera. Sidan har ingen registrering och ingen annonsspårning, och Futistas egen sidkod innehåller ingen analys och sätter inga kakor. Trafiken går via Cloudflare och Vercel, och Cloudflare lägger till besöksstatistik på sidan (Cloudflare Web Analytics; se Server och loggar).",
+    intro: "Futista samlar inte in personuppgifter om dig, om du inte själv skapar ett användarkonto (Fantasy), slår på aviseringar eller skickar en kontaktförfrågan via formuläret på sidan Annonsera. Sidan har ingen annonsspårning. Futista räknar besökare och varifrån de kommer med en egen besöksstatistik utan kakor (se Besöksstatistik). En kaka används bara för inloggning, om du skapar ett konto. Trafiken går via Cloudflare och Vercel, och Cloudflare lägger till besöksstatistik på sidan (Cloudflare Web Analytics; se Server och loggar).",
     sections: [
       {
         h: "Personuppgiftsansvarig och kontakt",
@@ -81,6 +97,22 @@ export const PRIVACY: Record<Lang, Doc> = {
           "Delningsknapparna (WhatsApp, Facebook, X, Telegram, e-post) är vanliga länkar: inga skript från dessa tjänster laddas på sidan och inget skickas till dem förrän du trycker på knappen. Då öppnas tjänsten du valt, som behandlar uppgifter enligt sina egna rutiner.",
           "Dessutom sparar sidan gränssnittets läge i webbläsarens flikspecifika minne (sessionStorage) så att vyn är oförändrad när du går tillbaka: sidans rullningsposition samt valda filter och flikar (t.ex. serie, nyhetstyp eller turnering). Uppgifterna innehåller inga personuppgifter och skickas inte till oss. Webbläsaren tar bort dem när du stänger fliken.",
           "Sidan sparar också en kopia av högst 30 senast öppnade sidor i webbläsarens cache (service worker) i högst 3 dygn så att de visas utan nätanslutning. Kopiorna innehåller inga uppgifter om aviseringar eller andra serveranrop.",
+        ],
+      },
+      {
+        h: "Besöksstatistik",
+        p: [
+          "När du öppnar en sida skickar webbläsaren en statistikpost till Futistas server: sidans sökväg (utan adressens frågedel), enhetstyp (telefon, surfplatta eller dator) samt på den första sidan varifrån du kom, det vill säga den hänvisande webbplatsens domän (t.ex. google.com), länkens utm_source-märkning eller uppgift om att sidan öppnades i Instagrams, Facebooks, TikToks eller en annan apps inbyggda webbläsare eller som Futista-appen från hemskärmen.",
+          "Besök under samma dag kopplas ihop med en identifierare som byts varje dag och som beräknas på servern från din IP-adress och webbläsarens uppgifter med en hemlig dagsnyckel. IP-adressen sparas inte, och identifieraren kan inte kopplas ihop mellan olika dagar eller återföras till en IP-adress. Inga kakor eller webbläsarlagring används.",
+          "Uppgifterna används bara för sammanställd besöksstatistik (hur många besökare per dag och varifrån de kom) som visas för Futistas administratör. Rättslig grund är berättigat intresse att utveckla tjänsten. Posterna lagras hos [Supabase](https://supabase.com/privacy) och raderas efter 400 dagar. Robotar och automatiserade webbläsare räknas inte.",
+        ],
+      },
+      {
+        h: "Användarkonto (Fantasy)",
+        p: [
+          "Om du skapar ett konto sparar vi ditt användarnamn, ett hashvärde av ditt lösenord (lösenordet sparas inte) och uppgifterna om ditt Fantasy-lag (lagets namn och logotyp, spelarval, övergångar och poäng). Lagets namn, logotyp och poäng visas för andra spelare i Futista-ligan; användarnamnet visas bara för dig.",
+          "Inloggningen hålls aktiv med en kaka (ff_s) som innehåller en slumpmässig sessionsidentifierare. Den gäller i 30 dagar eller tills du loggar ut. Antalet inloggnings- och registreringsförsök begränsas för att förhindra missbruk med hjälp av ett hashvärde av IP-adressen (IP-adressen sparas inte i klartext).",
+          "Uppgifterna lagras hos [Supabase](https://supabase.com/privacy) så länge kontot finns. Du kan begära att kontot och laget raderas via {email}.",
         ],
       },
       {
@@ -116,7 +148,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Dina rättigheter",
         p: [
-          "Du raderar aviseringsuppgifterna genom att stänga av aviseringarna. Om du har skickat en kontaktförfrågan kan du begära att ditt meddelande raderas eller att få ta del av det genom att kontakta oss via samma formulär. Andra uppgifter om dig har vi inte.",
+          "Du raderar aviseringsuppgifterna genom att stänga av aviseringarna. Om du har skickat en kontaktförfrågan kan du begära att ditt meddelande raderas eller att få ta del av det genom att kontakta oss via samma formulär. Radering av ditt användarkonto och dess uppgifter, eller tillgång till dem, kan du begära via {email}. Besöksstatistikens poster kan inte kopplas till dig och kan därför inte hämtas eller raderas personligen.",
           "Du har rätt att lämna klagomål till [dataombudsmannen i Finland](https://tietosuoja.fi/sv).",
         ],
       },
@@ -124,7 +156,7 @@ export const PRIVACY: Record<Lang, Doc> = {
   },
   en: {
     title: "Privacy",
-    intro: "Futista does not collect personal data about you unless you turn on notifications or send an enquiry through the form on the Advertise page. The site has no sign-up and no ad tracking, and Futista's own page code contains no analytics and sets no cookies. Traffic passes through Cloudflare and Vercel, and Cloudflare adds visitor statistics to the page (Cloudflare Web Analytics; see Server and logs).",
+    intro: "Futista does not collect personal data about you unless you create a user account (Fantasy), turn on notifications or send an enquiry through the form on the Advertise page. The site has no ad tracking. Futista counts visitors and where they come from with its own cookieless visitor statistics (see Visitor statistics). A cookie is used only for signing in, if you create an account. Traffic passes through Cloudflare and Vercel, and Cloudflare adds visitor statistics to the page (Cloudflare Web Analytics; see Server and logs).",
     sections: [
       {
         h: "Controller and contact",
@@ -139,6 +171,22 @@ export const PRIVACY: Record<Lang, Doc> = {
           "The share buttons (WhatsApp, Facebook, X, Telegram, email) are plain links: no scripts from these services are loaded on the page and nothing is sent to them until you tap a button. Tapping opens the service you chose, which handles data under its own policies.",
           "The site also keeps interface state in your browser's per-tab storage (sessionStorage) so the view is unchanged when you go back: the scroll position and the filters and tabs you chose (e.g. league, news type or competition). It contains no personal data and is never sent to us. The browser removes it when you close the tab.",
           "The site also keeps a copy of up to 30 recently opened pages in the browser cache (service worker) for up to 3 days so they show without a connection. The copies contain no notification data or other server calls.",
+        ],
+      },
+      {
+        h: "Visitor statistics",
+        p: [
+          "When you open a page, your browser sends a statistics record to Futista's server: the page path (without the query part of the address), the device type (phone, tablet or computer) and, on the first page, where you came from: the referring site's domain (e.g. google.com), the link's utm_source tag, or the fact that the page was opened in the in-app browser of Instagram, Facebook, TikTok or another app, or as the Futista app from the home screen.",
+          "Visits on the same day are linked with an identifier that changes daily and is computed on the server from your IP address and browser details with a secret daily key. The IP address is not stored, and the identifier cannot be linked across days or turned back into an IP address. No cookies or browser storage are used.",
+          "The data is used only for aggregate visitor statistics (how many visitors per day and where they came from) shown to Futista's administrator. The legal basis is the legitimate interest of developing the service. Records are stored with [Supabase](https://supabase.com/privacy) and deleted after 400 days. Bots and automated browsers are not counted.",
+        ],
+      },
+      {
+        h: "User account (Fantasy)",
+        p: [
+          "If you create an account, we store your username, a hash of your password (the password itself is not stored) and your Fantasy team details (team name and logo, player picks, transfers and points). The team name, logo and points are shown to other players in the Futista league; your username is shown only to you.",
+          "Your sign-in is kept active with a cookie (ff_s) containing a random session identifier. It is valid for 30 days or until you sign out. Sign-in and registration attempts are rate-limited to prevent abuse using a hash of the IP address (the IP address is not stored in plain text).",
+          "The data is stored with [Supabase](https://supabase.com/privacy) for as long as the account exists. You can ask for the account and team to be deleted at {email}.",
         ],
       },
       {
@@ -174,7 +222,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Your rights",
         p: [
-          "You delete your notification data by turning notifications off. If you have sent an enquiry, you can ask for your message to be deleted or for a copy of it by contacting us through the same form. We hold no other data about you.",
+          "You delete your notification data by turning notifications off. If you have sent an enquiry, you can ask for your message to be deleted or for a copy of it by contacting us through the same form. You can ask for your user account and its data to be deleted, or for access to them, at {email}. Visitor statistics records cannot be linked to you, so they cannot be retrieved or deleted individually.",
           "You have the right to lodge a complaint with the [Data Protection Ombudsman of Finland](https://tietosuoja.fi/en).",
         ],
       },

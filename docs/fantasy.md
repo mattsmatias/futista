@@ -137,3 +137,12 @@ sähköpostia).
   Väärä koodi → 404, joten joukkueita ei voi selata numeroimalla. Ei tietokantamuutosta.
 - Kutsuttu näkee tervetulotiedotteen; lomake avautuu tilin luonnissa. Koodi säilyy istunnossa tilin luonnin ajan ja poistuu, kun joukkue on luotu.
 - Kuka liittyi kenenkin kutsusta, ei tallenneta.
+
+## Hallintapaneeli ja kävijätilasto (29.10.2026)
+- `/hallinta`: kävijät päivittäin, lähteet (Google, Instagram, Facebook …), viittaavat sivustot, suosituimmat sivut, laitteet. 7 pv / 30 pv / 90 pv / 1 v.
+- Pääsy: `FUTISTA_ADMINS` (pilkuilla erotetut käyttäjätunnukset, Vercelin ympäristömuuttuja). Muille 404, kirjautumattomalle kirjautuminen.
+  Kotivalikon sovelluksessa asetusvalikkoon tulee "Hallintapaneeli"-linkki ylläpitäjälle.
+- Laskenta: `app/ui/StatsBeacon.tsx` → `POST /api/k` (sama alkuperä, botit ohitetaan) → `s_hit` (supabase/migrations/20261029_site_stats.sql).
+  Ei evästeitä; kävijätunniste = HMAC(päivä + IP + selain), vaihtuu päivittäin, IP:tä ei tallenneta. Rivit poistetaan 400 päivän jälkeen.
+- Lähde: kotivalikon sovellus → utm_source → sovelluksen sisäinen selain (Instagram/Facebook/TikTok/Snapchat UA) → viittaajan verkkotunnus → "Suora / tuntematon".
+- Tietosuojaseloste päivitetty (Kävijätilasto, Käyttäjätili) fi/sv/en.

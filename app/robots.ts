@@ -9,7 +9,7 @@ import type { MetadataRoute } from "next";
 // /api/ ei sisällä hakukoneille tarkoitettua sisältöä.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/", "/ottelu/e/", "/pelaaja/"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/", "/ottelu/e/", "/pelaaja/", "/hallinta"] }],
     sitemap: "https://www.futista.fi/sitemap.xml",
     host: "https://www.futista.fi",
   };

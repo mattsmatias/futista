@@ -1,3 +1,4 @@
+import { isAdmin } from "@/lib/site-stats";
 import { rpc, fantasyDbOn } from "@/lib/fantasy-db";
 import { allowed, clientKey, currentUser, hashPassword, newToken, passwordOk, sameOrigin, sessionCookie, sessionToken, tokenHash, verifyPassword, SESSION_DAYS } from "@/lib/fantasy-auth";
 import { usernameOk } from "@/lib/fantasy-core";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   if (!fantasyDbOn()) return fail("off", 503);
-  try { const u = await currentUser(req); return j({ user: u ? { username: u.username } : null }); } catch (e) { return dbFail(e); }
+  try { const u = await currentUser(req); return j({ user: u ? { username: u.username, ...(isAdmin(u.username) ? { admin: true } : {}) } : null }); } catch (e) { return dbFail(e); }
 }
 
 export async function POST(req: Request) {
