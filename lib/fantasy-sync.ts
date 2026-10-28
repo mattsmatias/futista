@@ -19,6 +19,11 @@ import {
 export type League = { af: number; season: number; name: string };
 /** Kilpailu. leagues + anchor = useamman sarjan peli viikkokierroksin (fantasy-core weekRound); muuten yksi sarja,
  *  kierrokset lähteen sarjakierroksista ("Regular Season - N"). */
+/** Vain testeissä (ei koskaan tuotannossa): viikkorajan päivä, jotta simuloidut otteluajat eivät osu rajalle kellonajasta riippuen */
+function testAnchor(): string | undefined {
+  const a = process.env.VERCEL_ENV !== "production" ? process.env.FANTASY_TEST_ANCHOR : undefined;
+  return a && /^\d{4}-\d{2}-\d{2}$/.test(a) ? a : undefined;
+}
 export type Comp = { id: string; name: string; af: number; season: number; leagues?: League[]; anchor?: string };
 export const TOP5: League[] = [
   { af: 39, season: 2026, name: "Valioliiga" }, { af: 140, season: 2026, name: "La Liga" }, { af: 78, season: 2026, name: "Bundesliga" },
@@ -28,7 +33,7 @@ export const COMPS: Comp[] = [
   // yksi yhteinen peli: pelaajat viidestä isosta sarjasta, kierros = viikko (käyttäjän valinta 27.10.2026)
   // viikko perjantaista torstaihin (ankkuri pe 31.7.2026). Uusi tunniste: ensimmäinen versio (top5-2026, viikko ti–ma) jäi
   // tietokantaan käyttämättömäksi – siinä ei ollut joukkueita.
-  { id: "top5f-2026", name: "Euroopan isot sarjat 2026–27", af: 39, season: 2026, leagues: TOP5, anchor: "2026-07-31" },
+  { id: "top5f-2026", name: "Euroopan isot sarjat 2026–27", af: 39, season: 2026, leagues: TOP5, anchor: testAnchor() ?? "2026-07-31" },
   { id: "pl-2026", name: "Valioliiga 2026–27", af: 39, season: 2026 },
 ];
 /** Pelattava kilpailu (FANTASY_COMP vain testeille / siirtymään) */

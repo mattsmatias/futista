@@ -56,7 +56,8 @@ node tests/integration/punaiset.cjs || rc=1
 node tests/integration/kohokohdat.cjs || rc=1
 node tests/integration/fantasy.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
-start env FANTASY_COMP=top5f-2026
+# viikkoraja 3 päivää ennen tätä päivää (Helsinki): simuloidut ottelut (nyt −7 vrk … nyt +8 vrk) eivät osu rajalle ajankohdasta riippuen
+start env FANTASY_COMP=top5f-2026 FANTASY_TEST_ANCHOR="$(TZ=Europe/Helsinki date -d "-73 days" +%F)"
 node tests/integration/fantasy-multi.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env FD_OFF=1 ESPN_OFF=1 RESEND_API_KEY=
