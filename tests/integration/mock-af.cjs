@@ -58,7 +58,9 @@ function fixtures(lg, now) {
   ];
   // Veikkausliiga: käynnissä oleva ottelu (live-ikkuna) ja siirretty ottelu
   if (lg === 244) {
-    out.push(f(base + 5, now - 30 * 60_000, "1H", 0, 2, [2, 1], { el: 30 }));
+    // alkuaika samalle Helsingin päivälle kuin nyt (klo 00.00–00.30 ajettuna "30 min sitten" olisi eilen → ei tämän päivän listalla)
+    const helMid = (() => { const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Helsinki", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date(now)).map((x) => [x.type, x.value])); return now - ((+p.hour * 60 + +p.minute) * 60 + +p.second) * 1000; })();
+    out.push(f(base + 5, Math.max(now - 30 * 60_000, Math.min(now, helMid + 60_000)), "1H", 0, 2, [2, 1], { el: 30 }));
     out.push(f(base + 6, now + 3 * 3600_000, "PST", 1, 3, [null, null]));
   }
   return out;
