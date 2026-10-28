@@ -23,6 +23,6 @@ export async function rpc<T = any>(fn: string, args: Record<string, unknown>): P
   const text = await res.text();
   // funktiota ei ole → migraatio ajamatta (PostgREST: 404 / PGRST202)
   if (res.status === 404 || /PGRST202|Could not find the function/.test(text)) throw new FantasyDbError("missing", `${fn}: missing`);
-  if (!res.ok) throw new FantasyDbError("db", `${fn}: http ${res.status}`);
+  if (!res.ok) { let c = ""; try { const j = JSON.parse(text); c = String(j?.code ?? "") + (j?.message ? ` ${String(j.message).slice(0, 120)}` : ""); } catch {} throw new FantasyDbError("db", `${fn}: http ${res.status}${c ? ` ${c}` : ""}`); }
   try { return (text ? JSON.parse(text) : null) as T; } catch { throw new FantasyDbError("db", `${fn}: parse`); }
 }

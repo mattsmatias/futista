@@ -63,7 +63,6 @@ export function Points() {
         )}
       </section>
       <p className="small"><Link href="/fantasy/liigat">Futista-liigan sarjataulukko →</Link></p>
-      <p className="muted small">Joukkueen arvo ja hinnat ovat pelin sisäistä valuuttaa ({fmtM(s.comp.budget)} budjetti), eivät oikeaa rahaa eivätkä pelaajien markkina-arvoja.</p>
     </>
   );
 }

@@ -47,7 +47,7 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="fxg-exit" aria-label="Takaisin Futistaan">
           <svg {...I}><path d="M15 18l-6-6 6-6" /></svg>
         </Link>
-        <div className="fxg-brand" aria-label="Futista Fantasy (beta)"><span>Futista</span><b>Fantasy</b></div>
+        <div className="fxg-brand" aria-label="Futista Fantasy (beta)"><b>Fantasy</b></div>
         <div className="fxg-chips">
           {t && t.first_round != null && <span className="fxg-chip pts" title="Kauden pisteet"><b>{t.total}</b><small>p</small></span>}
           {next && <span className="fxg-chip dl" title={`${roundName(s, next.no)}: määräaika ${localTime(next.deadline)}`}><i aria-hidden="true" /><span className="sr-only">{roundName(s, next.no)}, määräaika </span><Countdown to={next.deadline} /></span>}
@@ -251,9 +251,8 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
 
 export function DataStatus({ updated, stale }: { updated: string | null; stale: boolean }) {
   if (!updated) return <Notice kind="warn">Otteludataa haetaan ensimmäistä kertaa. Pelaajat ja kierrokset tulevat näkyviin hetken kuluttua.</Notice>;
-  return stale
-    ? <Notice kind="warn">Otteludata on vanhentunutta (päivitetty viimeksi {localTime(updated)}). Pisteet voivat muuttua, kun data päivittyy.</Notice>
-    : <p className="muted small fx-upd">Data päivitetty {localTime(updated)}</p>;
+  void stale; // vanhentuneesta datasta ei erillistä varoitusta (käyttäjän valinta 28.10.2026): päivitysaika näkyy aina
+  return <p className="muted small fx-upd">Data päivitetty {localTime(updated)}</p>;
 }
 
 export { ERR_TEXT };

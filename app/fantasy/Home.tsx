@@ -76,7 +76,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
           <div>
             <h2>{t.name}</h2>
             <p className="muted">{s.comp.name} · {s.user?.username}</p>
-            <button type="button" className="btn sm ghost" aria-expanded={logoEd} aria-controls="fx-logo-panel" onClick={() => setLogoEd((v) => !v)}>{t.logo ? "Muokkaa logoa" : "Tee logo"}</button>
+            <button type="button" className="btn sm ghost" aria-expanded={logoEd} aria-controls="fx-logo-panel" onClick={() => setLogoEd((v) => !v)}>Muokkaa logoa</button>
           </div>
         </div>
         <dl className="fx-kpis">

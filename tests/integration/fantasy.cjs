@@ -236,13 +236,14 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await shot(page, `pisteet-${w}`);
     const bd = await page.locator(".fx-breakdown > li").count(), sum = await page.locator(".fx-pts-sum").innerText().catch(() => "");
     const lnk = await page.locator('a[href="/fantasy/liigat"]').count();
-    ok(`${w}px: Pisteet – erittely ja linkki Futista-liigaan`, bd === 15 && lnk >= 1 && /lopullinen/i.test(sum), `${bd} ${lnk} ${sum}`);
+    ok(`${w}px: Pisteet – erittely ja linkki Futista-liigaan (ei rahahuomautusta)`, bd === 15 && lnk >= 1 && /lopullinen/i.test(sum) && !/pelin sisäistä valuuttaa/.test(await page.locator("main").innerText()), `${bd} ${lnk} ${sum}`);
     await page.goto(`${APP}/fantasy/liigat`, { waitUntil: "load" });
     await page.waitForSelector(".fx-rtbl tr.me", { timeout: 15000 }).catch(() => {});
     await shot(page, `liigat-${w}`);
     const ltxt = await page.locator("main").innerText();
     ok(`${w}px: Liiga – joukkueiden logot taulukossa (koristeena, nimi tekstinä)`, (await page.locator(".fx-rtbl tbody svg.fx-logo[aria-hidden=true]").count()) === 2);
-    ok(`${w}px: Liiga – avoin Futista-liiga, taulukko (oma korostettu), ei koodeja`, /Futista-liiga/.test(ltxt) && (await page.locator(".fx-rtbl tbody tr").count()) === 2 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && !/koodi/i.test(ltxt), ltxt.slice(0, 200));
+    ok(`${w}px: Liiga – avoin Futista-liiga, taulukko (oma korostettu), ei koodeja`, /Futista-liiga/.test(ltxt) && (await page.locator(".fx-rtbl tbody tr").count()) === 2 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && !/koodi/i.test(ltxt)
+      && !/avoin ja sama kaikille/.test(ltxt) && !/Futista-liiga ·/.test(ltxt) && (await page.locator(".fxg-brand").innerText()).trim().toLowerCase() === "fantasy", ltxt.slice(0, 200));
     await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
     ok(`${w}px: Säännöt`, /Nollapeli/.test(await page.locator("main").innerText()) && /1 ilmaisen siirron/.test(await page.locator("main").innerText()));
     ok(`${w}px: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));

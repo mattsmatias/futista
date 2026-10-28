@@ -93,7 +93,7 @@ export async function syncComp(c: Comp, opts: { force?: boolean; refetch?: boole
     await rpc("f_sync_done", { p_comp: c.id, p_ok: !r.error, p_error: r.error ?? null });
     return r;
   } catch (e) {
-    const msg = String((e as { code?: string })?.code ?? (e as Error)?.message ?? e).slice(0, 200);
+    const msg = String((e as Error)?.message ?? (e as { code?: string })?.code ?? e).slice(0, 200); // viesti kertoo vaiheen (esim. "f_fixtures_upsert: http 500 57014")
     console.warn("fantasy-sync", c.id, msg);
     await rpc("f_sync_done", { p_comp: c.id, p_ok: false, p_error: msg }).catch(() => {});
     return { error: msg };
@@ -137,7 +137,14 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     const dbBy = new Map(dbFx.map((x) => [x.fixture_id, x]));
     fixtureRows = src.flatMap((f) => { const n = assignWeek(f, c.anchor!, dbBy.get(f.fixture_id), lockedSet); return n ? [{ ...f, round_no: n }] : []; });
     // välimuistin ohjelma voi olla tietokantaa vanhempi: päättynyttä ottelua ei palauteta keskeneräiseksi
-    upsertRows = fixtureRows.filter((f) => { const d = dbBy.get(f.fixture_id); return !(d && fixtureFinished(d.status) && !fixtureFinished(f.status)); });
+    // tallennetaan vain uudet ja muuttuneet (5 sarjan ~1 800 ottelua joka kerta olisi raskas kirjoitus); käynnissä olevat aina
+    upsertRows = fixtureRows.filter((f) => {
+      const d = dbBy.get(f.fixture_id);
+      if (!d) return true;
+      if (fixtureFinished(d.status) && !fixtureFinished(f.status)) return false;
+      const sameKick = (d.kickoff ? Date.parse(d.kickoff) : 0) === (f.kickoff ? Date.parse(f.kickoff) : 0);
+      return fixtureLive(f.status) || d.status !== f.status || d.round_no !== f.round_no || !sameKick;
+    });
     fixtureRows = fixtureRows.map((f) => { const d = dbBy.get(f.fixture_id); return d && fixtureFinished(d.status) && !fixtureFinished(f.status) ? { ...f, status: d.status } : f; });
     const rounds = buildWeekRounds(fixtureRows);
     out.rounds = rounds.length;
@@ -150,7 +157,7 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     fixtureRows = src.filter((f) => rno(f.round) !== null).map((f) => ({ ...f, round_no: rno(f.round)! }));
     upsertRows = fixtureRows;
   }
-  await rpc("f_fixtures_upsert", { p_comp: c.id, p_rows: upsertRows });
+  for (let i = 0; i < upsertRows.length; i += 400) await rpc("f_fixtures_upsert", { p_comp: c.id, p_rows: upsertRows.slice(i, i + 400) }); // erinä
 
   // 2) pelaajat (6 h välein, ja kunnes jokaisen sarjan pelaajat on saatu): kokoonpanot + hinnat uusille pelaajille.
   //    Sarja otetaan mukaan vasta, kun sen kaikki kokoonpanot ja kauden tilastot on saatu (hinta lasketaan kerran).
@@ -250,7 +257,7 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
   return out;
 }
 
-const errCode = (e: unknown) => String((e as { code?: string })?.code ?? (e as Error)?.message ?? e).slice(0, 80);
+const errCode = (e: unknown) => String((e as Error)?.message ?? (e as { code?: string })?.code ?? e).slice(0, 120);
 
 export async function playersMap(comp: string): Promise<Map<number, FPlayer>> {
   const list = await rpc<FPlayer[]>("f_players", { p_comp: comp });

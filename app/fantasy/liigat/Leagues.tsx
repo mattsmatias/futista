@@ -13,10 +13,9 @@ export function Leagues() {
   if (!s.user) return <AuthBox onDone={st.reload} />;
   return (
     <>
-      <Notice>Futista-liiga on avoin ja sama kaikille: jokainen joukkue on mukana automaattisesti, eikä omia liigoja tarvita. Sijoitus lasketaan kauden kokonaispisteistä.</Notice>
       {!s.team?.first_round && <Notice>Joukkueesi tulee liigaan, kun olet tallentanut sen. <Link href={s.team ? "/fantasy/siirrot" : "/fantasy"}>{s.team ? "Valitse pelaajat" : "Luo joukkue"}</Link></Notice>}
       <section className="panel" aria-labelledby="fx-lg-h">
-        <div className="panel-head"><h2 id="fx-lg-h">Futista-liiga · {s.comp.name}</h2>{s.team?.rank && <span className="muted small">Sijasi {s.team.rank.rank} / {s.team.rank.of}</span>}</div>
+        <div className="panel-head"><h2 id="fx-lg-h">Futista-liiga</h2>{s.team?.rank && <span className="muted small">Sijasi {s.team.rank.rank} / {s.team.rank.of}</span>}</div>
         <Ranking />
       </section>
     </>
