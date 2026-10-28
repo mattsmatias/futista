@@ -291,6 +291,9 @@ const DAY = 86400_000;
   const m404 = await fetch(`${APP}/api/kokoonpanot?l=veikkausliiga&d=${M.d}&p=ei-ole--olemassa`);
   ok("tuntematon ottelu → 404", m404.status === 404, String(m404.status));
   await mj("/__mode?af=ok");
+  // 429-testi jätti palvelimen API-Football-tauolle (Retry-After 30 s): odotetaan tauko loppuun, jotta seuraavat
+  // testit (esim. fantasy) eivät satunnaisesti osu siihen ajoituksesta riippuen
+  await new Promise((r) => setTimeout(r, 31_000));
 
   const fail = results.filter((x) => !x).length;
   console.log(`\nAPI-Football-kilpailut: ${results.length - fail}/${results.length} kunnossa`);
