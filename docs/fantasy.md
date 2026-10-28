@@ -128,3 +128,12 @@ sähköpostia).
   (oma maali, vaihdon suunta, täsmäämätön data), uudelleenlaskenta, hinnat, koodit.
 - `tests/integration/fantasy.cjs` (koko ketju, simuloitu API-Football `mock-fantasy.cjs` + PostgreSQL): tilit, oikeudet, CSRF,
   lukitus, pisteet käsin laskettua vastaan, korjaus, tuplaus, ranking ja tasapisteet, avoin liiga, siirrot, käyttöliittymä 390/320 px.
+
+## Kutsulinkki (28.10.2026)
+- Oma joukkue -sivulla "Kutsu kaveri": linkki `/fantasy?kutsu=<koodi>`, Jaa (puhelimen jakovalikko) ja Kopioi.
+- Koodi = joukkueen tunniste + HMAC-allekirjoitus (lib/fantasy-invite.ts). Avain: `FANTASY_INVITE_SECRET`, tai jos sitä ei ole,
+  johdettu palvelimen Supabase-avaimesta omalla käyttötarkoitusmerkinnällä. Avaimen vaihto mitätöi vanhat kutsulinkit.
+- `/api/fantasy/kutsu?k=` palauttaa vain kutsujan joukkueen nimen, logon ja kauden pisteet (samat kuin Futista-liigassa); ei käyttäjätunnusta.
+  Väärä koodi → 404, joten joukkueita ei voi selata numeroimalla. Ei tietokantamuutosta.
+- Kutsuttu näkee tervetulotiedotteen; lomake avautuu tilin luonnissa. Koodi säilyy istunnossa tilin luonnin ajan ja poistuu, kun joukkue on luotu.
+- Kuka liittyi kenenkin kutsusta, ei tallenneta.

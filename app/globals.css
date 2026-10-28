@@ -2138,3 +2138,19 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .fx-swap-n small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fx-swap-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 210, 63, .14); color: #ffd23f; flex: none; }
 :root:not(:has(.fxg)) .fx-swap-ic { color: var(--fg); background: var(--surface); }
+
+/* Fantasy: kutsulinkki (oma kortti ja kutsutun tervetulotiedote) */
+.fx-invite { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); }
+.fx-invite h2 { margin: 0 0 4px; font: 800 18px/1.25 var(--display); overflow-wrap: anywhere; }
+.fx-invite p { margin: 0 0 10px; }
+.fx-invite .fx-row { margin: 0 0 10px; }
+.fx-inv-body { flex: 1; min-width: 0; }
+.fx-inv-ic { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--surface-2); font-size: 26px; }
+.fx-inv-k { margin: 0 0 2px !important; font: 800 11.5px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: #ffd23f; }
+.fx-inv-url { width: 100%; min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font: 500 13px/1.3 var(--ui); }
+.fx-inv-msg { margin: 8px 0 0 !important; color: var(--fg); }
+.fx-invite.in { border-color: rgba(255, 210, 63, .45); background: linear-gradient(135deg, rgba(255, 210, 63, .14), transparent 60%), var(--surface); }
+.fx-invite.in p:last-child { margin: 0; }
+.fx-inv-bad { margin: 0 0 8px; }
+:root:has(.fxg) .fx-invite { background: linear-gradient(180deg, #16203a, #111a2e); border-color: rgba(160, 185, 255, .16); }
+:root:has(.fxg) .fx-invite.in { background: linear-gradient(135deg, rgba(255, 210, 63, .16), transparent 60%), #111a2e; border-color: rgba(255, 210, 63, .45); }

@@ -1,21 +1,26 @@
 "use client";
 // Oma joukkue: nimi, kierros ja määräaika, pisteet, sijoitus, budjetti, kokoonpano kentällä.
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, useLoad, fmtM, localTime, roundName, roundNum, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import type { Picks } from "@/lib/fantasy-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
+import { InviteBanner, InviteCard, useInviteCode } from "./Invite";
 
 export function FantasyHome() {
   const st = useLoad<FState>("/api/fantasy/tila");
   const s = st.data;
+  const [invite, clearInvite] = useInviteCode();
+  const hasTeam = !!s?.team;
+  useEffect(() => { if (hasTeam && invite) clearInvite(); }, [hasTeam, invite]); // eslint-disable-line react-hooks/exhaustive-deps
+  const banner = invite ? <InviteBanner code={invite} /> : null;
   if (st.loading && !s) return <Loading />;
-  if (st.err) return st.err.error === "login" ? <AuthBox onDone={st.reload} /> : <ErrorBox err={st.err} retry={st.reload} />;
+  if (st.err) return st.err.error === "login" ? <>{banner}<AuthBox onDone={st.reload} initial={invite ? "register" : "login"} /></> : <ErrorBox err={st.err} retry={st.reload} />;
   if (!s) return <Loading />;
-  if (!s.user) return <AuthBox onDone={st.reload} />;
-  if (!s.team) return <CreateTeam s={s} onDone={st.reload} />;
+  if (!s.user) return <>{banner}<AuthBox onDone={st.reload} initial={invite ? "register" : "login"} /></>;
+  if (!s.team) return <>{banner}<CreateTeam s={s} onDone={st.reload} /></>;
   return <Home s={s} reload={st.reload} />;
 }
 
@@ -110,6 +115,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       {snap.data?.points?.breakdown?.subs?.length > 0 && (
         <p className="muted small">Automaattiset vaihdot: {snap.data!.points.breakdown.subs.map((x: any) => `${players.get(x.out)?.name ?? x.out} → ${players.get(x.in)?.name ?? x.in}`).join(", ")}</p>
       )}
+      {t.invite && <InviteCard code={t.invite} teamName={t.name} />}
       {sel !== null && players.get(sel) && <PlayerCard p={players.get(sel)!} onClose={() => setSel(null)} extra={showRound ? <RoundItems row={ptsOf(sel)} /> : null} />}
     </>
   );

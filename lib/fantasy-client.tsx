@@ -11,7 +11,7 @@ export type FState = {
   rounds: { no: number; label?: string; deadline: string; first: string; locked: boolean; status: string }[];
   next: number | null; current: number | null;
   team: null | {
-    id: number; name: string; logo: unknown; first_round: number | null; version: number; picks: Picks | null; base: Picks | null;
+    id: number; name: string; logo: unknown; invite: string | null; first_round: number | null; version: number; picks: Picks | null; base: Picks | null;
     free: number | null; made: number; cost: number; total: number; rank: { rank: number; of: number } | null; joined_late: boolean;
     points: { round: number; points: number; hits: number; total: number; provisional: boolean }[];
   };

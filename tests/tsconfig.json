@@ -35,6 +35,7 @@
     "apifootball.test.ts",
     "contact.test.ts",
     "af-players.test.ts",
-    "fantasy.test.ts"
+    "fantasy.test.ts",
+    "fantasy-invite.test.ts"
   ]
 }

@@ -153,6 +153,11 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   ok("  /fantasy toimii suoraan osoitteella ja on noindex", /Futista Fantasy/.test(fx) && /<meta name="robots" content="noindex, nofollow"\/>/.test(fx));
 
   // ---------- käyttöliittymä ----------
+  {
+    const bad = await fetch(`${APP}/api/fantasy/kutsu?k=1-AAAAAAAAAAAA`);
+    const none = await fetch(`${APP}/api/fantasy/kutsu`);
+    ok("kutsu-API: väärä tai puuttuva koodi → 404 (joukkueita ei voi selata numeroimalla)", bad.status === 404 && none.status === 404, `${bad.status} ${none.status}`);
+  }
   const browser = await chromium.launch({ executablePath: process.env.CHROME });
   for (const w of [390, 320]) {
     const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 844 } });
@@ -190,6 +195,22 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   määräaika ja sijoitus näkyvät`, /kierros 3/i.test(kp) && /1 \/ 2/.test(kp), kp);
     await page.locator(".fx-pitch .fx-tok").first().click();
     ok(`${w}px:   pelaajakortti avautuu ja sulkeutuu Escillä`, (await page.locator(".fx-card[role=dialog]").count()) === 1 && (await page.keyboard.press("Escape"), (await page.locator(".fx-card").count()) === 0));
+    // kutsulinkki: oma linkki näkyy, avautuu kirjautumattomalle tervetulotiedotteena ja tilin luonnilla
+    const invUrl = await page.locator(".fx-inv-url").inputValue().catch(() => "");
+    ok(`${w}px: Kutsu kaveri – oma kutsulinkki (allekirjoitettu koodi) ja Kopioi-nappi`, /\/fantasy\?kutsu=[0-9a-z]+-[A-Za-z0-9_-]{12}$/.test(invUrl) && (await page.locator(".fx-invite button", { hasText: "Kopioi linkki" }).count()) === 1, invUrl);
+    const guest = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 844 } });
+    const gp = await guest.newPage();
+    await gp.goto(invUrl.replace(/^https?:\/\/[^/]+/, APP), { waitUntil: "load" });
+    await gp.waitForSelector(".fx-invite.in", { timeout: 15000 }).catch(() => {});
+    const inv = await gp.locator(".fx-invite.in").innerText().catch(() => "");
+    ok(`${w}px:   kutsuttu: "<joukkue> haastaa sinut", lomake valmiiksi tilin luonnissa`, /Testi FC haastaa sinut/.test(inv) && (await gp.locator("h2", { hasText: "Luo tili" }).count()) === 1, inv.replace(/\s+/g, " "));
+    const gov = await gp.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    ok(`${w}px:   kutsunäkymä ilman vaakavieritystä; ei käyttäjätunnusta näkyvissä`, gov <= 0 && !/pelaaja_a/.test(await gp.locator("main").innerText()), String(gov));
+    await shot(gp, `kutsu-${w}`);
+    await gp.goto(`${APP}/fantasy?kutsu=1-AAAAAAAAAAAA`, { waitUntil: "load" });
+    await gp.waitForSelector(".fx-inv-bad, .fx-invite.in", { timeout: 15000 }).catch(() => {});
+    ok(`${w}px:   muokattu kutsukoodi → "ei ole voimassa", ei joukkueen tietoja`, (await gp.locator(".fx-inv-bad").count()) === 1 && (await gp.locator(".fx-invite.in").count()) === 0);
+    await guest.close();
     // logo: oma logo näkyy, editori avautuu, valinta + tallennus
     ok(`${w}px: oma logo näkyy joukkueen nimen vieressä`, (await page.locator('.fx-summary svg.fx-logo[role=img]').count()) === 1);
     await page.locator("button", { hasText: "Muokkaa logoa" }).click();

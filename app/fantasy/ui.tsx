@@ -83,8 +83,8 @@ export function ErrorBox({ err, retry }: { err: ApiErr | null; retry?: () => voi
 }
 
 /** Kirjautuminen ja tilin luonti (käyttäjätunnus + salasana) */
-export function AuthBox({ onDone }: { onDone: () => void }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+export function AuthBox({ onDone, initial = "login" }: { onDone: () => void; initial?: "login" | "register" }) {
+  const [mode, setMode] = useState<"login" | "register">(initial);
   const [u, setU] = useState(""), [p, setP] = useState("");
   const [busy, setBusy] = useState(false), [err, setErr] = useState<string | null>(null);
   const submit = async (e: React.FormEvent) => {

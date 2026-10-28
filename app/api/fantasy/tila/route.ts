@@ -2,6 +2,7 @@ import { rpc, fantasyDbOn } from "@/lib/fantasy-db";
 import { currentUser } from "@/lib/fantasy-auth";
 import { picksAt } from "@/lib/fantasy-core";
 import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
+import { inviteCode } from "@/lib/fantasy-invite";
 import { j, fail, dbFail, loadState, roundInfo, roundLabel, transferInfo, kick, teamLogos } from "@/lib/fantasy-api";
 
 // Fantasy-näkymän tila: kilpailu, kierrokset ja määräajat (palvelimen kello), oma joukkue, pisteet, sijoitus, datan tuoreus.
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
       rounds: st.rounds.map((r) => ({ no: r.round_no, label: roundLabel(r), deadline: r.deadline_at, first: r.first_kickoff, locked: r.locked, status: r.status })),
       next: next?.round_no ?? null, current: current?.round_no ?? null,
       team: t ? {
-        id: t.id, name: t.name, logo, first_round: t.first_round, version: t.version,
+        id: t.id, name: t.name, logo, invite: inviteCode(t.id), first_round: t.first_round, version: t.version,
         picks: next ? picksAt(t.picks, next.round_no) : picksAt(t.picks, Number.MAX_SAFE_INTEGER),
         base: tr.base, free: tr.free === Infinity ? null : tr.free, made: tr.made, cost: tr.cost,
         points: t.points.map((p) => ({ round: p.round_no, points: p.points, hits: p.hits, total: p.total, provisional: p.provisional })),
