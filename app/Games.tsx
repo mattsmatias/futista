@@ -27,7 +27,7 @@ const COMP: Record<string, [string, string, string]> = {
   "esp.copa_del_rey": ["Copa del Rey", "Copa del Rey", "Copa del Rey"],
   "esp.super_cup": ["Espanjan Supercup", "Spanska supercupen", "Spanish Super Cup"],
   "eng.fa": ["FA Cup", "FA-cupen", "FA Cup"],
-  "eng.league_cup": ["Liigacup", "Ligacupen", "League Cup"],
+  "eng.league_cup": ["EFL Cup", "EFL Cup", "EFL Cup"],
   "eng.charity": ["Community Shield", "Community Shield", "Community Shield"],
   "ger.dfb_pokal": ["DFB-Pokal", "DFB-Pokal", "DFB-Pokal"],
   "ger.super_cup": ["Saksan Supercup", "Tyska supercupen", "German Super Cup"],

@@ -50,6 +50,8 @@ export const COMP_EMBLEM: Record<SourceId, { light: string; dark?: string }> = {
   ...(Object.fromEntries(AF_COMPS.map((c) => [c.id, { light: `https://media.api-sports.io/football/leagues/${c.af}.png` }])) as Record<(typeof AF_COMPS)[number]["id"], { light: string }>),
   // Kansallinen Liiga: käyttäjän valitsema logo (suomenkielinen Wikipedia, 24.10.2026). Jos kuva ei lataudu, näytetään lyhenne.
   kansallinenliiga: { light: "https://upload.wikimedia.org/wikipedia/fi/f/f8/Kansallinen_Liiga_logo_blank.svg" },
+  // EFL Cup: käyttäjän toimittama logo (28.10.2026), sivuston omana tiedostona
+  liigacup: { light: "/emblems/efl-cup.png" },
 };
 
 export const compIds = () => COMP_ORDER.filter((id) => SOURCES.some((s) => s.id === id));
@@ -63,7 +65,7 @@ export const SLUG_EMBLEM: Record<string, { light: string; dark?: string }> = {
   "uefa.champions": espn(2), "esp.1": espn(15), "eng.1": espn(23), "ger.1": espn(10), "ita.1": espn(12), "fra.1": espn(9),
   "ned.1": espn(11), "por.1": espn(14), "eng.2": espn(24), "tur.1": espn(18), "usa.1": espn(19),
   "uefa.europa": espn(2310), "uefa.europa.conf": espn(20296), "uefa.super_cup": espn(1272), "fifa.cwc": espn(1932),
-  "ger.dfb_pokal": espn(2061), "eng.fa": espn(40), "eng.league_cup": espn(41), "esp.copa_del_rey": espn(80),
+  "ger.dfb_pokal": espn(2061), "eng.fa": espn(40), "eng.league_cup": { light: "/emblems/efl-cup.png" }, "esp.copa_del_rey": espn(80),
   "esp.super_cup": ESPN_LIGHT(431), "ita.coppa_italia": ESPN_LIGHT(2192), "fra.coupe_de_france": espn(182),
   "ned.cup": espn(2196), "usa.open": ESPN_LIGHT(69), "concacaf.leagues.cup": espn(2410),
 };

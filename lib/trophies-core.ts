@@ -41,7 +41,7 @@ export const TROPHIES: TrophyDef[] = [
   { key: "es-c", fi: "Copa del Rey", en: "Copa del Rey", comps: ["Q483794"], kind: "cup" },
   { key: "es-s", fi: "Espanjan Supercopa", en: "Supercopa de España", comps: ["Q485997"], kind: "super" },
   { key: "en-c", fi: "FA Cup", en: "FA Cup", comps: ["Q11151"], kind: "cup" },
-  { key: "en-lc", fi: "Englannin liigacup", en: "EFL Cup", comps: ["Q11152"], kind: "cup" },
+  { key: "en-lc", fi: "EFL Cup", en: "EFL Cup", comps: ["Q11152"], kind: "cup" },
   { key: "en-s", fi: "Community Shield", en: "Community Shield", comps: ["Q189188"], kind: "super" },
   { key: "de-c", fi: "DFB-Pokal", en: "DFB-Pokal", comps: ["Q150880"], kind: "cup" },
   { key: "de-s", fi: "Saksan Supercup", en: "German Super Cup", comps: ["Q156973"], kind: "super" },

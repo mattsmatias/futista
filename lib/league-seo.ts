@@ -28,7 +28,7 @@ export const LEAGUE_SEO: Partial<Record<SourceId, { aka: string; also: string[];
   kansojenliiga: { aka: "Nations League", also: ["Kansojen liiga", "UEFA Nations League"], what: "UEFAn miesten maajoukkueiden turnaus" },
   mmkarsinnat: { aka: "MM-karsinnat", also: ["MM-karsinnat", "World Cup qualifiers"], what: "miesten MM-kisojen Euroopan karsintaturnaus" },
   facup: { aka: "FA Cup", also: ["FA Cup", "FA-cup"], what: "Englannin jalkapallon cup-kilpailu" },
-  liigacup: { aka: "EFL Cup", also: ["Englannin liigacup", "Carabao Cup", "EFL Cup"], what: "Englannin liigaseurojen cup-kilpailu" },
+  liigacup: { aka: "Englannin liigacup", also: ["Englannin liigacup", "Carabao Cup", "EFL Cup", "Liigacup"], what: "Englannin liigaseurojen cup-kilpailu" },
   copadelrey: { aka: "Copa del Rey", also: ["Copa del Rey", "Espanjan cup"], what: "Espanjan jalkapallon cup-kilpailu" },
   dfbpokal: { aka: "DFB-Pokal", also: ["DFB-Pokal", "Saksan cup"], what: "Saksan jalkapallon cup-kilpailu" },
   coppaitalia: { aka: "Coppa Italia", also: ["Coppa Italia", "Italian cup"], what: "Italian jalkapallon cup-kilpailu" },

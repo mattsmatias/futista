@@ -33,7 +33,7 @@ export const AF_COMPS = [
   { id: "mmkarsinnat", af: 32, name: ["MM-karsinnat (Eurooppa)", "VM-kval (Europa)", "World Cup qualifiers (Europe)"], country: "eu", gender: "m", kind: "tournament", groups: ["nt"], data: { standings: true, scorers: true }, mark: "MMK" },
   // Vaihe C – Euroopan cupit (Eurooppa-liiga ja Konferenssiliiga ovat jo käytössä ESPN:stä: ei kaksoiskappaleita)
   { id: "facup", af: 45, name: ["FA Cup", "FA-cupen", "FA Cup"], country: "en", gender: "m", kind: "cup", groups: ["cups"], data: { standings: false, scorers: false }, mark: "FA" },
-  { id: "liigacup", af: 48, name: ["Liigacup (Englanti)", "Ligacupen (England)", "EFL Cup"], country: "en", gender: "m", kind: "cup", groups: ["cups"], data: { standings: false, scorers: true }, mark: "LC" },
+  { id: "liigacup", af: 48, name: ["EFL Cup", "EFL Cup", "EFL Cup"], country: "en", gender: "m", kind: "cup", groups: ["cups"], data: { standings: false, scorers: true }, mark: "LC" },
   { id: "copadelrey", af: 143, name: ["Copa del Rey", "Copa del Rey", "Copa del Rey"], country: "es", gender: "m", kind: "cup", groups: ["cups"], data: { standings: false, scorers: false }, mark: "CdR" },
   { id: "dfbpokal", af: 81, name: ["DFB-Pokal", "DFB-Pokal", "DFB-Pokal"], country: "de", gender: "m", kind: "cup", groups: ["cups"], data: { standings: false, scorers: true }, mark: "DFB" },
   { id: "coppaitalia", af: 137, name: ["Coppa Italia", "Coppa Italia", "Coppa Italia"], country: "it", gender: "m", kind: "cup", groups: ["cups"], data: { standings: false, scorers: true }, mark: "CI" },
