@@ -245,6 +245,13 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click().catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
     await shot(page, `siirrot-${w}`);
+    const ic = await page.evaluate(() => {
+      const st = (c) => { const e = document.querySelector(`.fx-plist .fx-padd.${c}`); return e ? { bg: getComputedStyle(e).backgroundColor, svg: !!e.querySelector("svg"), txt: e.textContent } : null; };
+      return { sel: st("is-sel"), off: st("is-off"), add: st("is-add"), legacy: document.querySelectorAll(".fx-plist .fx-padd.off").length };
+    });
+    // joukkue täynnä → ei lisättäviä; valittu vihreä ✓, estetty ei korostusväriä (ennen keltainen "–")
+    ok(`${w}px:   listan kuvakkeet: valittu vihreä, estetty himmeä lukko (ei keltainen), SVG-kuvakkeet`, ic.sel?.svg && ic.off?.svg && ic.sel.bg === "rgb(61, 220, 151)" && !/255, 210, 63/.test(ic.off.bg) && ic.off.txt === "" && ic.legacy === 0, JSON.stringify(ic));
+    if (process.env.SHOTS) await page.locator(".fx-plist").screenshot({ path: `${process.env.SHOTS}/lista-ikonit-${w}.png` }).catch(() => {});
     // pelaajakortti penkkipelaajalle: pikatoiminnot ruudukkona, vaihtoehdot pelaajalistana (ei pitkää nappirivistöä)
     await page.locator(".fx-bench .fx-tok").nth(1).click();
     await page.waitForSelector(".fx-pcard", { timeout: 5000 }).catch(() => {});

@@ -204,6 +204,14 @@ function swapOptions(d: Draft, id: number, players: Map<number, FPlayer>): numbe
 }
 
 const PAGE = 40;
+// Listan tilakuvakkeet: lisää (+), valittu (✓), ei voi lisätä (lukko; syy ruudunlukijalle ja pelaajakortissa)
+const ico = (d: React.ReactNode, w = 2.6) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
+const ADD_ICON = {
+  add: ico(<path d="M12 5v14M5 12h14" />, 2.8),
+  sel: ico(<path d="M5 12.5l4.5 4.5L19 7.5" />, 2.8),
+  off: ico(<><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" /></>, 2.1),
+};
+
 function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]; why: (p: FPlayerRow) => string | null; onPick: (id: number) => void; picked: number[]; leagues?: { id: number; name: string }[] }) {
   const [pos, setPos] = useState<Pos | "ALL">("ALL");
   const [league, setLeague] = useState<number>(0);
@@ -254,12 +262,12 @@ function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]
         {rows.slice(0, n).map((p) => {
           const w = why(p), sel = picked.includes(p.id);
           return (
-            <li key={p.id} className={sel ? "sel" : ""}>
+            <li key={p.id} className={sel ? "sel" : w ? "off" : ""}>
               <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}${multi && p.league_name ? `, ${p.league_name}` : ""}, ${fmtM(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
                 <PlayerFace p={p} />
                 <span className="fx-pname"><b>{p.name}</b><small className="muted">{p.team}{multi && p.league_name ? ` · ${p.league_name}` : ""}</small></span>
                 <span className="fx-pnum">{fmtM(p.price)}<small className="muted">{p.season} p</small></span>
-                <span className={`fx-padd${w ? " off" : ""}`} aria-hidden="true">{sel ? "✓" : w ? "–" : "+"}</span>
+                <span className={`fx-padd ${sel ? "is-sel" : w ? "is-off" : "is-add"}`} aria-hidden="true">{sel ? ADD_ICON.sel : w ? ADD_ICON.off : ADD_ICON.add}</span>
               </button>
             </li>
           );
