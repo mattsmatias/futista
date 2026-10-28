@@ -1,9 +1,7 @@
 # Futista Fantasy (beta)
 
-Tuotannossa **piilotettuna testausta varten** (käyttäjän päätös 27.10.2026): osoite `/fantasy` toimii suoraan, mutta
-sivustolla ei ole linkkiä siihen (ainoa sisäänkäynti: haku sanalla "fantasy"/"fantasia", jotta peliin pääsee myös
-kotivalikkoon asennetusta sovelluksesta), sivut ovat `noindex, nofollow` eikä osoite ole robots.txt:ssä eikä sivukartassa.
-Julkinen avaus = linkki sivustolle (esim. Sarjat-sivu) ja noindexin poisto `app/fantasy/layout.tsx`:stä.
+Tuotannossa, Futistan päävalikossa (Fantasy) 28.10.2026 alkaen (käyttäjän päätös). Sivut ovat edelleen `noindex, nofollow`
+eikä osoite ole robots.txt:ssä eikä sivukartassa (hakukoneisiin vain erillisellä päätöksellä).
 
 ## Käyttöönotto
 

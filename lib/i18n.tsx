@@ -392,6 +392,7 @@ const D = {
   nav_favs: ["Suosikit", "Favoriter", "Favourites"],
   nav_comps: ["Sarjat", "Serier", "Competitions"],
   nav_news: ["Uutiset", "Nyheter", "News"],
+  nav_fantasy: ["Fantasy", "Fantasy", "Fantasy"],
   mainNav: ["Päävalikko", "Huvudmeny", "Main menu"],
   search: ["Haku", "Sök", "Search"],
   searchPh: ["Hae joukkuetta, sarjaa tai maata", "Sök lag, serie eller land", "Search team, competition or country"],

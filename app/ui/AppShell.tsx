@@ -13,12 +13,14 @@ import SearchDialog from "./Search";
 import { AccountMenu, AccountWelcome } from "./Account";
 import { Icon } from "./Icons";
 
-type NavId = "matches" | "favs" | "live" | "comps" | "news";
+type NavId = "matches" | "favs" | "live" | "fantasy" | "comps" | "news";
 const NAV: { id: NavId; href: string; label: Key; icon: JSX.Element }[] = [
   { id: "matches", href: "/", label: "nav_matches", icon: Icon.matches },
   { id: "favs", href: "/suosikit", label: "nav_favs", icon: Icon.favs },
   // Live = etusivun Live-suodatin (?n=live) omana kohtanaan (käyttäjän valinta 24.10.2026)
   { id: "live", href: "/?n=live", label: "f_live", icon: Icon.live },
+  // Fantasy näkyvästi päävalikossa (käyttäjän valinta 28.10.2026)
+  { id: "fantasy", href: "/fantasy", label: "nav_fantasy", icon: Icon.fantasy },
   { id: "comps", href: "/sarjat", label: "nav_comps", icon: Icon.comps },
   { id: "news", href: "/uutiset", label: "nav_news", icon: Icon.news },
 ];
@@ -29,6 +31,7 @@ export function activeNav(path: string, live = false): NavId | null {
   if (path.startsWith("/suosikit")) return "favs";
   if (path.startsWith("/sarjat") || path.startsWith("/maajoukkue") || path.startsWith("/joukkue") || path.startsWith("/pelaaja")) return "comps";
   if (path.startsWith("/uutiset")) return "news";
+  if (path.startsWith("/fantasy")) return "fantasy";
   return null;
 }
 

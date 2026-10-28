@@ -149,7 +149,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   // ---------- piilotettu beta: ei linkkejä, ei hakukoneille ----------
   const txt = async (u) => (await fetch(`${APP}${u}`)).text();
   const [sarjat, koti, robots, sitemap, fx] = await Promise.all([txt("/sarjat"), txt("/"), txt("/robots.txt"), txt("/sitemap.xml"), txt("/fantasy")]);
-  ok("piilossa: ei linkkiä Sarjat- tai etusivulta, ei robots.txt:ssä eikä sivukartassa", !/href="\/fantasy/.test(sarjat) && !/href="\/fantasy/.test(koti) && !/fantasy/i.test(robots) && !/fantasy/i.test(sitemap));
+  ok("Fantasy päävalikossa (etusivu ja Sarjat); ei robots.txt:ssä eikä sivukartassa", /class="bottomnav"[\s\S]*href="\/fantasy"/.test(koti) && /href="\/fantasy"/.test(sarjat) && !/fantasy/i.test(robots) && !/fantasy/i.test(sitemap));
   ok("  /fantasy toimii suoraan osoitteella ja on noindex", /Futista Fantasy/.test(fx) && /<meta name="robots" content="noindex, nofollow"\/>/.test(fx));
 
   // ---------- käyttöliittymä ----------

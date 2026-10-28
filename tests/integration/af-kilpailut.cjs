@@ -86,7 +86,7 @@ const DAY = 86400_000;
   ok("  ei näkyvää Sarjat-otsikkoa eikä rajauskenttää (käyttäjän valinta 25.10.2026)", hd.inputs === 0 && hd.h1.length === 1 && hd.h1[0].txt === "Sarjat" && hd.h1[0].w <= 1, JSON.stringify(hd));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
   ok("  alatunnisteen lähteissä API-Football", (await page.locator(".foot-credits").innerText()).includes("API-Football"));
-  ok("  alanavigaatiossa 5 kohtaa (Ottelut, Suosikit, Live, Sarjat, Uutiset)", (await page.locator(".bottomnav a").allTextContents()).join("|") === "Ottelut|Suosikit|Live|Sarjat|Uutiset");
+  ok("  alanavigaatiossa 6 kohtaa (Ottelut, Suosikit, Live, Fantasy, Sarjat, Uutiset)", (await page.locator(".bottomnav a").allTextContents()).join("|") === "Ottelut|Suosikit|Live|Fantasy|Sarjat|Uutiset");
 
   // ---------- Sarjasivut ----------
   await go("/sarjat/veikkausliiga");

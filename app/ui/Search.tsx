@@ -80,7 +80,7 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
     }, 250);
     return () => { clearTimeout(t); ctl.abort(); };
   }, [q]);
-  // Futista Fantasy (piilotettu beta): ei linkkiä sivustolla; löytyy vain kirjoittamalla haun hakusanan "fantasy"/"fantasia".
+  // Futista Fantasy: löytyy myös haulla "fantasy"/"fantasia" (päävalikossa 28.10.2026 alkaen).
   // Näin peliin pääsee myös kotivalikkoon asennetusta sovelluksesta, jossa ei ole osoiteriviä.
   const fantasy: { kind: "link"; href: string }[] = /^(futista\s+)?fantas(y|ia)$/i.test(q.trim()) ? [{ kind: "link", href: "/fantasy" }] : [];
   const flat: ({ kind: "link"; href: string } | SearchTeam | SearchComp | SearchNation | SearchPlayer)[] = [...fantasy, ...res.teams, ...res.comps, ...res.nations, ...players];
