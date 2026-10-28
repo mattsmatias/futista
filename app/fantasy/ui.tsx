@@ -4,32 +4,66 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, type FPlayerRow, type ApiErr } from "@/lib/fantasy-client";
+import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, roundName, useLoad, type FPlayerRow, type ApiErr, type FState } from "@/lib/fantasy-client";
 import type { Picks, Pos } from "@/lib/fantasy-core";
 
+// Pelinäkymä: oma yläpalkki (HUD) ja alavalikko; Futistan yläpalkki, alavalikko ja alatunniste piiloon (html.fx-game)
+const I = { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
 const TABS = [
-  { href: "/fantasy", label: "Oma joukkue" },
-  { href: "/fantasy/siirrot", label: "Siirrot" },
-  { href: "/fantasy/liigat", label: "Liiga" },
-  { href: "/fantasy/pisteet", label: "Pisteet" },
-  { href: "/fantasy/saannot", label: "Säännöt" },
+  { href: "/fantasy", label: "Joukkue", icon: <svg {...I}><path d="M8 3 4 5 2 9l3 2 1-1v10h12V10l1 1 3-2-2-4-4-2c-.5 2-2 3-4 3S8.5 5 8 3Z" /></svg> },
+  { href: "/fantasy/siirrot", label: "Siirrot", icon: <svg {...I}><path d="M4 8h13l-3-3M20 16H7l3 3" /></svg> },
+  { href: "/fantasy/liigat", label: "Liiga", icon: <svg {...I}><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4" /></svg> },
+  { href: "/fantasy/pisteet", label: "Pisteet", icon: <svg {...I}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg> },
+  { href: "/fantasy/saannot", label: "Säännöt", icon: <svg {...I}><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg> },
 ];
+
+/** Määräajan laskuri ("2 pv 21 h", "5 h 12 min", "12 min") – päivittyy puolen minuutin välein */
+export function Countdown({ to }: { to: string }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => { setNow(Date.now()); const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
+  if (now === null) return null;
+  const ms = Date.parse(to) - now;
+  if (ms <= 0) return <>suljettu</>;
+  const m = Math.floor(ms / 60_000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  return <>{d > 0 ? `${d} pv ${h} h` : h > 0 ? `${h} h ${mm} min` : `${Math.max(1, mm)} min`}</>;
+}
 
 export function FantasyShell({ children }: { children: React.ReactNode }) {
   const path = usePathname() || "/fantasy";
+  const st = useLoad<FState>("/api/fantasy/tila");
+  const { reload } = st;
+  useEffect(() => {
+    const h = document.documentElement;
+    h.classList.add("fx-game");
+    return () => h.classList.remove("fx-game");
+  }, []);
+  useEffect(() => { reload(); }, [path, reload]); // HUD ajan tasalle sivua vaihdettaessa
+  const s = st.data;
+  const next = s?.rounds.find((r) => r.no === s.next) ?? null;
+  const t = s?.team ?? null;
   return (
-    <main className="wrap entity fx">
-      <header className="fx-head">
-        <h1>Futista Fantasy <span className="fx-beta">beta</span></h1>
+    <div className="fxg">
+      <header className="fxg-hud">
+        <Link href="/" className="fxg-exit" aria-label="Takaisin Futistaan">
+          <svg {...I}><path d="M15 18l-6-6 6-6" /></svg>
+        </Link>
+        <div className="fxg-brand" aria-label="Futista Fantasy (beta)"><span>Futista</span><b>Fantasy</b></div>
+        <div className="fxg-chips">
+          {t && t.first_round != null && <span className="fxg-chip pts" title="Kauden pisteet"><b>{t.total}</b><small>p</small></span>}
+          {next && <span className="fxg-chip dl" title={`${roundName(s, next.no)}: määräaika ${localTime(next.deadline)}`}><i aria-hidden="true" /><span className="sr-only">{roundName(s, next.no)}, määräaika </span><Countdown to={next.deadline} /></span>}
+        </div>
       </header>
-      <nav className="fx-tabs" aria-label="Fantasy">
-        {TABS.map((t) => {
-          const on = t.href === "/fantasy" ? path === "/fantasy" : path.startsWith(t.href);
-          return <Link key={t.href} href={t.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>{t.label}</Link>;
+      <main className="fx">
+        <h1 className="sr-only">Futista Fantasy</h1>
+        {children}
+      </main>
+      <nav className="fxg-tabs" aria-label="Fantasy">
+        {TABS.map((x) => {
+          const on = x.href === "/fantasy" ? path === "/fantasy" : path.startsWith(x.href);
+          return <Link key={x.href} href={x.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>{x.icon}<span>{x.label}</span></Link>;
         })}
       </nav>
-      {children}
-    </main>
+    </div>
   );
 }
 
@@ -90,6 +124,13 @@ export function AuthBox({ onDone }: { onDone: () => void }) {
 const surname = (n: string) => { const parts = n.split(" "); return parts.length > 1 && /^[A-ZÀ-Ý]\.$/.test(parts[0]) ? parts.slice(1).join(" ") : parts.at(-1)!; };
 
 /** Geneerinen pelipaita (ei seurojen suojattuja grafiikoita): kenttäpelaajat yhtä väriä, maalivahti eri väriä */
+/** Kentän pelaajakuva: lähteen kuva pelaajatunnisteella, muuten pelipaita */
+function TokPic({ p }: { p: FPlayerRow }) {
+  const [failed, setFailed] = useState(false);
+  const src = failed ? null : okPhoto(p.photo);
+  return src ? <img className={`fx-tok-face${p.pos === "GK" ? " gk" : ""}`} src={src} alt="" width={46} height={46} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <Shirt gk={p.pos === "GK"} />;
+}
+
 function Shirt({ gk }: { gk: boolean }) {
   return (
     <svg className={`fx-shirt${gk ? " gk" : ""}`} viewBox="0 0 48 44" aria-hidden="true">
@@ -114,7 +155,7 @@ export function Pitch({ picks, players, badge, onSelect, label, empty }: {
     const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.text}` : ""}`;
     const inner = (
       <>
-        <span className="fx-tok-pic"><Shirt gk={p.pos === "GK"} />{role && <em className={`fx-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
+        <span className="fx-tok-pic"><TokPic p={p} />{role && <em className={`fx-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
         <span className="fx-tok-name">{surname(p.name)}</span>
         {b && <span className={`fx-tok-b ${b.tone ?? "pts"}`}>{b.text}</span>}
         {bench && <span className="fx-tok-pos" aria-hidden="true">{POS_SHORT[p.pos]}</span>}
