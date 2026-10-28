@@ -224,6 +224,24 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click().catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
     await shot(page, `siirrot-${w}`);
+    // pelaajakortti penkkipelaajalle: pikatoiminnot ruudukkona, vaihtoehdot pelaajalistana (ei pitkää nappirivistöä)
+    await page.locator(".fx-bench .fx-tok").nth(1).click();
+    await page.waitForSelector(".fx-pcard", { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(350); // avausanimaatio
+    const pc = await page.evaluate(() => {
+      const c = document.querySelector(".fx-pcard"); if (!c) return null;
+      const r = c.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, vh: innerHeight, ov: c.scrollWidth - c.clientWidth, swaps: c.querySelectorAll(".fx-swaps li").length,
+        acts: [...c.querySelectorAll(".fx-act")].map((b) => b.textContent.trim()), title: c.querySelector(".fx-swaps h3")?.textContent ?? "",
+        oldBtns: c.querySelectorAll(".fx-card-actions .btn").length };
+    });
+    ok(`${w}px:   penkkipelaajan kortti: vaihtoehdot listana, toiminnot ruudukossa, mahtuu ruutuun`, !!pc && pc.swaps > 0 && /avaukseen/i.test(pc.title) && pc.acts.includes("Poista joukkueesta") && pc.oldBtns === 0 && pc.top >= 0 && pc.bottom <= pc.vh + 1 && pc.ov <= 0, JSON.stringify(pc));
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/pelaajakortti-${w}.png` }).catch(() => {});
+    const before = await page.locator(".fx-bench .fx-tok").nth(1).getAttribute("aria-label");
+    await page.locator(".fx-swaps li button").first().click();
+    const after = await page.locator(".fx-bench .fx-tok").nth(1).getAttribute("aria-label");
+    ok(`${w}px:   vaihto listasta: kortti sulkeutuu ja penkkipelaaja vaihtuu`, (await page.locator(".fx-pcard").count()) === 0 && before !== after, `${before} → ${after}`);
+    await page.locator(".fx-row button", { hasText: "Peru muutokset" }).click().catch(() => {});
     await page.fill("#fx-q", "Featherstonehaugh");
     await page.waitForTimeout(200);
     const longRow = page.locator(".fx-plist li").first();

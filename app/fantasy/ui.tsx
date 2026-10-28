@@ -209,7 +209,11 @@ export function PlayerFace({ p, size = 40 }: { p: Pick<FPlayerRow, "photo" | "po
   );
 }
 
-export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onClose: () => void; actions?: { label: string; onClick: () => void; disabled?: boolean; hint?: string }[]; extra?: React.ReactNode }) {
+export type CardAction = { label: string; onClick: () => void; disabled?: boolean; hint?: string; tone?: "primary" | "danger"; icon?: React.ReactNode };
+export type CardSwaps = { title: string; items: { p: FPlayerRow; onClick: () => void }[] };
+
+/** Pelaajakortti (alapaneeli puhelimella): tiedot, pikatoiminnot kuvakkeineen ja vaihtoehdot listana */
+export function PlayerCard({ p, onClose, actions, swaps, extra }: { p: FPlayerRow; onClose: () => void; actions?: CardAction[]; swaps?: CardSwaps; extra?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
@@ -218,9 +222,11 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
     document.addEventListener("keydown", key);
     return () => { document.removeEventListener("keydown", key); prev?.focus?.(); };
   }, [onClose]);
+  const one = actions?.length === 1;
   return (
     <Overlay onClose={onClose}>
-      <div className="fx-card" role="dialog" aria-modal="true" aria-labelledby="fx-card-h" ref={ref}>
+      <div className="fx-card fx-pcard" role="dialog" aria-modal="true" aria-labelledby="fx-card-h" ref={ref}>
+        <i className="fx-grab" aria-hidden="true" />
         <div className="fx-card-head">
           <PlayerFace p={p} size={56} />
           <div className="fx-card-title">
@@ -229,25 +235,56 @@ export function PlayerCard({ p, onClose, actions, extra }: { p: FPlayerRow; onCl
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Sulje">✕</button>
         </div>
-        <dl className="facts fx-facts">
+        <dl className="fx-stats">
           <div><dt>Hinta</dt><dd>{fmtM(p.price)}</dd></div>
-          <div><dt>Kauden pisteet</dt><dd>{p.season}</dd></div>
-          <div><dt>Viimeisin kierros</dt><dd>{p.last ?? "–"}</dd></div>
-          <div><dt>Peliminuutit</dt><dd>{p.minutes}</dd></div>
-          <div><dt>Seuraava ottelu</dt><dd>{p.next ? `${p.next.home ? "" : "@ "}${p.next.opp} · ${localTime(p.next.kickoff)}` : "–"}</dd></div>
-          {!p.active && <div><dt>Tila</dt><dd>Ei enää sarjan pelaajalistalla</dd></div>}
+          <div><dt>Kausi</dt><dd>{p.season} p</dd></div>
+          <div><dt>Viimeksi</dt><dd>{p.last === null || p.last === undefined ? "–" : `${p.last} p`}</dd></div>
+          <div><dt>Minuutit</dt><dd>{p.minutes}</dd></div>
         </dl>
+        <p className="fx-next"><span className="muted">Seuraava ottelu</span> <b>{p.next ? `${p.next.home ? "" : "@ "}${p.next.opp} · ${localTime(p.next.kickoff)}` : "–"}</b></p>
+        {!p.active && <p className="fx-next"><span className="muted">Tila</span> <b>Ei enää sarjan pelaajalistalla</b></p>}
         {extra}
         {actions && actions.length > 0 && (
-          <div className="fx-card-actions">
-            {actions.map((a) => <button key={a.label} type="button" className="btn sm" onClick={a.onClick} disabled={a.disabled} title={a.hint}>{a.label}</button>)}
+          <div className={`fx-acts${one ? " one" : ""}`}>
+            {actions.map((a) => (
+              <button key={a.label} type="button" className={`fx-act${a.tone ? ` ${a.tone}` : ""}`} onClick={a.onClick} disabled={a.disabled} title={a.hint}>
+                {a.icon && <span className="fx-act-ic" aria-hidden="true">{a.icon}</span>}<span>{a.label}</span>
+              </button>
+            ))}
           </div>
+        )}
+        {swaps && swaps.items.length > 0 && (
+          <section className="fx-swaps" aria-labelledby="fx-swaps-h">
+            <h3 id="fx-swaps-h">{swaps.title}</h3>
+            <ul>
+              {swaps.items.map(({ p: o, onClick }) => (
+                <li key={o.id}>
+                  <button type="button" onClick={onClick} aria-label={`${swaps.title}: ${o.name} (${POS_LONG[o.pos]}, ${o.team})`}>
+                    <PlayerFace p={o} size={34} />
+                    <span className="fx-swap-n"><b>{o.name}</b><small>{POS_SHORT[o.pos]} · {o.team}</small></span>
+                    <span className="fx-swap-ic" aria-hidden="true"><SwapIcon /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
         <p className="muted small">Saatavuustietoa (loukkaantumiset, pelikiellot) ei vielä näytetä: luotettavaa lähdettä ei ole otettu käyttöön.</p>
       </div>
     </Overlay>
   );
 }
+
+const svg = (d: React.ReactNode) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
+export const SwapIcon = () => svg(<><path d="M7 4v14M3 14l4 4 4-4" /><path d="M17 20V6M13 10l4-4 4 4" /></>);
+export const ActIcon = {
+  captain: <b className="fx-act-badge">C</b>,
+  vice: <b className="fx-act-badge vc">VC</b>,
+  remove: svg(<><path d="M4 7h16M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13M9 7V4h6v3" /></>),
+  add: svg(<path d="M12 5v14M5 12h14" />),
+  up: svg(<path d="M12 19V5M5 12l7-7 7 7" />),
+  down: svg(<path d="M12 5v14M5 12l7 7 7-7" />),
+};
 
 export function DataStatus({ updated, stale }: { updated: string | null; stale: boolean }) {
   if (!updated) return <Notice kind="warn">Otteludataa haetaan ensimmäistä kertaa. Pelaajat ja kierrokset tulevat näkyviin hetken kuluttua.</Notice>;

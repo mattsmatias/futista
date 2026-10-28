@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api, useLoad, errText, fmtM, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
-import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus } from "../ui";
+import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus, ActIcon, type CardAction, type CardSwaps } from "../ui";
 
 type Draft = Picks;
 const EMPTY: Draft = { squad: [], xi: [], bench: [], captain: 0, vice: 0 };
@@ -85,14 +85,23 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
 
   const selP = sel !== null ? players.get(sel) : undefined;
   const inSquad = sel !== null && d.squad.includes(sel);
-  const actions = !selP ? [] : !inSquad ? [{ label: why(selP) ? `Ei voi lisätä: ${why(selP)}` : "Lisää joukkueeseen", onClick: () => add(selP), disabled: !!why(selP) }] : [
-    { label: "Poista joukkueesta", onClick: () => remove(selP.id) },
-    ...(full && d.xi.includes(selP.id) && d.captain !== selP.id ? [{ label: "Kapteeniksi", onClick: () => { setD((x) => fixCaps({ ...x, captain: selP.id, vice: x.vice === selP.id ? x.captain : x.vice }, asF)); setSel(null); } }] : []),
-    ...(full && d.xi.includes(selP.id) && d.vice !== selP.id ? [{ label: "Varakapteeniksi", onClick: () => { setD((x) => fixCaps({ ...x, vice: selP.id, captain: x.captain === selP.id ? x.vice : x.captain }, asF)); setSel(null); } }] : []),
-    ...(full ? swapOptions(d, selP.id, asF).map((o) => ({ label: `${d.xi.includes(selP.id) ? "Penkille, tilalle" : "Avaukseen, tilalle"} ${players.get(o)?.name}`, onClick: () => { swap(selP.id, o); setSel(null); } })) : []),
-    ...(d.bench.indexOf(selP.id) > 1 ? [{ label: "Penkillä ylöspäin", onClick: () => moveBench(selP.id, -1) }] : []),
-    ...(d.bench.indexOf(selP.id) >= 1 && d.bench.indexOf(selP.id) < 3 ? [{ label: "Penkillä alaspäin", onClick: () => moveBench(selP.id, 1) }] : []),
-  ];
+  const isXi = selP ? d.xi.includes(selP.id) : false;
+  const actions: CardAction[] = !selP ? [] : !inSquad
+    ? [{ label: why(selP) ? `Ei voi lisätä: ${why(selP)}` : "Lisää joukkueeseen", onClick: () => add(selP), disabled: !!why(selP), tone: "primary", icon: ActIcon.add }]
+    : [
+      ...(full && isXi && d.captain !== selP.id ? [{ label: "Kapteeni", hint: "Kapteenin pisteet kerrotaan kahdella", icon: ActIcon.captain, onClick: () => { setD((x) => fixCaps({ ...x, captain: selP.id, vice: x.vice === selP.id ? x.captain : x.vice }, asF)); setSel(null); } }] : []),
+      ...(full && isXi && d.vice !== selP.id ? [{ label: "Varakapteeni", hint: "Varakapteeni saa tuplapisteet, jos kapteeni ei pelaa", icon: ActIcon.vice, onClick: () => { setD((x) => fixCaps({ ...x, vice: selP.id, captain: x.captain === selP.id ? x.vice : x.captain }, asF)); setSel(null); } }] : []),
+      ...(d.bench.indexOf(selP.id) > 1 ? [{ label: "Ylemmäs penkillä", icon: ActIcon.up, onClick: () => moveBench(selP.id, -1) }] : []),
+      ...(d.bench.indexOf(selP.id) >= 1 && d.bench.indexOf(selP.id) < 3 ? [{ label: "Alemmas penkillä", icon: ActIcon.down, onClick: () => moveBench(selP.id, 1) }] : []),
+      { label: "Poista joukkueesta", tone: "danger" as const, icon: ActIcon.remove, onClick: () => remove(selP.id) },
+    ];
+  const order: Record<Pos, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+  const swaps: CardSwaps | undefined = selP && inSquad && full ? {
+    title: isXi ? "Vaihda penkille – tilalle" : "Vaihda avaukseen – tilalle",
+    items: swapOptions(d, selP.id, asF).map((o) => players.get(o)).filter((o): o is FPlayerRow => !!o)
+      .sort((a, b) => (a.pos === selP.pos ? -1 : 0) - (b.pos === selP.pos ? -1 : 0) || order[a.pos] - order[b.pos])
+      .map((o) => ({ p: o, onClick: () => { swap(selP.id, o.id); setSel(null); } })),
+  } : undefined;
   const empty = Object.fromEntries(POSITIONS.map((p) => [p, Math.max(0, RULES.quota[p] - count(p))])) as Record<Pos, number>;
 
   return (
@@ -141,7 +150,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
           </div>
         </Overlay>
       )}
-      {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} />}
+      {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} />}
     </>
   );
 }
