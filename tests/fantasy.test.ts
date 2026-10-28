@@ -218,6 +218,14 @@ test("ottelun tilastot lähteestä: oma maali, vaihdot, nollapeli kentälläoloa
   const edge = fixtureStats({ ...d, events: [ev(70, "Goal", "Normal Goal", 2, 205), ev(70, "subst", "S", 1, 101, 199), ev(80, "Goal", "Normal Goal", 1, 109), ev(88, "Goal", "Normal Goal", 2, 206)] })!;
   assert.equal(edge.rows.find((x) => x.player_id === 101)!.conceded, null);
   assert.equal(edge.rows.find((x) => x.player_id === 100)!.conceded, 2);
+  // sama pelaaja lähteessä kahdesti → yksi rivi (enemmän minuutteja); ristiriitaiset rivit → nollapeliä ei varmisteta
+  const dup = fixtureStats({ ...d, players: [pl(1, [{ id: 199, min: 20 }, { id: 199, min: 20 }]), pl(2, [{ id: 101, min: 5 }])] })!;
+  assert.equal(dup.rows.filter((x) => x.player_id === 199).length, 1);
+  assert.equal(dup.rows.filter((x) => x.player_id === 101).length, 1);
+  assert.equal(dup.rows.find((x) => x.player_id === 199)!.conceded, 1); // identtiset rivit: tieto säilyy
+  assert.equal(dup.rows.find((x) => x.player_id === 101)!.minutes, 70);
+  assert.equal(dup.rows.find((x) => x.player_id === 101)!.conceded, null);
+  assert.equal(new Set(dup.rows.map((x) => x.player_id)).size, dup.rows.length);
 });
 
 test("sama otteludata kahdesti ja korjaus: pisteet lasketaan tilasta, ei kerrytetä", () => {

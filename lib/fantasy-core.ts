@@ -353,7 +353,17 @@ export function fixtureStats(d: any): { rows: StatLine[]; consistent: boolean } 
       });
     }
   }
-  return { rows, consistent };
+  // lähde voi listata saman pelaajan ottelussa kahdesti (havaittu tuotannossa 28.10.2026): yksi rivi / pelaaja.
+  // Säilytetään rivi, jolla on enemmän peliminuutteja; jos rivit ovat ristiriitaiset, nollapeliä ei voida varmistaa.
+  const by = new Map<number, StatLine>();
+  for (const r of rows) {
+    const o = by.get(r.player_id);
+    if (!o) { by.set(r.player_id, r); continue; }
+    const keep = r.minutes > o.minutes ? r : o;
+    const same = JSON.stringify({ ...r, team_id: 0 }) === JSON.stringify({ ...o, team_id: 0 });
+    by.set(r.player_id, same ? keep : { ...keep, conceded: null });
+  }
+  return { rows: [...by.values()], consistent };
 }
 function num(v: unknown): number | null { return typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && /^-?\d+$/.test(v) ? Number(v) : null; }
 
