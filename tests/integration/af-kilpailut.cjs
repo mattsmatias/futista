@@ -88,9 +88,11 @@ const DAY = 86400_000;
   const fl = await page.evaluate(() => {
     const row = (name) => [...document.querySelectorAll(".dir-list a")].find((a) => a.querySelector(".dir-name")?.textContent === name);
     const f = (name) => { const a = row(name); const img = a?.querySelector("img.dir-flag"); return a ? { src: img?.getAttribute("src") ?? null, sr: a.querySelector(".dir-cc .sr-only")?.textContent ?? null, vis: (a.querySelector(".dir-cc .sr-only")?.getBoundingClientRect().width ?? 99) <= 1 } : null; };
-    return { laliga: f("La Liga"), pl: f("Valioliiga"), vl: f("Veikkausliiga"), ucl: f("Mestarien liiga"), intl: row("Maajoukkueet")?.querySelector(".dir-sub")?.textContent ?? null };
+    return { laliga: f("La Liga"), pl: f("Valioliiga"), vl: f("Veikkausliiga"), ucl: f("Mestarien liiga"), intl: row("Maajoukkueet")?.querySelector(".dir-sub")?.textContent ?? null,
+      // liput samassa sarakkeessa (oikea reuna, nuolen vieressä) riippumatta nimen pituudesta
+      align: (() => { const xs = ["La Liga", "Valioliiga", "Veikkausliiga", "Bundesliga"].map((n) => row(n)?.querySelector(".dir-cc")?.getBoundingClientRect().right); return xs.every((x) => x && Math.abs(x - xs[0]) < 1); })() };
   });
-  ok("  maat lippuina: La Liga 🇪🇸, Valioliiga Englanti, Veikkausliiga Suomi, Mestarien liiga Eurooppa; nimi vain ruudunlukijalle", /\/es\.png$/.test(fl.laliga?.src) && fl.laliga.sr === "Espanja" && fl.laliga.vis === true && /\/gb-eng\.png$/.test(fl.pl?.src) && /\/fi\.png$/.test(fl.vl?.src) && /\/eu\.png$/.test(fl.ucl?.src), JSON.stringify(fl));
+  ok("  maat lippuina: La Liga 🇪🇸, Valioliiga Englanti, Veikkausliiga Suomi, Mestarien liiga ilman lippua; liput samassa sarakkeessa oikealla; nimi vain ruudunlukijalle", /\/es\.png$/.test(fl.laliga?.src) && fl.laliga.sr === "Espanja" && fl.laliga.vis === true && /\/gb-eng\.png$/.test(fl.pl?.src) && /\/fi\.png$/.test(fl.vl?.src) && fl.ucl?.src === null && fl.ucl.sr === "Eurooppa" && fl.align === true, JSON.stringify(fl));
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/sarjat-liput.png` }).catch(() => {});
   await page.unroute(/flagcdn/);
   const hd = await page.evaluate(() => ({ inputs: document.querySelectorAll("main input").length, h1: [...document.querySelectorAll("main h1")].map((h) => ({ txt: h.textContent, w: h.getBoundingClientRect().width, cls: h.className })) }));

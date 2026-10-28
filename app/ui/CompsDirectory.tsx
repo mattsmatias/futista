@@ -14,11 +14,13 @@ import type { CompCountry } from "@/lib/comps";
 
 // Sarjan maa lippuna (käyttäjän valinta 28.10.2026). Sama lippulähde kuin pelaajien kansallisuuksissa (flagcdn).
 // Maan nimi säilyy ruudunlukijalle; jos kuva ei lataudu, näytetään nimi tekstinä.
-const FLAG: Partial<Record<CompCountry, string>> = { es: "es", en: "gb-eng", eu: "eu", de: "de", it: "it", fr: "fr", nl: "nl", pt: "pt", tr: "tr", us: "us", fi: "fi", se: "se", no: "no", dk: "dk" };
+// UEFA-kilpailuilla (eu) ei lippua: UEFA ei ole EU, ja kilpailun oma tunnus kertoo sen (käyttäjän valinta 28.10.2026)
+const FLAG: Partial<Record<CompCountry, string>> = { es: "es", en: "gb-eng", de: "de", it: "it", fr: "fr", nl: "nl", pt: "pt", tr: "tr", us: "us", fi: "fi", se: "se", no: "no", dk: "dk" };
 function DirCountry({ cc, name }: { cc?: CompCountry; name: string }) {
   const [broken, setBroken] = useState(false);
   const code = cc ? FLAG[cc] : undefined;
   if (cc === "world") return <span className="dir-sub dir-cc" title={name}><span className="dir-globe" aria-hidden="true">🌍</span><span className="sr-only">{name}</span></span>;
+  if (cc === "eu") return <span className="dir-sub dir-cc"><span className="sr-only">{name}</span></span>;
   if (!code || broken) return <span className="dir-sub">{name}</span>;
   return (
     <span className="dir-sub dir-cc" title={name}>
