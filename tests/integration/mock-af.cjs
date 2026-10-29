@@ -135,8 +135,9 @@ function player(id, season) {
   return [{
     player: { id, name: "J. Virtanen", firstname: "Jukka", lastname: "Virtanen", age: 27, birth: { date: "1999-03-14", place: "Tampere", country: "Finland" }, nationality: "Finland", height: "189 cm", photo: "https://media.api-sports.io/football/players/244101.png" },
     statistics: [
-      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 244, name: "Veikkausliiga", logo: null, season }, games: { appearences: 20, minutes: 1800, number: 1, position: "Goalkeeper" }, goals: { total: 0, assists: 1 }, cards: { yellow: 2, red: null } },
-      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 246, name: "Suomen Cup", logo: null, season }, games: { appearences: 2, minutes: 180, number: 1, position: "Goalkeeper" }, goals: { total: null, assists: null }, cards: { yellow: 0, red: 0 } },
+      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 244, name: "Veikkausliiga", country: "Finland", logo: null, season }, games: { appearences: 20, minutes: 1800, number: 1, position: "Goalkeeper", rating: "7.250000" }, goals: { total: 0, assists: 1 }, cards: { yellow: 2, red: null } },
+      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 246, name: "Suomen Cup", country: "Finland", logo: null, season }, games: { appearences: 2, minutes: 180, number: 1, position: "Goalkeeper" }, goals: { total: null, assists: null }, cards: { yellow: 0, red: 0 } },
+      { team: { id: 1099, name: "Finland", logo: null }, league: { id: 5, name: "UEFA Nations League", country: "World", logo: null, season }, games: { appearences: 3, minutes: 270, number: 1, position: "Goalkeeper", rating: "6.9" }, goals: { total: 0, assists: 0 }, cards: { yellow: 0, red: 0 } },
       { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, league: { id: 999, name: "Club Friendlies", logo: null, season }, games: { appearences: 0, minutes: 0, number: null, position: "Goalkeeper" }, goals: { total: null, assists: null }, cards: { yellow: null, red: null } },
     ],
   }];
@@ -145,6 +146,29 @@ function handle(u, send, mode, res, hdr) {
   const now = Date.now();
   if (mode.af === "429") { res.writeHead(429, { "content-type": "application/json", "retry-after": "30", ...hdr }); res.end(JSON.stringify({ message: "Too many requests" })); return true; }
   if (u.pathname === "/players/squads" && u.searchParams.get("team")) { send({ errors: [], response: squad(Number(u.searchParams.get("team"))) }); return true; }
+  // pelaajaprofiilin välilehdet (J. Virtanen 244101): kaudet, siirrot, joukkueen viimeisimmät ottelut ja ottelun pelaajatilastot
+  if (u.pathname === "/players/seasons") { const y = new Date().getUTCFullYear(); send({ errors: [], response: u.searchParams.get("player") === "244101" ? [y - 1, y] : [] }); return true; }
+  if (u.pathname === "/transfers" && u.searchParams.get("player")) {
+    send({ errors: [], response: u.searchParams.get("player") !== "244101" ? [] : [{ player: { id: 244101, name: "J. Virtanen" }, update: "2026-01-01", transfers: [
+      { date: "2024-01-10", type: "€ 250K", teams: { in: { id: 2441, name: "Pohjoisseura 244", logo: null }, out: { id: 7001, name: "Vanha Seura", logo: null } } },
+      { date: "2020-07-01", type: "Free", teams: { in: { id: 7001, name: "Vanha Seura", logo: null }, out: { id: 7002, name: "Junioriseura", logo: null } } },
+      { date: "2020-07-01", type: "Free", teams: { in: { id: 7001, name: "Vanha Seura", logo: null }, out: { id: 7002, name: "Junioriseura", logo: null } } },
+    ] }] });
+    return true;
+  }
+  if (u.pathname === "/fixtures" && u.searchParams.get("team") && u.searchParams.get("last")) {
+    const tid = Number(u.searchParams.get("team"));
+    send({ errors: [], response: tid === 2441 ? fixtures(244, now).filter((x) => x.teams.home.id === tid || x.teams.away.id === tid).map((x) => ({ ...x, league: { ...x.league, name: "Veikkausliiga", logo: null } })) : [] });
+    return true;
+  }
+  if (u.pathname === "/fixtures/players" && u.searchParams.get("fixture")) {
+    const fid = Number(u.searchParams.get("fixture"));
+    send({ errors: [], response: fid !== 244001 ? [] : [
+      { team: { id: 2441, name: "Pohjoisseura 244", logo: null }, players: [{ player: { id: 244101, name: "J. Virtanen" }, statistics: [{ games: { minutes: 90, rating: "7.6", substitute: false }, goals: { total: 1, assists: 0 }, cards: { yellow: 1, red: 0 } }] }] },
+      { team: { id: 2442, name: "Etelä FC 244", logo: null }, players: [] },
+    ] });
+    return true;
+  }
   if (u.pathname === "/players" && u.searchParams.get("id")) { send({ errors: [], response: player(Number(u.searchParams.get("id")), Number(u.searchParams.get("season"))) }); return true; }
   const lg = Number(u.searchParams.get("league") ?? u.searchParams.get("id"));
   // Eurooppa-liiga / Konferenssiliiga (pelaajahaku: liigavaiheen joukkueet sarjataulukosta)

@@ -293,10 +293,13 @@ const MIN = 60_000;
     {
       const pctx = await browser.newContext({ locale: "fi-FI" }), pp = await pctx.newPage();
       await pp.goto(APP + "/pelaaja/7001", { waitUntil: "load" });
-      const sub = (await pp.locator(".player-head .ehead-txt p").innerText().catch(() => "")).trim();
-      await pp.locator("main dt").first().waitFor({ timeout: 10000 }).catch(() => {});
-      const card = await pp.locator("main").innerText();
-      ok("pelaajaprofiili: nimen alla vain seura (ei pelipaikkaa, ikää, numeroa); tiedot kortissa", sub.length > 0 && !sub.includes("·") && !/#\d/.test(sub) && /pelipaikka/i.test(card), `${sub} | ${card.slice(0, 200).replace(/\n/g, " / ")}`);
+      await pp.locator(".pp-club").waitFor({ timeout: 10000 }).catch(() => {});
+      const club = (await pp.locator(".pp-club").innerText().catch(() => "")).replace(/\s+/g, " ");
+      const tabs = await pp.locator(".pp-tabs [role=tab]").allInnerTexts();
+      const fdm = await pp.locator(".pp-pane .mrow-wrap").count();
+      await pp.locator(".pp-tabs [role=tab]", { hasText: "Ura" }).click().catch(() => {});
+      const ura = await pp.locator(".pp-pane").innerText().catch(() => "");
+      ok("pelaajaprofiili (football-data): seura ja pelipaikka omalla rivillään, välilehdet; ilman varmaa API-Football-yhdistystä Ura kertoo sen eikä arvaa", club.length > 0 && /hyökkääjä|keskikenttä|puolustaja|maalivahti/i.test(club) && tabs.join("|") === "Ottelut|Ura|Siirrot" && fdm > 0 && /ei voitu yhdistää luotettavasti/.test(ura), `${club} | ${tabs} | ${fdm} | ${ura.slice(0, 120)}`);
       await pctx.close();
     }
     // suosikit: vanha muoto siirtyy, laitekohtaisuus kerrotaan

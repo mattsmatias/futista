@@ -10,6 +10,8 @@ import { fdScore } from "@/lib/score";
 import PlayerView, { type PlayerData } from "./PlayerView";
 import { getAfPlayer } from "@/lib/af-players";
 import { AF_COMPS } from "@/lib/af-registry";
+import { fdToAf } from "@/lib/player-profile";
+import { waitUntil } from "@/lib/af-players";
 
 export const revalidate = 1800;
 export const maxDuration = 60;
@@ -42,7 +44,7 @@ async function loadAf(id: number): Promise<PlayerData | null> {
     id: p.id, name: p.name, photo: p.photo, dateOfBirth: p.dateOfBirth, nationality: p.nationality,
     position: p.position, shirtNumber: p.number,
     club: p.team ? { name: p.team.name, crest: p.team.logo ?? undefined, href: comp ? teamHref(comp.id, p.team.name) : null } : null,
-    matches: [],
+    matches: [], afId: p.id,
     af: { fullName: p.fullName, height: p.height, season: p.season },
   };
 }
@@ -81,12 +83,14 @@ async function load(id: string): Promise<PlayerData | null> {
   const pickTeam = cur ?? latestTeam;
   const top = pickTeam ? { n: 2, team: pickTeam, comp: "" } : undefined;
   let club: PlayerData["club"] = null;
+  let clubKey: { source: string; name: string } | null = null;
   if (top && top.n >= 2) {
     // kotimaan sarja ensin, Mestarien liiga vasta sitten
     const ordered = [...stats.filter((s) => s.source !== "ucl"), ...stats.filter((s) => s.source === "ucl")];
     const homeStats = ordered.find((s) => s.table.some((r) => r.team.id === top.team.id));
     const mine = homeStats?.table.find((r) => r.team.id === top.team.id)?.team;
     const home = homeStats?.source;
+    if (mine && home) clubKey = { source: home, name: mine.name };
     club = {
       name: mine?.name ?? top.team.shortName ?? top.team.name,
       crest: mine?.crest ?? top.team.crest,
@@ -94,8 +98,16 @@ async function load(id: string): Promise<PlayerData | null> {
     };
   }
 
+  // API-Footballin tunniste ura- ja siirtotietoja varten (yksiselitteinen osuma: sama seura, nimi ja syntymäpäivä).
+  // Odotetaan enintään 4 s; kesken jäänyt yhdistys valmistuu taustalla seuraavaa käyntiä varten.
+  let afId: number | null = null;
+  if (clubKey && p.dateOfBirth) {
+    const job = fdToAf(p.id, p.name, p.dateOfBirth, clubKey.source, clubKey.name).catch(() => ({ id: null }));
+    const got = await Promise.race([job, new Promise<"late">((r) => setTimeout(() => r("late"), 4000))]);
+    if (got === "late") waitUntil(job); else afId = got.id;
+  }
   const photo = await getPhoto(p.name, club?.name ?? "", p.nationality ?? "");
-  return {
+  return { afId,
     id: p.id, name: p.name, photo, dateOfBirth: p.dateOfBirth ?? null, nationality: p.nationality ?? null,
     position: p.position ?? p.section ?? null, shirtNumber: p.shirtNumber ?? null, club,
     matches: matches.map((m) => {

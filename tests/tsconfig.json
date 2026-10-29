@@ -37,6 +37,7 @@
     "af-players.test.ts",
     "fantasy.test.ts",
     "fantasy-invite.test.ts",
-    "site-stats.test.ts"
+    "site-stats.test.ts",
+    "player-profile.test.ts"
   ]
 }

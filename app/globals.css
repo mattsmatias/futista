@@ -2263,3 +2263,87 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .adm-list small { color: var(--muted); font-weight: 500; }
 .adm-foot { margin: 4px 2px 0; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) { .adm-refresh.spin svg, .adm-skel i { animation: none; } }
+
+/* Pelaajaprofiili: otsikko, seura, välilehdet Ottelut / Ura / Siirrot (puhelin ensin) */
+.pp { display: grid; gap: 14px; }
+.pp-head { display: grid; gap: 10px; }
+.pp-nat { margin: 0; font: 700 12.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pp-nat .flag img { width: 22px; height: 15px; }
+.pp-who { display: flex; align-items: center; gap: 16px; }
+.pp-photo { flex: none; width: 84px; height: 84px; border-radius: 20px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; }
+.pp-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pp-txt { min-width: 0; display: grid; gap: 4px; }
+.pp-txt h1 { margin: 0; font: 800 clamp(24px, 6.5vw, 34px)/1.08 var(--display); letter-spacing: -.02em; overflow-wrap: anywhere; }
+.pp-txt p { margin: 0; color: var(--muted); font-size: 15px; }
+.pp-txt p b { color: var(--fg); }
+.pp-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pp-chips:empty { display: none; }
+.pp-chips span { padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--fg); font-size: 12.5px; font-weight: 700; }
+.pp-club { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.pp-club-crest { width: 40px; height: 40px; object-fit: contain; flex: none; }
+.pp-club-crest.none { border-radius: 10px; background: var(--surface-2); }
+.pp-club-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.pp-club-txt b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-club-txt small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-pos { flex: none; font-size: 13.5px; color: var(--muted); font-weight: 600; }
+.pp-tabs { margin-top: 0; }
+.pp-pane { display: grid; gap: 10px; min-width: 0; }
+.pp-msg { margin: 0; padding: 18px 4px; }
+.pp-skel { display: grid; gap: 8px; }
+.pp-skel i { height: 58px; border-radius: 12px; background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: adm-sh 1.2s infinite linear; }
+.pp-logo { width: 22px; height: 22px; object-fit: contain; flex: none; }
+.pp-logo.none { display: inline-grid; place-items: center; border-radius: 50%; background: var(--surface-2); font: 800 10px/1 var(--ui); color: var(--muted); }
+.pp .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pp-rt { display: inline-grid; place-items: center; min-width: 34px; height: 22px; padding: 0 5px; border-radius: 6px; font: 800 12.5px/1 var(--ui); color: #fff; font-variant-numeric: tabular-nums; }
+.pp-rt.none { background: var(--surface-2); color: var(--muted); }
+.pp-rt.r1 { background: #d9485f; } .pp-rt.r2 { background: #e8890c; } .pp-rt.r3 { background: #2f9e44; } .pp-rt.r4 { background: #1f6feb; }
+/* ottelut */
+.pp-matches { list-style: none; margin: 0; padding: 0; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.pp-m { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 22px 26px; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); min-height: 64px; }
+.pp-m:first-child { border-top: 0; }
+.pp-m-date { display: grid; justify-items: start; gap: 4px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pp-m-date img { width: 16px; height: 16px; object-fit: contain; opacity: .9; }
+.pp-m-teams { display: grid; gap: 6px; min-width: 0; font-size: 14.5px; }
+.pp-m-teams > span { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--muted); }
+.pp-m-teams > span.me { color: var(--fg); font-weight: 700; }
+.pp-m-stat { display: grid; justify-items: center; gap: 4px; }
+.pp-m-icons { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); font: 700 12px/1 var(--ui); white-space: nowrap; }
+.pp-min { font-variant-numeric: tabular-nums; }
+.pp-ic { position: relative; display: inline-flex; align-items: center; color: var(--fg); }
+.pp-ic.ast { font-weight: 900; font-size: 12px; }
+.pp-ic sup { font-size: 9px; font-weight: 800; margin-left: 1px; }
+.pp-card { display: inline-block; width: 8px; height: 11px; border-radius: 2px; }
+.pp-card.y { background: #f5c518; } .pp-card.r { background: #e5484d; }
+.pp-m-score { display: grid; gap: 6px; text-align: right; font: 800 15px/1.2 var(--ui); font-variant-numeric: tabular-nums; }
+.pp-m-score small { font-weight: 600; color: var(--muted); font-size: 11px; }
+.pp-res { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; color: #fff; font: 800 13px/1 var(--ui); }
+.pp-res.W { background: #2f9e44; } .pp-res.D { background: #e8890c; } .pp-res.L { background: #d9485f; }
+@media (max-width: 360px) { .pp-m { grid-template-columns: 38px minmax(0, 1fr) auto 18px 24px; gap: 6px; padding: 10px 8px; } .pp-m-teams { font-size: 13.5px; } }
+/* ura */
+.pp-kinds { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.pp-kinds::-webkit-scrollbar { display: none; }
+.pp-kinds button { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--surface-2); color: var(--fg); font-weight: 700; font-size: 13.5px; border: 1px solid transparent; }
+.pp-kinds button.on { background: var(--fg); color: var(--bg); }
+.pp-career-wrap { border-radius: 16px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.pp-career { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; table-layout: fixed; }
+.pp-career th, .pp-career td { padding: 10px 4px; text-align: center; border-top: 1px solid var(--line); }
+.pp-career thead th { border-top: 0; font-size: 11.5px; color: var(--muted); font-weight: 700; background: var(--surface-2); }
+.pp-career .c-s { width: 50px; text-align: left; padding-left: 12px; font-weight: 700; white-space: nowrap; }
+.pp-career thead .c-s { font-weight: 700; }
+.pp-career .c-t { text-align: left; width: auto; }
+.pp-career .c-tw { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pp-career th:nth-child(3), .pp-career td:nth-child(3) { width: 46px; }
+.pp-career th:nth-child(n+4), .pp-career td:nth-child(n+4) { width: 30px; }
+.pp-career th:last-child, .pp-career td:last-child { padding-right: 10px; width: 34px; }
+.pp-career abbr { text-decoration: none; }
+@media (max-width: 360px) { .pp-career { font-size: 13px; } .pp-career .c-s { width: 44px; padding-left: 8px; } .pp-career th:nth-child(n+4), .pp-career td:nth-child(n+4) { width: 26px; } }
+.pp-more { display: flex; justify-content: center; }
+/* siirrot */
+.pp-tr-head { display: grid; grid-template-columns: 48px 1fr 1fr; gap: 10px; padding: 0 12px; font: 700 11.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pp-tr { list-style: none; margin: 0; padding: 0; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.pp-tr li { display: grid; grid-template-columns: 48px 1fr 1fr; gap: 10px; align-items: center; padding: 12px; border-top: 1px solid var(--line); }
+.pp-tr li:first-child { border-top: 0; }
+.pp-tr-y { font-weight: 800; font-variant-numeric: tabular-nums; }
+.pp-tr-c { display: grid; gap: 4px; min-width: 0; }
+.pp-tr-t { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; font-weight: 600; }
+.pp-tr-c small { color: var(--muted); font-size: 12.5px; }
