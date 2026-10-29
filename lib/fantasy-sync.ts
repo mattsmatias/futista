@@ -31,6 +31,10 @@ export const TOP5: League[] = [
   // Turkin Süper Lig lisätty 29.10.2026 (käyttäjän päätös). Pelaajat haetaan seuraavassa päivityksessä (puuttuva sarja → haku);
   // aiemmilta kierroksilta ei pisteitä, kuten muillakin kesken kauden mukaan tulevilla.
   { af: 203, season: 2026, name: "Süper Lig" },
+  // Veikkausliiga ja MLS lisätty 30.10.2026 (käyttäjän päätös). Veikkausliigan kausi 2026 päättyy 8.11. (vain mestaruusryhmä
+  // pelaa enää) → pelaajilla ei otteluita ennen kautta 2027, jolloin kausi pitää päivittää. MLS:n runkosarja jatkuu.
+  { af: 244, season: 2026, name: "Veikkausliiga" },
+  { af: 253, season: 2026, name: "MLS" },
 ];
 export const COMPS: Comp[] = [
   // yksi yhteinen peli: pelaajat viidestä isosta sarjasta, kierros = viikko (käyttäjän valinta 27.10.2026)
@@ -134,7 +138,9 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
       raw.push(...(weekly && !refetch ? await seasonFixtures(L.af, L.season) : (await once(`ffx${L.af}/${L.season}`, () => afGet(`/fixtures?league=${L.af}&season=${L.season}`)))?.response ?? []));
     } catch (e) { if (!weekly) throw e; stepErrors.push(`fixtures${L.af}:${errCode(e)}`); }
   }
-  const src = raw.map(srcFixture).filter((x: SrcFixture | null): x is SrcFixture => !!x);
+  // sama ottelu vain kerran (lähde voi palauttaa saman ottelun useamman sarjan haussa) → yksi rivi per ottelu
+  const seenFx = new Set<number>();
+  const src = raw.map(srcFixture).filter((x: SrcFixture | null): x is SrcFixture => !!x && !seenFx.has(x.fixture_id) && !!seenFx.add(x.fixture_id));
   if (!src.length) throw new Error("fixtures: empty");
   let dbFx: DbFx[] = await rpc<DbFx[]>("f_fixture_list", { p_comp: c.id }) ?? [];
   let fixtureRows: (SrcFixture & { round_no: number })[];

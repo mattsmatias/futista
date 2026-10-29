@@ -5,8 +5,8 @@ import { DEFAULT_COMP, playersMap } from "@/lib/fantasy-sync";
 import { j, fail, dbFail, withUser, loadState, roundInfo, transferInfo, readJson } from "@/lib/fantasy-api";
 
 // Oma fantasy-joukkue.
-//  GET ?round=N → kierroksen tilannekuva ja pisteiden erittely (vain oma joukkue)
-//  POST {action:"create", name} | {action:"rename", name} | {action:"logo", logo} | {action:"save", round, version, picks, cost}
+//  GET ?round=N → kierroksen tilannekuva ja pisteiden erittely (vain oma joukkue); ?nimi=1 → nimenvaihdon hinta ja saldo
+//  POST {action:"create", name} | {action:"rename", name, requestId, price} | {action:"logo", logo} | {action:"save", round, version, picks, cost}
 // Tallennus: kaikki säännöt tarkistetaan palvelimella; kierroksen on oltava seuraava avoin (tietokannan kello);
 // versio estää kaksoisvahvistuksen; siirtojen pistevähennys lasketaan palvelimella ja sen on vastattava käyttäjän vahvistamaa.
 export const dynamic = "force-dynamic";
@@ -16,9 +16,16 @@ export async function GET(req: Request) {
   if ("res" in a) return a.res;
   try {
     const comp = DEFAULT_COMP;
-    const round = Number(new URL(req.url).searchParams.get("round"));
+    const u = new URL(req.url);
+    const round = Number(u.searchParams.get("round"));
     const st = await loadState(comp, a.user.user_id);
     if (!st.team) return fail("noteam", 404);
+    // ?nimi=1 → seuraavan nimenvaihdon hinta ja kolikkosaldo
+    if (u.searchParams.get("nimi") === "1") {
+      const r = await rpc<{ renames: number; price: number; balance: number; error?: string }>("f_rename_info", { p_team: st.team.id, p_user: a.user.user_id });
+      if (r?.error) return fail(r.error, 403);
+      return j({ renames: r?.renames ?? 0, price: r?.price ?? 0, balance: r?.balance ?? 0 });
+    }
     const snap = st.team.snapshots.find((s) => s.round_no === round);
     const pts = st.team.points.find((p) => p.round_no === round) ?? null;
     if (!snap) return j({ round, snapshot: null, points: null });
@@ -42,8 +49,12 @@ export async function POST(req: Request) {
       }
       const st = await loadState(comp, a.user.user_id);
       if (!st.team) return fail("noteam", 404);
-      await rpc("f_team_rename", { p_team: st.team.id, p_user: a.user.user_id, p_name: name });
-      return j({ ok: true });
+      // ensimmäinen vaihto maksuton, sen jälkeen 100 kolikkoa; hinta tarkistetaan ja veloitetaan tietokannassa
+      const request = typeof b?.requestId === "string" ? b.requestId : "";
+      const r = await rpc<{ ok?: boolean; error?: string; cost?: number; renames?: number; balance?: number; price?: number; same?: boolean }>("f_team_rename_v2",
+        { p_team: st.team.id, p_user: a.user.user_id, p_name: name, p_request: request, p_price: Number(b?.price) });
+      if (r?.error) return fail(r.error, r.error === "forbidden" ? 403 : r.error === "request" ? 400 : 409, r);
+      return j({ ok: true, cost: r?.cost ?? 0, renames: r?.renames ?? 0, balance: r?.balance ?? null });
     }
     if (action === "logo") {
       // logo = kuvaus (muoto, kuvio, värit, symboli, nimikirjaimet), ei kuvatiedosto; null palauttaa oletuslogon

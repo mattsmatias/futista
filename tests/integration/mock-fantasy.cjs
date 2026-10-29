@@ -65,7 +65,7 @@ function detail(id, now) {
   return { ...fx, events, lineups, players };
 }
 
-// ---- Monisarjainen peli (multi=1): toinen sarja (140) samoilla otteluajoilla +30 min; sarjat 78/135/61 tyhjiä ----
+// ---- Monisarjainen peli (multi=1): toinen sarja (140) samoilla otteluajoilla +30 min; sarjat 78/135/61/244/253 tyhjiä ----
 const L = [1, 2, 3, 4, 5, 6].map((k) => ({ id: 1400 + k, name: `Liga ${["Alfa", "Beta", "Gamma", "Delta", "Eta", "Zeta"][k - 1]}`, logo: null }));
 const lname = (team, n) => `${["Iker", "Pau", "Dani", "Sergi", "Jordi", "Unai", "Marc", "Alex", "Hugo", "Raúl", "Pablo", "Mario", "Luis", "Rubén"][n - 1]} ${L.find((t) => t.id === team).name.split(" ")[1]}`;
 function ligaFixtures(now) {
@@ -97,7 +97,7 @@ function handle(u, send, res) {
   if (u.pathname === "/__fantasy") { for (const k of Object.keys(state)) if (u.searchParams.get(k)) state[k] = u.searchParams.get(k); send(state); return true; }
   const lg = u.searchParams.get("league");
   if (state.multi === "1") {
-    if (["78", "135", "61"].includes(lg) && u.searchParams.get("season") === "2026") {
+    if (["78", "135", "61", "244", "253"].includes(lg) && u.searchParams.get("season") === "2026") {
       if (u.pathname === "/teams" || u.pathname === "/fixtures") { send({ errors: [], response: [] }); return true; }
       if (u.pathname === "/players") { send({ errors: [], paging: { current: 1, total: 1 }, response: [] }); return true; }
     }

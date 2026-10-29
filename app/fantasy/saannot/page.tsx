@@ -44,6 +44,7 @@ export default async function Page() {
             <li>Kentän korteissa näkyy valinnan mukaan kierroksen pisteet, seuraavan kierroksen vastustaja – (k) kotiottelu, (v) vierasottelu – tai pelaajan hinta.</li>
             <li>Loukkaantumis- ja pelikieltotietoja ei vielä näytetä.</li>
             <li>Joukkueen logo kootaan valmiista osista (muoto, kuvio, värit, symboli ja teksti). Kuvia ei ladata, eikä seurojen logoja voi käyttää. Logo näkyy joukkueen sivulla ja liigojen taulukoissa.</li>
+            <li>Joukkueen nimen voi vaihtaa Oma joukkue -sivulla nimen vieressä olevasta kynästä. Ensimmäinen vaihto on ilmainen, sen jälkeen jokainen vaihto maksaa 100 Futista-kolikkoa.</li>
           </ul>
         </section>
         <section>

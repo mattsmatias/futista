@@ -11,6 +11,7 @@ import { VERSION_NAME, type Style } from "@/lib/fantasy-packs-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Countdown, ActIcon, type Badge, type CardAction, type CardSwaps, type PitchDrag } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
+import { RenameEditor } from "./RenameEditor";
 import { Money } from "./Coin";
 import { InviteBanner, InviteCard, useInviteCode } from "./Invite";
 
@@ -62,6 +63,7 @@ const shortTeam = (n: string) => { const w = n.replace(/^(FC|AC|AS|SC|SV|VfB|VfL
 function Home({ s, reload }: { s: FState; reload: () => void }) {
   const router = useRouter();
   const [logoEd, setLogoEd] = useState(false);
+  const [nameEd, setNameEd] = useState(false);
   const t = s.team!;
   const pl = useLoad<FPlayersResp>("/api/fantasy/pelaajat");
   const players = useMemo(() => new Map((pl.data?.players ?? []).map((p) => [p.id, p])), [pl.data]);
@@ -149,16 +151,22 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
   return (
     <>
       <section className="fx-teamhead" aria-label="Joukkue">
-        <button type="button" className="fx-th-logo" onClick={() => setLogoEd((v) => !v)} aria-expanded={logoEd} aria-controls="fx-logo-panel" title="Muokkaa logoa">
+        <button type="button" className="fx-th-logo" onClick={() => { setLogoEd((v) => !v); setNameEd(false); }} aria-expanded={logoEd} aria-controls="fx-logo-panel" title="Muokkaa logoa">
           <TeamLogo logo={t.logo} name={t.name} size={56} decorative />
           <span className="fx-th-edit" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z" /></svg></span>
           <span className="sr-only">Muokkaa logoa</span>
         </button>
         <div className="fx-th-txt">
-          <h2>{t.name}</h2>
+          <div className="fx-th-name">
+            <h2>{t.name}</h2>
+            <button type="button" className="fx-th-rename" onClick={() => { setNameEd((v) => !v); setLogoEd(false); }} aria-expanded={nameEd} aria-controls="fx-rename-panel" aria-label="Vaihda joukkueen nimi" title="Vaihda nimi">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /></svg>
+            </button>
+          </div>
           <p className="muted">{s.user?.username} · {s.comp.leagues.length > 1 ? `${s.comp.leagues.length} sarjaa` : s.comp.name}</p>
         </div>
       </section>
+      {nameEd && <div id="fx-rename-panel"><RenameEditor name={t.name} onSaved={reload} onCancel={() => setNameEd(false)} /></div>}
       {logoEd && <div id="fx-logo-panel"><LogoEditor name={t.name} logo={t.logo} onSaved={reload} onCancel={() => setLogoEd(false)} /></div>}
 
       <section className="fx-kpi3" aria-label="Kierroksen tilanne">
