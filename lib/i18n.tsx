@@ -232,7 +232,6 @@ const D = {
   acc_err_other: ["Ei onnistunut juuri nyt. Yritä hetken kuluttua uudelleen.", "Det gick inte just nu. Försök igen om en stund.", "That didn't work right now. Try again in a moment."],
   footerNav: ["Sivuston tiedot", "Om webbplatsen", "Site information"],
   rights: ["Uutiset ja kuvat: lähteiden omistamia", "Nyheter och bilder tillhör källorna", "News and images belong to their sources"],
-  notLicence: ["Lähdemerkintä ei ole käyttölupa", "Källangivelse är inte tillstånd", "Crediting is not a licence"],
   updated: ["Päivitetty", "Uppdaterad", "Updated"],
   favorites: ["Suosikit", "Favoriter", "Favourites"],
   matches: ["Ottelut", "Matcher", "Matches"],

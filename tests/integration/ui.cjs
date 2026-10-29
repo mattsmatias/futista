@@ -594,7 +594,9 @@ const MIN = 60_000;
       ok(`kieli ${lang}: paluulinkki`, b.includes(err), "");
       await page.goto(APP + "/tietoa", { waitUntil: "networkidle" });
       const about = await page.locator("body").innerText();
-      const lic = { fi: "Lähdemerkintä ei ole käyttölupa", sv: "Källangivelse är inte tillstånd", en: "Crediting is not a licence" }[lang];
+      const lic = { fi: "Lähdemerkintä ei ole käyttölupa", sv: "Källangivelse är inte tillstånd", en: "Crediting a source is not a licence" }[lang];
+      const foot = await page.locator("footer").first().innerText().catch(() => "");
+      ok(`kieli ${lang}: alatunnisteessa ei '${lic}' -tekstiä`, !!foot && !foot.includes(lic), foot.slice(-160));
       ok(`kieli ${lang}: tietoa-sivu: '${lic}', football-data.org:n vaatima maininta, ei muita tietopalveluiden nimiä, ei 'lähteiden luvalla'`, about.includes(lic) && about.includes("Football data provided by the Football-Data.org API") && !/ESPN|API-Football|TheSportsDB|Wikidata/.test(about) && !/lähteiden luvalla/i.test(about));
       await ctx.close();
     }

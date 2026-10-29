@@ -31,7 +31,7 @@ export default function Footer() {
           {" · "}<a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
           {" · "}<a href="https://flagpedia.net" target="_blank" rel="noopener">Flagpedia</a>
         </small>
-        <small className="foot-copy">© {new Date().getFullYear()} Futista · {t("rights")} · <a href="/tietoa">{t("notLicence")}</a></small>
+        <small className="foot-copy">© {new Date().getFullYear()} Futista · {t("rights")}</small>
       </div>
     </footer>
   );
