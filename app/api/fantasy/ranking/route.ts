@@ -1,9 +1,9 @@
 import { rpc } from "@/lib/fantasy-db";
 import { DEFAULT_COMP } from "@/lib/fantasy-sync";
-import { j, dbFail, withUser, loadState, roundInfo, roundLabel, teamLogos } from "@/lib/fantasy-api";
+import { j, fail, dbFail, withUser, loadState, roundInfo, roundLabel, teamLogos } from "@/lib/fantasy-api";
 
-// Futista-liiga (avoin, kaikki joukkueet): GET ?offset=N (50 / sivu) &round=N (kierroksen pisteet; oletus viimeisin lukittu).
-// Näkyy kirjautuneelle (oma joukkue korostettuna). Omia/yksityisiä liigoja ei ole (käyttäjän valinta 27.10.2026).
+// Futista-liiga (avoin, kaikki joukkueet) tai kaveriliiga (?league=ID, vain jäsenelle): GET ?offset=N (50 / sivu)
+// &round=N (kierroksen pisteet; oletus viimeisin lukittu). Näkyy kirjautuneelle (oma joukkue korostettuna).
 export const dynamic = "force-dynamic";
 const PAGE = 50;
 
@@ -18,7 +18,13 @@ export async function GET(req: Request) {
     const { current } = roundInfo(st);
     const round = Number(q.get("round")) || current?.round_no || 0;
     const offset = Math.max(0, Math.min(1_000_000, Number(q.get("offset")) || 0));
-    const r = await rpc<any>("f_ranking", { p_comp: comp.id, p_league: null, p_round: round, p_limit: PAGE, p_offset: offset, p_team: team });
+    // kaveriliiga: vain jäsenelle (muuten 404, ei paljasteta liigaa)
+    const league = Number(q.get("league")) || null;
+    if (league) {
+      const l = team ? await rpc<any>("f_league_get", { p_team: team, p_user: a.user.user_id, p_league: league }) : null;
+      if (!l) return fail("notfound", 404);
+    }
+    const r = await rpc<any>("f_ranking", { p_comp: comp.id, p_league: league, p_round: round, p_limit: PAGE, p_offset: offset, p_team: team });
     const rows: any[] = r?.rows ?? [], me = r?.me ?? null;
     const logos = await teamLogos(comp.id, [...rows.map((x) => x.team_id), ...(me ? [me.team_id] : [])]);
     const withLogo = (x: any) => ({ ...x, logo: logos[String(x.team_id)] ?? null });

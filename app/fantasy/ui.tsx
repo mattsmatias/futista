@@ -140,44 +140,69 @@ function Shirt({ gk }: { gk: boolean }) {
   );
 }
 
-export type Badge = { text: string; tone?: "pts" | "price" | "muted" };
+export type Badge = { text: string; tone?: "pts" | "price" | "muted" | "fx"; sr?: string };
 
-/** Kokoonpano kentällä (avaus riveittäin pelipaikan mukaan) ja vaihtopenkki järjestyksessä kentän alla */
-export function Pitch({ picks, players, badge, onSelect, label, empty }: {
+/** Muodostelma avauksesta, esim. "4–4–2" (puolustajat–keskikenttä–hyökkääjät) */
+export function formationOf(xi: number[], players: Map<number, FPlayerRow>): string | null {
+  const n = (pos: Pos) => xi.filter((id) => players.get(id)?.pos === pos).length;
+  return xi.length === 11 ? `${n("DEF")}–${n("MID")}–${n("FWD")}` : null;
+}
+
+/** Futistan pelaajakortti kentällä: pelipaikka (teksti + väri), kuva tai paita, sukunimi, seura, arvo (hinta / pisteet / ottelu)
+ *  ja kapteenimerkki. Ei keksittyjä arvosanoja tai taitolukuja: kortissa vain pelin oikeat tiedot. */
+function Card({ p, badge, role, onSelect, desc, bench }: { p: FPlayerRow; badge: Badge | null; role: "C" | "VC" | null; onSelect?: () => void; desc: string; bench?: boolean }) {
+  const inner = (
+    <>
+      <span className="fxc-top"><span className="fxc-pos">{POS_SHORT[p.pos]}</span>{role && <em className={`fxc-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
+      <span className="fxc-pic"><TokPic p={p} /></span>
+      <span className="fxc-name">{surname(p.name)}</span>
+      <span className="fxc-club">{p.team}</span>
+      {badge && <span className={`fxc-val ${badge.tone ?? "pts"}`}>{badge.text}</span>}
+    </>
+  );
+  const cls = `fxc fxc-${p.pos.toLowerCase()}${bench ? " bench" : ""}`;
+  return onSelect
+    ? <button type="button" className={cls} onClick={onSelect} aria-label={desc}>{inner}</button>
+    : <div className={cls} role="listitem" aria-label={desc}>{inner}</div>;
+}
+
+/** Kokoonpano kentällä (avaus riveittäin pelipaikan mukaan, muodostelma näkyvissä) ja vaihtopenkki järjestyksessä kentän alla.
+ *  legend kertoo, mitä korttien arvo tarkoittaa (hinta, kierroksen pisteet tai seuraava ottelu). */
+export function Pitch({ picks, players, badge, onSelect, label, empty, legend }: {
   picks: Picks; players: Map<number, FPlayerRow>; badge: (id: number) => Badge | null; onSelect?: (id: number) => void; label: string;
   empty?: Partial<Record<Pos, number>>; // rakennusvaiheen tyhjät paikat
+  legend?: React.ReactNode;
 }) {
   const row = (pos: Pos) => picks.xi.filter((id) => players.get(id)?.pos === pos);
-  const token = (id: number, bench = false) => {
+  const card = (id: number, bench = false) => {
     const p = players.get(id);
     if (!p) return null;
     const b = badge(id);
     const role = id === picks.captain ? "C" : id === picks.vice ? "VC" : null;
-    const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.text}${b.tone === "price" ? " kolikkoa" : ""}` : ""}`;
-    const inner = (
-      <>
-        <span className="fx-tok-pic"><TokPic p={p} />{role && <em className={`fx-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
-        <span className="fx-tok-name">{surname(p.name)}</span>
-        {b && <span className={`fx-tok-b ${b.tone ?? "pts"}`}>{b.text}</span>}
-        {bench && <span className="fx-tok-pos" aria-hidden="true">{POS_SHORT[p.pos]}</span>}
-      </>
-    );
-    return onSelect
-      ? <button key={id} type="button" className="fx-tok" onClick={() => onSelect(id)} aria-label={desc}>{inner}</button>
-      : <div key={id} className="fx-tok" role="listitem" aria-label={desc}>{inner}</div>;
+    const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.sr ?? `${b.text}${b.tone === "price" ? " kolikkoa" : ""}`}` : ""}`;
+    return <Card key={id} p={p} badge={b} role={role} bench={bench} desc={desc} onSelect={onSelect ? () => onSelect(id) : undefined} />;
   };
-  const slots = (pos: Pos) => [...Array(empty?.[pos] ?? 0).keys()].map((i) => <div key={`e${pos}${i}`} className="fx-tok empty" aria-label={`Tyhjä paikka: ${POS_LONG[pos]}`}><span className="fx-tok-pic"><Shirt gk={pos === "GK"} /></span><span className="fx-tok-name">{POS_SHORT[pos]}</span></div>);
+  const slots = (pos: Pos) => [...Array(empty?.[pos] ?? 0).keys()].map((i) => (
+    <div key={`e${pos}${i}`} className={`fxc empty fxc-${pos.toLowerCase()}`} aria-label={`Tyhjä paikka: ${POS_LONG[pos]}`}>
+      <span className="fxc-top"><span className="fxc-pos">{POS_SHORT[pos]}</span></span><span className="fxc-pic"><Shirt gk={pos === "GK"} /></span><span className="fxc-name">Tyhjä</span>
+    </div>
+  ));
+  const form = formationOf(picks.xi, players);
   return (
     <section className="fx-pitch-wrap" aria-label={label}>
       <div className="fx-pitch">
-        <i className="fx-line mid" aria-hidden="true" /><i className="fx-line circle" aria-hidden="true" /><i className="fx-line box" aria-hidden="true" />
+        <i className="fx-line mid" aria-hidden="true" /><i className="fx-line circle" aria-hidden="true" /><i className="fx-line box" aria-hidden="true" /><i className="fx-line box2" aria-hidden="true" />
+        {(form || legend) && <div className="fx-pitch-meta">{form && <span className="fx-form" title="Muodostelma: puolustajat–keskikenttä–hyökkääjät"><span className="sr-only">Muodostelma </span>{form}</span>}{legend && <span className="fx-legend">{legend}</span>}</div>}
         {(["GK", "DEF", "MID", "FWD"] as Pos[]).map((pos) => (
-          <div key={pos} className="fx-prow" role="list" aria-label={POS_LONG[pos]}>{row(pos).map((id) => token(id))}{slots(pos)}</div>
+          <div key={pos} className="fx-prow" role="list" aria-label={POS_LONG[pos]}>{row(pos).map((id) => card(id))}{slots(pos)}</div>
         ))}
       </div>
-      <div className="fx-bench" role="list" aria-label="Vaihtopelaajat järjestyksessä">
-        {picks.bench.map((id, i) => <div key={id} className="fx-bslot"><span className="fx-bno" aria-hidden="true">{i === 0 ? "MV" : i}</span>{token(id, true)}</div>)}
-      </div>
+      {picks.bench.length > 0 && (
+        <div className="fx-bench" role="list" aria-label="Vaihtopelaajat järjestyksessä">
+          <span className="fx-bench-h" aria-hidden="true">Penkki</span>
+          {picks.bench.map((id, i) => <div key={id} className="fx-bslot"><span className="fx-bno" aria-hidden="true">{i === 0 ? "MV" : i}</span>{card(id, true)}</div>)}
+        </div>
+      )}
     </section>
   );
 }
@@ -214,7 +239,8 @@ export type CardAction = { label: string; onClick: () => void; disabled?: boolea
 export type CardSwaps = { title: string; items: { p: FPlayerRow; onClick: () => void }[] };
 
 /** Pelaajakortti (alapaneeli puhelimella): tiedot, pikatoiminnot kuvakkeineen ja vaihtoehdot listana */
-export function PlayerCard({ p, onClose, actions, swaps, extra }: { p: FPlayerRow; onClose: () => void; actions?: CardAction[]; swaps?: CardSwaps; extra?: React.ReactNode }) {
+export type CardRoundFx = { label: string; list: { opp: string; home: boolean; kickoff: string }[] | null };
+export function PlayerCard({ p, onClose, actions, swaps, extra, note, roundFx }: { p: FPlayerRow; onClose: () => void; actions?: CardAction[]; swaps?: CardSwaps; extra?: React.ReactNode; note?: string; roundFx?: CardRoundFx }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
@@ -243,13 +269,20 @@ export function PlayerCard({ p, onClose, actions, swaps, extra }: { p: FPlayerRo
           <div><dt>Minuutit</dt><dd>{p.minutes}</dd></div>
         </dl>
         <p className="fx-next"><span className="muted">Seuraava ottelu</span> <b>{p.next ? `${p.next.home ? "" : "@ "}${p.next.opp} · ${localTime(p.next.kickoff)}` : "–"}</b></p>
+        {roundFx && roundFx.list && (
+          <p className="fx-next fx-rfx"><span className="muted">{roundFx.label}</span> <b>{roundFx.list.length === 0 ? "ei ottelua" : roundFx.list.length === 1 ? "1 ottelu" : `${roundFx.list.length} ottelua`}</b>
+            {roundFx.list.length > 0 && <span className="fx-rfx-l">{roundFx.list.map((f) => `${f.home ? "" : "@ "}${f.opp} ${localTime(f.kickoff)}`).join(" · ")}</span>}</p>
+        )}
         {!p.active && <p className="fx-next"><span className="muted">Tila</span> <b>Ei enää sarjan pelaajalistalla</b></p>}
+        {note && <p className="fx-card-note">{note}</p>}
         {extra}
         {actions && actions.length > 0 && (
           <div className={`fx-acts${one ? " one" : ""}`}>
             {actions.map((a) => (
-              <button key={a.label} type="button" className={`fx-act${a.tone ? ` ${a.tone}` : ""}`} onClick={a.onClick} disabled={a.disabled} title={a.hint}>
+              <button key={a.label} type="button" className={`fx-act${a.tone ? ` ${a.tone}` : ""}`} onClick={a.onClick} disabled={a.disabled} title={a.hint}
+                aria-describedby={a.disabled && a.hint ? `fx-why-${a.label.replace(/\W+/g, "")}` : undefined}>
                 {a.icon && <span className="fx-act-ic" aria-hidden="true">{a.icon}</span>}<span>{a.label}</span>
+                {a.disabled && a.hint && <small className="fx-act-why" id={`fx-why-${a.label.replace(/\W+/g, "")}`}>{a.hint}</small>}
               </button>
             ))}
           </div>
@@ -284,6 +317,7 @@ export const ActIcon = {
   remove: svg(<><path d="M4 7h16M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13M9 7V4h6v3" /></>),
   add: svg(<path d="M12 5v14M5 12h14" />),
   up: svg(<path d="M12 19V5M5 12l7-7 7 7" />),
+  transfer: svg(<path d="M4 8h13l-3-3M20 16H7l3 3" />),
   down: svg(<path d="M12 5v14M5 12l7 7 7-7" />),
 };
 

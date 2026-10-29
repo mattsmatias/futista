@@ -2354,3 +2354,145 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .fx-pnum .fx-money { justify-content: flex-end; }
 .fx-tok-b.price { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
 .fx-tok-b.price::before { content: ""; width: 11px; height: 11px; flex: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12.6' r='10.6' fill='%23a86a00'/%3E%3Ccircle cx='12' cy='11.6' r='10.2' fill='%23f2b705'/%3E%3Ccircle cx='12' cy='11.6' r='8.6' fill='%23ffd23f'/%3E%3Ccircle cx='12' cy='11.6' r='7' fill='none' stroke='%23c98a00' stroke-width='1.1'/%3E%3Cpath d='M12 6.7l1.45 2.95 3.25.47-2.35 2.3.55 3.24L12 14.13l-2.9 1.53.55-3.24-2.35-2.3 3.25-.47z' fill='%23c98a00'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ===== Futista Fantasy: pelaajakortit (oma korttimuoto: viistetty kulma, pelipaikan väriraita + teksti) ===== */
+.fx-pitch { padding-top: 34px; }
+.fx-pitch-meta { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: none; z-index: 1; }
+.fx-form { padding: 3px 9px; border-radius: 999px; background: rgba(5, 10, 20, .55); color: #fff; font: 800 12.5px/1.2 var(--ui); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.fx-legend { padding: 3px 9px; border-radius: 999px; background: rgba(5, 10, 20, .55); color: #e7f0ff; font: 700 11.5px/1.2 var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-line.box2 { left: 25%; right: 25%; bottom: -2px; height: 54px; border-bottom: 0; }
+.fx-prow { min-height: 0; gap: clamp(3px, 1.2vw, 8px); align-items: stretch; padding: 4px 0; }
+.fxc {
+  --pc: #60a5fa;
+  position: relative; flex: 0 1 68px; width: clamp(52px, 17vw, 72px); min-width: 0; display: grid; justify-items: center; align-content: start; gap: 1px;
+  padding: 4px 3px 0; border: 0; color: #fff; font: inherit; text-align: center; cursor: pointer;
+  background: linear-gradient(165deg, #22365e 0%, #111c35 62%, #0b1426 100%);
+  clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
+  border-radius: 9px 0 9px 9px; box-shadow: inset 0 3px 0 var(--pc), 0 6px 14px -6px rgba(0, 0, 0, .8);
+  transition: transform .15s ease, filter .15s ease;
+}
+.fxc-gk { --pc: #f5b51f; } .fxc-def { --pc: #2dd4bf; } .fxc-mid { --pc: #60a5fa; } .fxc-fwd { --pc: #fb7185; }
+button.fxc:hover { filter: brightness(1.12); }
+button.fxc:active { transform: scale(.95); }
+button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-path: none; }
+.fxc-top { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 15px; padding: 0 1px; }
+.fxc-pos { font: 900 9.5px/1 var(--ui); letter-spacing: .04em; color: var(--pc); }
+.fxc-cap { display: grid; place-items: center; min-width: 17px; height: 15px; padding: 0 3px; border-radius: 4px; font: 900 9.5px/1 var(--ui); font-style: normal; background: #ffd23f; color: #0a0f1d; margin-right: 6px; }
+.fxc-cap.vc { background: #cfd8ea; }
+.fxc-pic { display: grid; place-items: center; width: 40px; height: 40px; }
+.fxc-pic .fx-tok-face { width: 40px; height: 40px; border: 2px solid var(--pc); box-shadow: none; }
+.fxc-pic .fx-shirt { width: 38px; height: 35px; }
+.fxc-name { width: 100%; padding: 2px 2px 0; font: 800 11px/1.15 var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fxc-club { width: 100%; padding: 0 2px 3px; font: 600 9px/1.2 var(--ui); color: #9fb0d4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fxc-val { align-self: end; width: calc(100% + 6px); margin: 0 -3px; padding: 3px 2px; display: inline-flex; justify-content: center; align-items: center; gap: 3px;
+  font: 800 11px/1.1 var(--ui); font-variant-numeric: tabular-nums; border-radius: 0 0 9px 9px; white-space: nowrap; overflow: hidden; }
+.fxc-val.pts { background: linear-gradient(180deg, #ffd23f, #f5b51f); color: #0a0f1d; }
+.fxc-val.price { background: #0a1222; color: #fff; }
+.fxc-val.price::before { content: ""; width: 10px; height: 10px; flex: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12.6' r='10.6' fill='%23a86a00'/%3E%3Ccircle cx='12' cy='11.6' r='10.2' fill='%23f2b705'/%3E%3Ccircle cx='12' cy='11.6' r='8.6' fill='%23ffd23f'/%3E%3Cpath d='M12 6.7l1.45 2.95 3.25.47-2.35 2.3.55 3.24L12 14.13l-2.9 1.53.55-3.24-2.35-2.3 3.25-.47z' fill='%23c98a00'/%3E%3C/svg%3E") center / contain no-repeat; }
+.fxc-val.fx { background: #0a1222; color: #dbe6ff; font-weight: 700; font-size: 10px; }
+.fxc-val.muted { background: #39455e; color: #dfe6f5; }
+.fxc.empty { cursor: default; opacity: .6; background: rgba(255, 255, 255, .08); box-shadow: inset 0 3px 0 var(--pc); }
+.fxc.empty .fx-shirt { fill: rgba(255, 255, 255, .35); }
+.fxc.empty .fxc-name { font-weight: 700; color: #cfd8ea; padding-bottom: 6px; }
+.fx-bench { position: relative; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 26px 8px 10px; justify-items: center; }
+.fx-bench-h { position: absolute; top: 7px; left: 12px; font: 800 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fx-bench .fxc { width: clamp(52px, 19vw, 76px); }
+.fx-bslot { gap: 4px; }
+@media (max-width: 360px) { .fxc-pic, .fxc-pic .fx-tok-face { width: 34px; height: 34px; } .fxc-pic .fx-shirt { width: 32px; height: 30px; } .fxc-name { font-size: 10.5px; } }
+@media (min-width: 700px) { .fxc { width: 78px; flex-basis: 78px; } .fxc-pic, .fxc-pic .fx-tok-face { width: 46px; height: 46px; } .fxc-name { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .fxc { transition: none; } button.fxc:active { transform: none; } }
+
+/* Fantasy: Oma joukkue -päänäkymä */
+.fx-teamhead { display: flex; align-items: center; gap: 12px; }
+.fx-th-logo { position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 14px; }
+.fx-th-logo:focus-visible { outline: 3px solid var(--fx-acc, #ffd23f); outline-offset: 2px; }
+.fx-th-edit { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--fx-acc, #ffd23f); color: #0a0f1d; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); }
+.fx-th-txt { min-width: 0; }
+.fx-th-txt h2 { margin: 0; font: 900 clamp(20px, 6vw, 26px)/1.1 var(--display); letter-spacing: .01em; text-transform: uppercase; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fx-th-txt p { margin: 3px 0 0; font-size: 13px; }
+.fx-kpi3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fx-kpi3 > div { display: grid; gap: 2px; align-content: start; padding: 10px 10px 9px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.fx-kpi3 span { font: 700 11px/1.2 var(--ui); letter-spacing: .03em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-kpi3 b { font: 900 22px/1.1 var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-kpi3 b .fx-money { vertical-align: 0; }
+.fx-kpi3 small { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.fx-kpi3 .k-pts b { color: var(--fx-acc, var(--fg)); }
+.fx-deadline { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+.fx-deadline svg { flex: none; color: var(--fx-acc-2, var(--muted)); }
+.fx-deadline > span:nth-child(2) { flex: 1; min-width: 0; }
+.fx-dl-cd { flex: none; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); font: 800 12.5px/1.2 var(--ui); font-variant-numeric: tabular-nums; }
+.fx-modes { margin: 0; width: 100%; max-width: none; }
+.fx-modes button { flex: 1; min-height: 38px; }
+.fx-home-actions .btn { flex: 1 1 auto; }
+.fx-home-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fx-home-foot .fx-upd { margin: 0; }
+@media (max-width: 360px) { .fx-kpi3 b { font-size: 19px; } .fx-kpi3 > div { padding: 8px 7px; } }
+.fx-rfx { flex-wrap: wrap; }
+.fx-rfx-l { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+.fx-card-note { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; }
+.fx-act-why { display: block; font-size: 11px; font-weight: 600; line-height: 1.25; color: var(--muted); }
+.fx-act:disabled { opacity: .75; }
+
+/* Fantasy: siirtolista – kierroksen ottelumäärä ja syy, miksi pelaajaa ei voi valita; vahvistuksen yhteenveto */
+.fx-pmeta { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 3px; }
+.fx-nfx { padding: 1px 7px; border-radius: 999px; font: 700 11px/1.5 var(--ui); background: var(--surface-2); color: var(--fg); }
+.fx-nfx.many { background: rgba(61, 220, 151, .18); color: #3ddc97; }
+.fx-nfx.zero { background: rgba(255, 123, 128, .16); color: #ff8a92; }
+.fx-why { padding: 1px 7px; border-radius: 999px; font: 700 11px/1.5 var(--ui); background: rgba(160, 185, 255, .08); color: var(--muted); }
+.fx-tr-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fx-tr-sum > div { padding: 10px; border-radius: 12px; background: var(--surface-2); min-width: 0; }
+.fx-tr-sum h3 { margin: 0 0 6px; font: 800 11.5px/1 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.fx-tr-sum > div:first-child h3 { color: #ff8a92; } .fx-tr-sum > div:last-child h3 { color: #3ddc97; }
+.fx-tr-sum ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.fx-tr-sum li { display: flex; justify-content: space-between; gap: 6px; font-size: 13.5px; font-weight: 600; min-width: 0; }
+.fx-tr-sum li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* Fantasy: Pisteet – kierroksen tulos */
+.fx-pts-hero, .fx-empty { display: grid; gap: 8px; padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.fx-empty h2, .fx-pts-top h2 { margin: 0; font: 900 15px/1.1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.fx-empty p { margin: 0; line-height: 1.5; }
+.fx-pts-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fx-pts-top select { max-width: 55%; }
+.fx-pts-big { display: flex; align-items: baseline; gap: 6px; margin: 0; }
+.fx-pts-big b { font: 900 52px/1 var(--display); color: var(--fx-acc, var(--fg)); font-variant-numeric: tabular-nums; }
+.fx-pts-big > span:first-of-type { font: 800 20px/1 var(--display); color: var(--muted); }
+.fx-pts-big .fx-tag { margin-left: 6px; align-self: center; }
+.fx-pts-hero > p.small { margin: 0; }
+.fx-pts-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fx-pts-mini > div { display: grid; gap: 2px; padding: 9px 10px; border-radius: 12px; background: var(--surface-2); min-width: 0; }
+.fx-pts-mini span { font: 700 11px/1.2 var(--ui); text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.fx-pts-mini b { font: 900 19px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+
+/* Fantasy: liigat */
+.fx-ltabs { margin: 0; width: 100%; max-width: none; }
+.fx-ltabs button { flex: 1; min-height: 40px; }
+.fx-lg-desc { margin: 0; padding-top: 0; }
+.fx-llist { list-style: none; margin: 0; padding: 0; }
+.fx-llist li + li { border-top: 1px solid var(--line); }
+.fx-llist button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 10px 16px; border: 0; background: none; color: var(--fg); text-align: left; cursor: pointer; font-size: 20px; }
+.fx-ll-n { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 15px; }
+.fx-ll-n b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-ll-n small { font-size: 12.5px; }
+.fx-lforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.fx-lform { display: grid; gap: 8px; align-content: start; }
+.fx-lform h2, .fx-linvite h2 { margin: 0; font: 900 15px/1.1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.fx-lform label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.fx-code, .fx-lcode code { font: 800 18px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+.fx-linvite { display: grid; gap: 8px; }
+.fx-linvite p { margin: 0; }
+.fx-lcode { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fx-lcode code { padding: 6px 10px; border-radius: 10px; background: var(--surface-2); }
+.fx-join-invite { display: grid; gap: 8px; padding: 14px; border-radius: 16px; border: 1px solid rgba(255, 210, 63, .45); background: linear-gradient(135deg, rgba(255, 210, 63, .14), transparent 60%), var(--surface); }
+.fx-join-invite p { margin: 0; }
+.fx-back, .fx-leave { justify-self: start; }
+/* logoeditori: esikatselu pysyy näkyvissä valintoja vieritettäessä; pitkä nimi ei riko asettelua */
+.fx-logo-ed .fx-logo-preview { position: sticky; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 2; padding: 8px 0; background: var(--surface); }
+:root:has(.fxg) .fx-logo-ed .fx-logo-preview { background: #141f37; }
+.fx-logo-preview > div { min-width: 0; }
+.fx-logo-preview b { display: block; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .fx-logo-preview .fx-logo { width: 84px; height: 84px; } .fx-logo-preview p { display: none; } }
+.fx-pitch-skel { height: 470px; border-radius: var(--r-md); background: linear-gradient(180deg, rgba(30, 120, 60, .35), rgba(20, 80, 40, .35)); animation: adm-sh 1.4s infinite linear; }
+@media (prefers-reduced-motion: reduce) { .fx-pitch-skel { animation: none; } }
+.fx-form { white-space: nowrap; flex: none; }
+.fx-legend { min-width: 0; }
+.fx-legend-note { margin: -4px 0 0; }

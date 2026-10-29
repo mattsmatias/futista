@@ -3,9 +3,10 @@
 // siirtojen ja pistevähennyksen näyttö ennen vahvistusta. Palvelin tarkistaa kaiken uudelleen tallennettaessa.
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { api, useLoad, errText, fmtM, fmtMText, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
+import { api, useLoad, errText, fmtM, fmtMText, roundFx, type FRoundFx, type FPlayersResp, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
 import { Money } from "../Coin";
+import { view, arrange, fixCaps, swapOptions } from "@/lib/fantasy-lineup";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus, ActIcon, type CardAction, type CardSwaps } from "../ui";
 
 type Draft = Picks;
@@ -13,7 +14,7 @@ const EMPTY: Draft = { squad: [], xi: [], bench: [], captain: 0, vice: 0 };
 
 export function Builder() {
   const st = useLoad<FState>("/api/fantasy/tila");
-  const pl = useLoad<{ players: FPlayerRow[] }>("/api/fantasy/pelaajat");
+  const pl = useLoad<FPlayersResp>("/api/fantasy/pelaajat");
   if ((st.loading && !st.data) || (pl.loading && !pl.data)) return <Loading />;
   if (st.err) return st.err.error === "login" ? <AuthBox onDone={st.reload} /> : <ErrorBox err={st.err} retry={st.reload} />;
   const s = st.data!;
@@ -22,10 +23,10 @@ export function Builder() {
   if (pl.err) return <ErrorBox err={pl.err} retry={pl.reload} />;
   if (!pl.data?.players.length) return <><DataStatus updated={s.data.updated} stale={s.data.stale} /><Notice kind="warn">Pelaajia ei ole vielä saatavilla. Pelaajalista haetaan lähteestä – yritä hetken kuluttua uudelleen.</Notice></>;
   if (s.next === null) return <Notice>Kauden kaikki kierrokset on lukittu – muutoksia ei voi enää tehdä.</Notice>;
-  return <Editor s={s} list={pl.data.players} reload={st.reload} />;
+  return <Editor s={s} list={pl.data.players} round={pl.data.round ?? null} reload={st.reload} />;
 }
 
-function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: () => void }) {
+function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; round: FRoundFx; reload: () => void }) {
   const t = s.team!;
   const players = useMemo(() => new Map(list.map((p) => [p.id, p])), [list]);
   const asF = players as unknown as Map<number, FPlayer>;
@@ -37,6 +38,19 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string; list?: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const next = s.rounds.find((r) => r.no === s.next)!;
+  const [posHint, setPosHint] = useState<Pos | null>(null);
+  const [outNote, setOutNote] = useState<string | null>(null);
+  // Oma joukkue → "Tee siirto": ?pois=ID poistaa pelaajan luonnoksesta ja suodattaa listan samaan pelipaikkaan
+  useEffect(() => {
+    let id = 0;
+    try { id = Number(new URLSearchParams(location.search).get("pois")); } catch { /* ei osoitetta */ }
+    const p = id ? players.get(id) : undefined;
+    if (!p || !(t.picks?.squad ?? []).includes(id)) return;
+    setD((x) => arrange({ ...x, squad: x.squad.filter((y) => y !== id) }, asF));
+    setPosHint(p.pos);
+    setOutNote(`${p.name} poistettu luonnoksesta. Valitse tilalle ${POS_LONG[p.pos].toLowerCase()}. Muutos tallentuu vasta, kun vahvistat joukkueen.`);
+    try { history.replaceState(history.state, "", location.pathname); } catch { /* ei historiaa */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const budget = s.comp.budget;
 
   const cost = d.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0);
@@ -77,7 +91,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
     setBusy(true); setMsg(null);
     const r = await api<{ made: number; cost: number }>("/api/fantasy/joukkue", { action: "save", round: next.no, version: t.version, picks: d, cost: hit });
     setBusy(false); setConfirm(false);
-    if (r.ok) { setMsg({ kind: "ok", text: `Joukkue tallennettu kierrokselle ${roundNum(s, next.no)}.${r.data.cost ? ` Pistevähennys ${r.data.cost} p.` : ""}` }); reload(); return; }
+    if (r.ok) { setOutNote(null); setMsg({ kind: "ok", text: `Joukkue tallennettu kierrokselle ${roundNum(s, next.no)}.${r.data.made ? ` Siirtoja ${r.data.made}.` : ""}${r.data.cost ? ` Pistevähennys ${r.data.cost} p.` : ""}` }); reload(); try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch { /* vanha selain */ } return; }
     if (r.err.error === "rules") setMsg({ kind: "error", text: "Joukkue ei täytä sääntöjä:", list: (r.err.errors ?? []).map((e: any) => e.text) });
     else if (r.err.error === "cost") setMsg({ kind: "error", text: `Pistevähennys on ${r.err.cost} p (${r.err.made} siirtoa). Tarkista ja vahvista uudelleen.` });
     else setMsg({ kind: "error", text: errText(r.err) });
@@ -118,6 +132,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
       {errors.length > 0 && (
         <Notice kind="warn"><p><b>Korjattavaa ennen tallennusta:</b></p><ul>{errors.map((e) => <li key={e.code + e.text}>{e.text}</li>)}</ul></Notice>
       )}
+      {outNote && !msg && <Notice kind="warn" role="status">{outNote}</Notice>}
       {msg && <Notice kind={msg.kind} role={msg.kind === "error" ? "alert" : "status"}><p>{msg.text}</p>{msg.list && <ul>{msg.list.map((x) => <li key={x}>{x}</li>)}</ul>}</Notice>}
       <div className="fx-build">
         <div className="fx-build-pitch">
@@ -129,79 +144,44 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
           </div>
           {full && <p className="muted small">Paina pelaajaa: kapteeni, varakapteeni, vaihto penkin ja avauksen välillä, penkkijärjestys tai poisto.</p>}
         </div>
-        <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} leagues={s.comp.leagues} />
+        <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} leagues={s.comp.leagues} round={round} roundLabel={round ? roundName(s, round.no) : null} posHint={posHint} />
       </div>
       {confirm && (
         <Overlay onClose={() => setConfirm(false)}>
           <div className="fx-card" role="dialog" aria-modal="true" aria-labelledby="fx-conf-h">
             <h2 id="fx-conf-h">Vahvista joukkue – kierros {roundNum(s, next.no)}</h2>
-            <dl className="facts fx-facts">
-              <div><dt>Siirrot</dt><dd>{t.base ? `${made} (${free === Infinity ? "rajattomasti" : `${free} ilmaista`})` : "Vapaa rakentaminen"}</dd></div>
-              <div><dt>Pistevähennys</dt><dd>{hit ? `−${hit} p` : "Ei vähennystä"}</dd></div>
-              <div><dt>Budjettia jäljellä</dt><dd><Money v={left} /></dd></div>
-              <div><dt>Kapteeni</dt><dd>{players.get(d.captain)?.name}</dd></div>
-              <div><dt>Varakapteeni</dt><dd>{players.get(d.vice)?.name}</dd></div>
-              <div><dt>Määräaika</dt><dd>{localTime(next.deadline)}</dd></div>
-            </dl>
-            {t.base && made > 0 && <p className="muted">Pois: {t.base.squad.filter((x) => !d.squad.includes(x)).map((x) => players.get(x)?.name ?? x).join(", ")}<br />Sisään: {d.squad.filter((x) => !t.base!.squad.includes(x)).map((x) => players.get(x)?.name ?? x).join(", ")}</p>}
+            {(() => {
+              const prev = t.base?.squad ?? saved.squad;
+              const outs = prev.filter((x) => !d.squad.includes(x)), ins = d.squad.filter((x) => !prev.includes(x));
+              const before = Math.round((budget - prev.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0)) * 10) / 10;
+              return (
+                <>
+                  {(outs.length > 0 || ins.length > 0) && (
+                    <div className="fx-tr-sum" aria-label="Siirrot">
+                      <div><h3>Pois</h3><ul>{outs.map((x) => <li key={x}><span>{players.get(x)?.name ?? x}</span>{players.get(x) && <Money v={players.get(x)!.price} size={13} />}</li>)}{outs.length === 0 && <li className="muted">–</li>}</ul></div>
+                      <div><h3>Sisään</h3><ul>{ins.map((x) => <li key={x}><span>{players.get(x)?.name ?? x}</span>{players.get(x) && <Money v={players.get(x)!.price} size={13} />}</li>)}{ins.length === 0 && <li className="muted">–</li>}</ul></div>
+                    </div>
+                  )}
+                  <dl className="facts fx-facts">
+                    <div><dt>Budjetti ennen → jälkeen</dt><dd><Money v={before} /> → <Money v={left} /></dd></div>
+                    <div><dt>Siirrot</dt><dd>{t.base ? `${made} (${free === Infinity ? "rajattomasti" : `${free} ilmaista`})` : "Vapaa rakentaminen"}</dd></div>
+                    <div><dt>Pistevähennys</dt><dd className={hit ? "neg" : ""}>{hit ? `−${hit} p` : "Ei vähennystä"}</dd></div>
+                    <div><dt>Kapteeni / varakapteeni</dt><dd>{players.get(d.captain)?.name} / {players.get(d.vice)?.name}</dd></div>
+                    <div><dt>Määräaika</dt><dd>{localTime(next.deadline)}</dd></div>
+                  </dl>
+                </>
+              );
+            })()}
             <div className="fx-card-actions">
               <button type="button" className="btn" onClick={save} disabled={busy}>{busy ? "Tallennetaan…" : "Vahvista"}</button>
-              <button type="button" className="btn ghost" onClick={() => setConfirm(false)}>Takaisin</button>
+              <button type="button" className="btn ghost" onClick={() => setConfirm(false)}>Peruuta</button>
             </div>
           </div>
         </Overlay>
       )}
-      {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} />}
+      {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} roundFx={round ? { label: roundName(s, round.no), list: roundFx(round, selP.team_id) } : undefined} />}
     </>
   );
-}
-
-/** Keskeneräinen joukkue kentälle: kaikki valitut näkyvät pelipaikkansa rivillä (penkki vasta täydessä joukkueessa) */
-function view(d: Draft, _players: Map<number, FPlayer>): Picks {
-  if (d.squad.length === RULES.squadSize) return d;
-  return { ...d, xi: d.squad, bench: [] };
-}
-
-/** Lisäyksen/poiston jälkeen: uusi pelaaja vapautuneelle paikalle (avaus tai penkki), muodostelma kelvolliseksi, kapteenit */
-function arrange(d: Draft, players: Map<number, FPlayer>): Draft {
-  const sq = new Set(d.squad);
-  let xi = d.xi.filter((id) => sq.has(id)), bench = d.bench.filter((id) => sq.has(id));
-  for (const id of d.squad) {
-    if (xi.includes(id) || bench.includes(id)) continue;
-    const pos = players.get(id)?.pos;
-    const c = (l: number[], p: Pos) => l.filter((x) => players.get(x)?.pos === p).length;
-    if (pos && xi.length < RULES.xiSize && c(xi, pos) < RULES.xiMax[pos]) xi.push(id); else bench.push(id);
-  }
-  if (d.squad.length === RULES.squadSize) {
-    const c = { GK: 0, DEF: 0, MID: 0, FWD: 0 } as Record<Pos, number>;
-    for (const id of xi) { const p = players.get(id); if (p) c[p.pos]++; }
-    if (xi.length !== RULES.xiSize || !formationOk(c)) { const a = autoLineup(d.squad, players); xi = a.xi; bench = a.bench; }
-    bench.sort((a, b) => (players.get(a)?.pos === "GK" ? -1 : players.get(b)?.pos === "GK" ? 1 : 0));
-  }
-  return fixCaps({ ...d, xi, bench }, players);
-}
-
-function fixCaps(d: Draft, players: Map<number, FPlayer>): Draft {
-  const byPrice = [...d.xi].sort((a, b) => (players.get(b)?.price ?? 0) - (players.get(a)?.price ?? 0));
-  let captain = d.xi.includes(d.captain) ? d.captain : byPrice[0] ?? 0;
-  let vice = d.xi.includes(d.vice) && d.vice !== captain ? d.vice : byPrice.find((x) => x !== captain) ?? 0;
-  if (captain === vice) vice = byPrice.find((x) => x !== captain) ?? 0;
-  return { ...d, captain, vice };
-}
-
-/** Kelvolliset vaihdot avauksen ja penkin välillä (muodostelma säilyy, maalivahti vain maalivahdin kanssa) */
-function swapOptions(d: Draft, id: number, players: Map<number, FPlayer>): number[] {
-  const inXi = d.xi.includes(id);
-  const others = inXi ? d.bench : d.xi;
-  const pos = players.get(id)?.pos;
-  return others.filter((o) => {
-    const op = players.get(o)?.pos;
-    if ((pos === "GK") !== (op === "GK")) return false;
-    const xi = d.xi.map((x) => (x === (inXi ? id : o) ? (inXi ? o : id) : x));
-    const c = { GK: 0, DEF: 0, MID: 0, FWD: 0 } as Record<Pos, number>;
-    for (const x of xi) { const p = players.get(x); if (p) c[p.pos]++; }
-    return formationOk(c);
-  });
 }
 
 const PAGE = 40;
@@ -213,13 +193,15 @@ const ADD_ICON = {
   off: ico(<><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" /></>, 2.1),
 };
 
-function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]; why: (p: FPlayerRow) => string | null; onPick: (id: number) => void; picked: number[]; leagues?: { id: number; name: string }[] }) {
+function PlayerList({ list, why, onPick, picked, leagues, round, roundLabel, posHint }: { list: FPlayerRow[]; why: (p: FPlayerRow) => string | null; onPick: (id: number) => void; picked: number[]; leagues?: { id: number; name: string }[]; round?: FRoundFx; roundLabel?: string | null; posHint?: Pos | null }) {
   const [pos, setPos] = useState<Pos | "ALL">("ALL");
+  useEffect(() => { if (posHint) setPos(posHint); }, [posHint]);
+  const nfx = (p: FPlayerRow) => roundFx(round ?? undefined, p.team_id)?.length ?? null;
   const [league, setLeague] = useState<number>(0);
   const [team, setTeam] = useState<number>(0);
   const multi = (leagues?.length ?? 0) > 1;
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<"price" | "season">("price");
+  const [sort, setSort] = useState<"price" | "season" | "last" | "name">("price");
   const [n, setN] = useState(PAGE);
   const teams = useMemo(() => [...new Map(list.filter((p) => !league || p.league === league).map((p) => [p.team_id, p.team])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi")), [list, league]);
   useEffect(() => { if (team && !teams.some(([id]) => id === team)) setTeam(0); }, [teams, team]);
@@ -227,11 +209,11 @@ function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]
   const rows = useMemo(() => list
     .filter((p) => p.active || picked.includes(p.id))
     .filter((p) => (pos === "ALL" || p.pos === pos) && (!league || p.league === league) && (!team || p.team_id === team) && (!q || fold(p.name).includes(fold(q)) || fold(p.team).includes(fold(q))))
-    .sort((a, b) => (sort === "price" ? b.price - a.price : b.season - a.season) || a.name.localeCompare(b.name, "fi")), [list, pos, league, team, q, sort, picked]);
+    .sort((a, b) => (sort === "price" ? b.price - a.price : sort === "season" ? b.season - a.season : sort === "last" ? (b.last ?? -99) - (a.last ?? -99) : 0) || a.name.localeCompare(b.name, "fi")), [list, pos, league, team, q, sort, picked]);
   useEffect(() => setN(PAGE), [pos, league, team, q, sort]);
   return (
     <section className="panel fx-list" aria-labelledby="fx-list-h">
-      <div className="panel-head"><h2 id="fx-list-h">Pelaajat</h2><span className="muted small">{rows.length}</span></div>
+      <div className="panel-head"><h2 id="fx-list-h">Pelaajat</h2><span className="muted small">{rows.length}{roundLabel && round ? ` · ottelumäärät: ${roundLabel}` : ""}</span></div>
       <div className="fx-filters">
         <div className="seg" role="group" aria-label="Pelipaikka">
           {(["ALL", ...POSITIONS] as const).map((p) => <button key={p} type="button" aria-pressed={pos === p} className={pos === p ? "on" : ""} onClick={() => setPos(p)}>{p === "ALL" ? "Kaikki" : POS_SHORT[p]}</button>)}
@@ -254,19 +236,20 @@ function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]
             {teams.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select>
           <label className="sr-only" htmlFor="fx-sort">Järjestys</label>
-          <select id="fx-sort" className="fx-input" value={sort} onChange={(e) => setSort(e.target.value as "price" | "season")}>
-            <option value="price">Hinta</option><option value="season">Kauden pisteet</option>
+          <select id="fx-sort" className="fx-input" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+            <option value="price">Järjestys: hinta</option><option value="season">Järjestys: kauden pisteet</option><option value="last">Järjestys: viime kierros</option><option value="name">Järjestys: nimi</option>
           </select>
         </div>
       </div>
       <ul className="fx-plist">
         {rows.slice(0, n).map((p) => {
-          const w = why(p), sel = picked.includes(p.id);
+          const w = why(p), sel = picked.includes(p.id), nf = nfx(p);
           return (
             <li key={p.id} className={sel ? "sel" : w ? "off" : ""}>
-              <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}${multi && p.league_name ? `, ${p.league_name}` : ""}, ${fmtMText(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
+              <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}${multi && p.league_name ? `, ${p.league_name}` : ""}, ${fmtMText(p.price)}, ${p.season} pistettä${nf !== null && roundLabel ? `, ${roundLabel}: ${nf === 0 ? "ei ottelua" : `${nf} ${nf === 1 ? "ottelu" : "ottelua"}`}` : ""}${w ? `, ei voi lisätä: ${w}` : ""}`}>
                 <PlayerFace p={p} />
-                <span className="fx-pname"><b>{p.name}</b><small className="muted">{p.team}{multi && p.league_name ? ` · ${p.league_name}` : ""}</small></span>
+                <span className="fx-pname"><b>{p.name}</b><small className="muted">{POS_SHORT[p.pos]} · {p.team}{multi && p.league_name ? ` · ${p.league_name}` : ""}</small>
+                  {(nf !== null || (w && !sel)) && <span className="fx-pmeta" aria-hidden="true">{nf !== null && <span className={`fx-nfx${nf === 0 ? " zero" : nf > 1 ? " many" : ""}`}>{nf === 0 ? "Ei ottelua" : nf === 1 ? "1 ottelu" : `${nf} ottelua`}</span>}{w && !sel && <span className="fx-why">{w}</span>}</span>}</span>
                 <span className="fx-pnum"><Money v={p.price} size={14} /><small className="muted">{p.season} p</small></span>
                 <span className={`fx-padd ${sel ? "is-sel" : w ? "is-off" : "is-add"}`} aria-hidden="true">{sel ? ADD_ICON.sel : w ? ADD_ICON.off : ADD_ICON.add}</span>
               </button>

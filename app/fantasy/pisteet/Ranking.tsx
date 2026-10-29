@@ -7,9 +7,9 @@ import { TeamLogo } from "../TeamLogo";
 
 type R = { round: number; round_label?: string | null; offset: number; page: number; count: number; rows: { rank: number; team_id: number; name: string; logo: unknown; round: number; total: number }[]; me: any; tie: string };
 
-export function Ranking() {
+export function Ranking({ league }: { league?: number } = {}) {
   const [offset, setOffset] = useState(0);
-  const r = useLoad<R>(`/api/fantasy/ranking?offset=${offset}`);
+  const r = useLoad<R>(`/api/fantasy/ranking?offset=${offset}${league ? `&league=${league}` : ""}`);
   const d = r.data;
   if (r.err) return <ErrorBox err={r.err} retry={r.reload} />;
   if (!d) return <p className="muted pad loading">Ladataan…</p>;
@@ -19,7 +19,7 @@ export function Ranking() {
       {d.count === 0 ? <p className="muted pad">Rankingissa ei ole vielä joukkueita (joukkue tulee mukaan, kun se on tallennettu).</p> : (
         <div className="tbl-wrap">
           <table className="tbl fx-rtbl">
-            <caption className="sr-only">Futista-liigan sarjataulukko</caption>
+            <caption className="sr-only">{league ? "Liigan sarjataulukko" : "Futista-liigan sarjataulukko"}</caption>
             <thead><tr><th scope="col">Sija</th><th scope="col">Joukkue</th><th scope="col">{d.round_label ?? (d.round ? `Kierros ${d.round}` : "Kierros")}</th><th scope="col">Yht.</th></tr></thead>
             <tbody>
               {d.rows.map((x) => (

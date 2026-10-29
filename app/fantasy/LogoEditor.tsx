@@ -50,7 +50,7 @@ export function LogoEditor({ name, logo, onSaved, onCancel }: { name: string; lo
           <TeamLogo logo={s} name={name} size={112} />
           <div>
             <b>{name}</b>
-            <p className="muted small">Logo näkyy omalla sivullasi ja Futista-liigan taulukossa. Logo kootaan valmiista osista – kuvia ei ladata, eikä seurojen logoja voi käyttää.</p>
+            <p className="muted small">Esikatselu päivittyy heti. Logo näkyy joukkueesi sivulla ja liigojen taulukoissa. Logo kootaan valmiista osista – kuvia ei ladata, eikä seurojen logoja voi käyttää.</p>
           </div>
         </div>
         {choice("shape", LOGO_SHAPES, SHAPE_FI)}

@@ -88,9 +88,25 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
   await C.call("/api/fantasy/joukkue", { action: "create", name: "Myöhäinen" });
 
   // ---------- Futista-liiga (avoin, sama kaikille; ei omia liigoja) ----------
-  ok("omien liigojen rajapintaa ei ole (404)", (await A.call("/api/fantasy/liigat", { action: "create", name: "Työkaverit" })).status === 404);
-  const lr0 = await C.call("/api/fantasy/ranking?league=1");
-  ok("  ranking on sama kaikille (league-parametri ei rajaa)", lr0.status === 200 && lr0.j?.league === undefined, JSON.stringify(lr0.j).slice(0, 200));
+  // ---------- kaveriliigat: luo, liity koodilla, vain jäsenille, koodin vaihto, poistuminen ----------
+  const lc = await A.call("/api/fantasy/liigat", { action: "create", name: "Työkaverit" });
+  ok("kaveriliiga: luonti → tunniste ja 8 merkin koodi (palvelin luo)", lc.status === 200 && /^[A-HJ-NP-Z2-9]{8}$/.test(lc.j?.code ?? ""), JSON.stringify(lc.j));
+  const LID = lc.j?.id, code1 = lc.j?.code ?? "";
+  ok("  liigan nimi tarkistetaan (1 merkki → virhe)", (await A.call("/api/fantasy/liigat", { action: "create", name: "x" })).j?.error === "name");
+  const jb = await B.call("/api/fantasy/liigat", { action: "join", code: `${code1.slice(0, 4).toLowerCase()}-${code1.slice(4)}` });
+  ok("  liittyminen koodilla (pienet kirjaimet ja väliviiva sallittu)", jb.status === 200 && jb.j?.id === LID && jb.j?.name === "Työkaverit", JSON.stringify(jb.j));
+  ok("  uudelleenliittyminen ei tuplaa", (await B.call("/api/fantasy/liigat", { action: "join", code: code1 })).status === 200 && (await B.call("/api/fantasy/liigat")).j?.leagues?.[0]?.members === 2);
+  ok("  väärä koodi → 404", (await C.call("/api/fantasy/liigat", { action: "join", code: "ZZZZZZZZ" })).status === 404);
+  ok("  liigan tiedot ja koodi vain jäsenille (ei-jäsen → 404)", (await C.call(`/api/fantasy/liigat?league=${LID}`)).status === 404 && (await B.call(`/api/fantasy/liigat?league=${LID}`)).j?.league?.code === code1);
+  const lrA = await A.call(`/api/fantasy/ranking?league=${LID}`);
+  ok("  liigan sarjataulukko jäsenille (2 joukkuetta), ei-jäsenelle 404", lrA.status === 200 && lrA.j?.count === 2 && (await C.call(`/api/fantasy/ranking?league=${LID}`)).status === 404, JSON.stringify(lrA.j).slice(0, 160));
+  ok("  koodin vaihto vain perustajalle", (await B.call("/api/fantasy/liigat", { action: "rotate", league: LID })).status === 403);
+  const rot = await A.call("/api/fantasy/liigat", { action: "rotate", league: LID });
+  ok("  perustaja vaihtaa koodin → vanha koodi ei enää toimi, uusi toimii", rot.j?.code && rot.j.code !== code1 && (await C.call("/api/fantasy/liigat", { action: "join", code: code1 })).status === 404 && (await C.call("/api/fantasy/liigat", { action: "join", code: rot.j.code })).status === 200, JSON.stringify(rot.j));
+  ok("  tallentamaton joukkue (C) ei näy taulukossa, vaikka on jäsen", (await A.call(`/api/fantasy/ranking?league=${LID}`)).j?.count === 2);
+  ok("  poistuminen liigasta", (await B.call("/api/fantasy/liigat", { action: "leave", league: LID })).status === 200 && (await B.call("/api/fantasy/liigat")).j?.leagues?.length === 0);
+  const plr = (await A.call("/api/fantasy/pelaajat")).j;
+  ok("pelaajalista: seuraavan kierroksen ottelut joukkueittain (kierros 2, jokaisella 1 ottelu)", plr?.round?.no === 2 && Object.keys(plr.round.teams).length === 6 && Object.values(plr.round.teams).every((x) => x.length === 1), JSON.stringify(plr?.round).slice(0, 200));
 
   // ---------- lukitus, pisteytys ----------
   await mock("r2=played&fix=0");
@@ -185,22 +201,61 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px: kirjautumaton → kirjautumislomake`, (await page.locator("#fx-u").count()) === 1 && (await page.locator("h2", { hasText: "Kirjaudu sisään" }).count()) === 1);
     await page.fill("#fx-u", "pelaaja_a"); await page.fill("#fx-p", "salasana-123");
     await page.locator("button[type=submit]").click();
-    await page.waitForSelector(".fx-pitch", { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector(".fx-pitch .fxc", { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(300);
     await shot(page, `koti-${w}`);
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/koti-ruutu-${w}.png` }).catch(() => {});
     const sz = await page.evaluate(() => {
-      const on = document.querySelector(".fxg-tabs a.on"), ic = on?.querySelector(".fxg-ic"), cta = document.querySelector(".fx-summary .fx-row .btn:not(.ghost)");
+      const on = document.querySelector(".fxg-tabs a.on"), ic = on?.querySelector(".fxg-ic"), cta = document.querySelector(".fx-home-actions .btn:not(.ghost)");
       const r = (e) => e?.getBoundingClientRect();
       return { tabBg: on ? getComputedStyle(on).backgroundImage + getComputedStyle(on).backgroundColor : "", icW: Math.round(r(ic)?.width ?? 0), icH: Math.round(r(ic)?.height ?? 0),
         ctaH: Math.round(r(cta)?.height ?? 0), ctaUpper: cta ? getComputedStyle(cta).textTransform : "" };
     });
     ok(`${w}px:   keltaiset napit: aktiivinen välilehti = pieni pilleri kuvakkeen takana, päänappi yhdellä rivillä (≤ 46 px)`, /none/.test(sz.tabBg) && /rgba\(0, 0, 0, 0\)/.test(sz.tabBg) && sz.icW <= 56 && sz.icH <= 30 && sz.ctaH > 0 && sz.ctaH <= 46 && sz.ctaUpper === "none", JSON.stringify(sz));
-    const toks = await page.locator(".fx-pitch .fx-tok").count(), bench = await page.locator(".fx-bench .fx-tok").count();
-    ok(`${w}px: Oma joukkue – kenttä (11) ja penkki (4), kierroksen pisteet, C-merkki`, toks === 11 && bench === 4 && (await page.locator(".fx-cap.c").count()) === 1 && /36 p/.test(await page.locator(".fx-summary").innerText()), `${toks}/${bench}`);
+    const toks = await page.locator(".fx-pitch .fxc").count(), bench = await page.locator(".fx-bench .fxc").count();
+    const k3 = (await page.locator(".fx-kpi3").innerText().catch(() => "")).replace(/\s+/g, " ");
+    ok(`${w}px: Oma joukkue – pelaajakortit kentällä (11) ja penkillä (4), C ja VC, kierroksen pisteet, sijoitus, budjetti`, toks === 11 && bench === 4 && (await page.locator(".fxc-cap.c").count()) === 1 && (await page.locator(".fxc-cap.vc").count()) === 1 && /36 p/.test(k3) && /Sijoitus 1 \/ 2/i.test(k3) && /Budjetti/i.test(k3) && (await page.locator(".fx-kpi3 .fx-money svg.fx-coin").count()) === 1, `${toks}/${bench} | ${k3}`);
+    const order = await page.evaluate(() => ["fx-teamhead", "fx-kpi3", "fx-deadline", "fx-pitch-wrap", "fx-home-actions", "fx-invite"].map((c) => Math.round(document.querySelector(`.${c}`)?.getBoundingClientRect().top ?? -1)));
+    ok(`${w}px:   järjestys: nimi ja logo → pisteet/sijoitus/budjetti → määräaika → kenttä → toiminnot → kutsu`, order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), JSON.stringify(order));
+    const form = await page.locator(".fx-form").textContent().catch(() => "");
+    const legend = await page.locator(".fx-legend").innerText().catch(() => "");
+    ok(`${w}px:   muodostelma ja korttien tiedon selite (pisteet: kierros)`, /\d–\d–\d/.test(form) && /Kierros 2 · pisteet/.test(legend), `${form} | ${legend}`);
+    const fit = await page.evaluate(() => { const cs = [...document.querySelectorAll(".fx-pitch .fxc")].map((e) => e.getBoundingClientRect()); const ov = cs.some((a, i) => cs.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)); return { ov, small: cs.filter((r) => r.width < 44 || r.height < 44).length, out: cs.filter((r) => r.left < 0 || r.right > innerWidth).length }; });
+    ok(`${w}px:   kortit eivät mene päällekkäin, mahtuvat näytölle ja ovat painettavan kokoisia (≥ 44 px)`, !fit.ov && fit.small === 0 && fit.out === 0, JSON.stringify(fit));
+    await page.locator(".fx-modes button", { hasText: "Hinnat" }).click();
+    ok(`${w}px:   Hinnat: korteissa hinta kolikkona, selite "Hinnat"`, (await page.locator(".fx-pitch .fxc-val.price").count()) === 11 && /Hinnat/.test(await page.locator(".fx-legend").innerText()));
+    await page.locator(".fx-modes button", { hasText: "Ottelut" }).click();
+    const fxv = await page.locator(".fx-pitch .fxc-val").allInnerTexts();
+    ok(`${w}px:   Ottelut: seuraavan kierroksen vastustaja (k/v), selite kertoo kierroksen`, fxv.length === 11 && fxv.every((x) => /\((k|v)\)$|ottelua|Ei ottelua/.test(x)) && /Kierros 3 · vastustajat/.test(await page.locator(".fx-legend").innerText()) && /\(k\) kotiottelu/.test(await page.locator(".fx-legend-note").innerText()), fxv.slice(0, 3).join(" | "));
+    // pelaajan tietonäkymä: kierroksen ottelut, toiminnot; penkkipelaaja ei voi olla kapteeni (syy näkyy)
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/koti-ottelut-${w}.png` }).catch(() => {});
+    await page.locator(".fx-bench .fxc").nth(1).click();
+    await page.waitForSelector(".fx-pcard", { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(350);
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/koti-kortti-${w}.png` }).catch(() => {});
+    const capBtn = page.locator(".fx-pcard").getByRole("button", { name: /^Kapteeni/ });
+    ok(`${w}px:   penkkipelaaja: Kapteeni estetty ja syy näkyvissä; kierroksen ottelut; Tee siirto`, (await capBtn.isDisabled()) && /Vain avauksen pelaaja/.test(await capBtn.innerText()) && /Kierros 3/.test(await page.locator(".fx-rfx").innerText().catch(() => "")) && (await page.locator(".fx-pcard .fx-act", { hasText: "Tee siirto" }).count()) === 1);
+    await page.keyboard.press("Escape");
+    // kapteeni Oma joukkue -näkymästä: tallentuu palvelimelle
+    const cand = await page.evaluate(() => { const b = [...document.querySelectorAll(".fx-pitch .fxc")].find((e) => !e.querySelector(".fxc-cap")); return b ? [...document.querySelectorAll(".fx-pitch .fxc")].indexOf(b) : -1; });
+    await page.locator(".fx-pitch .fxc").nth(cand).click();
+    await page.locator(".fx-pcard").getByRole("button", { name: /^Kapteeni/ }).click();
+    await page.waitForSelector(".fx-note.fx-ok", { timeout: 8000 }).catch(() => {});
+    const capNow = (await A.call("/api/fantasy/tila")).j.team?.picks?.captain;
+    const capName = await page.locator(".fx-note.fx-ok").innerText().catch(() => "");
+    ok(`${w}px:   kapteenin vaihto Oma joukkue -näkymästä tallentuu (palaute näkyy)`, /on kapteeni/.test(capName) && capNow && (await page.locator(".fx-pitch .fxc").nth(cand).locator(".fxc-cap.c").count()) === 1, `${capName} ${capNow}`);
+    // vaihto penkin ja avauksen välillä Oma joukkue -näkymästä
+    const benchBefore = await page.locator(".fx-bench .fxc").nth(1).getAttribute("aria-label");
+    await page.locator(".fx-bench .fxc").nth(1).click();
+    await page.locator(".fx-pcard .fx-swaps li button").first().click();
+    await page.waitForFunction((b) => document.querySelectorAll(".fx-bench .fxc")[1]?.getAttribute("aria-label") !== b, benchBefore, { timeout: 8000 }).catch(() => {});
+    ok(`${w}px:   vaihto penkiltä avaukseen tallentuu`, (await page.locator(".fx-bench .fxc").nth(1).getAttribute("aria-label")) !== benchBefore && /avaukseen/.test(await page.locator(".fx-note.fx-ok").innerText().catch(() => "")));
+    await page.locator(".fx-modes button", { hasText: "Pisteet" }).click();
     const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     ok(`${w}px:   ei vaakavieritystä`, ov <= 0, String(ov));
-    const kp = (await page.locator(".fx-kpis").innerText()).replace(/\s+/g, " ");
-    ok(`${w}px:   määräaika ja sijoitus näkyvät`, /kierros 3/i.test(kp) && /1 \/ 2/.test(kp), kp);
-    await page.locator(".fx-pitch .fx-tok").first().click();
+    const kp = (await page.locator(".fx-deadline").innerText()).replace(/\s+/g, " ");
+    ok(`${w}px:   seuraavan kierroksen määräaika ja laskuri`, /Kierros 3 · määräaika/.test(kp), kp);
+    await page.locator(".fx-pitch .fxc").first().click();
     ok(`${w}px:   pelaajakortti avautuu ja sulkeutuu Escillä`, (await page.locator(".fx-card[role=dialog]").count()) === 1 && (await page.keyboard.press("Escape"), (await page.locator(".fx-card").count()) === 0));
     // kutsulinkki: oma linkki näkyy, avautuu kirjautumattomalle tervetulotiedotteena ja tilin luonnilla
     const invUrl = await page.locator(".fx-inv-url").inputValue().catch(() => "");
@@ -219,7 +274,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   muokattu kutsukoodi → "ei ole voimassa", ei joukkueen tietoja`, (await gp.locator(".fx-inv-bad").count()) === 1 && (await gp.locator(".fx-invite.in").count()) === 0);
     await guest.close();
     // logo: oma logo näkyy, editori avautuu, valinta + tallennus
-    ok(`${w}px: oma logo näkyy joukkueen nimen vieressä`, (await page.locator('.fx-summary svg.fx-logo[role=img]').count()) === 1);
+    ok(`${w}px: oma logo näkyy joukkueen nimen vieressä (painamalla muokkaus)`, (await page.locator('.fx-teamhead .fx-th-logo svg.fx-logo').count()) === 1);
     await page.locator("button", { hasText: "Muokkaa logoa" }).click();
     await page.waitForSelector(".fx-logo-ed", { timeout: 5000 }).catch(() => {});
     await page.locator(".fx-logo-set", { hasText: "Muoto" }).locator("button", { hasText: "Kilpi" }).click();
@@ -262,7 +317,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   listan kuvakkeet: valittu vihreä, estetty himmeä lukko (ei keltainen), SVG-kuvakkeet`, ic.sel?.svg && ic.off?.svg && ic.sel.bg === "rgb(61, 220, 151)" && !/255, 210, 63/.test(ic.off.bg) && ic.off.txt === "" && ic.legacy === 0, JSON.stringify(ic));
     if (process.env.SHOTS) await page.locator(".fx-plist").screenshot({ path: `${process.env.SHOTS}/lista-ikonit-${w}.png` }).catch(() => {});
     // pelaajakortti penkkipelaajalle: pikatoiminnot ruudukkona, vaihtoehdot pelaajalistana (ei pitkää nappirivistöä)
-    await page.locator(".fx-bench .fx-tok").nth(1).click();
+    await page.locator(".fx-bench .fxc").nth(1).click();
     await page.waitForSelector(".fx-pcard", { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(350); // avausanimaatio
     const pc = await page.evaluate(() => {
@@ -274,11 +329,40 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     });
     ok(`${w}px:   penkkipelaajan kortti: vaihtoehdot listana, toiminnot ruudukossa, mahtuu ruutuun`, !!pc && pc.swaps > 0 && /avaukseen/i.test(pc.title) && pc.acts.includes("Poista joukkueesta") && pc.oldBtns === 0 && pc.top >= 0 && pc.bottom <= pc.vh + 1 && pc.ov <= 0, JSON.stringify(pc));
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/pelaajakortti-${w}.png` }).catch(() => {});
-    const before = await page.locator(".fx-bench .fx-tok").nth(1).getAttribute("aria-label");
+    const before = await page.locator(".fx-bench .fxc").nth(1).getAttribute("aria-label");
     await page.locator(".fx-swaps li button").first().click();
-    const after = await page.locator(".fx-bench .fx-tok").nth(1).getAttribute("aria-label");
+    const after = await page.locator(".fx-bench .fxc").nth(1).getAttribute("aria-label");
     ok(`${w}px:   vaihto listasta: kortti sulkeutuu ja penkkipelaaja vaihtuu`, (await page.locator(".fx-pcard").count()) === 0 && before !== after, `${before} → ${after}`);
     await page.locator(".fx-row button", { hasText: "Peru muutokset" }).click().catch(() => {});
+    const nfx = await page.locator(".fx-plist .fx-nfx").allInnerTexts();
+    const whys = await page.locator(".fx-plist li.off .fx-why").allInnerTexts();
+    ok(`${w}px:   lista: kierroksen ottelumäärä ja syy, miksi pelaajaa ei voi valita`, nfx.length > 5 && nfx.every((x) => /ottelu|Ei ottelua/.test(x)) && whys.length > 0 && whys.every((x) => /täynnä|Budjetti|seurasta|listalla/.test(x)), `${nfx.slice(0, 2)} | ${whys.slice(0, 2)}`);
+    // siirto ja vahvistuksen yhteenveto (pois → sisään, budjetti ennen ja jälkeen, vähennys), peruutus
+    await page.locator(".fx-pitch .fxc-fwd").first().click();
+    const outName = (await page.locator(".fx-pcard h2").innerText()).trim();
+    await page.locator(".fx-pcard .fx-act", { hasText: "Poista joukkueesta" }).click();
+    await page.locator(".fx-filters button", { hasText: /^H$/ }).click();
+    const addable = page.locator(".fx-plist li:not(.sel):not(.off) .fx-prow-btn").filter({ hasNotText: outName }).first();
+    const inName = (await addable.locator(".fx-pname b").innerText()).trim();
+    await addable.click();
+    await page.locator(".fx-pcard .fx-act", { hasText: "Lisää joukkueeseen" }).click();
+    await page.locator(".fx-row button", { hasText: "Tallenna joukkue" }).click();
+    await page.waitForSelector(".fx-tr-sum", { timeout: 5000 }).catch(() => {});
+    const trs = (await page.locator("[role=dialog]").innerText().catch(() => "")).replace(/\s+/g, " ");
+    ok(`${w}px:   vahvistus: pois ja sisään nimineen, budjetti ennen → jälkeen, siirrot ja vähennys, Vahvista/Peruuta`, trs.includes(outName) && trs.includes(inName) && /Budjetti ennen → jälkeen/i.test(trs) && /Pistevähennys/i.test(trs) && /Vahvista/.test(trs) && /Peruuta/.test(trs), `${outName} → ${inName} | ${trs.slice(0, 260)}`);
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/vahvistus-${w}.png` }).catch(() => {});
+    await page.locator("[role=dialog] button", { hasText: "Peruuta" }).click();
+    await page.locator(".fx-row button", { hasText: "Peru muutokset" }).click();
+    await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click();
+    // Oma joukkue → Tee siirto: pelaaja poistuu luonnoksesta ja lista suodattuu samaan pelipaikkaan
+    const someId = (await A.call("/api/fantasy/tila")).j.team.picks.xi[1];
+    await page.goto(`${APP}/fantasy/siirrot?pois=${someId}`, { waitUntil: "load" });
+    await page.waitForSelector(".fx-buildbar", { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const bb = (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " ");
+    ok(`${w}px:   Tee siirto: pelaaja poistettu luonnoksesta (14/15), ohje ja pelipaikkasuodatin`, /14 \/ 15/.test(bb) && /Valitse tilalle/.test(await page.locator(".fx-note").first().innerText().catch(() => "")) && (await page.locator(".fx-filters .seg button[aria-pressed=true]").innerText()) !== "Kaikki" && !/pois=/.test(page.url()), bb);
+    await page.locator(".fx-row button", { hasText: "Peru muutokset" }).click();
+    await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click();
     await page.fill("#fx-q", "Featherstonehaugh");
     await page.waitForTimeout(200);
     const longRow = page.locator(".fx-plist li").first();
@@ -289,9 +373,11 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.goto(`${APP}/fantasy/pisteet`, { waitUntil: "load" });
     await page.waitForSelector(".fx-breakdown li", { timeout: 15000 }).catch(() => {});
     await shot(page, `pisteet-${w}`);
-    const bd = await page.locator(".fx-breakdown > li").count(), sum = await page.locator(".fx-pts-sum").innerText().catch(() => "");
+    const bd = await page.locator(".fx-breakdown > li").count(), sum = await page.locator(".fx-pts-hero").innerText().catch(() => "");
     const lnk = await page.locator('a[href="/fantasy/liigat"]').count();
-    ok(`${w}px: Pisteet – erittely ja linkki Futista-liigaan (ei rahahuomautusta)`, bd === 15 && lnk >= 1 && /lopullinen/i.test(sum) && !/pelin sisäistä valuuttaa/.test(await page.locator("main").innerText()), `${bd} ${lnk} ${sum}`);
+    ok(`${w}px: Pisteet – kierroksen pisteet isona, lopullinen, kausi ja sijoitus, erittely, linkki liigoihin`, bd === 15 && lnk >= 1 && /lopullinen/i.test(sum) && /Kausi yhteensä/i.test(sum) && /Sijoitus/i.test(sum) && /36/.test(await page.locator(".fx-pts-big").innerText()) && !/pelin sisäistä valuuttaa/.test(await page.locator("main").innerText()), `${bd} ${lnk} ${sum.replace(/\s+/g, " ").slice(0, 120)}`);
+    const pv = await page.locator(".fx-pitch .fxc-val").allInnerTexts(), bv = await page.locator(".fx-bench .fxc-val").allInnerTexts();
+    ok(`${w}px:   kentällä kierrospisteet, kapteenilla ×2; penkki erikseen (ei lasketa)`, pv.length === 11 && pv.some((x) => /×2/.test(x)) && bv.length === 4 && (await page.locator(".fx-bench .fxc-val.muted").count()) === 4, `${pv.join(",")} | ${bv.join(",")}`);
     await page.goto(`${APP}/fantasy/liigat`, { waitUntil: "load" });
     await page.waitForSelector(".fx-rtbl tr.me", { timeout: 15000 }).catch(() => {});
     await shot(page, `liigat-${w}`);
@@ -299,6 +385,26 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px: Liiga – joukkueiden logot taulukossa (koristeena, nimi tekstinä)`, (await page.locator(".fx-rtbl tbody svg.fx-logo[aria-hidden=true]").count()) === 2);
     ok(`${w}px: Liiga – avoin Futista-liiga, taulukko (oma korostettu), ei koodeja`, /Futista-liiga/.test(ltxt) && (await page.locator(".fx-rtbl tbody tr").count()) === 2 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && !/koodi/i.test(ltxt)
       && !/avoin ja sama kaikille/.test(ltxt) && !/Futista-liiga ·/.test(ltxt) && (await page.locator(".fxg-brand").innerText()).trim().toLowerCase() === "fantasy", ltxt.slice(0, 200));
+    await page.locator(".fx-ltabs button", { hasText: "Omat liigat" }).click();
+    await page.waitForSelector(".fx-llist li, .fx-lforms", { timeout: 10000 }).catch(() => {});
+    ok(`${w}px: Omat liigat – oma kaveriliiga listalla, Luo liiga- ja Liity liigaan -lomakkeet`, (await page.locator(".fx-llist li", { hasText: "Työkaverit" }).count()) === 1 && (await page.locator(".fx-lform h2").allTextContents()).join("|") === "Luo liiga|Liity liigaan");
+    await page.locator(".fx-llist li button", { hasText: "Työkaverit" }).click();
+    await page.waitForSelector(".fx-lcode code", { timeout: 10000 }).catch(() => {});
+    await page.waitForSelector(".fx-rtbl tr.me", { timeout: 10000 }).catch(() => {});
+    const lcode = (await page.locator(".fx-lcode code").innerText()).trim();
+    const lurl = await page.locator(".fx-linvite .fx-inv-url").inputValue();
+    ok(`${w}px:   liiga: sarjataulukko (oma korostettu), koodi ja kutsulinkki jäsenelle`, /^[A-HJ-NP-Z2-9]{8}$/.test(lcode) && lurl.endsWith(`/fantasy/liigat?liity=${lcode}`) && (await page.locator(".fx-rtbl tr.me").count()) >= 1, `${lcode} ${lurl}`);
+    await shot(page, `liiga-oma-${w}`);
+    // kutsulinkki liigaan: kirjautunut kaveri (B) liittyy linkistä
+    const bctx = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: 844 } });
+    await bctx.addCookies([{ name: "ff_s", value: B.cookie.replace(/^ff_s=/, ""), url: APP }]);
+    const bp = await bctx.newPage();
+    await bp.goto(lurl.replace(/^https?:\/\/[^/]+/, APP), { waitUntil: "load" });
+    await bp.waitForSelector(".fx-join-invite", { timeout: 10000 }).catch(() => {});
+    await bp.locator(".fx-join-invite button", { hasText: "Liity liigaan" }).click();
+    await bp.waitForSelector(".fx-lcode code", { timeout: 10000 }).catch(() => {});
+    ok(`${w}px:   kutsulinkistä liittyminen: kaveri näkee liigan ja sen taulukon`, /Liityit liigaan Työkaverit/.test(await bp.locator(".fx-note").first().innerText().catch(() => "")) && (await bp.locator("h2", { hasText: "Työkaverit" }).count()) === 1);
+    await bctx.close();
     await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
     ok(`${w}px: Säännöt`, /Nollapeli/.test(await page.locator("main").innerText()) && /1 ilmaisen siirron/.test(await page.locator("main").innerText()));
     ok(`${w}px: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));

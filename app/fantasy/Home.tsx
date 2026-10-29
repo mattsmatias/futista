@@ -2,9 +2,11 @@
 // Oma joukkue: nimi, kierros ja määräaika, pisteet, sijoitus, budjetti, kokoonpano kentällä.
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { api, useLoad, fmtM, localTime, roundName, roundNum, type FState, type FPlayerRow } from "@/lib/fantasy-client";
-import type { Picks } from "@/lib/fantasy-core";
-import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus } from "./ui";
+import { useRouter } from "next/navigation";
+import { api, errText, useLoad, fmtM, localTime, roundName, roundNum, roundFx, type FState, type FPlayerRow, type FPlayersResp } from "@/lib/fantasy-client";
+import { RULES, type Picks, type FPlayer } from "@/lib/fantasy-core";
+import { setCaptain, swapOptions, swapPlayers } from "@/lib/fantasy-lineup";
+import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Countdown, ActIcon, type Badge, type CardAction, type CardSwaps } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
 import { Money } from "./Coin";
@@ -56,68 +58,144 @@ export function Logout() {
   return <button type="button" className="btn sm ghost" disabled={busy} onClick={async () => { setBusy(true); await api("/api/fantasy/tili", { action: "logout" }); location.href = "/fantasy"; }}>Kirjaudu ulos</button>;
 }
 
+type Mode = "pts" | "fx" | "price";
+const shortTeam = (n: string) => { const w = n.replace(/^(FC|AC|AS|SC|SV|VfB|VfL|RC|CF|SS|US|1\.)\s+/i, ""); return w.length <= 10 ? w : w.split(" ")[0].length <= 10 ? w.split(" ")[0] : `${w.slice(0, 9)}.`; };
+
 function Home({ s, reload }: { s: FState; reload: () => void }) {
+  const router = useRouter();
   const [logoEd, setLogoEd] = useState(false);
   const t = s.team!;
-  const pl = useLoad<{ players: FPlayerRow[] }>("/api/fantasy/pelaajat");
+  const pl = useLoad<FPlayersResp>("/api/fantasy/pelaajat");
   const players = useMemo(() => new Map((pl.data?.players ?? []).map((p) => [p.id, p])), [pl.data]);
+  const asF = players as unknown as Map<number, FPlayer>;
   const cur = s.current, next = s.rounds.find((r) => r.no === s.next) ?? null;
-  // näytetään viimeisimmän lukitun kierroksen tilannekuva pisteineen, muuten tuleva kokoonpano
+  // lukittu kierros, jolla joukkue on mukana → pisteet; muuten tuleva kokoonpano
   const showRound = cur !== null && t.first_round !== null && cur >= t.first_round ? cur : null;
   const snap = useLoad<{ snapshot: Picks | null; points: any; status: string | null }>(showRound ? `/api/fantasy/joukkue?round=${showRound}` : null);
+  const [mode, setMode] = useState<Mode>(showRound ? "pts" : "fx");
+  useEffect(() => { if (!showRound && mode === "pts") setMode("fx"); }, [showRound, mode]);
   const [sel, setSel] = useState<number | null>(null);
+  const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
   const last = t.points.find((p) => p.round === cur) ?? null;
   // lukitun kierroksen kentällä automaattisten vaihtojen jälkeinen kokoonpano (sisään tullut avaukseen, pelaamaton penkille)
-  const rawPicks: Picks | null = showRound ? snap.data?.snapshot ?? null : t.picks;
-  const subs: { out: number; in: number }[] = showRound ? snap.data?.points?.breakdown?.subs ?? [] : [];
-  const picks: Picks | null = rawPicks && subs.length ? subs.reduce((p, x) => ({ ...p, xi: p.xi.map((y) => (y === x.out ? x.in : y)), bench: p.bench.map((y) => (y === x.in ? x.out : y)) }), rawPicks) : rawPicks;
+  const rawSnap: Picks | null = snap.data?.snapshot ?? null;
+  const subs: { out: number; in: number }[] = snap.data?.points?.breakdown?.subs ?? [];
+  const snapPicks: Picks | null = rawSnap && subs.length ? subs.reduce((p, x) => ({ ...p, xi: p.xi.map((y) => (y === x.out ? x.in : y)), bench: p.bench.map((y) => (y === x.in ? x.out : y)) }), rawSnap) : rawSnap;
+  const picks: Picks | null = mode === "pts" ? snapPicks : t.picks;
   const ptsOf = (id: number) => (snap.data?.points?.breakdown?.players ?? []).find((x: any) => x.player_id === id);
-  const budgetLeft = t.picks && players.size ? s.comp.budget - t.picks.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0) : null;
-  const lockedNow = s.rounds.find((r) => r.no === cur);
+  const budgetLeft = t.picks && players.size ? Math.round((s.comp.budget - t.picks.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0)) * 10) / 10 : null;
+  const round = pl.data?.round ?? null;
+  const fxOf = (id: number) => { const p = players.get(id); if (!p) return null; const r = roundFx(round ?? undefined, p.team_id); if (r) return r; return p.next && next && p.next.round_no === next.no ? [{ opp: p.next.opp, home: p.next.home, kickoff: p.next.kickoff }] : round ? [] : null; };
+  const editable = !!(next && t.picks && t.picks.squad.length === RULES.squadSize && mode !== "pts");
+
+  const badge = (id: number): Badge | null => {
+    if (mode === "pts") {
+      const x = ptsOf(id);
+      return x ? { text: `${x.points * (x.mult || 1)} p${x.mult === 2 ? " ×2" : ""}`, tone: x.mult === 0 ? "muted" : "pts", sr: `${x.points * (x.mult || 1)} pistettä${x.mult === 2 ? ", kapteeni kertoimella 2" : x.mult === 0 ? ", penkillä" : ""}` } : { text: "–", tone: "muted", sr: "ei pisteitä" };
+    }
+    if (mode === "price") { const p = players.get(id); return p ? { text: fmtM(p.price), tone: "price" } : null; }
+    const f = fxOf(id);
+    if (f === null) return null;
+    if (f.length === 0) return { text: "Ei ottelua", tone: "muted", sr: "ei ottelua seuraavalla kierroksella" };
+    if (f.length > 1) return { text: `${f.length} ottelua`, tone: "fx", sr: `${f.length} ottelua seuraavalla kierroksella: ${f.map((x) => `${x.opp} ${x.home ? "kotona" : "vieraissa"}`).join(", ")}` };
+    return { text: `${shortTeam(f[0].opp)} (${f[0].home ? "k" : "v"})`, tone: "fx", sr: `seuraavaksi ${f[0].opp} ${f[0].home ? "kotona" : "vieraissa"}` };
+  };
+  const legend = mode === "pts" ? `${roundName(s, showRound)} · pisteet` : mode === "price" ? "Hinnat" : next ? `${roundName(s, next.no)} · vastustajat` : null;
+
+  const save = async (np: Picks, okText: string) => {
+    if (!next) return;
+    setBusy(true); setMsg(null);
+    const r = await api("/api/fantasy/joukkue", { action: "save", round: next.no, version: t.version, picks: np, cost: t.cost });
+    setBusy(false); setSel(null);
+    if (r.ok) { setMsg({ kind: "ok", text: okText }); reload(); }
+    else { setMsg({ kind: "error", text: errText(r.err) }); if (r.err.error === "conflict" || r.err.error === "deadline") reload(); }
+  };
+
+  const selP = sel !== null ? players.get(sel) : undefined;
+  const inXi = !!(selP && t.picks?.xi.includes(selP.id));
+  const lockedNote = mode === "pts" ? `${roundName(s, showRound)} on lukittu. Muutokset koskevat seuraavaa kierrosta.` : !next ? "Kauden kaikki kierrokset on lukittu." : null;
+  const actions: CardAction[] = !selP || !t.picks?.squad.includes(selP.id) ? [] : mode === "pts" ? [
+    ...(next ? [{ label: "Muokkaa seuraavaa kierrosta", icon: ActIcon.transfer, onClick: () => { setMode("fx"); } }] : []),
+  ] : [
+    ...(t.picks.captain === selP.id ? [] : [{ label: "Kapteeni", icon: ActIcon.captain, disabled: !editable || !inXi || busy, hint: !inXi ? "Vain avauksen pelaaja voi olla kapteeni" : !editable ? lockedNote ?? "Täydennä joukkue ensin" : "Kapteenin pisteet kerrotaan kahdella",
+      onClick: () => save(setCaptain(t.picks!, selP.id, "C"), `${selP.name} on kapteeni.`) }]),
+    ...(t.picks.vice === selP.id ? [] : [{ label: "Varakapteeni", icon: ActIcon.vice, disabled: !editable || !inXi || busy, hint: !inXi ? "Vain avauksen pelaaja voi olla varakapteeni" : !editable ? lockedNote ?? "Täydennä joukkue ensin" : "Saa kertoimen, jos kapteeni ei pelaa",
+      onClick: () => save(setCaptain(t.picks!, selP.id, "VC"), `${selP.name} on varakapteeni.`) }]),
+    { label: "Tee siirto", icon: ActIcon.transfer, disabled: !next, hint: !next ? "Kauden kaikki kierrokset on lukittu" : "Vaihda tilalle toinen pelaaja Siirrot-näkymässä", onClick: () => router.push(`/fantasy/siirrot?pois=${selP.id}`) },
+  ];
+  const swaps: CardSwaps | undefined = selP && editable && t.picks!.squad.includes(selP.id) ? {
+    title: inXi ? "Vaihda penkille – tilalle" : "Vaihda avaukseen – tilalle",
+    items: swapOptions(t.picks!, selP.id, asF).map((o) => players.get(o)).filter((o): o is FPlayerRow => !!o)
+      .map((o) => ({ p: o, onClick: () => save(swapPlayers(t.picks!, selP.id, o.id, asF), `${inXi ? selP.name : o.name} penkille, ${inXi ? o.name : selP.name} avaukseen.`) })),
+  } : undefined;
+  const modes: { id: Mode; label: string }[] = [
+    ...(showRound ? [{ id: "pts" as Mode, label: "Pisteet" }] : []),
+    { id: "fx", label: "Ottelut" }, { id: "price", label: "Hinnat" },
+  ];
+
   return (
     <>
-      <section className="fx-summary" aria-label="Joukkueen tiedot">
-        <div className="fx-sum-main fx-sum-team">
-          <TeamLogo logo={t.logo} name={t.name} size={64} />
-          <div>
-            <h2>{t.name}</h2>
-            <p className="muted">{s.comp.name} · {s.user?.username}</p>
-            <button type="button" className="btn sm ghost" aria-expanded={logoEd} aria-controls="fx-logo-panel" onClick={() => setLogoEd((v) => !v)}>Muokkaa logoa</button>
-          </div>
+      <section className="fx-teamhead" aria-label="Joukkue">
+        <button type="button" className="fx-th-logo" onClick={() => setLogoEd((v) => !v)} aria-expanded={logoEd} aria-controls="fx-logo-panel" title="Muokkaa logoa">
+          <TeamLogo logo={t.logo} name={t.name} size={56} decorative />
+          <span className="fx-th-edit" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z" /></svg></span>
+          <span className="sr-only">Muokkaa logoa</span>
+        </button>
+        <div className="fx-th-txt">
+          <h2>{t.name}</h2>
+          <p className="muted">{s.user?.username} · {s.comp.leagues.length > 1 ? `${s.comp.leagues.length} sarjaa` : s.comp.name}</p>
         </div>
-        <dl className="fx-kpis">
-          <div><dt>{next ? `${roundName(s, next.no)} – määräaika` : "Määräaika"}</dt><dd>{next ? localTime(next.deadline) : "Ei tulevia kierroksia"}</dd></div>
-          <div><dt>{cur ? roundName(s, cur) : "Viimeisin kierros"}</dt><dd>{last ? `${last.total} p${last.provisional ? " (alustava)" : ""}` : "–"}</dd></div>
-          <div><dt>Kausi yhteensä</dt><dd>{t.total} p</dd></div>
-          <div><dt>Sijoitus</dt><dd>{t.rank ? `${t.rank.rank.toLocaleString("fi-FI")} / ${t.rank.of.toLocaleString("fi-FI")}` : "–"}</dd></div>
-          <div><dt>Budjettia jäljellä</dt><dd>{budgetLeft !== null ? <Money v={Math.round(budgetLeft * 10) / 10} size={18} /> : "–"}</dd></div>
-        </dl>
-        <div className="fx-row"><Link className="btn" href="/fantasy/siirrot">{t.picks ? "Muokkaa joukkuetta ja siirrot" : "Valitse pelaajat"}</Link><Logout /></div>
       </section>
       {logoEd && <div id="fx-logo-panel"><LogoEditor name={t.name} logo={t.logo} onSaved={reload} onCancel={() => setLogoEd(false)} /></div>}
-      <DataStatus updated={s.data.updated} stale={s.data.stale} />
-      {t.joined_late && <Notice>Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {roundNum(s, t.first_round)} alkaen.</Notice>}
-      {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {roundNum(s, next?.no)} määräaikaa.</Notice>}
-      {showRound && lockedNow && (
-        <Notice kind={snap.data?.points?.provisional === false ? "ok" : "info"}>
-          {roundName(s, showRound)} on lukittu. {snap.data?.points?.provisional === false ? "Pisteet ovat lopulliset." : "Pisteet ovat alustavia ja päivittyvät otteluiden edetessä; automaattiset vaihdot tehdään, kun kierroksen kaikki ottelut ovat valmiit."}
-          {next ? ` Muutokset koskevat nyt kierrosta ${roundNum(s, next.no)}.` : ""}
-        </Notice>
+
+      <section className="fx-kpi3" aria-label="Kierroksen tilanne">
+        <div className="k-pts"><span>{cur ? roundName(s, cur) : "Kierros"}</span><b>{last ? `${last.total} p` : "–"}</b><small>{last ? (last.provisional ? "alustava" : "lopullinen") : "ei vielä pisteitä"} · kausi {t.total} p</small></div>
+        <div className="k-rank"><span>Sijoitus</span><b>{t.rank ? t.rank.rank.toLocaleString("fi-FI") : "–"}</b><small>{t.rank ? `/ ${t.rank.of.toLocaleString("fi-FI")} Futista-liigassa` : "ei vielä sijoitusta"}</small></div>
+        <div className="k-bud"><span>Budjetti</span><b>{budgetLeft !== null ? <Money v={budgetLeft} size={18} /> : "–"}</b><small>{t.picks ? `${t.picks.squad.length} / ${RULES.squadSize} pelaajaa` : "ei pelaajia"}</small></div>
+      </section>
+      {next && (
+        <p className="fx-deadline">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+          <span><b>{roundName(s, next.no)}</b> · määräaika {localTime(next.deadline)}</span>
+          <span className="fx-dl-cd"><Countdown to={next.deadline} /></span>
+        </p>
       )}
+            {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {roundNum(s, next?.no)} määräaikaa. <Link href="/fantasy/siirrot">Valitse pelaajat →</Link></Notice>}
+      {msg && <Notice kind={msg.kind} role={msg.kind === "error" ? "alert" : "status"}>{msg.text}</Notice>}
       {pl.err && <ErrorBox err={pl.err} retry={pl.reload} />}
+
+      {t.picks && modes.length > 1 && (
+        <div className="seg fx-modes" role="group" aria-label="Korttien tieto">
+          {modes.map((m) => <button key={m.id} type="button" aria-pressed={mode === m.id} className={mode === m.id ? "on" : ""} onClick={() => setMode(m.id)}>{m.label}</button>)}
+        </div>
+      )}
+      {t.picks && (!picks || players.size === 0) && !pl.err && <div className="fx-pitch-skel" aria-label="Ladataan kokoonpanoa" />}
       {picks && players.size > 0 && (
-        <Pitch picks={picks} players={players} label={showRound ? `Kierroksen ${roundNum(s, showRound)} kokoonpano ja pisteet` : "Tuleva kokoonpano"} onSelect={setSel}
-          badge={(id) => {
-            if (!showRound) { const p = players.get(id); return p ? { text: fmtM(p.price), tone: "price" } : null; }
-            const x = ptsOf(id);
-            return x ? { text: `${x.points * (x.mult || 1)} p`, tone: x.mult === 0 ? "muted" : "pts" } : { text: "–", tone: "muted" };
-          }} />
+        <Pitch picks={picks} players={players} onSelect={setSel} badge={badge} legend={legend}
+          label={mode === "pts" ? `Kierroksen ${roundNum(s, showRound)} kokoonpano ja pisteet` : `Kokoonpano kierrokselle ${roundNum(s, next?.no)}`} />
       )}
-      {snap.data?.points?.breakdown?.subs?.length > 0 && (
-        <p className="muted small">Automaattiset vaihdot: {snap.data!.points.breakdown.subs.map((x: any) => `${players.get(x.out)?.name ?? x.out} → ${players.get(x.in)?.name ?? x.in}`).join(", ")}</p>
+      {mode === "fx" && picks && <p className="muted small fx-legend-note">Korteissa seuraavan kierroksen vastustaja: (k) kotiottelu, (v) vierasottelu.</p>}
+      {mode === "pts" && subs.length > 0 && (
+        <p className="muted small">Automaattiset vaihdot: {subs.map((x) => `${players.get(x.out)?.name ?? x.out} → ${players.get(x.in)?.name ?? x.in}`).join(", ")}</p>
       )}
+      {mode === "pts" && showRound && (
+        <p className="muted small">{snap.data?.points?.provisional === false ? "Pisteet ovat lopulliset." : "Pisteet ovat alustavia ja päivittyvät otteluiden edetessä; automaattiset vaihdot tehdään, kun kierroksen kaikki ottelut ovat valmiit."}</p>
+      )}
+
+      <div className="fx-row fx-home-actions">
+        <Link className="btn" href="/fantasy/siirrot">{t.picks ? "Siirrot ja kokoonpano" : "Valitse pelaajat"}</Link>
+        <Link className="btn ghost" href="/fantasy/pisteet">Pisteet</Link>
+        <Link className="btn ghost" href="/fantasy/liigat">Liigat</Link>
+      </div>
+      {t.picks && <p className="muted small">Paina pelaajaa: tiedot, kapteeni, vaihto penkin ja avauksen välillä tai siirto.</p>}
+
+      {t.joined_late && <p className="muted small">Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {roundNum(s, t.first_round)} alkaen.</p>}
       {t.invite && <InviteCard code={t.invite} teamName={t.name} />}
-      {sel !== null && players.get(sel) && <PlayerCard p={players.get(sel)!} onClose={() => setSel(null)} extra={showRound ? <RoundItems row={ptsOf(sel)} /> : null} />}
+      <div className="fx-home-foot"><DataStatus updated={s.data.updated} stale={s.data.stale} /><Logout /></div>
+      {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} note={mode !== "pts" ? undefined : lockedNote ?? undefined}
+        roundFx={next ? { label: roundName(s, next.no), list: fxOf(selP.id) } : undefined}
+        extra={mode === "pts" ? <RoundItems row={ptsOf(selP.id)} /> : null} />}
     </>
   );
 }

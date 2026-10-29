@@ -19,6 +19,12 @@ export type FState = {
 export type FPlayerRow = { id: number; name: string; team_id: number; team: string; league?: number | null; league_name?: string | null; logo: string | null; pos: Pos; price: number; active: boolean; photo: string | null;
   season: number; last: number | null; minutes: number; next: { round_no: number; kickoff: string; home: boolean; opp: string } | null };
 
+/** Seuraavan kierroksen ottelut joukkueittain (pelaajalistan mukana; null = ei tiedossa) */
+export type FRoundFx = { no: number; teams: Record<string, { opp: string; home: boolean; kickoff: string }[]> } | null;
+export type FPlayersResp = { players: FPlayerRow[]; round?: FRoundFx };
+/** Pelaajan joukkueen ottelut seuraavalla kierroksella; null = tietoa ei ole (ei näytetä määrää) */
+export const roundFx = (r: FRoundFx | undefined, teamId: number) => (r ? r.teams[String(teamId)] ?? [] : null);
+
 export type ApiErr = { error: string; [k: string]: any };
 
 export type ApiRes<T> = { ok: boolean; status: number; data: T; err: ApiErr };
@@ -70,6 +76,10 @@ export const ERR_TEXT: Record<string, string> = {
   logo: "Logon tiedot ovat virheelliset. Tarkista valinnat ja yritä uudelleen.",
   logo_setup: "Logon tallennus vaatii tietokantapäivityksen, jota ei ole vielä ajettu (ylläpito: 20261027b_fantasy_logo.sql).",
   picks: "Joukkueen tiedot ovat virheelliset. Lataa sivu uudelleen.",
+  notfound: "Liigaa ei löytynyt. Tarkista liittymiskoodi.",
+  full: "Liiga on täynnä (enintään 500 joukkuetta).",
+  limit: "Voit perustaa enintään 20 liigaa.",
+  code: "Koodin luonti ei onnistunut. Yritä uudelleen.",
 };
 export const errText = (e: ApiErr | null) => (e ? ERR_TEXT[e.error] ?? ERR_TEXT.unavailable : "");
 
