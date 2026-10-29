@@ -1959,6 +1959,16 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .fx-sum-team .btn { margin-top: 8px; }
 .fx-rteam { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .fx-rteam > span { overflow-wrap: anywhere; }
+.fx-rteam-btn { min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: inherit; text-align: left; cursor: pointer; }
+.fx-rteam-btn > span:not(.sr-only) { text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.fx-rteam-btn:hover > span:not(.sr-only) { text-decoration-color: currentColor; }
+.fx-rteam-btn:focus-visible { outline: 3px solid var(--fx-acc, #ffd23f); outline-offset: 2px; border-radius: 6px; }
+.fx-tview { max-width: 640px; }
+.fx-tview-title { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.fx-tview-title h2 { margin: 0; font: 900 20px/1.15 var(--display); text-transform: uppercase; overflow-wrap: anywhere; }
+.fx-tview-title p { margin: 2px 0 0; }
+.fx-tview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 10px; }
+.fx-tview-pts { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; }
 .fx-logo-ed .pad { display: grid; gap: 14px; }
 .fx-logo-preview { display: flex; gap: 14px; align-items: center; }
 .fx-logo-preview p { margin: 4px 0 0; }

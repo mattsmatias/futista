@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useLoad } from "@/lib/fantasy-client";
 import { ErrorBox } from "../ui";
 import { TeamLogo } from "../TeamLogo";
+import { TeamPreview } from "../TeamPreview";
 
 type R = { round: number; round_label?: string | null; offset: number; page: number; count: number; rows: { rank: number; team_id: number; name: string; logo: unknown; round: number; total: number }[]; me: any; tie: string };
 
 export function Ranking({ league }: { league?: number } = {}) {
   const [offset, setOffset] = useState(0);
+  const [view, setView] = useState<{ id: number; name: string; logo: unknown } | null>(null);
   const r = useLoad<R>(`/api/fantasy/ranking?offset=${offset}${league ? `&league=${league}` : ""}`);
   const d = r.data;
   if (r.err) return <ErrorBox err={r.err} retry={r.reload} />;
@@ -24,11 +26,11 @@ export function Ranking({ league }: { league?: number } = {}) {
             <tbody>
               {d.rows.map((x) => (
                 <tr key={x.team_id} className={d.me?.team_id === x.team_id ? "me" : ""} aria-current={d.me?.team_id === x.team_id ? "true" : undefined}>
-                  <td>{x.rank}</td><th scope="row"><span className="fx-rteam"><TeamLogo logo={x.logo} name={x.name} size={24} decorative /><span>{x.name}</span></span>{d.me?.team_id === x.team_id && <span className="sr-only"> (oma joukkue)</span>}</th><td>{x.round}</td><td><b>{x.total}</b></td>
+                  <td>{x.rank}</td><th scope="row"><button type="button" className="fx-rteam fx-rteam-btn" onClick={() => setView({ id: x.team_id, name: x.name, logo: x.logo })} aria-haspopup="dialog"><TeamLogo logo={x.logo} name={x.name} size={24} decorative /><span>{x.name}</span><span className="sr-only">{d.me?.team_id === x.team_id ? " (oma joukkue)" : ""}, näytä kokoonpano</span></button></th><td>{x.round}</td><td><b>{x.total}</b></td>
                 </tr>
               ))}
               {d.me && !meOnPage && (
-                <tr className="me gap"><td>{d.me.rank}</td><th scope="row"><span className="fx-rteam"><TeamLogo logo={d.me.logo} name={d.me.name} size={24} decorative /><span>{d.me.name} <span className="muted small">(oma)</span></span></span></th><td>{d.me.round}</td><td><b>{d.me.total}</b></td></tr>
+                <tr className="me gap"><td>{d.me.rank}</td><th scope="row"><button type="button" className="fx-rteam fx-rteam-btn" onClick={() => setView({ id: d.me.team_id, name: d.me.name, logo: d.me.logo })} aria-haspopup="dialog"><TeamLogo logo={d.me.logo} name={d.me.name} size={24} decorative /><span>{d.me.name} <span className="muted small">(oma)</span></span><span className="sr-only">, näytä kokoonpano</span></button></th><td>{d.me.round}</td><td><b>{d.me.total}</b></td></tr>
               )}
             </tbody>
           </table>
@@ -42,6 +44,7 @@ export function Ranking({ league }: { league?: number } = {}) {
           {d.me && !meOnPage && <button type="button" className="btn sm ghost" onClick={() => setOffset(Math.floor((d.me.ord - 1) / d.page) * d.page)}>Oma sijoitus</button>}
         </div>
       )}
+      {view && <TeamPreview team={view} onClose={() => setView(null)} />}
     </div>
   );
 }
