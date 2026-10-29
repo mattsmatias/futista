@@ -212,6 +212,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
         ctaH: Math.round(r(cta)?.height ?? 0), ctaUpper: cta ? getComputedStyle(cta).textTransform : "" };
     });
     ok(`${w}px:   keltaiset napit: aktiivinen välilehti = pieni pilleri kuvakkeen takana; ei erillisiä Siirrot/Pisteet/Liigat-nappeja (alavalikossa)`, /none/.test(sz.tabBg) && /rgba\(0, 0, 0, 0\)/.test(sz.tabBg) && sz.icW <= 56 && sz.icH <= 30 && (await page.locator("main a.btn", { hasText: /^(Siirrot ja kokoonpano|Pisteet|Liigat)$/ }).count()) === 0, JSON.stringify(sz));
+    ok(`${w}px:   Joukkue-sivulla ei ohjetekstiä pelaajan painamisesta (on säännöissä)`, !/Paina pelaajaa/.test(await page.locator("main").innerText()));
     const toks = await page.locator(".fx-pitch .fxc").count(), bench = await page.locator(".fx-bench .fxc").count();
     const k3 = (await page.locator(".fx-kpi3").innerText().catch(() => "")).replace(/\s+/g, " ");
     ok(`${w}px: Oma joukkue – pelaajakortit kentällä (11) ja penkillä (4), C ja VC, kierroksen pisteet, sijoitus, budjetti`, toks === 11 && bench === 4 && (await page.locator(".fxc-cap.c").count()) === 1 && (await page.locator(".fxc-cap.vc").count()) === 1 && /36 p/.test(k3) && /Sijoitus 1 \/ 2/i.test(k3) && /Budjetti/i.test(k3) && (await page.locator(".fx-kpi3 .fx-money svg.fx-coin").count()) === 1, `${toks}/${bench} | ${k3}`);
@@ -418,6 +419,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await bctx.close();
     await page.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
     ok(`${w}px: Säännöt`, /Nollapeli/.test(await page.locator("main").innerText()) && /1 ilmaisen siirron/.test(await page.locator("main").innerText()));
+    ok(`${w}px: pelaajan painamisen ohje säännöissä`, /Paina pelaajaa: tiedot, kapteeni/.test(await page.locator("main").innerText()));
     ok(`${w}px: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
