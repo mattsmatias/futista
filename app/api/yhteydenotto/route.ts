@@ -4,13 +4,15 @@ import { normalizeContact, validateContact, looksLikeSpam, slidingAllow, MAX_BOD
 import { sendContactMail, contactConfigured } from "@/lib/contact-mail";
 import { supabaseQuotaStore } from "@/lib/quota";
 import { supabaseServer } from "@/lib/supabase-rest";
+import { rpc, fantasyDbOn, FantasyDbError } from "@/lib/fantasy-db";
 
-// Mainosta-sivun yhteydenottopyyntö → ylläpidon sähköposti (lib/contact-mail.ts).
-//  200 {ok:true} vain, kun viesti on oikeasti lähetetty (tai sama pyyntö on jo lähetetty: kaksoislähetyksen esto)
+// Mainosta-sivun yhteydenottopyyntö → hallintapaneeli (tietokanta, migraatio 20261102_ad_enquiries.sql) ja ylläpidon
+// sähköposti (lib/contact-mail.ts), kun se on asetettu.
+//  200 {ok:true} vain, kun pyyntö on oikeasti tallennettu tai lähetetty (tai sama pyyntö on jo käsitelty: kaksoislähetyksen esto)
 //  400 {error:"invalid", fields} | 400 {error:"rejected"} (roskapostisuoja) | 413 liian suuri | 415 väärä muoto
 //  403 vieras alkuperä | 429 {error:"rate"} | 503 {error:"off"} asetukset puuttuvat | 502 {error:"send"} lähetys epäonnistui
-// Viestin sisältöä, nimeä, sähköpostia eikä IP-osoitetta kirjata lokeihin eikä tallenneta. IP:stä muodostetaan
-// muistissa pidettävä tiiviste vain lähetysrajaa varten (ei tallenneta mihinkään).
+// Viestin sisältöä, nimeä, sähköpostia eikä IP-osoitetta kirjata lokeihin. Lomakkeen tiedot tallennetaan hallintapaneelia
+// varten (ei IP-osoitetta). IP:stä muodostetaan muistissa pidettävä tiiviste vain lähetysrajaa varten (ei tallenneta).
 export const dynamic = "force-dynamic";
 
 const PER_IP = { limit: 3, windowMs: 10 * 60_000 };
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
   const fields = validateContact(c);
   if (fields.length) return json({ error: "invalid", fields }, 400);
   if (looksLikeSpam(body, c)) return json({ error: "rejected" }, 400);
-  if (!contactConfigured()) return json({ error: "off" }, 503);
+  if (!contactConfigured() && !fantasyDbOn()) return json({ error: "off" }, 503);
 
   const now = Date.now();
   const id = typeof body.requestId === "string" && /^[a-zA-Z0-9-]{8,64}$/.test(body.requestId) ? body.requestId : null;
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
   const running = id ? pending.get(id) : undefined;
   if (running) return respond(await running, true);
   // pyyntö kirjataan käynnissä olevaksi ennen ensimmäistäkään odotusta, jottei samanaikainen kaksoispyyntö lähetä toista viestiä
-  const p = deliver(req, c, now);
+  const p = deliver(req, c, now, id);
   if (id) pending.set(id, p);
   const res = await p.finally(() => { if (id) pending.delete(id); });
   if (res === "sent" && id) done.set(id, now);
@@ -81,7 +83,7 @@ function respond(res: Outcome, duplicate: boolean) {
   return json({ error: "send" }, 502);
 }
 
-async function deliver(req: Request, c: ReturnType<typeof normalizeContact>, now: number): Promise<Outcome> {
+async function deliver(req: Request, c: ReturnType<typeof normalizeContact>, now: number, id: string | null): Promise<Outcome> {
   const key = ipKey(req);
   const r = slidingAllow(ipTimes.get(key) ?? [], now, PER_IP.limit, PER_IP.windowMs);
   if (!r.ok) return "rate";
@@ -91,7 +93,16 @@ async function deliver(req: Request, c: ReturnType<typeof normalizeContact>, now
   // vanhentuneet tunnisteet pois muistista (tietosuojaseloste: vain lähetysrajan ajan, 10 min)
   for (const [k, v] of ipTimes) if (!v.some((x) => now - x < PER_IP.windowMs)) ipTimes.delete(k);
   if (!(await globalAllow(now))) return "rate";
-  const res = await sendContactMail(c);
-  if (res === "sent") console.info("yhteydenotto: lähetetty");
+  // 1) hallintapaneeliin (tietokanta); migraatio puuttuu tai tietokanta ei vastaa → vain sähköposti kuten ennen
+  let stored: number | null = null;
+  try { stored = (await rpc<{ id: number }>("s_enquiry_add", { p_request: id, p_name: c.name, p_company: c.company, p_email: c.email, p_message: c.message }))?.id ?? null; }
+  catch (e) { if (!(e instanceof FantasyDbError && (e.code === "missing" || e.code === "off"))) console.warn("yhteydenotto: tallennus epäonnistui"); }
+  // 2) sähköposti ylläpidolle, jos asetettu
+  const res = contactConfigured() ? await sendContactMail(c) : "off";
+  if (res === "sent") {
+    console.info("yhteydenotto: lähetetty");
+    if (stored) await rpc("s_enquiry_mailed", { p_id: stored }).catch(() => {});
+  }
+  if (stored) { if (res !== "sent") console.info("yhteydenotto: tallennettu hallintapaneeliin"); return "sent"; }
   return res;
 }

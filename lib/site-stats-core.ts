@@ -1,6 +1,9 @@
 // Futistan oma kävijätilasto: lähteen tunnistus, laitetyyppi ja bottien suodatus (puhtaat funktiot, testattavissa).
 // Lähde päätellään tässä järjestyksessä: kotivalikon sovellus → utm_source-merkintä → sovelluksen sisäinen selain
-// (Instagram, Facebook, TikTok, Snapchat lähettävät usein tyhjän viittaajan) → viittaavan sivun verkkotunnus → "Suora".
+// (Instagram, Facebook, TikTok, Snapchat lähettävät usein tyhjän viittaajan) tai Androidin sovellusviittaaja
+// (android-app://com.whatsapp/) → viittaavan sivun verkkotunnus → "Suora".
+// Huom. iPhonen WhatsApp ja osa Androidin selaimista eivät kerro lähdettä lainkaan → "Suora / tuntematon".
+// Varma tunnistus: jaa linkki utm_source=whatsapp -merkinnällä.
 
 export type Device = "mobile" | "tablet" | "desktop";
 export const SOURCE_DIRECT = "Suora / tuntematon";
@@ -52,6 +55,22 @@ export function inAppSource(ua: string): string | null {
   return null;
 }
 
+/** Androidin sovelluslinkki viittaajana (android-app://com.whatsapp/ ym.): Chrome kertoo, mistä sovelluksesta linkki avattiin */
+const ANDROID_APPS: [RegExp, string][] = [
+  [/^com\.whatsapp(\.w4b)?$/, "WhatsApp"], [/^com\.instagram\.(android|barcelona)$/, "Instagram"], [/^com\.facebook\.(katana|orca|lite|mlite)$/, "Facebook"],
+  [/^org\.telegram\.(messenger|plus)/, "Telegram"], [/^com\.zhiliaoapp\.musically|^com\.ss\.android\.ugc/, "TikTok"], [/^com\.snapchat\.android$/, "Snapchat"],
+  [/^com\.twitter\.android$/, "X (Twitter)"], [/^com\.reddit\.frontpage$/, "Reddit"], [/^com\.linkedin\.android$/, "LinkedIn"], [/^com\.discord$/, "Discord"],
+  [/^com\.google\.android\.googlequicksearchbox$/, "Google"], [/^com\.google\.android\.youtube$/, "YouTube"],
+];
+export function androidAppSource(ref: unknown): string | null {
+  if (typeof ref !== "string") return null;
+  const m = /^android-app:\/\/([a-z0-9_.]{3,100})\/?/i.exec(ref.trim());
+  if (!m) return null;
+  const pkg = m[1].toLowerCase();
+  for (const [re, name] of ANDROID_APPS) if (re.test(pkg)) return name;
+  return null;
+}
+
 export type Classified = { source: string; ref: string | null };
 /** Saapumisen lähde. siteHost = oma verkkotunnus (sisäinen siirtymä). */
 export function classify(o: { ref?: unknown; utm?: unknown; ua?: string; standalone?: boolean; siteHost?: string }): Classified {
@@ -61,7 +80,7 @@ export function classify(o: { ref?: unknown; utm?: unknown; ua?: string; standal
   if (o.standalone) return { source: SOURCE_APP, ref: ext };
   const utm = typeof o.utm === "string" ? o.utm.trim().toLowerCase().slice(0, 40) : "";
   if (utm) { for (const [re, name] of UTM) if (re.test(utm)) return { source: name, ref: ext }; }
-  const app = inAppSource(o.ua ?? "");
+  const app = inAppSource(o.ua ?? "") ?? androidAppSource(o.ref);
   if (app) return { source: app, ref: ext };
   if (host && !ext) return { source: SOURCE_INTERNAL, ref: null };
   if (ext) {

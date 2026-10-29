@@ -28,6 +28,7 @@ psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261029_site_stats.
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261030_fantasy_round_fixtures.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261031_fantasy_coins_packs.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261101_fantasy_card_versions.sql
+psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261102_ad_enquiries.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)

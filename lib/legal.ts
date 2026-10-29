@@ -51,8 +51,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Yhteydenottolomake (Mainosta-sivu)",
         p: [
-          "Jos lähetät yhteydenottopyynnön [Mainosta-sivulla](/mainosta), lomakkeen tiedot (nimi, yritys jos annat sen, sähköpostiosoite ja viesti) toimitetaan Futistan ylläpidon sähköpostiin. Niitä käytetään vain yhteydenottoosi vastaamiseen ja mahdollisesta mainonnasta tai yhteistyöstä sopimiseen. Käsittelyn perusteena on pyyntösi.",
-          "Viesti välitetään sähköpostina [Resend](https://resend.com/legal/privacy-policy)-palvelun kautta. Futistan palvelin ei tallenna viestiä tietokantaan eikä kirjaa sen sisältöä tai sähköpostiosoitettasi lokeihin. Viestiä säilytetään ylläpidon sähköpostissa vain niin kauan kuin yhteydenpito sitä edellyttää.",
+          "Jos lähetät yhteydenottopyynnön [Mainosta-sivulla](/mainosta), lomakkeen tiedot (nimi, yritys jos annat sen, sähköpostiosoite ja viesti) tallennetaan Futistan hallintapaneeliin, jonka näkee vain Futistan ylläpito, ja toimitetaan ylläpidon sähköpostiin. Niitä käytetään vain yhteydenottoosi vastaamiseen ja mahdollisesta mainonnasta tai yhteistyöstä sopimiseen. Käsittelyn perusteena on pyyntösi.",
+          "Tiedot tallennetaan [Supabasen](https://supabase.com/privacy) palvelimelle (ei IP-osoitetta), ja viesti välitetään sähköpostina [Resend](https://resend.com/legal/privacy-policy)-palvelun kautta. Viestin sisältöä tai sähköpostiosoitettasi ei kirjata lokeihin. Pyyntö poistetaan hallintapaneelista, kun yhteydenpito ei enää sitä edellytä, ja viimeistään 12 kuukauden kuluttua; sähköpostissa viestiä säilytetään vain niin kauan kuin yhteydenpito sitä edellyttää.",
           "Roskapostin ja väärinkäytön estämiseksi palvelin laskee lähetyskertoja lyhyen aikaa IP-osoitteesta muodostetun tunnisteen perusteella. Tunnistetta ei tallenneta levylle eikä tietokantaan; se pidetään vain palvelimen väliaikaisessa muistissa lähetysrajan ajan (10 minuuttia).",
         ],
       },
@@ -125,8 +125,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Kontaktformulär (sidan Annonsera)",
         p: [
-          "Om du skickar en kontaktförfrågan på [sidan Annonsera](/mainosta) skickas formulärets uppgifter (namn, företag om du anger det, e-postadress och meddelande) till Futistas e-post. De används endast för att besvara din förfrågan och för att avtala om eventuell annonsering eller samarbete. Grunden för behandlingen är din förfrågan.",
-          "Meddelandet skickas som e-post via tjänsten [Resend](https://resend.com/legal/privacy-policy). Futistas server sparar inte meddelandet i någon databas och loggar inte innehållet eller din e-postadress. Meddelandet sparas i Futistas e-post endast så länge kontakten kräver det.",
+          "Om du skickar en kontaktförfrågan på [sidan Annonsera](/mainosta) sparas formulärets uppgifter (namn, företag om du anger det, e-postadress och meddelande) i Futistas administrationspanel, som endast Futistas administratörer ser, och skickas till Futistas e-post. De används endast för att besvara din förfrågan och för att avtala om eventuell annonsering eller samarbete. Grunden för behandlingen är din förfrågan.",
+          "Uppgifterna sparas på [Supabases](https://supabase.com/privacy) server (ingen IP-adress) och meddelandet skickas som e-post via tjänsten [Resend](https://resend.com/legal/privacy-policy). Innehållet eller din e-postadress loggas inte. Förfrågan raderas från administrationspanelen när kontakten inte längre kräver den, senast efter 12 månader; i e-posten sparas meddelandet endast så länge kontakten kräver det.",
           "För att förhindra skräppost och missbruk räknar servern antalet försök under en kort tid med hjälp av en identifierare som bildas av IP-adressen. Identifieraren sparas inte på disk eller i någon databas; den hålls bara i serverns tillfälliga minne under spärrtiden (10 minuter).",
         ],
       },
@@ -199,8 +199,8 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Contact form (Advertise page)",
         p: [
-          "If you send an enquiry on the [Advertise page](/mainosta), the form details (name, company if you give it, email address and message) are delivered to Futista's email. They are used only to reply to your enquiry and to agree on any advertising or partnership. The basis for processing is your request.",
-          "The message is sent as email through [Resend](https://resend.com/legal/privacy-policy). Futista's server does not store the message in a database and does not log its content or your email address. The message is kept in Futista's email only as long as the correspondence requires.",
+          "If you send an enquiry on the [Advertise page](/mainosta), the form details (name, company if you give it, email address and message) are stored in Futista's admin panel, which only Futista's administrators can see, and delivered to Futista's email. They are used only to reply to your enquiry and to agree on any advertising or partnership. The basis for processing is your request.",
+          "The details are stored on [Supabase's](https://supabase.com/privacy) servers (no IP address) and the message is sent as email through [Resend](https://resend.com/legal/privacy-policy). Its content and your email address are not logged. The enquiry is deleted from the admin panel when the correspondence no longer requires it, and after 12 months at the latest; in email it is kept only as long as the correspondence requires.",
           "To prevent spam and abuse, the server counts attempts for a short time using an identifier derived from your IP address. The identifier is not written to disk or a database; it is only kept in the server's temporary memory for the limit period (10 minutes).",
         ],
       },

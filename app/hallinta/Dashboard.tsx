@@ -126,6 +126,7 @@ export default function Dashboard() {
       {state.kind === "denied" && <p className="adm-note">Tällä tilillä ei ole pääsyä hallintapaneeliin.</p>}
       {state.kind === "setup" && <p className="adm-note">Kävijätilaston tietokantataulua ei ole vielä luotu.</p>}
       {state.kind === "error" && <p className="adm-note">Tilastoja ei saatu juuri nyt. <button type="button" className="btn sm ghost" onClick={load}>Yritä uudelleen</button></p>}
+      {s && <Enquiries />}
       {s && <View s={s} />}
     </main>
   );
@@ -245,5 +246,79 @@ function View({ s }: { s: Raw }) {
         tulevat tunnistetaan myös ilman viittaajaa. Botit ja automaattiset selaimet eivät ole mukana. Suomen aikaa.
       </p>
     </>
+  );
+}
+
+type Enq = { id: number; at: string; name: string; company: string; email: string; message: string; mailed: boolean; status: "new" | "done" };
+/** Mainosta-sivun yhteydenottopyynnöt: uudet ensin näkyvästi, merkintä käsitellyksi ja poisto. Päivittyy minuutin välein. */
+function Enquiries() {
+  const [d, setD] = useState<{ new: number; rows: Enq[] } | null | "setup" | "error">(null);
+  const [open, setOpen] = useState<number | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [confirmDel, setConfirmDel] = useState<number | null>(null);
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/hallinta/yhteydenotot", { cache: "no-store" });
+      if (!r.ok) { const e = (await r.json().catch(() => null))?.error; setD((x) => (x && typeof x === "object" && e !== "setup" ? x : e === "setup" ? "setup" : "error")); return; }
+      setD(await r.json());
+    } catch { setD((x) => (x && typeof x === "object" ? x : "error")); }
+  }, []);
+  useEffect(() => {
+    load();
+    const tick = () => { if (document.visibilityState === "visible") load(); };
+    const id = window.setInterval(tick, 60_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", tick); };
+  }, [load]);
+  const act = async (id: number, action: "done" | "new" | "delete") => {
+    setBusy(id);
+    try {
+      const r = await fetch("/api/hallinta/yhteydenotot", { method: "POST", headers: { "content-type": "application/json", "x-futista-fantasy": "1" }, body: JSON.stringify({ id, action }) });
+      if (r.ok) { setConfirmDel(null); if (action === "delete") setOpen(null); await load(); }
+    } finally { setBusy(null); }
+  };
+  if (d === "setup") return <p className="adm-note">Mainosyhteydenottojen tietokantataulua ei ole vielä luotu.</p>;
+  if (d === "error") return <p className="adm-note">Mainosyhteydenottoja ei saatu juuri nyt. <button type="button" className="btn sm ghost" onClick={load}>Yritä uudelleen</button></p>;
+  if (!d) return null;
+  const when = (iso: string) => new Date(iso).toLocaleString("fi-FI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Helsinki" });
+  return (
+    <section className="adm-card adm-enq" aria-labelledby="adm-enq-h">
+      <div className="adm-enq-h">
+        <h2 id="adm-enq-h">Mainosyhteydenotot</h2>
+        {d.new > 0 ? <span className="adm-badge">{d.new} uutta</span> : <span className="muted small">ei uusia</span>}
+      </div>
+      {d.rows.length === 0 ? <p className="muted">Ei yhteydenottoja vielä.</p> : (
+        <ul className="adm-enq-list">
+          {d.rows.map((e) => {
+            const isOpen = open === e.id;
+            return (
+              <li key={e.id} className={`adm-enq-i${e.status === "new" ? " new" : ""}`}>
+                <button type="button" className="adm-enq-row" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : e.id)}>
+                  {e.status === "new" && <i className="adm-enq-dot" aria-label="Uusi" />}
+                  <span className="adm-enq-who"><b>{e.name}</b>{e.company && <small>{e.company}</small>}</span>
+                  <span className="adm-enq-when">{when(e.at)}</span>
+                </button>
+                {!isOpen && <p className="adm-enq-prev">{e.message}</p>}
+                {isOpen && (
+                  <div className="adm-enq-body">
+                    <p className="adm-enq-msg">{e.message}</p>
+                    <p className="small"><a href={`mailto:${e.email}?subject=${encodeURIComponent("Futista – mainonta")}`}>{e.email}</a>{e.mailed ? " · lähetetty myös sähköpostiin" : ""}</p>
+                    <div className="adm-enq-acts">
+                      <a className="btn sm" href={`mailto:${e.email}?subject=${encodeURIComponent("Futista – mainonta")}`}>Vastaa</a>
+                      {e.status === "new"
+                        ? <button type="button" className="btn sm ghost" disabled={busy === e.id} onClick={() => act(e.id, "done")}>Merkitse käsitellyksi</button>
+                        : <button type="button" className="btn sm ghost" disabled={busy === e.id} onClick={() => act(e.id, "new")}>Merkitse uudeksi</button>}
+                      {confirmDel === e.id
+                        ? <><button type="button" className="btn sm danger" disabled={busy === e.id} onClick={() => act(e.id, "delete")}>Poista pysyvästi</button><button type="button" className="btn sm ghost" onClick={() => setConfirmDel(null)}>Peruuta</button></>
+                        : <button type="button" className="btn sm ghost" onClick={() => setConfirmDel(e.id)}>Poista</button>}
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

@@ -76,3 +76,14 @@ test("hallinta: vain ympäristömuuttujan tunnukset", () => {
   assert.equal(isAdmin("okitai"), false);
   if (prev === undefined) delete process.env.FUTISTA_ADMINS; else process.env.FUTISTA_ADMINS = prev;
 });
+
+test("lähde: Androidin sovellusviittaaja (WhatsApp, Instagram, Telegram); tuntematon sovellus ei arvata", () => {
+  assert.equal(classify({ ref: "android-app://com.whatsapp/", ua: "Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile" }).source, "WhatsApp");
+  assert.equal(classify({ ref: "android-app://com.whatsapp.w4b/" }).source, "WhatsApp");
+  assert.equal(classify({ ref: "android-app://com.instagram.android" }).source, "Instagram");
+  assert.equal(classify({ ref: "android-app://org.telegram.messenger/" }).source, "Telegram");
+  assert.equal(classify({ ref: "android-app://com.example.app/" }).source, SOURCE_DIRECT);
+  assert.equal(classify({ ref: "https://web.whatsapp.com/" }).source, "WhatsApp");
+  assert.equal(classify({ ref: "", utm: "whatsapp" }).source, "WhatsApp");
+  assert.equal(classify({ ref: "" }).source, SOURCE_DIRECT); // iPhonen WhatsApp: ei viittaajaa → tuntematon (ei arvata)
+});

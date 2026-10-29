@@ -1,6 +1,6 @@
 // Mainoskortti (uutisvirta) ja Mainosta-sivun yhteydenottolomake. Simuloitu uutissyöte ja simuloitu Resend (mock-sources.cjs).
 //   APP=http://localhost:3100 MOCK=http://127.0.0.1:9101 CHROME=... node tests/integration/mainosta.cjs
-//   MAINOSTA_MODE=off: palvelin ilman lähetysasetuksia → ei onnistumisilmoitusta
+//   MAINOSTA_MODE=off: palvelin ilman sähköpostiasetuksia → pyyntö tallentuu vain hallintapaneeliin
 const { chromium } = require("playwright-core");
 const APP = process.env.APP || "http://localhost:3100";
 const MOCK = process.env.MOCK || "http://127.0.0.1:9101";
@@ -17,14 +17,25 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
   const browser = await chromium.launch({ executablePath: process.env.CHROME });
 
   if (MODE === "off") {
-    // lähetysasetukset puuttuvat → 503 off, eikä mitään lähetetä
+    // sähköpostiasetukset puuttuvat, tietokanta käytössä → pyyntö tallentuu hallintapaneeliin, sähköpostia ei lähde
     await mails(true);
-    const r = await post(valid(), { "x-real-ip": "10.9.0.1" });
+    const req = `off-${Date.now().toString(36)}`;
+    const r = await post(valid({ requestId: req, message: "Ilman sähköpostia: tallentuu hallintapaneeliin." }), { "x-real-ip": "10.9.0.1" });
     const j = await r.json();
-    ok("asetukset puuttuvat: rajapinta vastaa 503 off", r.status === 503 && j.error === "off", `${r.status} ${JSON.stringify(j)}`);
+    ok("ei sähköpostiasetuksia: pyyntö tallentuu hallintapaneeliin (200)", r.status === 200 && j.ok === true, `${r.status} ${JSON.stringify(j)}`);
+    if (process.env.PG_URL) {
+      const { Pool } = require("pg");
+      const pool = new Pool({ connectionString: process.env.PG_URL, max: 1 });
+      const q = await pool.query("select name, email, message, mailed, status from ad_enquiries where request_id = $1", [req]);
+      ok("  tietokannassa: yksi rivi, tila uusi, ei merkintää sähköpostista", q.rows.length === 1 && q.rows[0].status === "new" && q.rows[0].mailed === false && q.rows[0].email === "testi.henkilo@example.test", JSON.stringify(q.rows));
+      await pool.query("delete from ad_enquiries where request_id = $1", [req]);
+      await pool.end();
+    }
     const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 1280, height: 900 } });
     const page = await ctx.newPage();
     await page.goto(APP + "/mainosta", { waitUntil: "networkidle" });
+    // lomake ilman sähköpostia ja ilman tietokantaa (rajapinta 503 off) → kerrotaan, ettei lomake ole käytössä
+    await page.route("**/api/yhteydenotto", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "off" }) }));
     await page.fill("#adv-name", "Testi Henkilö"); await page.fill("#adv-email", "testi.henkilo@example.test"); await page.fill("#adv-message", "Viesti, joka ei lähde koska asetukset puuttuvat.");
     await sleep(2700);
     if (await page.locator(".adv-submit").isEnabled()) {
@@ -32,7 +43,7 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
       await page.locator(".adv-alert").waitFor({ timeout: 8000 }).catch(() => {});
     }
     const alert = await page.locator(".adv-alert, .adv-off").first().innerText().catch(() => "");
-    ok("  lomake: ei onnistumisilmoitusta, kerrotaan ettei lomake ole käytössä", (await page.locator(".adv-done").count()) === 0 && /ei ole vielä käytössä/.test(alert), alert);
+    ok("  lomake (rajapinta 503 off): ei onnistumisilmoitusta, kerrotaan ettei lomake ole käytössä", (await page.locator(".adv-done").count()) === 0 && /ei ole vielä käytössä/.test(alert), alert);
     ok("  kirjoitetut tiedot säilyvät", (await page.inputValue("#adv-message")).includes("asetukset puuttuvat"));
     ok("  simuloituun sähköpostipalveluun ei lähtenyt mitään", (await mails()).length === 0);
     await ctx.close(); await browser.close();
@@ -147,16 +158,23 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
   ok("virheellinen sähköposti: oma virheviesti, muut tiedot säilyvät", (await page.locator(".adv-err").allInnerTexts()).join("") === "Kirjoita toimiva sähköpostiosoite." && (await page.inputValue("#adv-message")).startsWith("Haluaisimme"));
   await page.fill("#adv-email", "testi.henkilo@example.test");
 
-  // lähetyspalvelu ei vastaa → virhe, ei onnistumisilmoitusta, tiedot säilyvät
+  // sähköpostipalvelu ei vastaa → pyyntö on silti tallessa hallintapaneelissa (onnistuu)
   await setMode("resend=down");
+  {
+    const rd = await post(valid({ message: "Sähköposti alhaalla, tallentuu silti." }), { "x-real-ip": "10.4.0.1" });
+    ok("sähköpostipalvelu alhaalla: pyyntö tallentuu hallintapaneeliin (200)", rd.status === 200, String(rd.status));
+  }
+  await setMode("resend=ok");
+  // lähetys epäonnistuu kokonaan (502 send) → virhe, ei onnistumisilmoitusta, tiedot säilyvät
+  await page.route("**/api/yhteydenotto", (route) => route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: "send" }) }));
   await page.waitForTimeout(2600); // ihmismäinen täyttöaika (roskapostisuoja)
   await page.click(".adv-submit");
   await page.locator(".adv-alert").waitFor({ timeout: 10000 }).catch(() => {});
+  await page.unroute("**/api/yhteydenotto");
   const alert = await page.locator(".adv-alert").innerText().catch(() => "");
   ok("lähetys epäonnistuu: selkeä virhe, ei onnistumisilmoitusta", /ei onnistunut/.test(alert) && (await page.locator(".adv-done").count()) === 0, alert);
   ok("  kirjoitetut tiedot säilyvät", (await page.inputValue("#adv-name")) === "Testi Henkilö" && (await page.inputValue("#adv-company")) === "Testiyritys Oy" && (await page.inputValue("#adv-message")).startsWith("Haluaisimme"));
   ok("  virhe saa fokuksen (ruudunlukija kuulee)", (await page.evaluate(() => document.activeElement?.className)) === "adv-alert");
-  await setMode("resend=ok");
 
   // onnistuminen + lähetyksen aikainen tila + kaksoislähetyksen esto (kaksoisklikkaus)
   await mails(true);
@@ -229,7 +247,7 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
   // tietosuojaseloste kattaa yhteydenottotiedot
   await page.goto(APP + "/tietosuoja", { waitUntil: "networkidle" });
   const priv = (await page.locator("main").innerText()).replace(/\s+/g, " ");
-  ok("tietosuojaseloste: yhteydenottolomakkeen tiedot, käyttötarkoitus, Resend, ei lokeihin", priv.includes("Yhteydenottolomake (Mainosta-sivu)") && /nimi, yritys jos annat sen, sähköpostiosoite ja viesti/.test(priv) && priv.includes("Resend") && /ei tallenna viestiä tietokantaan/.test(priv));
+  ok("tietosuojaseloste: yhteydenottolomakkeen tiedot, hallintapaneeli, säilytys enintään 12 kk, Resend, ei lokeihin", priv.includes("Yhteydenottolomake (Mainosta-sivu)") && /nimi, yritys jos annat sen, sähköpostiosoite ja viesti/.test(priv) && /hallintapaneeliin, jonka näkee vain Futistan ylläpito/.test(priv) && /viimeistään 12 kuukauden kuluttua/.test(priv) && /ei IP-osoitetta/.test(priv) && priv.includes("Resend") && /ei kirjata lokeihin/.test(priv));
 
   // lokit: ei viestien sisältöä eikä sähköpostiosoitteita
   const fs = require("fs");

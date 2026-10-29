@@ -122,6 +122,56 @@ const stats = (cookie, days = 30) => fetch(`${APP}/api/hallinta/tilastot?days=${
     }
     await c.close();
   }
+  // ---------- Mainosta-sivun yhteydenottopyynnöt hallintapaneelissa ----------
+  {
+    const enq = (cookie, init = {}) => fetch(`${APP}/api/hallinta/yhteydenotot`, { ...init, headers: { ...(cookie ? { cookie } : {}), ...(init.headers ?? {}) } }).then(async (r) => ({ status: r.status, j: await r.json().catch(() => null) }));
+    const act = (cookie, id, action, origin = APP) => enq(cookie, { method: "POST", headers: { "content-type": "application/json", origin, "x-futista-fantasy": "1" }, body: JSON.stringify({ id, action }) });
+    const tag = `Hallintatesti ${Date.now().toString(36)}`;
+    const sent = await fetch(`${APP}/api/yhteydenotto`, { method: "POST", headers: { "content-type": "application/json", origin: APP, "x-real-ip": "10.77.0.1" },
+      body: JSON.stringify({ name: "Mainostaja Testinen", company: "Mainos Oy", email: "mainostaja@example.test", message: `${tag}: haluaisimme bannerin joulukuuksi.`, website: "", elapsed: 6000, requestId: `adm-${Date.now().toString(36)}` }) });
+    ok("yhteydenotto: Mainosta-lomakkeen lähetys onnistuu", sent.status === 200, String(sent.status));
+    const list = await enq(admin);
+    const row = list.j?.rows?.find((x) => x.message.startsWith(tag));
+    ok("  ylläpitäjä näkee pyynnön: nimi, yritys, sähköposti, tila uusi, lähetetty myös sähköpostiin", list.status === 200 && !!row && row.name === "Mainostaja Testinen" && row.company === "Mainos Oy" && row.email === "mainostaja@example.test" && row.status === "new" && row.mailed === true && list.j.new >= 1, JSON.stringify(row ?? list));
+    const asUser = await enq(user), asAnon = await enq("");
+    ok("  tavallinen käyttäjä → 404, kirjautumaton → 401, ei sisältöä", asUser.status === 404 && asAnon.status === 401 && !JSON.stringify(asUser.j).includes(tag) && !JSON.stringify(asAnon.j).includes(tag), `${asUser.status} ${asAnon.status}`);
+    ok("  tavallinen käyttäjä ei voi muuttaa eikä poistaa (404)", (await act(user, row?.id ?? 1, "delete")).status === 404);
+    ok("  vieras alkuperä → 403", (await act(admin, row?.id ?? 1, "done", "https://vieras.example")).status === 403);
+    ok("  virheellinen toiminto → 400", (await act(admin, row?.id ?? 1, "pyyhi")).status === 400);
+    if (row) {
+      // käyttöliittymä 390 px: lista, uusien määrä, avaus, Merkitse käsitellyksi, Poista + vahvistus
+      const c = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 }, userAgent: IPHONE });
+      await c.addCookies([{ name: "ff_s", value: admin.replace(/^ff_s=/, ""), url: APP }]);
+      const pg = await c.newPage();
+      pg.on("pageerror", (e) => errs.push(String(e)));
+      await pg.goto(`${APP}/hallinta`, { waitUntil: "load" });
+      await pg.waitForSelector(".adm-enq", { timeout: 15000 }).catch(() => {});
+      const item = pg.locator(".adm-enq-i", { hasText: "Mainostaja Testinen" }).first();
+      ok("  paneeli: Mainosyhteydenotot-osio, N uutta -merkki, pyyntö merkitty uudeksi", /uutta/.test(await pg.locator(".adm-enq .adm-badge").innerText().catch(() => "")) && /\bnew\b/.test((await item.getAttribute("class").catch(() => "")) ?? ""));
+      await item.locator(".adm-enq-row").click();
+      const body = await item.locator(".adm-enq-body").innerText().catch(() => "");
+      const reply = await item.locator(".adm-enq-acts a").getAttribute("href").catch(() => "");
+      ok("  avattuna koko viesti, sähköposti ja Vastaa-linkki (mailto)", body.includes(tag) && body.includes("mainostaja@example.test") && /^mailto:mainostaja@example\.test\?subject=/.test(reply ?? ""), reply ?? "");
+      const ov = await pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const taps = await item.locator(".adm-enq-acts .btn").evaluateAll((els) => els.every((e) => e.getBoundingClientRect().height >= 36));
+      ok("  390 px: ei vaakavieritystä, napit kosketettavan kokoisia", ov <= 0 && taps, `${ov} ${taps}`);
+      if (process.env.SHOTS) { await item.scrollIntoViewIfNeeded().catch(() => {}); await pg.screenshot({ path: `${process.env.SHOTS}/hallinta-yhteydenotot-390.png` }).catch(() => {}); }
+      await item.getByRole("button", { name: "Merkitse käsitellyksi" }).click();
+      await pg.waitForFunction((t) => [...document.querySelectorAll(".adm-enq-i")].some((e) => e.textContent.includes(t) && !e.classList.contains("new")), "Mainostaja Testinen", { timeout: 8000 }).catch(() => {});
+      const afterDone = (await enq(admin)).j?.rows?.find((x) => x.id === row.id);
+      ok("  Merkitse käsitellyksi → tila tallentuu", afterDone?.status === "done", JSON.stringify(afterDone));
+      await item.getByRole("button", { name: "Merkitse uudeksi" }).click();
+      await pg.waitForFunction((t) => [...document.querySelectorAll(".adm-enq-i.new")].some((e) => e.textContent.includes(t)), "Mainostaja Testinen", { timeout: 8000 }).catch(() => {});
+      ok("  Merkitse uudeksi → tila palautuu", (await enq(admin)).j?.rows?.find((x) => x.id === row.id)?.status === "new");
+      await item.getByRole("button", { name: "Poista", exact: true }).click();
+      ok("  Poista kysyy vahvistuksen (ei poista heti)", (await item.getByRole("button", { name: "Poista pysyvästi" }).count()) === 1 && !!(await enq(admin)).j?.rows?.find((x) => x.id === row.id));
+      await item.getByRole("button", { name: "Poista pysyvästi" }).click();
+      await pg.waitForFunction((t) => ![...document.querySelectorAll(".adm-enq-i")].some((e) => e.textContent.includes(t)), "Mainostaja Testinen", { timeout: 8000 }).catch(() => {});
+      ok("  Poista pysyvästi → pyyntö poistuu listalta ja tietokannasta", !(await enq(admin)).j?.rows?.some((x) => x.id === row.id) && (await pg.locator(".adm-enq-i", { hasText: "Mainostaja Testinen" }).count()) === 0);
+      ok("  poistettua ei voi enää muuttaa (404)", (await act(admin, row.id, "done")).status === 404);
+      await c.close();
+    }
+  }
   const rb = await fetch(`${APP}/robots.txt`).then((r) => r.text());
   ok("robots.txt: /hallinta estetty", /Disallow: \/hallinta/.test(rb));
   const priv = await fetch(`${APP}/tietosuoja`).then((r) => r.text());
