@@ -108,7 +108,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       await page.goto(`${APP}/fantasy/pakat`, { waitUntil: "load" });
       await page.waitForSelector(".fxk-wallet", { timeout: 20000 });
       const bal = (await A.call("/api/fantasy/pakat")).j.balance;
-      ok(`${w}px: Pakat – saldo näkyy (${bal}) ja HUD-kolikkosiru`, (await page.locator(".fxk-w-v b").innerText()).replace(/\s/g, "") === String(bal) && (await page.locator(".fxg-chip.fc").count()) === 1);
+      ok(`${w}px: Pakat – saldo näkyy (${bal}); HUD: kolikot ja kauden pisteet, ei määräaikalaskuria`, (await page.locator(".fxk-w-v b").innerText()).replace(/\s/g, "") === String(bal) && (await page.locator(".fxg-chip.fc").count()) === 1 && (await page.locator(".fxg-chip.dl").count()) === 0 && (await page.locator(".fxg-chip.pts").isVisible()));
       ok(`${w}px:   alavalikossa 6 välilehteä, Pakat aktiivinen`, (await page.locator(".fxg-tabs a").count()) === 6 && /Pakat/i.test(await page.locator(".fxg-tabs a.on").innerText()));
       ok(`${w}px:   keskeytynyt (näkemätön) avaus tarjotaan näytettäväksi`, (await page.getByRole("button", { name: "Näytä kortit" }).count()) === 1);
       ok(`${w}px:   ei vaakavieritystä; HUD:n Fantasy-teksti mahtuu kolikkosirun kanssa`, await page.evaluate(() => { const b = document.querySelector(".fxg-brand"); return document.documentElement.scrollWidth <= innerWidth + 1 && b.scrollWidth <= b.clientWidth + 1; }));
@@ -161,7 +161,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
     const rp = await rm.newPage();
     await rp.goto(`${APP}/fantasy/pakat`, { waitUntil: "load" });
     await rp.waitForSelector(".fxk-wallet");
-    ok("360px: HUD:n Fantasy-teksti mahtuu, ei vaakavieritystä", await rp.evaluate(() => { const b = document.querySelector(".fxg-brand"); return document.documentElement.scrollWidth <= innerWidth + 1 && b.scrollWidth <= b.clientWidth + 1; }));
+    ok("360px: HUD:n Fantasy-teksti, kolikot ja pisteet mahtuvat, ei vaakavieritystä", await rp.evaluate(() => { const b = document.querySelector(".fxg-brand"), p = document.querySelector(".fxg-chip.pts"); return document.documentElement.scrollWidth <= innerWidth + 1 && b.scrollWidth <= b.clientWidth + 1 && !!p && p.getBoundingClientRect().right <= innerWidth; }));
     const canOpen = (await A.call("/api/fantasy/pakat")).j.balance >= 100;
     if (canOpen) {
       await rp.locator(".fxk-pack-silver .btn").click();

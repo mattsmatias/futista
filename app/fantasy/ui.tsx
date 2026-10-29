@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Money } from "./Coin";
-import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, roundName, useLoad, type FPlayerRow, type ApiErr, type FState } from "@/lib/fantasy-client";
+import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, useLoad, type FPlayerRow, type ApiErr, type FState } from "@/lib/fantasy-client";
 import type { Picks, Pos } from "@/lib/fantasy-core";
 
 // Pelinäkymä: oma yläpalkki (HUD) ja alavalikko; Futistan yläpalkki, alavalikko ja alatunniste piiloon (html.fx-game)
@@ -43,7 +43,6 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => { reload(); }, [path, reload]); // HUD ajan tasalle sivua vaihdettaessa
   const s = st.data;
-  const next = s?.rounds.find((r) => r.no === s.next) ?? null;
   const t = s?.team ?? null;
   return (
     <div className="fxg">
@@ -55,7 +54,6 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
         <div className="fxg-chips">
           {s?.coins != null && <Link href="/fantasy/pakat" className="fxg-chip fc" title="Futista-kolikot"><FCoin size={17} /><b>{s.coins.toLocaleString("fi-FI")}</b><span className="sr-only"> Futista-kolikkoa</span></Link>}
           {t && t.first_round != null && <span className="fxg-chip pts" title="Kauden pisteet"><b>{t.total}</b><small>p</small></span>}
-          {next && <span className="fxg-chip dl" title={`${roundName(s, next.no)}: määräaika ${localTime(next.deadline)}`}><i aria-hidden="true" /><span className="sr-only">{roundName(s, next.no)}, määräaika </span><Countdown to={next.deadline} /></span>}
         </div>
       </header>
       <main className="fx">

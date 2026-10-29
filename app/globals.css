@@ -2039,7 +2039,6 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .fxg-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line);
   font: 800 13px/1 var(--ui); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fxg-chip.pts b { color: var(--fx-acc); font-size: 15px; } .fxg-chip.pts small { color: var(--muted); font-weight: 700; }
-.fxg-chip.dl i { width: 8px; height: 8px; border-radius: 50%; background: var(--fx-acc-2); box-shadow: 0 0 0 0 rgba(45, 226, 230, .7); animation: fxpulse 1.8s infinite; }
 @keyframes fxpulse { 70% { box-shadow: 0 0 0 7px rgba(45, 226, 230, 0); } 100% { box-shadow: 0 0 0 0 rgba(45, 226, 230, 0); } }
 @media (max-width: 400px) { .fxg-brand span { display: none; } }
 @media (max-width: 360px) { .fxg-brand { font-size: 15px; } .fxg-chip { padding: 0 7px; font-size: 12px; } .fxg-chips { gap: 4px; } }
@@ -2649,9 +2648,5 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
   .fxg-hud:has(.fxg-chip.fc) .fxg-chip { padding: 0 7px; gap: 4px; }
   .fxg-hud:has(.fxg-chip.fc) .fxg-chips { gap: 4px; }
   .fxg-hud:has(.fxg-chip.fc) .fxg-brand { font-size: 16px; }
-}
-/* kapea puhelin: kauden pisteet näkyvät Joukkue-sivulla, joten HUDissa tilaa Fantasy-tekstille, kolikoille ja määräajalle */
-@media (max-width: 400px) {
-  .fxg-hud:has(.fxg-chip.fc) .fxg-chip.pts { display: none; }
 }
 .fxk-kpis span { white-space: normal; overflow-wrap: anywhere; }
