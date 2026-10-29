@@ -187,6 +187,13 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.locator("button[type=submit]").click();
     await page.waitForSelector(".fx-pitch", { timeout: 15000 }).catch(() => {});
     await shot(page, `koti-${w}`);
+    const sz = await page.evaluate(() => {
+      const on = document.querySelector(".fxg-tabs a.on"), ic = on?.querySelector(".fxg-ic"), cta = document.querySelector(".fx-summary .fx-row .btn:not(.ghost)");
+      const r = (e) => e?.getBoundingClientRect();
+      return { tabBg: on ? getComputedStyle(on).backgroundImage + getComputedStyle(on).backgroundColor : "", icW: Math.round(r(ic)?.width ?? 0), icH: Math.round(r(ic)?.height ?? 0),
+        ctaH: Math.round(r(cta)?.height ?? 0), ctaUpper: cta ? getComputedStyle(cta).textTransform : "" };
+    });
+    ok(`${w}px:   keltaiset napit: aktiivinen välilehti = pieni pilleri kuvakkeen takana, päänappi yhdellä rivillä (≤ 46 px)`, /none/.test(sz.tabBg) && /rgba\(0, 0, 0, 0\)/.test(sz.tabBg) && sz.icW <= 56 && sz.icH <= 30 && sz.ctaH > 0 && sz.ctaH <= 46 && sz.ctaUpper === "none", JSON.stringify(sz));
     const toks = await page.locator(".fx-pitch .fx-tok").count(), bench = await page.locator(".fx-bench .fx-tok").count();
     ok(`${w}px: Oma joukkue – kenttä (11) ja penkki (4), kierroksen pisteet, C-merkki`, toks === 11 && bench === 4 && (await page.locator(".fx-cap.c").count()) === 1 && /36 p/.test(await page.locator(".fx-summary").innerText()), `${toks}/${bench}`);
     const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

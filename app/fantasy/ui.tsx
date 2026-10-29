@@ -60,7 +60,7 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
       <nav className="fxg-tabs" aria-label="Fantasy">
         {TABS.map((x) => {
           const on = x.href === "/fantasy" ? path === "/fantasy" : path.startsWith(x.href);
-          return <Link key={x.href} href={x.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>{x.icon}<span>{x.label}</span></Link>;
+          return <Link key={x.href} href={x.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}><span className="fxg-ic" aria-hidden="true">{x.icon}</span><span>{x.label}</span></Link>;
         })}
       </nav>
     </div>

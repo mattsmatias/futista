@@ -2049,9 +2049,14 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(0deg, rgba(7, 11, 22, .98), rgba(10, 16, 32, .94));
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
 @media (min-width: 700px) { .fxg-tabs { left: 50%; right: auto; bottom: 14px; width: 560px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 20px; padding: 6px; box-shadow: var(--shadow); } }
-.fxg-tabs a { display: grid; justify-items: center; gap: 3px; padding: 7px 2px 6px; border-radius: 14px; color: var(--muted); text-decoration: none; font: 800 10.5px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; }
-.fxg-tabs a svg { width: 24px; height: 24px; }
-.fxg-tabs a.on { color: #0a0f1d; background: linear-gradient(180deg, var(--fx-acc), #f5a623); box-shadow: var(--fx-glow); }
+/* alavalikko: aktiivinen = pieni keltainen pilleri kuvakkeen takana + keltainen teksti (ei koko välilehden kokoista nappia) */
+.fxg-tabs a { display: grid; justify-items: center; gap: 4px; padding: 6px 2px 4px; min-height: 52px; color: var(--muted); text-decoration: none; font: 700 10.5px/1 var(--ui); letter-spacing: .03em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; }
+.fxg-tabs a .fxg-ic { display: grid; place-items: center; width: 52px; height: 28px; border-radius: 14px; transition: background .18s ease, color .18s ease; }
+.fxg-tabs a svg { width: 22px; height: 22px; }
+.fxg-tabs a.on { color: var(--fx-acc); }
+.fxg-tabs a.on .fxg-ic { background: var(--fx-acc); color: #0a0f1d; box-shadow: 0 4px 14px -6px rgba(255, 210, 63, .7); }
+.fxg-tabs a:active .fxg-ic { transform: scale(.94); }
+@media (prefers-reduced-motion: reduce) { .fxg-tabs a .fxg-ic { transition: none; } }
 
 /* pelin pinnat */
 :root:has(.fxg) .fx .panel, :root:has(.fxg) .fx-summary, :root:has(.fxg) .fx-bench, :root:has(.fxg) .fx-buildbar > div, :root:has(.fxg) .fx-note {
@@ -2062,7 +2067,9 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 :root:has(.fxg) .fx-kpis dd { font: 900 19px/1.1 var(--display); color: var(--fg); }
 :root:has(.fxg) .fx-kpis > div:nth-child(3) dd { color: var(--fx-acc); }
 :root:has(.fxg) .fx-buildbar b { font: 900 17px/1.1 var(--display); }
-:root:has(.fxg) .fx .btn:not(.ghost) { background: linear-gradient(180deg, var(--fx-acc), #f5a623); color: #0a0f1d; border: 0; text-transform: uppercase; letter-spacing: .04em; font-weight: 900; box-shadow: var(--fx-glow); }
+/* päänapit: keltainen, mutta tavallisen napin kokoinen (ei isoja kirjaimia eikä voimakasta hehkua; pitkä teksti mahtuu riville) */
+:root:has(.fxg) .fx .btn:not(.ghost) { background: linear-gradient(180deg, var(--fx-acc), #f5b51f); color: #0a0f1d; border: 0; font-weight: 800; font-size: 14.5px; letter-spacing: 0; min-height: 44px; padding: 0 18px; box-shadow: 0 6px 16px -10px rgba(255, 210, 63, .8); }
+:root:has(.fxg) .fx .btn.sm:not(.ghost) { min-height: 36px; padding: 0 14px; font-size: 13px; }
 :root:has(.fxg) .fx .btn:not(.ghost):active { transform: translateY(1px) scale(.99); }
 :root:has(.fxg) .fx .btn.ghost { color: var(--fg); border-color: rgba(160, 185, 255, .3); background: rgba(255, 255, 255, .03); }
 :root:has(.fxg) .fx-input, :root:has(.fxg) .fx input:not([type=color]), :root:has(.fxg) .acc-form input { background: #0c1324; color: var(--fg); border-color: rgba(160, 185, 255, .22); }
