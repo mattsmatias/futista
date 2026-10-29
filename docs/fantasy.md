@@ -197,3 +197,19 @@ Ilman migraatiota peli toimii ennallaan: HUD ei näytä kolikoita, Pakat/Kokoelm
   API-Footballin kuvien käyttöoikeutta keräilykorteissa ei ole selvitetty.
 - Testit: `tests/integration/coins-db.cjs` (tietokanta: palkinnot, korjaukset, avaus, uusinta, samanaikaisuus, oikeudet),
   `tests/integration/packs.cjs` (rajapinta + selain 390/1280 px), `tests/fantasy-packs.test.ts` (arvonnan jakauma).
+
+## Korttiversiot ja korttityyli (feature/fantasy-rarity, 29.10.2026)
+Käyttöönotto: aja `supabase/migrations/20261101_fantasy_card_versions.sql` ENNEN tämän haaran julkaisua (uusi koodi käyttää
+`_v2`-funktioita). Migraatio on idempotentti eikä poista mitään; vanha `f_pack_open` jää toimimaan nykyiselle tuotannolle.
+
+- Versiot: Perus (kaikille, ei tallenneta), Silver, Gold, Elite. Vaikuttaa vain ulkoasuun ja kokoelmaan.
+- Arvonta (palvelin, `crypto.randomInt`): pelaaja tasajakaumasta pakan hintaluokasta kuten ennen; versio erikseen –
+  Elite todennäköisyydellä `fantasy_pack_types.elite_permille / 1000` (Silver 30 ‰, Gold 50 ‰), muuten pakan perusversio.
+  `f_pack_open_v2` hyväksyy vain pakan perusversion tai Eliten.
+- Kaksoiskappale = sama pelaaja + sama versio jo omistettu tai aiemmin samassa pakassa; muuten "Uusi kortti".
+- Olemassa olevat kortit: `version` = pakan versio (Silver-pakka → Silver, Gold-pakka → Gold). Vanhalla funktiolla
+  tallennetut kortit (version null) luetaan samoin.
+- Kokoelma `f_collection_v2`: rivit pelaaja + versio, kappalemäärä.
+- Korttityyli: `fantasy_card_styles` (rivi puuttuu = Perus). `f_card_style_set` hyväksyy vain omistetun version.
+  Näkyy kentällä (Joukkue, Siirrot, Pisteet) – ei vaikuta valintoihin, siirtoihin, budjettiin, pisteisiin eikä rankingiin.
+- Testit: `tests/integration/versions-db.cjs`, `packs.cjs` (korttityyli selaimessa 390/1280 px), `tests/fantasy-packs.test.ts`.

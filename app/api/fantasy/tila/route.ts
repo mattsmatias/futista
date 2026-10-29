@@ -30,9 +30,14 @@ export async function GET(req: Request) {
     const logo = t ? (await teamLogos(comp.id, [t.id]))[String(t.id)] ?? null : null;
     // Futista-kolikot (pakat): ansainnat tasataan ja saldo HUDiin; migraatio puuttuu → null (ominaisuus ei käytössä)
     let coins: number | null = null;
+    let styles: Record<string, string> = {}; // kentän korttityylit (pelaaja → Silver/Gold/Elite); puuttuu = peruskortti
     if (user) {
       try { coins = (await rpc<{ balance: number }>("f_coins_settle", { p_user: user.user_id, p_comp: comp.id }))?.balance ?? 0; }
       catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy kolikot", (e as Error)?.message); }
+      if (t) {
+        try { styles = (await rpc<{ selected: Record<string, string> }>("f_card_styles", { p_user: user.user_id, p_comp: comp.id }))?.selected ?? {}; }
+        catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy korttityylit", (e as Error)?.message); }
+      }
     }
     const syncOk = st.comp?.sync_ok_at ? Date.parse(st.comp.sync_ok_at) : null;
     return j({
@@ -42,7 +47,7 @@ export async function GET(req: Request) {
       rounds: st.rounds.map((r) => ({ no: r.round_no, label: roundLabel(r), deadline: r.deadline_at, first: r.first_kickoff, locked: r.locked, status: r.status })),
       next: next?.round_no ?? null, current: current?.round_no ?? null,
       team: t ? {
-        id: t.id, name: t.name, logo, invite: inviteCode(t.id), first_round: t.first_round, version: t.version,
+        id: t.id, name: t.name, logo, invite: inviteCode(t.id), styles, first_round: t.first_round, version: t.version,
         picks: next ? picksAt(t.picks, next.round_no) : picksAt(t.picks, Number.MAX_SAFE_INTEGER),
         base: tr.base, free: tr.free === Infinity ? null : tr.free, made: tr.made, cost: tr.cost,
         points: t.points.map((p) => ({ round: p.round_no, points: p.points, hits: p.hits, total: p.total, provisional: p.provisional })),

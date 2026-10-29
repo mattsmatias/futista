@@ -8,17 +8,18 @@ import { api, errText, useLoad, POS_LONG, type ApiErr, type FState, type Pos } f
 import { bandText, fmtPct, type Odds, type PackType } from "@/lib/fantasy-packs-core";
 import { AuthBox, ErrorBox, Loading, Notice, Overlay } from "../ui";
 import { FCoin, FCoins, fcText } from "../FCoin";
-import { PackArt, PackNav, PlayerTile, type CardPlayer, type Tier } from "../Cards";
+import { PackArt, PackNav, PlayerTile, TIER_NAME, type CardPlayer, type Tier } from "../Cards";
 
-type Pack = PackType & { odds: Odds | null };
+type Pack = PackType & { odds: Odds | null; versions?: { base: "silver" | "gold"; perCard: Record<string, number>; eliteAtLeastOne: number } };
 type Ledger = { amount: number; kind: string; info: Record<string, any>; at: string };
 type OpenRow = { id: number; pack: string; price: number; created_at: string; seen: boolean; players: string[] | null };
 type Rules = { start: number; participation: number; per_point: number; cap: number; invite: number; invite_daily: number };
 type Resp = { balance: number; rules: Rules | null; packs: Pack[]; ledger: Ledger[]; opens: OpenRow[] };
-type Card = CardPlayer & { slot: number; dup: boolean };
+type Card = CardPlayer & { slot: number; dup: boolean; version?: Tier };
 type Open = { id: number; pack: string; price: number; eligible: number; created_at: string; seen: boolean; replay?: boolean; cards: Card[] };
 
-const tierOf = (id: string): Tier => (id === "gold" ? "gold" : "silver");
+const tierOf = (id: string): "silver" | "gold" => (id === "gold" ? "gold" : "silver");
+const verOf = (c: Card, pack: string): Tier => (c.version === "elite" || c.version === "gold" || c.version === "silver" ? c.version : tierOf(pack));
 const PACK_ERR: Record<string, string> = {
   funds: "Kolikot eivät riitä tähän pakkaan.",
   empty: "Pakkaan ei ole juuri nyt yhtään kelvollista pelaajaa. Pakkaa ei avattu eikä kolikoita veloitettu.",
@@ -147,6 +148,20 @@ function Confirm({ pack, balance, onClose, onOpened }: { pack: Pack; balance: nu
               <li>Tietty pelaaja vähintään kerran pakassa: <b>{fmtPct(o.atLeastOnce)}</b></li>
               <li>Pakasta voi tulla sama pelaaja useammin kuin kerran ({fmtPct(o.anyRepeat)}) tai pelaaja, joka sinulla jo on.</li>
             </ul>
+            {pack.versions && (
+              <>
+                <h3>Korttiversio</h3>
+                <p className="small">Jokaisen kortin versio arvotaan erikseen pelaajasta riippumatta. Versio vaikuttaa vain kortin ulkoasuun – ei hintaan eikä pisteisiin.</p>
+                <table className="fxk-odds-t small fxk-ver-t">
+                  <caption className="sr-only">Korttiversion todennäköisyys yhdessä kortissa</caption>
+                  <thead><tr><th scope="col">Versio</th><th scope="col">Yhdessä kortissa</th></tr></thead>
+                  <tbody>{(["silver", "gold", "elite"] as Tier[]).filter((v) => pack.versions!.perCard[v] !== undefined && pack.versions!.perCard[v] > 0).map((v) => (
+                    <tr key={v}><th scope="row"><span className={`fxk-vdot fxk-vdot-${v}`} aria-hidden="true" />{TIER_NAME[v]}</th><td>{fmtPct(pack.versions!.perCard[v])}</td></tr>
+                  ))}</tbody>
+                </table>
+                {(pack.versions.perCard.elite ?? 0) > 0 && <p className="small">Vähintään yksi Elite-kortti pakassa: <b>{fmtPct(pack.versions.eliteAtLeastOne)}</b>. Samasta pelaajasta voi tulla sama versio uudelleen (kaksoiskappale) tai eri versio.</p>}
+              </>
+            )}
             <table className="fxk-odds-t small">
               <caption className="sr-only">Pelipaikan todennäköisyys yhdessä kortissa</caption>
               <thead><tr><th scope="col">Pelipaikka</th><th scope="col">Pelaajia</th><th scope="col">Yhdessä kortissa</th></tr></thead>
@@ -191,6 +206,7 @@ function Reveal({ open, onClose }: { open: Open; onClose: () => void }) {
     return () => { document.removeEventListener("keydown", key); prev?.focus?.(); };
   }, [stage, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
   const dups = open.cards.filter((c) => c.dup).length;
+  const elites = open.cards.filter((c) => verOf(c, open.pack) === "elite").length;
   return (
     <Overlay onClose={() => { if (stage === "done") onClose(); }}>
       <div className={`fxk-reveal fxk-reveal-${tier} st-${stage}`} role="dialog" aria-modal="true" aria-labelledby="fxk-r-h" ref={ref}>
@@ -200,12 +216,13 @@ function Reveal({ open, onClose }: { open: Open; onClose: () => void }) {
           <ul className="fxk-r-cards">
             {open.cards.map((c, i) => (
               <li key={c.slot} className={i < shown ? "in" : ""}>
-                {i < shown ? <PlayerTile p={c} tier={tier} dup={c.dup} /> : <div className={`fxk-back fxk-back-${tier}`} aria-hidden="true"><span>F</span></div>}
+                {i < shown ? <PlayerTile p={c} tier={verOf(c, open.pack)} dup={c.dup} fresh={!c.dup} className={verOf(c, open.pack) === "elite" ? "fxk-elite-in" : ""} /> : <div className={`fxk-back fxk-back-${tier}`} aria-hidden="true"><span>F</span></div>}
               </li>
             ))}
           </ul>
         )}
-        <p className="sr-only" aria-live="polite">{stage === "done" ? `Sait ${open.cards.map((c) => `${c.name ?? "pelaajan"}${c.dup ? " (kaksoiskappale)" : ""}`).join(", ")}.` : ""}</p>
+        {stage === "done" && elites > 0 && <p className="fxk-elite-banner" role="status"><i aria-hidden="true">✦</i> {elites > 1 ? `${elites} Elite-korttia!` : "Elite-kortti!"}</p>}
+        <p className="sr-only" aria-live="polite">{stage === "done" ? `Sait ${open.cards.map((c) => `${c.name ?? "pelaajan"} (${TIER_NAME[verOf(c, open.pack)]}${c.dup ? ", kaksoiskappale" : ", uusi kortti"})`).join(", ")}.` : ""}</p>
         {stage !== "done" ? (
           <button type="button" className="btn ghost fxk-skip" onClick={skip}>Ohita</button>
         ) : (

@@ -152,7 +152,9 @@ export function formationOf(xi: number[], players: Map<number, FPlayerRow>): str
 
 /** Futistan pelaajakortti kentällä: pelipaikka (teksti + väri), kuva tai paita, sukunimi, seura, arvo (hinta / pisteet / ottelu)
  *  ja kapteenimerkki. Ei keksittyjä arvosanoja tai taitolukuja: kortissa vain pelin oikeat tiedot. */
-function Card({ p, badge, role, onSelect, desc, bench, dnd }: { p: FPlayerRow; badge: Badge | null; role: "C" | "VC" | null; onSelect?: () => void; desc: string; bench?: boolean; dnd?: string }) {
+const STYLE_NAME: Record<string, string> = { silver: "Silver", gold: "Gold", elite: "Elite" };
+function Card({ p, badge, role, onSelect, desc, bench, dnd, style }: { p: FPlayerRow; badge: Badge | null; role: "C" | "VC" | null; onSelect?: () => void; desc: string; bench?: boolean; dnd?: string; style?: string }) {
+  const sv = style && STYLE_NAME[style] ? style : null;
   const inner = (
     <>
       <span className="fxc-top"><span className="fxc-pos">{POS_SHORT[p.pos]}</span>{role && <em className={`fxc-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
@@ -160,9 +162,10 @@ function Card({ p, badge, role, onSelect, desc, bench, dnd }: { p: FPlayerRow; b
       <span className="fxc-name">{surname(p.name)}</span>
       <span className="fxc-club">{p.team}</span>
       {badge && <span className={`fxc-val ${badge.tone ?? "pts"}`}>{badge.text}</span>}
+      {sv && <span className="fxc-ver" aria-hidden="true">{STYLE_NAME[sv]}</span>}
     </>
   );
-  const cls = `fxc fxc-${p.pos.toLowerCase()}${bench ? " bench" : ""}${dnd ? ` ${dnd}` : ""}`;
+  const cls = `fxc fxc-${p.pos.toLowerCase()}${bench ? " bench" : ""}${sv ? ` fxc-v fxc-v-${sv}` : ""}${dnd ? ` ${dnd}` : ""}`;
   return onSelect
     ? <button type="button" className={cls} onClick={onSelect} aria-label={desc} data-fxid={p.id}>{inner}</button>
     : <div className={cls} role="listitem" aria-label={desc} data-fxid={p.id}>{inner}</div>;
@@ -250,10 +253,11 @@ function useCardDrag(drag?: PitchDrag) {
 
 /** Kokoonpano kentällä (avaus riveittäin pelipaikan mukaan, muodostelma näkyvissä) ja vaihtopenkki järjestyksessä kentän alla.
  *  legend kertoo, mitä korttien arvo tarkoittaa (hinta, kierroksen pisteet tai seuraava ottelu). */
-export function Pitch({ picks, players, badge, onSelect, label, empty, legend, drag }: {
+export function Pitch({ picks, players, badge, onSelect, label, empty, legend, drag, styles }: {
   picks: Picks; players: Map<number, FPlayerRow>; badge: (id: number) => Badge | null; onSelect?: (id: number) => void; label: string;
   empty?: Partial<Record<Pos, number>>; // rakennusvaiheen tyhjät paikat
   legend?: React.ReactNode;
+  styles?: Record<string, string>; // valitut korttityylit (pelaaja → silver/gold/elite); puuttuu = peruskortti
   drag?: PitchDrag; // kortin vetäminen toisen kortin päälle (painamalla pohjassa puhelimella, hiirellä vetämällä)
 }) {
   const dd = useCardDrag(drag);
@@ -263,8 +267,9 @@ export function Pitch({ picks, players, badge, onSelect, label, empty, legend, d
     if (!p) return null;
     const b = badge(id);
     const role = id === picks.captain ? "C" : id === picks.vice ? "VC" : null;
-    const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.sr ?? `${b.text}${b.tone === "price" ? " kolikkoa" : ""}`}` : ""}`;
-    return <Card key={id} p={p} badge={b} role={role} bench={bench} desc={desc} dnd={dd.cls(id)} onSelect={onSelect ? () => { if (!dd.consumeClick()) onSelect(id); } : undefined} />;
+    const sv = styles?.[String(id)];
+    const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.sr ?? `${b.text}${b.tone === "price" ? " kolikkoa" : ""}`}` : ""}${sv && STYLE_NAME[sv] ? `, ${STYLE_NAME[sv]}-kortti` : ""}`;
+    return <Card key={id} p={p} badge={b} role={role} bench={bench} desc={desc} style={sv} dnd={dd.cls(id)} onSelect={onSelect ? () => { if (!dd.consumeClick()) onSelect(id); } : undefined} />;
   };
   const slots = (pos: Pos) => [...Array(empty?.[pos] ?? 0).keys()].map((i) => (
     <div key={`e${pos}${i}`} className={`fxc empty fxc-${pos.toLowerCase()}`} aria-label={`Tyhjä paikka: ${POS_LONG[pos]}`}>
@@ -402,6 +407,7 @@ export const ActIcon = {
   add: svg(<path d="M12 5v14M5 12h14" />),
   up: svg(<path d="M12 19V5M5 12l7-7 7 7" />),
   transfer: svg(<path d="M4 8h13l-3-3M20 16H7l3 3" />),
+  style: svg(<><rect x="5" y="3" width="14" height="18" rx="2" /><path d="m12 8 1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4z" /></>),
   down: svg(<path d="M12 5v14M5 12l7 7 7-7" />),
 };
 

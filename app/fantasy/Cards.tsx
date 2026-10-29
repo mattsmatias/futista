@@ -16,16 +16,16 @@ export type CardPlayer = {
   player_id: number; name: string | null; team: string | null; league_name?: string | null; pos: Pos | string | null;
   price: number | null; photo?: string | null;
 };
-export type Tier = "silver" | "gold";
-export const TIER_NAME: Record<Tier, string> = { silver: "Silver", gold: "Gold" };
+export type Tier = "silver" | "gold" | "elite";
+export const TIER_NAME: Record<Tier, string> = { silver: "Silver", gold: "Gold", elite: "Elite" };
 
 const posKey = (p: string | null | undefined): Pos | null => (p === "GK" || p === "DEF" || p === "MID" || p === "FWD" ? p : null);
 
-/** Pelaajakortti. tier = mistä pakasta kortti on (kehyksen väri). */
-export function PlayerTile({ p, tier, count, dup, compact, className = "" }: { p: CardPlayer; tier: Tier; count?: number; dup?: boolean; compact?: boolean; className?: string }) {
+/** Pelaajakortti. tier = korttiversio (kehys, tausta ja nimilappu; versio näkyy aina myös tekstinä). fresh = uusi kortti avauksessa. */
+export function PlayerTile({ p, tier, count, dup, fresh, compact, className = "" }: { p: CardPlayer; tier: Tier; count?: number; dup?: boolean; fresh?: boolean; compact?: boolean; className?: string }) {
   const pos = posKey(p.pos);
   const label = [p.name ?? "Tuntematon pelaaja", pos ? POS_LONG[pos] : null, p.team, p.league_name, `${TIER_NAME[tier]}-kortti`,
-    count && count > 1 ? `${count} kappaletta` : null, dup ? "kaksoiskappale" : null].filter(Boolean).join(", ");
+    count ? `${count} kpl` : null, dup ? "kaksoiskappale" : fresh ? "uusi kortti" : null].filter(Boolean).join(", ");
   return (
     <div className={`fxk fxk-${tier}${compact ? " sm" : ""} ${className}`} role="img" aria-label={label}>
       <div className="fxk-in" aria-hidden="true">
@@ -37,16 +37,17 @@ export function PlayerTile({ p, tier, count, dup, compact, className = "" }: { p
         <b className="fxk-name">{p.name ?? "Tuntematon"}</b>
         <span className="fxk-club">{p.team ?? "–"}</span>
         {!compact && <span className="fxk-league">{p.league_name ?? ""}</span>}
-        <span className="fxk-tier">{TIER_NAME[tier]}</span>
+        <span className="fxk-tier">{tier === "elite" && <i className="fxk-star" aria-hidden="true">✦</i>}{TIER_NAME[tier]}</span>
       </div>
-      {count && count > 1 ? <span className="fxk-count" aria-hidden="true">×{count}</span> : null}
-      {dup ? <span className="fxk-dup" aria-hidden="true">Kaksoiskappale</span> : null}
+      {tier === "elite" && <span className="fxk-sheen" aria-hidden="true" />}
+      {count ? <span className="fxk-count" aria-hidden="true">{count} kpl</span> : null}
+      {dup ? <span className="fxk-dup" aria-hidden="true">Kaksoiskappale</span> : fresh ? <span className="fxk-dup fxk-new" aria-hidden="true">Uusi kortti</span> : null}
     </div>
   );
 }
 
 /** Pakan kuva (oma muotoilu: vinoraidat ja F-merkki) */
-export function PackArt({ tier, size = 1, className = "" }: { tier: Tier; size?: number; className?: string }) {
+export function PackArt({ tier, size = 1, className = "" }: { tier: "silver" | "gold"; size?: number; className?: string }) {
   return (
     <div className={`fxp fxp-${tier} ${className}`} style={{ ["--s" as string]: size }} aria-hidden="true">
       <span className="fxp-rip" />

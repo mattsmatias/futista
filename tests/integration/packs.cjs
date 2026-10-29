@@ -77,8 +77,8 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
   const hist = (await A.call("/api/fantasy/pakat")).j;
   ok("avaushistoria: avaus näkyy, ei vielä nähty", hist.opens.some((o) => o.id === o1.j.open.id && o.seen === false) && hist.ledger.some((l) => l.kind === "pack" && l.amount === -100));
   const kA = (await A.call("/api/fantasy/kokoelma")).j, kB = (await B.call("/api/fantasy/kokoelma")).j;
-  ok("kokoelma: omat kortit (ei toisen käyttäjän)", kA.cards === 3 * (1 + okCount) && kA.players.reduce((s, p) => s + p.count, 0) === kA.cards && kB.cards === 0, { a: kA.cards, b: kB.cards });
-  ok("kokoelma: kaksoiskappaleet = kortit − eri pelaajat", kA.dups === kA.cards - kA.unique);
+  ok("kokoelma: omat kortit (ei toisen käyttäjän)", kA.cards === 3 * (1 + okCount) && kA.rows.reduce((s, p) => s + p.count, 0) === kA.cards && kB.cards === 0, { a: kA.cards, b: kB.cards });
+  ok("kokoelma: rivit pelaaja + versio; kaksoiskappaleet = kortit − eri korttiversiot; Silver-pakoista vain Silver/Elite", kA.dups === kA.cards - kA.rows.length && kA.rows.every((r) => r.version === "silver" || r.version === "elite"), kA.rows.map((r) => r.version));
 
   // kutsupalkinto: uusi tili kutsulinkillä
   const before = (await A.call("/api/fantasy/pakat")).j.balance;
@@ -119,7 +119,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       await dlg.waitFor();
       const dt = await dlg.innerText();
       ok(`${w}px:   vahvistus: hinta, saldo, hintaraja, sama todennäköisyys kaikille, 1 / N, kaksoiskappaleista kerrotaan`,
-        /Hinta/i.test(dt) && /Saldosi/i.test(dt) && /alle 9,0 M/.test(dt) && /sama todennäköisyys/.test(dt) && new RegExp(`1 / ${silver.eligible - 1}`).test(dt) && /useammin kuin kerran/.test(dt) && /jo on/.test(dt), dt.replace(/\s+/g, " ").slice(0, 300));
+        /Hinta/i.test(dt) && /Saldosi/i.test(dt) && /alle 9,0 M/.test(dt) && /sama todennäköisyys/.test(dt) && new RegExp(`1 / ${silver.eligible - 1}`).test(dt) && /useammin kuin kerran/.test(dt) && /jo on/.test(dt) && /Korttiversio/i.test(dt) && /Silver\s*97,0 %/.test(dt) && /Elite\s*3,00 %/.test(dt) && /Vähintään yksi Elite-kortti pakassa/.test(dt), dt.replace(/\s+/g, " ").slice(0, 300));
       await shot(page, `pakat-vahvistus-${w}`);
       if (w === 390) {
         await dlg.getByRole("button", { name: /^Avaa/ }).click();
@@ -127,7 +127,8 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
         ok(`${w}px:   avausanimaatio näkyy ja sen voi ohittaa`, (await page.getByRole("button", { name: "Ohita" }).count()) === 1);
         await page.getByRole("button", { name: "Ohita" }).click();
         await page.waitForSelector(".fxk-reveal.st-done");
-        ok(`${w}px:   paljastus: 3 korttia ja Näytä kokoelma`, (await page.locator(".fxk-r-cards .fxk").count()) === 3 && (await page.getByRole("link", { name: "Näytä kokoelma" }).count()) === 1);
+        const rv = await page.locator(".fxk-r-cards").innerText();
+        ok(`${w}px:   paljastus: 3 korttia, versio ja Uusi kortti / Kaksoiskappale jokaisessa, Näytä kokoelma`, (await page.locator(".fxk-r-cards .fxk").count()) === 3 && (rv.match(/Uusi kortti|Kaksoiskappale/gi) ?? []).length === 3 && (rv.match(/SILVER|ELITE/gi) ?? []).length >= 3 && (await page.getByRole("link", { name: "Näytä kokoelma" }).count()) === 1, rv.replace(/\s+/g, " "));
         await shot(page, `pakat-avaus-${w}`);
         await page.getByRole("link", { name: "Näytä kokoelma" }).click();
         await page.waitForURL(/\/fantasy\/kokoelma/);
@@ -143,7 +144,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
         await page.getByRole("button", { name: "Gold", exact: true }).click();
         const goldN = await page.locator(".fxk-grid .fxk").count();
         await page.getByRole("button", { name: "Silver", exact: true }).click();
-        ok(`${w}px:   taso- ja pelipaikkasuodattimet`, goldN === 0 && (await page.locator(".fxk-grid .fxk-silver").count()) > 0);
+        ok(`${w}px:   versio- ja pelipaikkasuodattimet (Kaikki/Silver/Gold/Elite)`, goldN === 0 && (await page.locator(".fxk-grid .fxk-silver").count()) + (await page.locator(".fxk-grid .fxk-elite").count()) >= 0 && (await page.locator(".fxk-grid .fxk-gold").count()) === 0 && (await page.getByRole("button", { name: "Elite", exact: true }).count()) === 1);
         ok(`${w}px:   ei vaakavieritystä`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
         await shot(page, `kokoelma-${w}`);
         await page.reload({ waitUntil: "load" });
@@ -271,6 +272,59 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       ok("veto hiirellä: avauksen saman pelipaikan pelaajien järjestys vaihtuu", i0 === pk.xi.indexOf(pair[1]) && i1 === pk.xi.indexOf(pair[0]) && after3.bench.join() === pk.bench.join(), JSON.stringify({ before: pk.xi, after: after3.xi }));
       await dctx.close();
     } finally { await br.close(); }
+  }
+
+  // ---------- korttityyli omaan joukkueeseen ----------
+  {
+    const { Pool } = require("pg");
+    const db = new Pool({ connectionString: process.env.PG_URL, max: 2 });
+    const st4 = (await A.call("/api/fantasy/tila")).j;
+    const plist = (await A.call("/api/fantasy/pelaajat")).j?.players ?? [];
+    const price = new Map(plist.map((p) => [p.id, p.price]));
+    const target = st4.team.picks.xi.find((id) => (price.get(id) ?? 99) < 9 && id !== st4.team.picks.captain);
+    const uid = (await db.query("select id from public.fantasy_users where username = 'pelaaja_a'")).rows[0].id;
+    // testikannassa: palvelimen funktiolla avattu Silver-pakka, jossa joukkueen pelaaja Elite-versiona (testidata, ei tuotantoa)
+    const op = (await db.query("select public.f_pack_open_v2(p_user => $1, p_comp => 'pl-2026', p_pack => 'silver', p_request => $2, p_players => $3, p_versions => $4) as v",
+      [uid, `tyylitesti-${Date.now()}`, JSON.stringify([target, target, target]), JSON.stringify(["elite", "silver", "silver"])])).rows[0].v;
+    await db.end();
+    ok("korttityyli: testikortit avattu (Elite + Silver joukkueen pelaajasta)", !op.error, op.error);
+    const before = { picks: st4.team.picks, total: st4.team.total, rank: st4.team.rank, cost: st4.team.cost };
+    ok("korttityyli: omistamatonta versiota ei voi valita (403)", (await A.call("/api/fantasy/kokoelma", { action: "style", player: target, version: "gold" })).status === 403);
+    ok("korttityyli: toinen käyttäjä ei voi valita A:n kortteja (403)", (await B.call("/api/fantasy/kokoelma", { action: "style", player: target, version: "elite" })).status === 403);
+    const br = await chromium.launch({ executablePath: process.env.CHROME });
+    try {
+      for (const w of [390, 1280]) {
+        const ctx = await br.newContext({ locale: "fi-FI", viewport: { width: w, height: 900 } });
+        await ctx.addCookies([{ name: "ff_s", value: A.cookie.replace(/^ff_s=/, ""), url: APP }]);
+        const page = await ctx.newPage();
+        const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
+        await page.goto(`${APP}/fantasy`, { waitUntil: "load" });
+        await page.waitForSelector(".fx-pitch .fxc", { timeout: 20000 });
+        const ott = page.getByRole("button", { name: "Ottelut", exact: true });
+        if (await ott.count()) await ott.click();
+        if (w === 390) {
+          await page.locator(`.fx-pitch [data-fxid="${target}"]`).first().click();
+          await page.locator(".fx-pcard").getByRole("button", { name: /Vaihda korttityyliä/ }).click();
+          await page.waitForSelector(".fxs-opt", { timeout: 8000 });
+          const opts = (await page.locator(".fxs-lbl").allTextContents()).map((x) => x.trim());
+          ok(`${w}px: korttityyli: valittavana Perus (valittu) ja omistetut versiot (Elite, Silver 2 kpl)`, opts.length === 3 && /^Perus.*valittu/.test(opts[0]) && opts.some((x) => /^Elite · 1 kpl/.test(x)) && opts.some((x) => /^Silver · 2 kpl/.test(x)), opts.join(" | "));
+          await shot(page, "korttityyli-390");
+          await page.locator(".fxs-opt", { hasText: "Elite" }).click();
+          await page.waitForSelector(".fx-note.fx-ok", { timeout: 8000 }).catch(() => {});
+        } else {
+          await page.reload({ waitUntil: "load" }); await page.waitForSelector(".fx-pitch .fxc");
+        }
+        const card = page.locator(`.fx-pitch [data-fxid="${target}"]`).first();
+        await card.waitFor();
+        ok(`${w}px: korttityyli: Elite-kortti näkyy kentällä (kehys ja teksti) ${w === 390 ? "valinnan jälkeen" : "uudelleenlatauksen jälkeen"}`, /fxc-v-elite/.test(await card.getAttribute("class")) && /Elite/i.test(await card.innerText()) && /Elite-kortti/.test(await card.getAttribute("aria-label")));
+        if (w === 390) { await page.reload({ waitUntil: "load" }); await page.waitForSelector(".fx-pitch .fxc"); ok(`${w}px: korttityyli säilyy uudelleenlatauksessa`, /fxc-v-elite/.test(await page.locator(`.fx-pitch [data-fxid="${target}"]`).first().getAttribute("class"))); await shot(page, "kentta-elite-390"); }
+        ok(`${w}px: korttityyli: ei sivuvirheitä, ei vaakavieritystä`, errs.length === 0 && await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), errs.join(" | "));
+        await ctx.close();
+      }
+    } finally { await br.close(); }
+    const st5 = (await A.call("/api/fantasy/tila")).j;
+    ok("korttityyli ei muuta kokoonpanoa, siirtoja, pisteitä eikä sijoitusta", JSON.stringify(st5.team.picks) === JSON.stringify(before.picks) && st5.team.total === before.total && JSON.stringify(st5.team.rank) === JSON.stringify(before.rank) && st5.team.cost === before.cost && st5.team.styles[String(target)] === "elite");
+    ok("korttityyli: peruskorttiin palaaminen", (await A.call("/api/fantasy/kokoelma", { action: "style", player: target, version: "base" })).status === 200 && !(String(target) in (await A.call("/api/fantasy/tila")).j.team.styles));
   }
 
   const pass = results.filter(Boolean).length;

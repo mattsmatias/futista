@@ -3,11 +3,13 @@ import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
 import { rpc } from "@/lib/fantasy-db";
 import { bandText, type PackType } from "@/lib/fantasy-packs-core";
 
+type PackV = PackType & { base_version?: string; elite_permille?: number };
 type CoinRules = { start: number; participation: number; per_point: number; cap: number; invite: number; invite_daily: number };
 /** Kolikkosäännöt ja pakat tietokannasta (sama lähde kuin palkinnoilla); migraatio puuttuu tai häiriö → osio piiloon */
-async function coinInfo(): Promise<{ rules: CoinRules; packs: PackType[] } | null> {
+const pct = (pm: number) => `${(pm / 10).toLocaleString("fi-FI")} %`;
+async function coinInfo(): Promise<{ rules: CoinRules; packs: PackV[] } | null> {
   try {
-    const [w, packs] = await Promise.all([rpc<{ rules: CoinRules | null }>("f_wallet", { p_user: 0 }), rpc<PackType[]>("f_pack_types", { p_comp: DEFAULT_COMP.id })]);
+    const [w, packs] = await Promise.all([rpc<{ rules: CoinRules | null }>("f_wallet", { p_user: 0 }), rpc<PackType[]>("f_pack_types_v2", { p_comp: DEFAULT_COMP.id })]);
     return w?.rules ? { rules: w.rules, packs: packs ?? [] } : null;
   } catch { return null; }
 }
@@ -111,8 +113,10 @@ export default async function Page() {
               <li>Jokaisesta päättyneestä kierroksesta, jolle joukkue oli tallennettu ajoissa (määräajalla otettu tilannekuva), saa {coins.rules.participation} kolikkoa ja lisäksi {coins.rules.per_point} kolikon jokaisesta kierroksen fantasy-pisteestä siirtovähennysten jälkeen, enintään {coins.rules.cap} kolikkoa. Miinuspisteet eivät vähennä palkintoa.</li>
               <li>Kierrospalkinto maksetaan, kun kierroksen pisteet ovat lopulliset. Jos pisteitä korjataan myöhemmin, erotus lisätään tai peritään takaisin. Takaisin peritään enintään saldon verran; jo käytettyjä kolikoita ei peritä.</li>
               <li>Kun kaveri luo tilin kutsulinkilläsi, saat {coins.rules.invite} kolikkoa (enintään {coins.rules.invite_daily} palkittua kutsua vuorokaudessa).</li>
-              {coins.packs.map((p) => <li key={p.id}>{p.name}: {p.price} kolikkoa, {p.cards} pelaajakorttia, pelaajat joiden fantasyhinta on {bandText(p)}.</li>)}
+              {coins.packs.map((p) => <li key={p.id}>{p.name}: {p.price} kolikkoa, {p.cards} pelaajakorttia, pelaajat joiden fantasyhinta on {bandText(p)}. Jokainen kortti on {p.base_version === "gold" ? "Gold" : "Silver"}-versio{p.elite_permille ? ` (${pct(1000 - p.elite_permille)}) tai Elite-versio (${pct(p.elite_permille)})` : ""}.</li>)}
               <li>Pakan jokainen kortti arvotaan palvelimella erikseen hintaluokan kaikista aktiivisista pelaajista. Kaikilla hintaluokan pelaajilla on sama todennäköisyys, joten samaan pakkaan voi tulla sama pelaaja useammin kuin kerran tai pelaaja, joka sinulla jo on (kaksoiskappale). Tarkat todennäköisyydet näkyvät ennen avausta.</li>
+              <li>Korttiversiot: Perus (kaikille pelaajille ilman pakkaa), Silver, Gold ja harvinainen Elite. Pelaajan ja korttiversion arvonta ovat toisistaan erillään, joten myös edullisemmasta pelaajasta voi saada Elite-kortin. Saman pelaajan sama versio kasvattaa kappalemäärää; eri versio tallentuu omana korttinaan.</li>
+              <li>Oman joukkueen pelaajalle voi valita kentälle peruskortin tai minkä tahansa omistamansa korttiversion: paina pelaajaa ja valitse Vaihda korttityyliä. Korttityyli ei muuta pelaajan hintaa, pisteitä, budjettia, siirtoja eikä sijoitusta. Kortit säilyvät kokoelmassa, vaikka pelaaja poistuisi joukkueesta.</li>
               <li>Kortit ovat keräilyä varten. Ne eivät anna etua fantasy-pisteissä tai rankingissa, ja joukkueeseen voi valita kenet tahansa omistamatta hänen korttiaan.</li>
             </ul>
           </section>

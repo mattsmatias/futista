@@ -57,3 +57,22 @@ test("näyttömuodot", () => {
   assert.equal(bandText({ min_price: 9, max_price: null }), "vähintään 9,0 M");
   assert.match(ledgerText("round_waived", { round: 3, uncollected: 60 }), /60 kolikkoa jäi perimättä/);
 });
+
+// ---- korttiversiot ----
+import { drawVersions, versionOdds } from "../lib/fantasy-packs-core";
+test("korttiversiot: vain pakan perusversio tai Elite; jakauma vastaa näytettyä (Silver 3 %, Gold 5 %)", () => {
+  assert.throws(() => drawVersions(1, "silver", 30, () => 1000));
+  for (const [base, pm] of [["silver", 30], ["gold", 50]] as const) {
+    const N = 200_000;
+    const v = drawVersions(N, base, pm, (n) => randomInt(n));
+    assert.ok(v.every((x) => x === base || x === "elite"));
+    const e = v.filter((x) => x === "elite").length / N, p = pm / 1000;
+    assert.ok(Math.abs(e - p) < 4 * Math.sqrt(p * (1 - p) / N), `${base}: ${e} vs ${p}`);
+    const o = versionOdds(base, pm, 3);
+    assert.equal(o.perCard.elite, p);
+    assert.ok(Math.abs(o.perCard[base]! - (1 - p)) < 1e-12);
+    assert.ok(Math.abs(o.eliteAtLeastOne - (1 - (1 - p) ** 3)) < 1e-12);
+  }
+  assert.ok(drawVersions(100, "gold", 0, (n) => randomInt(n)).every((x) => x === "gold"));
+  assert.ok(drawVersions(100, "gold", 1000, (n) => randomInt(n)).every((x) => x === "elite"));
+});

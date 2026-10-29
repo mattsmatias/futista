@@ -1,17 +1,16 @@
 "use client";
-// Kokoelma: pakoista saadut pelaajakortit (vain omat). Haku nimellä tai seuralla, suodattimet kaikki/silver/gold, sarja,
-// seura ja pelipaikka. Kortit eivät vaikuta fantasyjoukkueeseen: kenet tahansa voi valita joukkueeseen omistamatta korttia.
+// Kokoelma: pakoista saadut pelaajakortit (vain omat) pelaaja + korttiversio -riveittäin (esim. Saka · Gold · 1 kpl ja
+// Saka · Elite · 1 kpl). Haku nimellä tai seuralla, suodattimet versio (kaikki/silver/gold/elite), sarja, seura ja pelipaikka. Kortit eivät vaikuta fantasyjoukkueeseen: kenet tahansa voi valita joukkueeseen omistamatta korttia.
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLoad, POS_LONG, type FState, type Pos } from "@/lib/fantasy-client";
 import { AuthBox, ErrorBox, Loading } from "../ui";
-import { PackNav, PlayerTile, type CardPlayer, type Tier } from "../Cards";
+import { PackNav, PlayerTile, TIER_NAME, type CardPlayer, type Tier } from "../Cards";
 
-type Row = CardPlayer & { count: number; packs: string[]; first_at: string; league: number | null; team_id: number | null };
-type Resp = { cards: number; unique: number; dups: number; players: Row[]; leagues: { id: number; name: string }[] };
+type Row = CardPlayer & { count: number; version: Tier; first_at: string; league: number | null; team_id: number | null };
+type Resp = { cards: number; unique: number; versions: number; dups: number; rows: Row[]; leagues: { id: number; name: string }[] };
 const POS: Pos[] = ["GK", "DEF", "MID", "FWD"];
 const norm = (s: string) => s.toLocaleLowerCase("fi").normalize("NFD").replace(/[̀-ͯ]/g, "");
-const tierOfRow = (r: Row): Tier => (r.packs.includes("gold") ? "gold" : "silver");
 
 export function Collection() {
   const st = useLoad<FState>("/api/fantasy/tila");
@@ -25,11 +24,11 @@ function CollectionIn() {
   const r = useLoad<Resp>("/api/fantasy/kokoelma");
   const [q, setQ] = useState(""), [tier, setTier] = useState<"all" | Tier>("all"), [league, setLeague] = useState(""), [club, setClub] = useState(""), [pos, setPos] = useState<"" | Pos>("");
   const d = r.data;
-  const clubs = useMemo(() => [...new Set((d?.players ?? []).filter((p) => !league || String(p.league) === league).map((p) => p.team).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "fi")), [d, league]);
+  const clubs = useMemo(() => [...new Set((d?.rows ?? []).filter((p) => !league || String(p.league) === league).map((p) => p.team).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "fi")), [d, league]);
   const list = useMemo(() => {
     const n = norm(q.trim());
-    return (d?.players ?? []).filter((p) =>
-      (tier === "all" || p.packs.includes(tier)) && (!league || String(p.league) === league) && (!club || p.team === club) && (!pos || p.pos === pos) &&
+    return (d?.rows ?? []).filter((p) =>
+      (tier === "all" || p.version === tier) && (!league || String(p.league) === league) && (!club || p.team === club) && (!pos || p.pos === pos) &&
       (!n || norm(p.name ?? "").includes(n) || norm(p.team ?? "").includes(n)));
   }, [d, q, tier, league, club, pos]);
 
@@ -47,7 +46,7 @@ function CollectionIn() {
       </section>
     </>
   );
-  const usedLeagues = x.leagues.filter((l) => x.players.some((p) => p.league === l.id));
+  const usedLeagues = x.leagues.filter((l) => x.rows.some((p) => p.league === l.id));
   return (
     <>
       <PackNav />
@@ -60,9 +59,9 @@ function CollectionIn() {
         <div className="pad">
           <label className="sr-only" htmlFor="fxk-q">Hae pelaajaa tai seuraa</label>
           <input id="fxk-q" type="search" className="fx-input" placeholder="Hae pelaajaa tai seuraa" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="seg fx-modes" role="group" aria-label="Kortin taso">
-            {(["all", "silver", "gold"] as const).map((t) => (
-              <button key={t} type="button" className={tier === t ? "on" : ""} aria-pressed={tier === t} onClick={() => setTier(t)}>{t === "all" ? "Kaikki" : t === "silver" ? "Silver" : "Gold"}</button>
+          <div className="seg fx-modes" role="group" aria-label="Korttiversio">
+            {(["all", "silver", "gold", "elite"] as const).map((t) => (
+              <button key={t} type="button" className={tier === t ? "on" : ""} aria-pressed={tier === t} onClick={() => setTier(t)}>{t === "all" ? "Kaikki" : TIER_NAME[t]}</button>
             ))}
           </div>
           <div className="fxk-sel">
@@ -75,10 +74,10 @@ function CollectionIn() {
           </div>
         </div>
       </section>
-      <p className="muted small" aria-live="polite">{list.length === x.players.length ? `${list.length} pelaajaa` : `${list.length} / ${x.players.length} pelaajaa`}</p>
+      <p className="muted small" aria-live="polite">{list.length === x.rows.length ? `${list.length} korttia (eri versiot)` : `${list.length} / ${x.rows.length} korttia (eri versiot)`}</p>
       {list.length === 0 ? <p className="muted">Ei osumia näillä suodattimilla.</p> : (
         <ul className="fxk-grid">
-          {list.map((p) => <li key={p.player_id}><PlayerTile p={p} tier={tierOfRow(p)} count={p.count} /></li>)}
+          {list.map((p) => <li key={`${p.player_id}-${p.version}`}><PlayerTile p={p} tier={p.version} count={p.count} /></li>)}
         </ul>
       )}
     </>

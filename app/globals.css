@@ -2562,7 +2562,7 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fxk-club { width: 100%; font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fxk-league { width: 100%; font-size: 10px; color: var(--muted); opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 1.2em; }
 .fxk-tier { margin-top: 3px; padding: 1px 8px; border-radius: 999px; font: 900 9.5px/1.4 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: #0a0f1d; background: linear-gradient(90deg, var(--t1), var(--t2)); }
-.fxk-count { position: absolute; top: -6px; right: -6px; min-width: 26px; height: 24px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px;
+.fxk-count { position: absolute; bottom: -8px; right: -6px; min-width: 26px; height: 24px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px;
   background: #2de2e6; color: #06232a; font: 900 12px/1 var(--ui); box-shadow: 0 0 0 2px #070b16; }
 .fxk-dup { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); padding: 2px 8px; border-radius: 999px; white-space: nowrap;
   background: #fb7185; color: #2a0710; font: 800 10px/1.4 var(--ui); box-shadow: 0 0 0 2px #070b16; }
@@ -2663,3 +2663,51 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fx-drag-ghost > div { width: 100%; }
 .fx-drag-why { max-width: 200px; padding: 4px 8px; border-radius: 8px; background: #2a0710; color: #ffd4dc; font: 700 11px/1.3 var(--ui); text-align: center; white-space: normal; }
 @media (prefers-reduced-motion: reduce) { .fx-drag-ghost { transform: translate(-50%, -60%); } .fx-pitch-wrap.dragging .fxc { transition: none; } .fx-pitch-wrap.dragging .fxc.drop-hover { transform: none; } }
+
+/* ===== Korttiversiot: Perus / Silver / Gold / Elite (Futistan oma muotoilu; versio näkyy aina myös tekstinä) ===== */
+.fxk-elite { --t1: #6ef3d6; --t2: #7c3aed; background: conic-gradient(from 210deg, #2de2e6, #7c3aed, #ff4fa3, #ffd23f, #2de2e6); }
+.fxk-elite .fxk-in { background: radial-gradient(120% 80% at 50% 0%, rgba(124, 58, 237, .45), transparent 65%), radial-gradient(90% 60% at 50% 100%, rgba(45, 226, 230, .25), transparent 70%), linear-gradient(180deg, #170f33, #0b0b1f); }
+.fxk-elite .fxk-tier { background: linear-gradient(90deg, #2de2e6, #a78bfa, #ff4fa3); color: #0a0f1d; }
+.fxk-star { font-style: normal; margin-right: 3px; }
+.fxk-sheen { position: absolute; inset: 3px; border-radius: 11px; pointer-events: none; overflow: hidden; }
+.fxk-sheen::before { content: ""; position: absolute; inset: -40% -60%; background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, .22) 48%, transparent 56%); transform: translateX(-60%); }
+@media (prefers-reduced-motion: no-preference) { .fxk-sheen::before { animation: fxk-sheen 3.6s ease-in-out infinite; } }
+@keyframes fxk-sheen { 0%, 55% { transform: translateX(-60%); } 100% { transform: translateX(60%); } }
+.fxk-new { background: #2de2e6 !important; color: #06232a !important; }
+.fxk-count { min-width: 34px; font-size: 10.5px; }
+.fxk-vdot { display: inline-block; width: 10px; height: 14px; margin-right: 6px; border-radius: 3px; vertical-align: -2px; }
+.fxk-vdot-silver { background: linear-gradient(160deg, #e6ebf3, #8592a6); } .fxk-vdot-gold { background: linear-gradient(160deg, #ffe48a, #b57d0e); }
+.fxk-vdot-elite { background: conic-gradient(from 210deg, #2de2e6, #7c3aed, #ff4fa3, #ffd23f, #2de2e6); }
+.fxk-odds h3 + p { margin: 0; }
+.fxk-elite-banner { margin: 0; padding: 6px 14px; border-radius: 999px; font: 900 15px/1.2 var(--display); letter-spacing: .04em; color: #0a0f1d;
+  background: linear-gradient(90deg, #2de2e6, #a78bfa, #ff4fa3); box-shadow: 0 0 24px -4px rgba(167, 139, 250, .9); }
+@media (prefers-reduced-motion: no-preference) {
+  .fxk-r-cards li.in > .fxk.fxk-elite-in { animation: fxk-elite-in .8s cubic-bezier(.2, .8, .2, 1) both; }
+  .fxk-elite-banner { animation: fxk-pop .45s cubic-bezier(.2, .9, .3, 1.4) both; }
+}
+@keyframes fxk-elite-in { 0% { transform: rotateY(90deg) scale(.8); opacity: .2; filter: brightness(2.2); } 60% { transform: scale(1.1); filter: brightness(1.5); box-shadow: 0 0 40px 6px rgba(167, 139, 250, .85); } 100% { transform: none; opacity: 1; filter: none; } }
+@keyframes fxk-pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+/* kentän kompaktit kortit: versio näkyy taustassa, sisäreunassa ja tekstinä kuvan päällä (kortti on rajattu clip-pathilla) */
+.fxc.fxc-v-silver { background: linear-gradient(165deg, #5b6576 0%, #26303f 55%, #151b26 100%); box-shadow: inset 0 3px 0 var(--pc), inset 0 0 0 2px rgba(214, 222, 235, .75), 0 6px 14px -6px rgba(0, 0, 0, .8); }
+.fxc.fxc-v-gold { background: linear-gradient(165deg, #7a5a12 0%, #3a2b0c 55%, #1d1606 100%); box-shadow: inset 0 3px 0 var(--pc), inset 0 0 0 2px rgba(255, 210, 90, .85), 0 6px 14px -6px rgba(0, 0, 0, .8); }
+.fxc.fxc-v-elite { background: radial-gradient(120% 70% at 50% 0%, rgba(124, 58, 237, .75), transparent 70%), linear-gradient(165deg, #2a1660 0%, #170f33 60%, #0b0b1f 100%);
+  box-shadow: inset 0 3px 0 var(--pc), inset 0 0 0 2px rgba(167, 139, 250, .9), 0 0 14px -2px rgba(167, 139, 250, .7), 0 6px 14px -6px rgba(0, 0, 0, .8); }
+.fxc-v .fxc-pic { position: relative; }
+.fxc-ver { position: absolute; left: 50%; top: 47px; transform: translateX(-50%); padding: 0 4px; border-radius: 999px; font: 900 7px/11px var(--ui); letter-spacing: .06em; text-transform: uppercase; color: #0a0f1d; white-space: nowrap; z-index: 1; pointer-events: none; }
+.fxc-v-silver .fxc-ver { background: linear-gradient(90deg, #f3f6fb, #a3afc2); }
+.fxc-v-gold .fxc-ver { background: linear-gradient(90deg, #ffe999, #e0a52a); }
+.fxc-v-elite .fxc-ver { background: linear-gradient(90deg, #2de2e6, #a78bfa, #ff4fa3); }
+.fxc-v-elite .fxc-pic { filter: drop-shadow(0 0 6px rgba(167, 139, 250, .8)); }
+@media (min-width: 700px) { .fxc-ver { top: 54px; font-size: 7.5px; } }
+
+/* korttityylin valinta */
+.fxs-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 420px) { .fxs-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.fxs-opt { display: grid; gap: 6px; justify-items: center; width: 100%; padding: 8px; border-radius: 14px; border: 2px solid transparent; background: var(--surface-2); color: inherit; }
+.fxs-opt.on { border-color: var(--fx-acc, #ffd23f); box-shadow: 0 0 0 3px rgba(255, 210, 63, .25); }
+.fxs-opt:focus-visible { outline: 3px solid var(--fx-acc, #ffd23f); outline-offset: 2px; }
+.fxs-opt .fxk { width: 100%; max-width: 120px; }
+.fxs-base { display: grid; place-items: center; align-content: center; gap: 4px; width: 100%; max-width: 120px; aspect-ratio: 5 / 7; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(180deg, #16203a, #0c1324); padding: 8px; text-align: center; }
+.fxs-base b { font: 800 12px/1.2 var(--display); overflow-wrap: anywhere; } .fxs-base small { color: var(--muted); font-size: 11px; }
+.fxs-lbl { font: 800 12.5px/1.2 var(--ui); }

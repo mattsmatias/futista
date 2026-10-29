@@ -57,7 +57,7 @@ http.createServer(async (req, res) => {
     return;
   }
   // Fantasy (supabase/migrations/20261027_fantasy.sql): PostgREST-tyyppinen RPC nimetyin parametrein; paluu = funktion jsonb
-  const fm = req.method === "POST" && req.url.match(/^\/rest\/v1\/rpc\/((?:f|s)_[a-z_]+)$/);
+  const fm = req.method === "POST" && req.url.match(/^\/rest\/v1\/rpc\/((?:f|s)_[a-z0-9_]+)$/);
   if (fm) {
     let body = ""; for await (const c of req) body += c;
     const a = JSON.parse(body || "{}");

@@ -60,7 +60,7 @@ export function Points() {
             )}
             <div className="fx-pts-mini"><div><span>Kausi yhteensä</span><b>{s.team.total} p</b></div><div><span>Sijoitus Futista-liigassa</span><b>{s.team.rank ? `${s.team.rank.rank} / ${s.team.rank.of}` : "–"}</b></div></div>
           </section>
-          {picks && players.size > 0 && <Pitch picks={picks} players={players} badge={badge} onSelect={setSelId} legend={`${roundName(s, r)} · pisteet`} label={`${roundName(s, r)}: kokoonpano ja pisteet`} />}
+          {picks && players.size > 0 && <Pitch picks={picks} players={players} badge={badge} onSelect={setSelId} styles={s.team.styles} legend={`${roundName(s, r)} · pisteet`} label={`${roundName(s, r)}: kokoonpano ja pisteet`} />}
           {subs.length > 0 && <p className="small">Automaattiset vaihdot: {subs.map((x) => `${players.get(x.out)?.name ?? x.out} → ${players.get(x.in)?.name ?? x.in}`).join(", ")}</p>}
           {rows.length > 0 && (
             <section className="panel" aria-labelledby="fx-br-h">

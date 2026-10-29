@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { api, errText, useLoad, fmtM, localTime, roundName, roundNum, roundFx, type FState, type FPlayerRow, type FPlayersResp } from "@/lib/fantasy-client";
 import { RULES, type Picks, type FPlayer } from "@/lib/fantasy-core";
 import { moveCheck, movePlayers, setCaptain, swapOptions, swapPlayers } from "@/lib/fantasy-lineup";
+import { StylePicker } from "./StylePicker";
+import { VERSION_NAME, type Style } from "@/lib/fantasy-packs-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Countdown, ActIcon, type Badge, type CardAction, type CardSwaps, type PitchDrag } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
@@ -73,6 +75,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
   const [sel, setSel] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [styleFor, setStyleFor] = useState<FPlayerRow | null>(null);
   const last = t.points.find((p) => p.round === cur) ?? null;
   // lukitun kierroksen kentällä automaattisten vaihtojen jälkeinen kokoonpano (sisään tullut avaukseen, pelaamaton penkille)
   const rawSnap: Picks | null = snap.data?.snapshot ?? null;
@@ -118,6 +121,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       onClick: () => save(setCaptain(t.picks!, selP.id, "C"), `${selP.name} on kapteeni.`) }]),
     ...(t.picks.vice === selP.id ? [] : [{ label: "Varakapteeni", icon: ActIcon.vice, disabled: !editable || !inXi || busy, hint: !inXi ? "Vain avauksen pelaaja voi olla varakapteeni" : !editable ? lockedNote ?? "Täydennä joukkue ensin" : "Saa kertoimen, jos kapteeni ei pelaa",
       onClick: () => save(setCaptain(t.picks!, selP.id, "VC"), `${selP.name} on varakapteeni.`) }]),
+    { label: "Vaihda korttityyliä", icon: ActIcon.style, onClick: () => { setStyleFor(selP); setSel(null); } },
     { label: "Tee siirto", icon: ActIcon.transfer, disabled: !next, hint: !next ? "Kauden kaikki kierrokset on lukittu" : "Vaihda tilalle toinen pelaaja Siirrot-näkymässä", onClick: () => router.push(`/fantasy/siirrot?pois=${selP.id}`) },
   ];
   const swaps: CardSwaps | undefined = selP && editable && t.picks!.squad.includes(selP.id) ? {
@@ -180,7 +184,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       )}
       {t.picks && (!picks || players.size === 0) && !pl.err && <div className="fx-pitch-skel" aria-label="Ladataan kokoonpanoa" />}
       {picks && players.size > 0 && (
-        <Pitch picks={picks} players={players} onSelect={setSel} badge={badge} legend={legend} drag={drag}
+        <Pitch picks={picks} players={players} onSelect={setSel} badge={badge} legend={legend} drag={drag} styles={t.styles}
           label={mode === "pts" ? `Kierroksen ${roundNum(s, showRound)} kokoonpano ja pisteet` : `Kokoonpano kierrokselle ${roundNum(s, next?.no)}`} />
       )}
       {mode === "pts" && subs.length > 0 && (
@@ -193,6 +197,8 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} note={mode !== "pts" ? undefined : lockedNote ?? undefined}
         roundFx={next ? { label: roundName(s, next.no), list: fxOf(selP.id) } : undefined}
         extra={mode === "pts" ? <RoundItems row={ptsOf(selP.id)} /> : null} />}
+      {styleFor && <StylePicker p={styleFor} current={(t.styles?.[String(styleFor.id)] as Style | undefined) ?? "base"} onClose={() => setStyleFor(null)}
+        onSaved={(v) => { setStyleFor(null); setMsg({ kind: "ok", text: `${styleFor.name}: ${VERSION_NAME[v]}-kortti kentällä.` }); reload(); }} />}
     </>
   );
 }

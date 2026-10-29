@@ -71,3 +71,29 @@ export function ledgerText(kind: string, info: Record<string, any> = {}): string
     default: return "Kolikkotapahtuma";
   }
 }
+
+// ---- Korttiversiot (Perus / Silver / Gold / Elite) ----
+// Versio vaikuttaa vain ulkoasuun ja kokoelmaan. Pakan jokaisen kortin versio arvotaan pelaajasta erillään:
+// Elite todennäköisyydellä elite_permille / 1000, muuten pakan perusversio (Silver-pakka → Silver, Gold-pakka → Gold).
+export type Version = "silver" | "gold" | "elite";
+export type Style = Version | "base";
+export const VERSION_NAME: Record<Style, string> = { base: "Perus", silver: "Silver", gold: "Gold", elite: "Elite" };
+export const VERSION_ORDER: Style[] = ["base", "silver", "gold", "elite"];
+export const isVersion = (v: unknown): v is Version => v === "silver" || v === "gold" || v === "elite";
+
+/** Arpoo `cards` korttiversiota. `rnd(1000)` palauttaa kokonaisluvun 0–999 (palvelimella crypto.randomInt). */
+export function drawVersions(cards: number, base: Version, elitePermille: number, rnd: (n: number) => number): Version[] {
+  const out: Version[] = [];
+  for (let i = 0; i < cards; i++) {
+    const k = rnd(1000);
+    if (!Number.isInteger(k) || k < 0 || k >= 1000) throw new Error("rnd out of range");
+    out.push(k < elitePermille ? "elite" : base);
+  }
+  return out;
+}
+
+/** Version todennäköisyydet yhdessä kortissa sekä vähintään yksi Elite pakassa */
+export function versionOdds(base: Version, elitePermille: number, cards: number) {
+  const elite = Math.max(0, Math.min(1000, elitePermille)) / 1000;
+  return { base, perCard: { [base]: 1 - elite, elite } as Partial<Record<Version, number>>, eliteAtLeastOne: 1 - Math.pow(1 - elite, cards) };
+}

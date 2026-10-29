@@ -135,7 +135,7 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
       {msg && <Notice kind={msg.kind} role={msg.kind === "error" ? "alert" : "status"}><p>{msg.text}</p>{msg.list && <ul>{msg.list.map((x) => <li key={x}>{x}</li>)}</ul>}</Notice>}
       <div className="fx-build">
         <div className="fx-build-pitch">
-          <Pitch picks={view(d, asF)} players={players} onSelect={setSel} label="Joukkueesi kentällä" empty={empty}
+          <Pitch picks={view(d, asF)} players={players} onSelect={setSel} label="Joukkueesi kentällä" empty={empty} styles={t.styles}
             badge={(id) => { const p = players.get(id); return p ? { text: fmtM(p.price), tone: "price" } : null; }} />
           <div className="fx-row">
             <button type="button" className="btn" disabled={!full || errors.length > 0 || !changed || busy} onClick={() => setConfirm(true)}>Tallenna joukkue</button>
