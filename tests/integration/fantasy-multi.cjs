@@ -43,6 +43,19 @@ const mock = (q) => fetch(`${MOCK}/af/__fantasy?${q}`).then((r) => r.json());
   const nos = t.rounds.map((r) => r.no);
   ok("  kierrokset: juokseva nimi (Kierros 1–3), sisäinen numero viikkonumero ja peräkkäiset viikot", JSON.stringify(labels) === JSON.stringify(["Kierros 1", "Kierros 2", "Kierros 3"]) && nos[1] === nos[0] + 1 && nos[2] === nos[1] + 1 && nos[0] > 3, JSON.stringify(t.rounds.map((r) => [r.no, r.label])));
   ok("  kierros 1 lukittu, seuraava = Kierros 2", t.rounds[0].locked && t.next === nos[1], String(t.next));
+  // pelistä poistetun sarjan jäänteet (vrt. Veikkausliiga/MLS 30.10.2026): ottelu avoimella kierroksella ja tyhjä lukittu
+  // kierros maaottelutauon viikolla → päivitys poistaa ne, juokseva numerointi ja kierrokset ennallaan
+  {
+    const { Pool } = require("pg");
+    const db = new Pool({ connectionString: process.env.PG_URL, max: 1 });
+    await db.query("insert into public.fantasy_fixtures (comp, fixture_id, round_no, kickoff, status, home_id, away_id, home_name, away_name) values ('top5f-2026', 99990001, $1, now() + interval '2 days', 'NS', 990001, 990002, 'Poistettu A', 'Poistettu B') on conflict do nothing", [nos[1]]);
+    await db.query("insert into public.fantasy_rounds (comp, round_no, label, deadline_at, first_kickoff, status, locked_at) values ('top5f-2026', $1, 'Kierros 99', now() - interval '20 days', now() - interval '20 days', 'upcoming', now()) on conflict do nothing", [nos[0] - 2]);
+    const sp = await sync();
+    const left = (await db.query("select (select count(*) from public.fantasy_fixtures where comp = 'top5f-2026' and fixture_id = 99990001)::int fx, (select count(*) from public.fantasy_rounds where comp = 'top5f-2026' and round_no = $1)::int rd", [nos[0] - 2])).rows[0];
+    await db.end();
+    const tp = (await A.call("/api/fantasy/tila")).j;
+    ok("  poistetun sarjan ottelu ja tyhjä kierros poistuvat päivityksessä; kierrokset ja nimet ennallaan", left.fx === 0 && left.rd === 0 && JSON.stringify(tp.rounds.map((r) => [r.no, r.label])) === JSON.stringify(t.rounds.map((r) => [r.no, r.label])), JSON.stringify({ left, pruned: sp.j?.pruned, rounds: tp.rounds.map((r) => [r.no, r.label]) }));
+  }
   const pl = (await A.call("/api/fantasy/pelaajat")).j.players;
   const byLeague = (id) => pl.filter((p) => p.league === id);
   ok("pelaajat: sarja ja sarjan nimi (Valioliiga 84, La Liga 84)", byLeague(39).length === 84 && byLeague(140).length === 84 && byLeague(140)[0]?.league_name === "La Liga" && byLeague(39)[0]?.league_name === "Valioliiga");

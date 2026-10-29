@@ -31,6 +31,7 @@ psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261101_fantasy_car
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261102_ad_enquiries.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261103_fantasy_rename.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261104_fantasy_team_view.sql
+psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261105_fantasy_prune.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)

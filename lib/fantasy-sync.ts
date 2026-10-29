@@ -89,7 +89,7 @@ function srcFixture(f: any): SrcFixture | null {
     home_id: h.id, away_id: a.id, home_name: String(h.name ?? ""), away_name: String(a.name ?? ""), home_goals: f?.goals?.home ?? null, away_goals: f?.goals?.away ?? null };
 }
 
-export type SyncResult = { partial?: boolean; skipped?: boolean; rounds?: number; locked?: number[]; stats?: number; recomputed?: number[]; players?: number; error?: string };
+export type SyncResult = { pruned?: { fixtures: number; rounds: number }; partial?: boolean; skipped?: boolean; rounds?: number; locked?: number[]; stats?: number; recomputed?: number[]; players?: number; error?: string };
 
 export async function syncComp(c: Comp, opts: { force?: boolean; refetch?: boolean } = {}): Promise<SyncResult> {
   if (!hasApiFootball()) return { error: "af off" };
@@ -160,6 +160,14 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
       return fixtureLive(f.status) || d.status !== f.status || d.round_no !== f.round_no || !sameKick;
     });
     fixtureRows = fixtureRows.map((f) => { const d = dbBy.get(f.fixture_id); return d && fixtureFinished(d.status) && !fixtureFinished(f.status) ? { ...f, status: d.status } : f; });
+    // pelistä poistettujen sarjojen ottelut ja niiden tyhjät kierrokset pois – vain kun kaikkien sarjojen ottelulistat
+    // saatiin (muuten tilapäisesti puuttuvan sarjan ottelut poistuisivat). Migraatio 20261105 puuttuu → ohitetaan.
+    if (!stepErrors.some((e) => e.startsWith("fixtures"))) {
+      try {
+        const pr = await rpc<{ fixtures: number; rounds: number }>("f_fixtures_prune", { p_comp: c.id, p_keep: src.map((f) => f.fixture_id) });
+        if (pr && (pr.fixtures || pr.rounds)) out.pruned = pr;
+      } catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) stepErrors.push(`prune:${errCode(e)}`); }
+    }
     const rounds = buildWeekRounds(fixtureRows);
     out.rounds = rounds.length;
     await rpc("f_rounds_upsert", { p_comp: c.id, p_rows: rounds });
