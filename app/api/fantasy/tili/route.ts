@@ -3,6 +3,7 @@ import { rpc, fantasyDbOn } from "@/lib/fantasy-db";
 import { allowed, clientKey, currentUser, hashPassword, newToken, passwordOk, sameOrigin, sessionCookie, sessionToken, tokenHash, verifyPassword, SESSION_DAYS } from "@/lib/fantasy-auth";
 import { usernameOk } from "@/lib/fantasy-core";
 import { j, fail, dbFail, readJson } from "@/lib/fantasy-api";
+import { parseInvite } from "@/lib/fantasy-invite";
 
 // Fantasy-tili: GET = kirjautunut käyttäjä; POST {action: register|login|logout, username, password}
 // Salasana vain palvelimelle (scrypt-tiiviste tietokantaan). Istunto httpOnly-evästeessä. Yritysrajoitus IP:n ja tunnuksen mukaan.
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
       if (!(await allowed(`reg:${ip}`, 3600, 5))) return fail("throttle", 429);
       const r = await rpc<{ id?: number; error?: string }>("f_user_create", { p_username: username, p_pass_hash: await hashPassword(password) });
       if (r?.error === "taken") return fail("taken", 409);
+      await referral(r!.id!, b?.invite);
       return start(r!.id!, username, secure);
     }
     if (action === "login") {
@@ -50,4 +52,13 @@ async function start(userId: number, username: string, secure: boolean) {
   const token = newToken();
   await rpc("f_session_create", { p_token_hash: tokenHash(token), p_user: userId, p_days: SESSION_DAYS });
   return new Response(JSON.stringify({ user: { username } }), { headers: { "content-type": "application/json", "cache-control": "private, no-store", "set-cookie": sessionCookie(token, secure) } });
+}
+
+// Kutsulinkillä luotu tili → kutsuja kirjataan ja hänelle annetaan kutsupalkinto (tietokanta rajaa palkitut kutsut / 24 h).
+// Väärä koodi, puuttuva migraatio tai häiriö ei estä tilin luontia.
+async function referral(userId: number, code: unknown) {
+  const team = parseInvite(code);
+  if (!team) return;
+  try { await rpc("f_referral_record", { p_invitee: userId, p_inviter_team: team }); }
+  catch (e) { console.warn("fantasy kutsu", (e as Error)?.message); }
 }

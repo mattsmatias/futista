@@ -3,9 +3,10 @@
 // se näyttää palvelimen antaman tilan ja lähettää muutospyynnöt (palvelin tarkistaa kaiken uudelleen).
 import { useCallback, useEffect, useState } from "react";
 import type { Picks, Pos } from "./fantasy-core";
+export type { Pos } from "./fantasy-core";
 
 export type FState = {
-  now: string; user: { username: string } | null;
+  now: string; user: { username: string } | null; coins?: number | null;
   comp: { id: string; name: string; budget: number; leagues?: { id: number; name: string }[] };
   data: { updated: string | null; stale: boolean; error: boolean };
   rounds: { no: number; label?: string; deadline: string; first: string; locked: boolean; status: string }[];

@@ -168,3 +168,32 @@ sähköpostia).
   Ei evästeitä; kävijätunniste = HMAC(päivä + IP + selain), vaihtuu päivittäin, IP:tä ei tallenneta. Rivit poistetaan 400 päivän jälkeen.
 - Lähde: kotivalikon sovellus → utm_source → sovelluksen sisäinen selain (Instagram/Facebook/TikTok/Snapchat UA) → viittaajan verkkotunnus → "Suora / tuntematon".
 - Tietosuojaseloste päivitetty (Kävijätilasto, Käyttäjätili) fi/sv/en.
+
+## Futista-kolikot, pakat ja kokoelma (feature/fantasy-packs, 29.10.2026)
+Käyttöönotto: aja `supabase/migrations/20261031_fantasy_coins_packs.sql` (idempotentti, vain uusia tauluja ja funktioita).
+Ilman migraatiota peli toimii ennallaan: HUD ei näytä kolikoita, Pakat/Kokoelma kertovat, ettei tietokantaa ole otettu käyttöön.
+
+- **Kolikot** (`fantasy_wallets`, `fantasy_coin_ledger`): saldo muuttuu vain kirjanpitorivin kanssa samassa tapahtumassa;
+  rivi yksilöllinen (`user_id`, `ref`), saldo ≥ 0. Säännöt taulussa `fantasy_coin_rules` (oletus 150 / 50 / 1 per piste,
+  enintään 100 / kutsu 100, enintään 10 palkittua kutsua 24 h:ssa).
+- **Ansainta** `f_coins_settle(user, comp)` (idempotentti; kutsutaan `/api/fantasy/tila`- ja `/api/fantasy/pakat`-haussa
+  sekä päivitysajossa pisteiden laskennan jälkeen `f_coins_settle_comp`):
+  - aloitus: kun käyttäjällä on joukkue, jonka valinnat on tallennettu (`first_round`), kerran käyttäjää kohden;
+  - kierros: kierroksen `status = 'final'`, joukkueella määräajan tilannekuva (`fantasy_gw_picks`) ja ei-alustavat pisteet;
+    palkinto = osallistuminen + min(katto, max(0, total) × per piste). `total` = pisteet siirtovähennysten jälkeen.
+  - korjaus: `fantasy_round_rewards` pitää käytetyn säännön, oikeuden, maksetun ja perimättä jätetyn. Uusi oikeus ≠
+    maksettu − perimättä → erotus `round_fix`; takaisinperintä enintään saldon verran, loppu `round_waived` (0 kolikkoa,
+    näkyy käyttäjälle), eikä sitä peritä myöhemmin. Säännön muutos ei koske jo maksettuja kierroksia.
+- **Kutsu**: rekisteröinti lähettää istuntoon tallennetun kutsukoodin; palvelin tarkistaa HMAC-koodin ja kirjaa
+  `f_referral_record` (yksi kutsuja per uusi tili, ei omaa kutsua, vuorokausiraja) → kutsujalle kolikot.
+- **Pakat** (`fantasy_pack_types`): silver 100 / 3 korttia / fantasyhinta alle 9,0; gold 250 / 3 / vähintään 9,0.
+  Arvonta Node `crypto.randomInt`illa tasajakaumasta pakan hintaluokan aktiivisista pelaajista (palautuksellinen otanta).
+  `f_pack_open` tarkistaa (lukitsee lompakkorivin) pyyntötunnisteen, kelpoisuuden ja saldon, veloittaa ja tallentaa kortit
+  samassa tapahtumassa. Sama pyyntötunniste → sama tulos (`replay`). Tyhjä hintaluokka → `empty`, ei veloitusta.
+- **Keskeytynyt avaus**: kortit tallennetaan ennen animaatiota; `seen_at` puuttuu → Pakat-sivu tarjoaa "Näytä kortit",
+  avaushistoria näyttää viimeiset 10 avausta.
+- **Kokoelma** `f_collection`: kortit pelaajittain (kappalemäärä, pakkatyypit). Ei vaikuta joukkueeseen eikä rankingiin.
+- **Pelaajakuvat**: korteissa geneerinen pelipaita (`CARD_PHOTOS = false` tiedostossa `app/fantasy/Cards.tsx`), koska
+  API-Footballin kuvien käyttöoikeutta keräilykorteissa ei ole selvitetty.
+- Testit: `tests/integration/coins-db.cjs` (tietokanta: palkinnot, korjaukset, avaus, uusinta, samanaikaisuus, oikeudet),
+  `tests/integration/packs.cjs` (rajapinta + selain 390/1280 px), `tests/fantasy-packs.test.ts` (arvonnan jakauma).

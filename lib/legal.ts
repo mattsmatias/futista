@@ -36,7 +36,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Käyttäjätili (Fantasy)",
         p: [
-          "Jos luot tilin, tallennamme käyttäjätunnuksesi, salasanastasi muodostetun tiivisteen (salasanaa ei tallenneta) sekä Fantasy-joukkueesi tiedot (joukkueen nimi ja logo, pelaajavalinnat, siirrot ja pisteet). Joukkueen nimi, logo ja pisteet näkyvät muille pelaajille Futista-liigassa; käyttäjätunnus näkyy vain sinulle.",
+          "Jos luot tilin, tallennamme käyttäjätunnuksesi, salasanastasi muodostetun tiivisteen (salasanaa ei tallenneta) sekä Fantasy-joukkueesi tiedot (joukkueen nimi ja logo, pelaajavalinnat, siirrot ja pisteet), Futista-kolikoiden kirjanpidon, avatut pelaajapakat ja korttikokoelmasi. Jos luot tilin kaverin kutsulinkillä, tallennamme tiedon siitä, kenen kutsulla tili luotiin (kutsupalkintoa varten); kutsuja ei näe käyttäjätunnustasi. Joukkueen nimi, logo ja pisteet näkyvät muille pelaajille Futista-liigassa; käyttäjätunnus näkyy vain sinulle.",
           "Kirjautuminen pidetään voimassa evästeellä (ff_s), joka sisältää satunnaisen istuntotunnisteen. Se on voimassa 30 päivää tai kunnes kirjaudut ulos. Kirjautumis- ja rekisteröintiyritysten määrää rajoitetaan väärinkäytön estämiseksi IP-osoitteesta muodostetun tiivisteen perusteella (selväkielistä IP-osoitetta ei tallenneta).",
           "Tiedot säilytetään [Supabasen](https://supabase.com/privacy) palvelimella niin kauan kuin tili on olemassa. Tilin ja joukkueen poistoa voit pyytää osoitteesta {email}.",
         ],
@@ -110,7 +110,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "Användarkonto (Fantasy)",
         p: [
-          "Om du skapar ett konto sparar vi ditt användarnamn, ett hashvärde av ditt lösenord (lösenordet sparas inte) och uppgifterna om ditt Fantasy-lag (lagets namn och logotyp, spelarval, övergångar och poäng). Lagets namn, logotyp och poäng visas för andra spelare i Futista-ligan; användarnamnet visas bara för dig.",
+          "Om du skapar ett konto sparar vi ditt användarnamn, ett hashvärde av ditt lösenord (lösenordet sparas inte) och uppgifterna om ditt Fantasy-lag (lagets namn och logotyp, spelarval, övergångar och poäng), bokföringen av Futista-mynt, öppnade spelarpaket och din kortsamling. Om du skapar kontot via en väns inbjudningslänk sparar vi vems inbjudan det gällde (för inbjudningsbelöningen); den som bjöd in ser inte ditt användarnamn. Lagets namn, logotyp och poäng visas för andra spelare i Futista-ligan; användarnamnet visas bara för dig.",
           "Inloggningen hålls aktiv med en kaka (ff_s) som innehåller en slumpmässig sessionsidentifierare. Den gäller i 30 dagar eller tills du loggar ut. Antalet inloggnings- och registreringsförsök begränsas för att förhindra missbruk med hjälp av ett hashvärde av IP-adressen (IP-adressen sparas inte i klartext).",
           "Uppgifterna lagras hos [Supabase](https://supabase.com/privacy) så länge kontot finns. Du kan begära att kontot och laget raderas via {email}.",
         ],
@@ -184,7 +184,7 @@ export const PRIVACY: Record<Lang, Doc> = {
       {
         h: "User account (Fantasy)",
         p: [
-          "If you create an account, we store your username, a hash of your password (the password itself is not stored) and your Fantasy team details (team name and logo, player picks, transfers and points). The team name, logo and points are shown to other players in the Futista league; your username is shown only to you.",
+          "If you create an account, we store your username, a hash of your password (the password itself is not stored) and your Fantasy team details (team name and logo, player picks, transfers and points), your Futista coin ledger, opened player packs and your card collection. If you create the account through a friend's invite link, we store whose invite it was (for the invite reward); the inviter does not see your username. The team name, logo and points are shown to other players in the Futista league; your username is shown only to you.",
           "Your sign-in is kept active with a cookie (ff_s) containing a random session identifier. It is valid for 30 days or until you sign out. Sign-in and registration attempts are rate-limited to prevent abuse using a hash of the IP address (the IP address is not stored in plain text).",
           "The data is stored with [Supabase](https://supabase.com/privacy) for as long as the account exists. You can ask for the account and team to be deleted at {email}.",
         ],

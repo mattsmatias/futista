@@ -6,6 +6,7 @@
 // Selaimessa (ei asennettu) mitään ei näytetä – sivusto toimii kuten ennen.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { pendingInvite } from "@/lib/fantasy-invite-client";
 import { useI18n, type Key } from "@/lib/i18n";
 
 const SEEN = "futista-account-choice"; // "guest" | "user": avausnäkymä on jo käsitelty tällä laitteella
@@ -64,7 +65,7 @@ export function AccountDialog({ initial = "login", guestLabel, onDone, onGuest }
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const r = await post({ action: mode, username: u.trim().toLowerCase(), password: p });
+    const r = await post({ action: mode, username: u.trim().toLowerCase(), password: p, ...(mode === "register" ? { invite: pendingInvite() } : {}) });
     setBusy(false);
     if (r.ok) { setP(""); onDone(r.user ?? { username: u.trim().toLowerCase() }); }
     else setErr(t(ERR[r.error ?? ""] ?? "acc_err_other"));

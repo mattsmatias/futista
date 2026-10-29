@@ -1,4 +1,4 @@
-import { rpc, fantasyDbOn } from "@/lib/fantasy-db";
+import { rpc, fantasyDbOn, FantasyDbError } from "@/lib/fantasy-db";
 import { currentUser } from "@/lib/fantasy-auth";
 import { picksAt } from "@/lib/fantasy-core";
 import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
@@ -28,9 +28,15 @@ export async function GET(req: Request) {
       rank = r?.me ? { rank: r.me.rank, of: r.count } : null;
     }
     const logo = t ? (await teamLogos(comp.id, [t.id]))[String(t.id)] ?? null : null;
+    // Futista-kolikot (pakat): ansainnat tasataan ja saldo HUDiin; migraatio puuttuu → null (ominaisuus ei käytössä)
+    let coins: number | null = null;
+    if (user) {
+      try { coins = (await rpc<{ balance: number }>("f_coins_settle", { p_user: user.user_id, p_comp: comp.id }))?.balance ?? 0; }
+      catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy kolikot", (e as Error)?.message); }
+    }
     const syncOk = st.comp?.sync_ok_at ? Date.parse(st.comp.sync_ok_at) : null;
     return j({
-      now: st.now, user: user ? { username: user.username } : null,
+      now: st.now, user: user ? { username: user.username } : null, coins,
       comp: { id: comp.id, name: comp.name, budget: Number(st.comp?.budget ?? 100), leagues: compLeagues(comp).map((l) => ({ id: l.af, name: l.name })) },
       data: { updated: st.comp?.sync_ok_at ?? null, stale: !syncOk || Date.now() - syncOk > STALE_MS, error: st.comp?.sync_error ? true : false },
       rounds: st.rounds.map((r) => ({ no: r.round_no, label: roundLabel(r), deadline: r.deadline_at, first: r.first_kickoff, locked: r.locked, status: r.status })),

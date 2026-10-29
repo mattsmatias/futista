@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import { useLoad } from "@/lib/fantasy-client";
 import { TeamLogo } from "./TeamLogo";
 
-const KEY = "ff_kutsu";
-const CODE_RE = /^[0-9a-z]{1,11}-[A-Za-z0-9_-]{12}$/;
+import { INVITE_KEY as KEY, INVITE_RE as CODE_RE } from "@/lib/fantasy-invite-client";
 
 /** Kutsukoodi osoitteesta (?kutsu=) tai istunnosta; null jos ei kutsua. */
 export function useInviteCode(): [string | null, () => void] {

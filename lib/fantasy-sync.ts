@@ -10,7 +10,7 @@
 import { stableCache } from "./stable-cache";
 import { afGet, hasApiFootball, once, afTeamsCached } from "./apifootball";
 import { afSquadOf, queued } from "./af-players";
-import { rpc } from "./fantasy-db";
+import { rpc, FantasyDbError } from "./fantasy-db";
 import {
   buildRounds, buildWeekRounds, assignWeek, fixtureStats, fixtureClosed, fixtureFinished, fixtureLive, initialPrice, scoreLine, scoreTeam,
   type FPlayer, type Pos, type SrcFixture, type StatLine, type FixtureRow, type Picks, type SeasonStat,
@@ -258,6 +258,11 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     recomputed.push(round);
   }
   out.recomputed = recomputed;
+  // Futista-kolikot: kierrospalkinnot ja pistekorjausten oikaisut (valinnainen: migraatio voi puuttua)
+  if (recomputed.length) {
+    try { await rpc("f_coins_settle_comp", { p_comp: c.id }); }
+    catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy kolikot", errCode(e)); } // ei kaada pistepäivitystä
+  }
   if (stepErrors.length) out.error = stepErrors.join(",");
   return out;
 }

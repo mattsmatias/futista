@@ -1,5 +1,7 @@
 "use client";
 // Futista Fantasy: yhteiset näkymäosat (alivalikko, kirjautuminen, kenttä, pelaajakortti, ilmoitukset).
+import { pendingInvite } from "@/lib/fantasy-invite-client";
+import { FCoin } from "./FCoin";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -10,10 +12,11 @@ import type { Picks, Pos } from "@/lib/fantasy-core";
 
 // Pelinäkymä: oma yläpalkki (HUD) ja alavalikko; Futistan yläpalkki, alavalikko ja alatunniste piiloon (html.fx-game)
 const I = { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
-const TABS = [
+const TABS: { href: string; also?: string; label: string; icon: React.ReactNode }[] = [
   { href: "/fantasy", label: "Joukkue", icon: <svg {...I}><path d="M8 3 4 5 2 9l3 2 1-1v10h12V10l1 1 3-2-2-4-4-2c-.5 2-2 3-4 3S8.5 5 8 3Z" /></svg> },
   { href: "/fantasy/siirrot", label: "Siirrot", icon: <svg {...I}><path d="M4 8h13l-3-3M20 16H7l3 3" /></svg> },
   { href: "/fantasy/liigat", label: "Liiga", icon: <svg {...I}><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4" /></svg> },
+  { href: "/fantasy/pakat", also: "/fantasy/kokoelma", label: "Pakat", icon: <svg {...I}><path d="M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M6 8h12M10 13l2-2 2 2-2 2z" /></svg> },
   { href: "/fantasy/pisteet", label: "Pisteet", icon: <svg {...I}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg> },
   { href: "/fantasy/saannot", label: "Säännöt", icon: <svg {...I}><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg> },
 ];
@@ -50,6 +53,7 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
         </Link>
         <div className="fxg-brand" aria-label="Futista Fantasy (beta)"><b>Fantasy</b></div>
         <div className="fxg-chips">
+          {s?.coins != null && <Link href="/fantasy/pakat" className="fxg-chip fc" title="Futista-kolikot"><FCoin size={17} /><b>{s.coins.toLocaleString("fi-FI")}</b><span className="sr-only"> Futista-kolikkoa</span></Link>}
           {t && t.first_round != null && <span className="fxg-chip pts" title="Kauden pisteet"><b>{t.total}</b><small>p</small></span>}
           {next && <span className="fxg-chip dl" title={`${roundName(s, next.no)}: määräaika ${localTime(next.deadline)}`}><i aria-hidden="true" /><span className="sr-only">{roundName(s, next.no)}, määräaika </span><Countdown to={next.deadline} /></span>}
         </div>
@@ -60,7 +64,7 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
       </main>
       <nav className="fxg-tabs" aria-label="Fantasy">
         {TABS.map((x) => {
-          const on = x.href === "/fantasy" ? path === "/fantasy" : path.startsWith(x.href);
+          const on = x.href === "/fantasy" ? path === "/fantasy" : path.startsWith(x.href) || (!!x.also && path.startsWith(x.also));
           return <Link key={x.href} href={x.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}><span className="fxg-ic" aria-hidden="true">{x.icon}</span><span>{x.label}</span></Link>;
         })}
       </nav>
@@ -91,7 +95,7 @@ export function AuthBox({ onDone, initial = "login" }: { onDone: () => void; ini
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const r = await api("/api/fantasy/tili", { action: mode, username: u.trim().toLowerCase(), password: p });
+    const r = await api("/api/fantasy/tili", { action: mode, username: u.trim().toLowerCase(), password: p, ...(mode === "register" ? { invite: pendingInvite() } : {}) });
     setBusy(false);
     if (r.ok) { setP(""); onDone(); } else setErr(errText(r.err));
   };
@@ -132,7 +136,7 @@ function TokPic({ p }: { p: FPlayerRow }) {
   return src ? <img className={`fx-tok-face${p.pos === "GK" ? " gk" : ""}`} src={src} alt="" width={46} height={46} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <Shirt gk={p.pos === "GK"} />;
 }
 
-function Shirt({ gk }: { gk: boolean }) {
+export function Shirt({ gk }: { gk: boolean }) {
   return (
     <svg className={`fx-shirt${gk ? " gk" : ""}`} viewBox="0 0 48 44" aria-hidden="true">
       <path d="M16 3 8 6 1 15l7 6 4-3v23h24V18l4 3 7-6-7-9-8-3c-1 4-4 6-8 6s-7-2-8-6Z" />

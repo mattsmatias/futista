@@ -1,5 +1,16 @@
 import { RULES, POINTS, PRICE } from "@/lib/fantasy-core";
 import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
+import { rpc } from "@/lib/fantasy-db";
+import { bandText, type PackType } from "@/lib/fantasy-packs-core";
+
+type CoinRules = { start: number; participation: number; per_point: number; cap: number; invite: number; invite_daily: number };
+/** Kolikkosäännöt ja pakat tietokannasta (sama lähde kuin palkinnoilla); migraatio puuttuu tai häiriö → osio piiloon */
+async function coinInfo(): Promise<{ rules: CoinRules; packs: PackType[] } | null> {
+  try {
+    const [w, packs] = await Promise.all([rpc<{ rules: CoinRules | null }>("f_wallet", { p_user: 0 }), rpc<PackType[]>("f_pack_types", { p_comp: DEFAULT_COMP.id })]);
+    return w?.rules ? { rules: w.rules, packs: packs ?? [] } : null;
+  } catch { return null; }
+}
 
 // kilpailu ympäristön mukaan (FANTASY_COMP) → renderöidään pyynnöstä, ei käännösvaiheessa
 export const dynamic = "force-dynamic";
@@ -7,7 +18,8 @@ export const dynamic = "force-dynamic";
 // Säännöt suoraan pelin vakioista (sama lähde kuin palvelimen tarkistuksilla ja pisteytyksellä)
 const m = (n: number) => `${n.toFixed(1).replace(".", ",")} M kolikkoa`;
 
-export default function Page() {
+export default async function Page() {
+  const coins = await coinInfo();
   const weekly = !!DEFAULT_COMP.anchor;
   const leagues = compLeagues(DEFAULT_COMP).map((l) => l.name);
   return (
@@ -82,6 +94,21 @@ export default function Page() {
             <li>Tasapisteissä joukkueet jakavat saman sijan (1, 2, 2, 4). Tasapisteissä aiemmin perustettu joukkue näytetään ensin.</li>
           </ul>
         </section>
+        {coins && (
+          <section>
+            <h3>Futista-kolikot ja pakat</h3>
+            <ul>
+              <li>Futista-kolikot ovat pelin sisäistä valuuttaa pelaajapakkojen avaamiseen. Niitä ansaitaan vain pelaamalla: niitä ei voi ostaa eikä vaihtaa rahaksi. Ne ovat eri asia kuin joukkueen budjetti ja fantasy-pisteet.</li>
+              <li>Ensimmäisen joukkueen tallentamisesta saa {coins.rules.start} kolikkoa (kerran).</li>
+              <li>Jokaisesta päättyneestä kierroksesta, jolle joukkue oli tallennettu ajoissa (määräajalla otettu tilannekuva), saa {coins.rules.participation} kolikkoa ja lisäksi {coins.rules.per_point} kolikon jokaisesta kierroksen fantasy-pisteestä siirtovähennysten jälkeen, enintään {coins.rules.cap} kolikkoa. Miinuspisteet eivät vähennä palkintoa.</li>
+              <li>Kierrospalkinto maksetaan, kun kierroksen pisteet ovat lopulliset. Jos pisteitä korjataan myöhemmin, erotus lisätään tai peritään takaisin. Takaisin peritään enintään saldon verran; jo käytettyjä kolikoita ei peritä, ja perimättä jäänyt osuus näkyy kolikkotapahtumissa.</li>
+              <li>Kun kaveri luo tilin kutsulinkilläsi, saat {coins.rules.invite} kolikkoa (enintään {coins.rules.invite_daily} palkittua kutsua vuorokaudessa).</li>
+              {coins.packs.map((p) => <li key={p.id}>{p.name}: {p.price} kolikkoa, {p.cards} pelaajakorttia, pelaajat joiden fantasyhinta on {bandText(p)}.</li>)}
+              <li>Pakan jokainen kortti arvotaan palvelimella erikseen hintaluokan kaikista aktiivisista pelaajista. Kaikilla hintaluokan pelaajilla on sama todennäköisyys, joten samaan pakkaan voi tulla sama pelaaja useammin kuin kerran tai pelaaja, joka sinulla jo on (kaksoiskappale). Tarkat todennäköisyydet näkyvät ennen avausta.</li>
+              <li>Kortit ovat keräilyä varten. Ne eivät anna etua fantasy-pisteissä tai rankingissa, ja joukkueeseen voi valita kenet tahansa omistamatta hänen korttiaan.</li>
+            </ul>
+          </section>
+        )}
         <section>
           <h3>Data</h3>
           <p>Ottelut, pelaajat ja tapahtumat: API-Football. Pisteet lasketaan palvelimella tallennetusta otteludatasta. Jos lähde korjaa tietoja jälkikäteen (4 vuorokauden ajan ottelusta), pisteet ja sijoitukset lasketaan uudelleen. Saatavuustietoja (loukkaantumiset, pelikiellot) ei vielä näytetä.</p>
