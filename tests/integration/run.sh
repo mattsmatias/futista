@@ -30,6 +30,7 @@ psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261031_fantasy_coi
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261101_fantasy_card_versions.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261102_ad_enquiries.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261103_fantasy_rename.sql
+psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261104_fantasy_team_view.sql
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)
@@ -67,6 +68,7 @@ node tests/integration/hallinta.cjs || rc=1
 # Futista-kolikot, pakat ja kokoelma (fantasy.cjs:n tunnuksilla) sekä tietokantatason säännöt omalla testikilpailulla
 node tests/integration/packs.cjs || rc=1
 node tests/integration/rename.cjs || rc=1
+node tests/integration/teamview.cjs || rc=1
 node tests/integration/coins-db.cjs || rc=1
 node tests/integration/versions-db.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
