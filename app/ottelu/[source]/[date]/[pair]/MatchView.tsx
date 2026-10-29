@@ -51,7 +51,7 @@ function History({ list, home, away }: { list: Meeting[]; home: Team; away: Team
   return (
     <div className="panel">
       <div className="panel-head"><h3>{t("earlierMeetings")}</h3><span className="muted">{list.length} {t("h2hCount")}</span></div>
-      <p className="muted pad h2h-scope">{t("h2hScope")} (football-data.org){unknown ? ` · ${unknown} ?` : ""}</p>
+      <p className="muted pad h2h-scope">{t("h2hScope")}{unknown ? ` · ${unknown} ?` : ""}</p>
       {list.length === 0 ? <p className="muted pad">{t("noEarlierMeetings")}</p> : (
         <>
           <div className="h2h-sum">
@@ -77,7 +77,6 @@ function History({ list, home, away }: { list: Meeting[]; home: Team; away: Team
           })}
         </>
       )}
-      <div className="panel-src">{t("source")}: football-data.org</div>
     </div>
   );
 }

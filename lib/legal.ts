@@ -239,10 +239,8 @@ export const ABOUT: Record<Lang, Doc> = {
         h: "Lähteet",
         p: [
           "Uutiset (otsikot, otteet, tekstit ja kuvat) sekä La Ligan, Valioliigan ja Mestarien liigan sarjataulukot, tulokset ja otteluohjelmat: [LaLiiga.com](https://www.laliiga.com) ja [Valioliiga.com](https://www.valioliiga.com). Jokaisen jutun lopussa on linkki alkuperäiseen artikkeliin.",
-          "Muiden sarjojen tiedot, maalipörssit, kokoonpanot, pelaajasivut, aiemmat kohtaamiset ja ensisijaiset lopputulokset: [football-data.org](https://www.football-data.org) (ilmaisversio, jossa tulokset päivittyvät viiveellä).",
-          "Otteluiden live-tila ja peliminuutti, joukkueiden kaikkien kilpailujen ottelut, maaottelut, cup- ja Eurooppa-otteluiden perustiedot sekä Turkin Süper Ligin, MLS:n, Eurooppa-liigan ja Konferenssiliigan taulukko, ottelut ja maalipörssi: ESPN:n tulospalvelun julkinen rajapinta.",
-          "Suomen sarjat ja cup (Veikkausliiga, Ykkösliiga, Suomen Cup, Kansallinen Liiga), maajoukkuekilpailut (MM- ja EM-kisat, Kansojen liiga, MM-karsinnat), kansalliset cupit, naisten WSL ja Naisten Mestarien liiga sekä Pohjoismaiden pääsarjat – ottelut, tulokset, taulukot, maalintekijät, tapahtumat, kokoonpanot ja ottelutilastot – sekä siirrot: [API-Football](https://www.api-football.com). Kaikkia tietoja ei ole kaikista kilpailuista; puuttuvaa tietoa ei täydennetä arvaamalla.",
-          "Pelaajakuvat: [Wikimedia Commons](https://commons.wikimedia.org) (avoimet lisenssit, kuvien tekijät ja lisenssit näkyvät kunkin kuvan sivulla Commonsissa) ja [TheSportsDB](https://www.thesportsdb.com). Osa logoista: TheSportsDB. Maiden liput: [Flagpedia](https://flagpedia.net).",
+          "Muiden sarjojen, cupien ja maajoukkueiden ottelut, tulokset, sarjataulukot, maalipörssit, kokoonpanot, ottelutilastot, pelaajasivut ja siirrot: urheilun tietopalvelut, joista Futistan palvelin hakee tiedot. Kaikkia tietoja ei ole kaikista kilpailuista; puuttuvaa tietoa ei täydennetä arvaamalla. Football data provided by the Football-Data.org API.",
+          "Pelaajakuvat: [Wikimedia Commons](https://commons.wikimedia.org) (avoimet lisenssit, kuvien tekijät ja lisenssit näkyvät kunkin kuvan sivulla Commonsissa) ja tietopalveluiden kuvat. Maiden liput: [Flagpedia](https://flagpedia.net).",
         ],
       },
       {
@@ -270,10 +268,8 @@ export const ABOUT: Record<Lang, Doc> = {
         h: "Källor",
         p: [
           "Nyheter (rubriker, utdrag, texter och bilder) samt tabeller, resultat och spelscheman för La Liga, Premier League och Champions League: [LaLiiga.com](https://www.laliiga.com) och [Valioliiga.com](https://www.valioliiga.com). Varje artikel avslutas med en länk till originalet.",
-          "Andra ligor, skytteligor, trupper, spelarsidor, tidigare möten och primära slutresultat: [football-data.org](https://www.football-data.org) (gratisversion där resultaten uppdateras med fördröjning).",
-          "Matchstatus och matchminut, lagens matcher i alla turneringar, landskamper, grunduppgifter om cup- och Europamatcher samt Turkiets Süper Lig, MLS, Europa League och Conference League (tabell, matcher och skytteliga): ESPN:s öppna resultatgränssnitt.",
-          "Finska serier och cupen (Veikkausliiga, Ykkösliiga, Finska cupen, Nationella ligan), landslagsturneringar, nationella cuper, damernas WSL och Champions League samt de nordiska högstaligorna – matcher, resultat, tabeller, skyttelistor, händelser, laguppställningar och matchstatistik – samt övergångar: [API-Football](https://www.api-football.com). Alla uppgifter finns inte för alla turneringar.",
-          "Spelarbilder: [Wikimedia Commons](https://commons.wikimedia.org) (öppna licenser, upphovsperson och licens anges på respektive bilds sida på Commons) och [TheSportsDB](https://www.thesportsdb.com). Vissa logotyper: TheSportsDB. Flaggor: [Flagpedia](https://flagpedia.net).",
+          "Matcher, resultat, tabeller, skytteligor, laguppställningar, matchstatistik, spelarsidor och övergångar för övriga ligor, cuper och landslag: idrottsdatatjänster som Futistas server hämtar uppgifterna från. Alla uppgifter finns inte för alla turneringar. Football data provided by the Football-Data.org API.",
+          "Spelarbilder: [Wikimedia Commons](https://commons.wikimedia.org) (öppna licenser, upphovsperson och licens anges på respektive bilds sida på Commons) och datatjänsternas bilder. Flaggor: [Flagpedia](https://flagpedia.net).",
         ],
       },
       { h: "Källangivelse är inte tillstånd", p: ["Att källorna anges och att det finns en länk till originalet betyder inte att rätten att använda innehållet har avtalats. Upphovsrätten till texter och bilder tillhör källorna och deras bildbyråer. Klubbarnas namn och logotyper är klubbarnas varumärken."] },
@@ -296,10 +292,8 @@ export const ABOUT: Record<Lang, Doc> = {
         h: "Sources",
         p: [
           "News (headlines, excerpts, texts and images) and La Liga, Premier League and Champions League standings, results and fixtures: [LaLiiga.com](https://www.laliiga.com) and [Valioliiga.com](https://www.valioliiga.com). Every story ends with a link to the original article.",
-          "Other leagues, top scorers, squads, player pages, previous meetings and primary final scores: [football-data.org](https://www.football-data.org) (free tier, results update with a delay).",
-          "Live match status and minute, teams' matches in all competitions, internationals, basic cup and European match details and Turkey's Süper Lig, MLS, the Europa League and the Conference League (tables, matches and top scorers): ESPN's public scores API.",
-          "Finnish leagues and cup (Veikkausliiga, Ykkösliiga, Finnish Cup, Kansallinen Liiga), national-team tournaments, domestic cups, the Women's Super League and Women's Champions League and the Nordic top divisions – fixtures, results, tables, top scorers, events, line-ups and match statistics – plus transfers: [API-Football](https://www.api-football.com). Not all data is available for every competition.",
-          "Player photos: [Wikimedia Commons](https://commons.wikimedia.org) (open licences; author and licence are shown on each image's Commons page) and [TheSportsDB](https://www.thesportsdb.com). Some logos: TheSportsDB. Flags: [Flagpedia](https://flagpedia.net).",
+          "Matches, results, tables, top scorers, line-ups, match statistics, player pages and transfers for other leagues, cups and national teams: sports data services that Futista's server fetches the data from. Not all data is available for every competition. Football data provided by the Football-Data.org API.",
+          "Player photos: [Wikimedia Commons](https://commons.wikimedia.org) (open licences; author and licence are shown on each image's Commons page) and the data services' images. Flags: [Flagpedia](https://flagpedia.net).",
         ],
       },
       { h: "Crediting a source is not a licence", p: ["Naming the sources and linking to the original does not mean that the right to use the content has been agreed. Copyright in texts and images belongs to the sources and their photo agencies. Club names and logos are the clubs' trademarks."] },

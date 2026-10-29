@@ -79,7 +79,7 @@ export default function TransfersTab({ source, slug }: { source: string; slug: s
         {list("in", d.in)}
         {list("out", d.out)}
       </div>
-      <p className="muted small tr-src">{t("tr_since").replace("{d}", fiDate(d.from))} · {t("source")}: API-Football</p>
+      <p className="muted small tr-src">{t("tr_since").replace("{d}", fiDate(d.from))}</p>
     </div>
   );
 }

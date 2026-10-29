@@ -1,4 +1,5 @@
 "use client";
+import { visibleSource } from "@/lib/source-label";
 import { CompMark } from "./ui/CompMark";
 import { useEffect, useState } from "react";
 import type { Fixture, LeagueStats, Result, Team } from "@/lib/stats";
@@ -58,11 +59,16 @@ export function SrcLine({ name, updated, stale, maxAgeMin = 30 }: { name: string
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => { setNow(Date.now()); }, [updated]);
   const old = stale || (updated && now !== null ? now - updated > maxAgeMin * 60_000 : false);
+  const shown = visibleSource(name);
+  const parts = [
+    shown ? <span key="s">{t("source")}: {shown}</span> : null,
+    updated ? <span key="u" suppressHydrationWarning>{t("dataUpdated")} {hm(updated)}</span> : null,
+    old ? <span key="o">{t("dataStale")}</span> : null,
+  ].filter(Boolean);
+  if (!parts.length) return null;
   return (
     <div className={`panel-src${old ? " warn" : ""}`}>
-      {t("source")}: {name}
-      {updated ? <span suppressHydrationWarning> · {t("dataUpdated")} {hm(updated)}</span> : null}
-      {old ? <span> · {t("dataStale")}</span> : null}
+      {parts.map((x, i) => <span key={i}>{i ? " · " : ""}{x}</span>)}
     </div>
   );
 }

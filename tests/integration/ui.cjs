@@ -434,7 +434,7 @@ const MIN = 60_000;
       const inT = (await panels.nth(0).innerText().catch(() => "")).replace(/\s+/g, " "), outT = (await panels.nth(1).innerText().catch(() => "")).replace(/\s+/g, " ");
       ok("siirrot: välilehti näkyy ja tulleet listattu (summa lähteestä, laina)", /Tulleet/.test(inT) && inT.includes("Uusi Hyökkääjä") && inT.includes("€ 4.5M") && inT.includes("Kaukoseura") && inT.includes("Lainattu Puolustaja") && inT.includes("Laina"), inT.slice(0, 200));
       ok("  lähteneet: vapaa siirto; edellisen kauden siirto ei mukana", /Lähteneet/.test(outT) && outT.includes("Vapaa Keskikenttä") && outT.includes("Vapaa siirto") && !(inT + outT).includes("Vanha Siirto"), outT.slice(0, 200));
-      ok("  lähde kerrottu", (await page.locator(".tr-src").innerText().catch(() => "")).includes("API-Football"));
+      ok("  tietopalvelun nimeä ei näytetä", !/API-Football/i.test(await page.locator(".tr-src").innerText().catch(() => "")));
       // toinen avaus ja suora API-kutsu: lähteestä ei haeta uudelleen (välimuisti), kävijämäärä ei kuluta kiintiötä
       await page.reload({ waitUntil: "networkidle" });
       await page.locator(".ent-tabs [role=tab]", { hasText: /^Siirrot$/ }).click();
@@ -595,7 +595,7 @@ const MIN = 60_000;
       await page.goto(APP + "/tietoa", { waitUntil: "networkidle" });
       const about = await page.locator("body").innerText();
       const lic = { fi: "Lähdemerkintä ei ole käyttölupa", sv: "Källangivelse är inte tillstånd", en: "Crediting is not a licence" }[lang];
-      ok(`kieli ${lang}: tietoa-sivu: '${lic}', ESPN mainittu, ei 'lähteiden luvalla'`, about.includes(lic) && about.includes("ESPN") && !/lähteiden luvalla/i.test(about));
+      ok(`kieli ${lang}: tietoa-sivu: '${lic}', football-data.org:n vaatima maininta, ei muita tietopalveluiden nimiä, ei 'lähteiden luvalla'`, about.includes(lic) && about.includes("Football data provided by the Football-Data.org API") && !/ESPN|API-Football|TheSportsDB|Wikidata/.test(about) && !/lähteiden luvalla/i.test(about));
       await ctx.close();
     }
     for (const w of [360, 390, 768, 1280, 1440]) {

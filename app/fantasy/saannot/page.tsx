@@ -36,7 +36,7 @@ export default async function Page() {
             <li>Avauskokoonpanossa 11 pelaajaa: 1 maalivahti, vähintään {RULES.xiMin.DEF} puolustajaa, {RULES.xiMin.MID} keskikenttäpelaajaa ja {RULES.xiMin.FWD} hyökkääjä. Penkillä 4 pelaajaa järjestyksessä; ensimmäinen on vaihtomaalivahti.</li>
             <li>Valitse kapteeni ja varakapteeni avauskokoonpanosta.</li>
             <li>Paina pelaajaa: tiedot, kapteeni, vaihto penkin ja avauksen välillä tai siirto.</li>
-            <li>Pelipaikat tulevat lähteen (API-Football) kokoonpanotiedoista ja pysyvät joukkueessa samana koko kierroksen.</li>
+            <li>Pelaajien pelipaikat perustuvat otteluiden kokoonpanotietoihin ja pysyvät joukkueessa samana koko kierroksen.</li>
           </ul>
         </section>
         <section>
@@ -49,6 +49,7 @@ export default async function Page() {
             <li>Määräajan jälkeen tehdyt muutokset koskevat seuraavaa kierrosta.</li>
             <li>Siirretty ottelu kuuluu edelleen alkuperäiseen kierrokseensa: sen pisteet lasketaan kyseisen kierroksen tilannekuvalla, kun ottelu pelataan. Kierroksen pisteet ovat alustavia siihen asti. Peruttu ottelu ei anna pisteitä.</li>
             <li>Kesken kauden liittyvä aloittaa kierroksesta, jonka määräaikaan ehtii. Aiemmilta kierroksilta ei saa pisteitä.</li>
+            <li>Pisteet lasketaan palvelimella otteluiden tilastoista. Jos ottelun tiedot korjautuvat jälkikäteen (4 vuorokauden ajan ottelusta), pisteet ja sijoitukset lasketaan uudelleen.</li>
           </ul>
         </section>
         <section>
@@ -101,7 +102,7 @@ export default async function Page() {
               <li>Futista-kolikot ovat pelin sisäistä valuuttaa pelaajapakkojen avaamiseen. Niitä ansaitaan vain pelaamalla: niitä ei voi ostaa eikä vaihtaa rahaksi. Ne ovat eri asia kuin joukkueen budjetti ja fantasy-pisteet.</li>
               <li>Ensimmäisen joukkueen tallentamisesta saa {coins.rules.start} kolikkoa (kerran).</li>
               <li>Jokaisesta päättyneestä kierroksesta, jolle joukkue oli tallennettu ajoissa (määräajalla otettu tilannekuva), saa {coins.rules.participation} kolikkoa ja lisäksi {coins.rules.per_point} kolikon jokaisesta kierroksen fantasy-pisteestä siirtovähennysten jälkeen, enintään {coins.rules.cap} kolikkoa. Miinuspisteet eivät vähennä palkintoa.</li>
-              <li>Kierrospalkinto maksetaan, kun kierroksen pisteet ovat lopulliset. Jos pisteitä korjataan myöhemmin, erotus lisätään tai peritään takaisin. Takaisin peritään enintään saldon verran; jo käytettyjä kolikoita ei peritä, ja perimättä jäänyt osuus näkyy kolikkotapahtumissa.</li>
+              <li>Kierrospalkinto maksetaan, kun kierroksen pisteet ovat lopulliset. Jos pisteitä korjataan myöhemmin, erotus lisätään tai peritään takaisin. Takaisin peritään enintään saldon verran; jo käytettyjä kolikoita ei peritä.</li>
               <li>Kun kaveri luo tilin kutsulinkilläsi, saat {coins.rules.invite} kolikkoa (enintään {coins.rules.invite_daily} palkittua kutsua vuorokaudessa).</li>
               {coins.packs.map((p) => <li key={p.id}>{p.name}: {p.price} kolikkoa, {p.cards} pelaajakorttia, pelaajat joiden fantasyhinta on {bandText(p)}.</li>)}
               <li>Pakan jokainen kortti arvotaan palvelimella erikseen hintaluokan kaikista aktiivisista pelaajista. Kaikilla hintaluokan pelaajilla on sama todennäköisyys, joten samaan pakkaan voi tulla sama pelaaja useammin kuin kerran tai pelaaja, joka sinulla jo on (kaksoiskappale). Tarkat todennäköisyydet näkyvät ennen avausta.</li>
@@ -109,10 +110,6 @@ export default async function Page() {
             </ul>
           </section>
         )}
-        <section>
-          <h3>Data</h3>
-          <p>Ottelut, pelaajat ja tapahtumat: API-Football. Pisteet lasketaan palvelimella tallennetusta otteludatasta. Jos lähde korjaa tietoja jälkikäteen (4 vuorokauden ajan ottelusta), pisteet ja sijoitukset lasketaan uudelleen. Saatavuustietoja (loukkaantumiset, pelikiellot) ei vielä näytetä.</p>
-        </section>
       </div>
     </article>
   );

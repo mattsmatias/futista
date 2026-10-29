@@ -4,8 +4,8 @@
 // sama tunniste uudelleen (esim. yhteyskatkon jälkeen) palauttaa saman tuloksen ilman uutta veloitusta.
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, errText, localTime, useLoad, POS_LONG, type ApiErr, type FState, type Pos } from "@/lib/fantasy-client";
-import { bandText, fmtPct, ledgerText, type Odds, type PackType } from "@/lib/fantasy-packs-core";
+import { api, errText, useLoad, POS_LONG, type ApiErr, type FState, type Pos } from "@/lib/fantasy-client";
+import { bandText, fmtPct, type Odds, type PackType } from "@/lib/fantasy-packs-core";
 import { AuthBox, ErrorBox, Loading, Notice, Overlay } from "../ui";
 import { FCoin, FCoins, fcText } from "../FCoin";
 import { PackArt, PackNav, PlayerTile, type CardPlayer, type Tier } from "../Cards";
@@ -102,34 +102,6 @@ function PacksIn() {
           <li><FCoins v={d.rules.invite} size={14} /> kun kaveri luo tilin kutsulinkilläsi (enintään {d.rules.invite_daily} palkittua kutsua vuorokaudessa)</li>
         </ul>}
         <p className="pad muted small">Kierrospalkinto maksetaan, kun kierroksen pisteet ovat lopulliset. Jos pisteitä korjataan myöhemmin, erotus lisätään tai peritään takaisin; jo käytettyjä kolikoita ei peritä eikä saldo mene miinukselle.</p>
-      </section>
-
-      {d.opens.length > 0 && (
-        <section className="panel" aria-labelledby="fxk-hist-h">
-          <div className="panel-head"><h2 id="fxk-hist-h">Viimeisimmät avaukset</h2></div>
-          <ul className="fxk-hist">
-            {d.opens.map((o) => (
-              <li key={o.id}>
-                <button type="button" onClick={() => view(o.id)}>
-                  <span className={`fxk-dot fxk-dot-${tierOf(o.pack)}`} aria-hidden="true" />
-                  <span className="fxk-hist-n"><b>{o.pack === "gold" ? "Gold-pakka" : "Silver-pakka"}</b><small>{localTime(o.created_at)} · {(o.players ?? []).join(", ")}</small></span>
-                  <span className="fxk-hist-r"><FCoins v={-o.price} size={13} sign />{!o.seen && <em>Uusi</em>}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="panel" aria-labelledby="fxk-led-h">
-        <div className="panel-head"><h2 id="fxk-led-h">Kolikkotapahtumat</h2></div>
-        {d.ledger.length === 0 ? <p className="pad muted">Ei vielä tapahtumia. Tallenna ensimmäinen joukkueesi, niin saat aloituspalkinnon.</p> : (
-          <ul className="fxk-led">
-            {d.ledger.map((l, i) => (
-              <li key={i}><span><b>{ledgerText(l.kind, l.info)}</b><small>{localTime(l.at)}</small></span>{l.amount !== 0 ? <FCoins v={l.amount} size={13} sign /> : <span className="muted small">0</span>}</li>
-            ))}
-          </ul>
-        )}
       </section>
 
       {pick && <Confirm pack={pick} balance={d.balance} onClose={() => setPick(null)} onOpened={(o) => { setPick(null); setShow(o); reload(); }} />}

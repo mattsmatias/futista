@@ -76,8 +76,6 @@ export default function TrophiesTab({ source, slug }: { source: string; slug: st
     </div></section>
   );
   if (r.state !== "ok") return <section className="panel"><p className="muted pad">{t("tp_nomatch")}</p></section>;
-  const src = <a href={`https://www.wikidata.org/wiki/${r.q}`} target="_blank" rel="noopener noreferrer">Wikidata</a>;
-  const [pre, post] = t("tp_source").split("{src}");
   return (
     <div className="tp-wrap">
       <section className="panel">
@@ -85,7 +83,7 @@ export default function TrophiesTab({ source, slug }: { source: string; slug: st
         {r.trophies.length ? <ul className="tp-list">{r.trophies.map((x) => <Item key={x.key} x={x} />)}</ul>
           : <p className="muted pad">{t("tp_none")}</p>}
       </section>
-      <p className="muted small tr-src">{pre}{src}{post}</p>
+      <p className="muted small tr-src">{t("tp_source")}</p>
     </div>
   );
 }

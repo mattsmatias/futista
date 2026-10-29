@@ -83,7 +83,7 @@ export function useDayBoard(slim: LeagueStats[], date: string, today: string) {
   }), [allStats, map, live, now, date, today, extras, dataOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API-Football-kilpailut omina ryhminään (rekisterin järjestys) olemassa olevien jälkeen
-  const afComps: CompBlock[] = useMemo(() => afDay.failed ? [{ id: "afall", name: "API-Football", rows: [], status: "failed" as const, stale: false, partial: false, cov: null }] : AF_IDS.map((id) => {
+  const afComps: CompBlock[] = useMemo(() => afDay.failed ? [{ id: "afall", name: "Muut sarjat", rows: [], status: "failed" as const, stale: false, partial: false, cov: null }] : AF_IDS.map((id) => {
     const c = afDay.comps?.find((x) => x.id === id);
     const src = SOURCES.find((s) => s.id === id)!;
     const d = c && !c.failed ? { source: id, results: c.results, fixtures: c.fixtures } : null;

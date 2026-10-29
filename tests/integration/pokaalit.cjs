@@ -54,7 +54,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       (await page.locator(".tp-credit a[href^='https://commons.wikimedia.org/wiki/File:']").count()) === 1, items[0]);
     ok(`${w}px:   ilman kuvaa → kuvake, ei tekijätietoa`, (await page.locator(".tp-item").nth(1).locator("svg.tp-icon").count()) === 1 && !/Kuva:/.test(items[1] || ""));
     const src = await page.locator(".tp-wrap .tr-src").innerText().catch(() => "");
-    ok(`${w}px:   lähde Wikidata ja huomautus puutteellisuudesta`, /Lähde: Wikidata/.test(src) && /puutteellinen/.test(src) && (await page.locator(".tp-wrap a[href='https://www.wikidata.org/wiki/Q900001']").count()) === 1, src);
+    ok(`${w}px:   huomautus puutteellisuudesta, ei tietopalvelun nimeä (käyttäjän päätös 29.10.2026)`, /puutteellinen/.test(src) && !/Wikidata/i.test(src) && (await page.locator(".tp-wrap a[href*='wikidata.org']").count()) === 0, src);
     const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     ok(`${w}px:   ei vaakavieritystä`, ov <= 0, String(ov));
     ok(`${w}px:   ei sivuvirheitä`, errs.length === 0, errs.join(" | "));

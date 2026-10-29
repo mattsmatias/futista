@@ -505,7 +505,6 @@ export function EventsCard({ w, home, away }: { w: Where; home: Team; away: Team
           </li>
         ))}
       </ol>
-      <p className="panel-src">{t("source")}: {data.source ?? "API-Football"}</p>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 import { useI18n } from "@/lib/i18n";
 import { SOURCES } from "@/lib/sources";
 import { COMP_ORDER } from "@/lib/comps";
-import { afSourceOn } from "@/lib/af-registry";
 
 export default function Footer() {
   const i = useI18n();
@@ -29,9 +28,7 @@ export default function Footer() {
           {t("source")}: <a href="https://www.laliiga.com" target="_blank" rel="noopener">LaLiiga.com</a>
           {" · "}<a href="https://www.valioliiga.com" target="_blank" rel="noopener">Valioliiga.com</a>
           {" · "}<a href="https://www.football-data.org" target="_blank" rel="noopener">{t("fdCredit")}</a>
-          {" · "}ESPN
-          {afSourceOn() && <>{" · "}<a href="https://www.api-football.com" target="_blank" rel="noopener">API-Football</a></>}
-          {" · "}<a href="https://www.thesportsdb.com" target="_blank" rel="noopener">TheSportsDB</a>{" · "}<a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
+          {" · "}<a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
           {" · "}<a href="https://flagpedia.net" target="_blank" rel="noopener">Flagpedia</a>
         </small>
         <small className="foot-copy">© {new Date().getFullYear()} Futista · {t("rights")} · <a href="/tietoa">{t("notLicence")}</a></small>

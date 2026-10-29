@@ -153,7 +153,7 @@ function AfMatches({ id }: { id: number }) {
           );
         })}
       </ul>
-      <p className="panel-src">{t("pp_matchesNote")} {t("pp_ratingNote")} {t("source")}: API-Football</p>
+      <p className="panel-src">{t("pp_matchesNote")} {t("pp_ratingNote")}</p>
     </>
   );
 }
@@ -207,7 +207,7 @@ function Career({ id }: { id: number }) {
         </table>
       </div>
       {more && <div className="pp-more"><button type="button" className="btn ghost sm" disabled={r.loading} onClick={() => setNext(pages.length)}>{t("pp_more")}</button></div>}
-      <p className="panel-src">{t("pp_ratingNote")} {t("source")}: API-Football</p>
+      <p className="panel-src">{t("pp_ratingNote")}</p>
     </>
   );
 }
@@ -232,7 +232,6 @@ function Transfers({ id }: { id: number }) {
           </li>
         ))}
       </ul>
-      <p className="panel-src">{t("source")}: API-Football</p>
     </>
   );
 }
@@ -255,7 +254,7 @@ function FdMatches({ p }: { p: PlayerData }) {
               </span></div>}
         </div>
       ))}
-      <div className="panel-src">{t("playerNote")} {t("source")}: football-data.org</div>
+      <div className="panel-src">{t("playerNote")}</div>
     </section>
   );
 }

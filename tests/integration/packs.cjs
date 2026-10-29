@@ -113,6 +113,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       ok(`${w}px:   keskeytynyt (näkemätön) avaus tarjotaan näytettäväksi`, (await page.getByRole("button", { name: "Näytä kortit" }).count()) === 1);
       ok(`${w}px:   ei vaakavieritystä; HUD:n Fantasy-teksti mahtuu kolikkosirun kanssa`, await page.evaluate(() => { const b = document.querySelector(".fxg-brand"); return document.documentElement.scrollWidth <= innerWidth + 1 && b.scrollWidth <= b.clientWidth + 1; }));
       await shot(page, `pakat-${w}`);
+      ok(`${w}px:   ei avaushistoria- eikä kolikkotapahtumaosiota (käyttäjän päätös 29.10.2026)`, !/Viimeisimmät avaukset|Kolikkotapahtumat/i.test(await page.locator("main").innerText()));
       await page.locator(".fxk-pack-silver .btn").click();
       const dlg = page.locator(".fxk-confirm");
       await dlg.waitFor();
@@ -154,6 +155,15 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       }
       ok(`${w}px:   ei JavaScript-virheitä`, errs.length === 0, errs.join(" | "));
       await ctx.close();
+    }
+    // säännöt: ei tietopalveluiden nimiä eikä Data-osiota
+    {
+      const sc = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
+      const sp = await sc.newPage();
+      await sp.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
+      const rt = await sp.locator("main").innerText();
+      ok("säännöt: ei tietopalveluiden nimiä (API-Football ym.) eikä Data-osiota; korjausten uudelleenlaskenta kerrotaan", !/API-Football|ESPN|football-data|Wikidata|TheSportsDB/i.test(rt) && !/^\s*Data\s*$/mi.test(rt) && /4 vuorokauden/.test(rt) && /Futista-kolikot ja pakat/i.test(rt));
+      await sc.close();
     }
     // vähennetty liike: ei animaatiota, kortit heti
     const rm = await browser.newContext({ locale: "fi-FI", viewport: { width: 360, height: 780 }, reducedMotion: "reduce" });

@@ -98,7 +98,8 @@ const DAY = 86400_000;
   const hd = await page.evaluate(() => ({ inputs: document.querySelectorAll("main input").length, h1: [...document.querySelectorAll("main h1")].map((h) => ({ txt: h.textContent, w: h.getBoundingClientRect().width, cls: h.className })) }));
   ok("  ei näkyvää Sarjat-otsikkoa eikä rajauskenttää (käyttäjän valinta 25.10.2026)", hd.inputs === 0 && hd.h1.length === 1 && hd.h1[0].txt === "Sarjat" && hd.h1[0].w <= 1, JSON.stringify(hd));
   ok("  390 px: ei vaakavieritystä", !(await wide()));
-  ok("  alatunnisteen lähteissä API-Football", (await page.locator(".foot-credits").innerText()).includes("API-Football"));
+  const fc = await page.locator(".foot-credits").innerText();
+  ok("  alatunniste: football-data.org:n vaatima maininta, ei muita tietopalveluiden nimiä", fc.includes("Football data provided by the Football-Data.org API") && !/API-Football|ESPN|TheSportsDB/.test(fc), fc);
   ok("  alanavigaatiossa 6 kohtaa (Ottelut, Suosikit, Live, Fantasy, Sarjat, Uutiset)", (await page.locator(".bottomnav a").allTextContents()).join("|") === "Ottelut|Suosikit|Live|Fantasy|Sarjat|Uutiset");
 
   // ---------- Sarjasivut ----------
