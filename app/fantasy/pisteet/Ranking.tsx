@@ -42,7 +42,6 @@ export function Ranking({ league }: { league?: number } = {}) {
           {d.me && !meOnPage && <button type="button" className="btn sm ghost" onClick={() => setOffset(Math.floor((d.me.ord - 1) / d.page) * d.page)}>Oma sijoitus</button>}
         </div>
       )}
-      <p className="muted small pad">{d.tie}</p>
     </div>
   );
 }

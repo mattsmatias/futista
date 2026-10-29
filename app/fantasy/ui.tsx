@@ -388,7 +388,6 @@ export function PlayerCard({ p, onClose, actions, swaps, extra, note, roundFx }:
             </ul>
           </section>
         )}
-        <p className="muted small">Saatavuustietoa (loukkaantumiset, pelikiellot) ei vielä näytetä: luotettavaa lähdettä ei ole otettu käyttöön.</p>
       </div>
     </Overlay>
   );

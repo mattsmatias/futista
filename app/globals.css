@@ -2485,8 +2485,8 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fx-join-invite p { margin: 0; }
 .fx-back, .fx-leave { justify-self: start; }
 /* logoeditori: esikatselu pysyy näkyvissä valintoja vieritettäessä; pitkä nimi ei riko asettelua */
-.fx-logo-ed .fx-logo-preview { position: sticky; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 2; padding: 8px 0; background: var(--surface); }
-:root:has(.fxg) .fx-logo-ed .fx-logo-preview { background: #141f37; }
+/* esikatselu tavallisena lohkona (ei kiinnitetty: iPhonella kiinnitetty esikatselu jäi valintojen päälle) */
+.fx-logo-ed .fx-logo-preview { padding: 4px 0 8px; }
 .fx-logo-preview > div { min-width: 0; }
 .fx-logo-preview b { display: block; overflow-wrap: anywhere; }
 @media (max-width: 480px) { .fx-logo-preview .fx-logo { width: 84px; height: 84px; } .fx-logo-preview p { display: none; } }

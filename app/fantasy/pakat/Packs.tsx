@@ -62,7 +62,6 @@ function PacksIn() {
           <h2 id="fxk-w-h" className="fxk-w-k">Futista-kolikot</h2>
           <p className="fxk-w-v"><FCoin size={30} /><b>{d.balance.toLocaleString("fi-FI")}</b><span className="sr-only"> Futista-kolikkoa</span></p>
         </div>
-        <p className="muted small">Ansaitse kolikoita pelaamalla ja avaa niillä pelaajapakkoja. Kolikoita ei voi ostaa eikä vaihtaa rahaksi, eivätkä kortit vaikuta fantasypisteisiin tai rankingiin.</p>
       </section>
 
       {msg && <Notice kind={msg.kind} role="alert"><p>{msg.text}</p></Notice>}
@@ -93,16 +92,6 @@ function PacksIn() {
         })}
       </section>
 
-      <section className="panel" aria-labelledby="fxk-earn-h">
-        <div className="panel-head"><h2 id="fxk-earn-h">Näin ansaitset kolikoita</h2></div>
-        {d.rules && <ul className="pad fxk-earn">
-          <li><FCoins v={d.rules.start} size={14} /> ensimmäisen joukkueen tallentamisesta (kerran)</li>
-          <li><FCoins v={d.rules.participation} size={14} /> jokaisesta päättyneestä kierroksesta, jolle joukkueesi oli tallennettu ajoissa</li>
-          <li><FCoin size={14} /> {d.rules.per_point} / kierroksen positiivinen fantasy-piste, enintään {d.rules.cap} kierrokselta</li>
-          <li><FCoins v={d.rules.invite} size={14} /> kun kaveri luo tilin kutsulinkilläsi (enintään {d.rules.invite_daily} palkittua kutsua vuorokaudessa)</li>
-        </ul>}
-        <p className="pad muted small">Kierrospalkinto maksetaan, kun kierroksen pisteet ovat lopulliset. Jos pisteitä korjataan myöhemmin, erotus lisätään tai peritään takaisin; jo käytettyjä kolikoita ei peritä eikä saldo mene miinukselle.</p>
-      </section>
 
       {pick && <Confirm pack={pick} balance={d.balance} onClose={() => setPick(null)} onOpened={(o) => { setPick(null); setShow(o); reload(); }} />}
       {show && <Reveal open={show} onClose={() => { setShow(null); reload(); }} />}
@@ -149,7 +138,6 @@ function Confirm({ pack, balance, onClose, onOpened }: { pack: Pack; balance: nu
           <div><dt>Saldosi</dt><dd><FCoins v={balance} size={16} /></dd></div>
           <div><dt>Jälkeen</dt><dd>{enough ? <FCoins v={balance - pack.price} size={16} /> : "–"}</dd></div>
         </dl>
-        <p className="small">Fantasyhinta on Futistan pelin sisäinen pelaajahinta, ei pelaajan todellinen markkina-arvo.</p>
         {any && o ? (
           <section className="fxk-odds" aria-labelledby="fxk-odds-h">
             <h3 id="fxk-odds-h">Todennäköisyydet</h3>

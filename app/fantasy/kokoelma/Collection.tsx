@@ -81,7 +81,6 @@ function CollectionIn() {
           {list.map((p) => <li key={p.player_id}><PlayerTile p={p} tier={tierOfRow(p)} count={p.count} /></li>)}
         </ul>
       )}
-      <p className="muted small">Kortit ovat keräilyä varten: ne eivät anna etua fantasy-pisteissä tai rankingissa, ja joukkueeseen voi valita kenet tahansa omistamatta hänen korttiaan.</p>
     </>
   );
 }

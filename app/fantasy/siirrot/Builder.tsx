@@ -128,7 +128,6 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
         {t.base && <div><span className="muted">Siirrot</span><b>{made} / {free === Infinity ? "∞" : `${free} ilmaista`}</b></div>}
         {t.base && <div><span className="muted">Pistevähennys</span><b className={hit ? "neg" : ""}>{hit ? `−${hit} p` : "0 p"}</b></div>}
       </section>
-      {!t.base && <Notice>Ennen ensimmäistä lukitusta voit rakentaa joukkueen vapaasti. Lukituksen jälkeen saat 1 ilmaisen siirron kierrosta kohden (enintään 2 kertyy); ylimääräinen siirto maksaa {RULES.hitCost} pistettä.</Notice>}
       {errors.length > 0 && (
         <Notice kind="warn"><p><b>Korjattavaa ennen tallennusta:</b></p><ul>{errors.map((e) => <li key={e.code + e.text}>{e.text}</li>)}</ul></Notice>
       )}
@@ -142,7 +141,6 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
             <button type="button" className="btn" disabled={!full || errors.length > 0 || !changed || busy} onClick={() => setConfirm(true)}>Tallenna joukkue</button>
             {changed && <button type="button" className="btn ghost" onClick={() => { setD(saved); setMsg(null); }}>Peru muutokset</button>}
           </div>
-          {full && <p className="muted small">Paina pelaajaa: kapteeni, varakapteeni, vaihto penkin ja avauksen välillä, penkkijärjestys tai poisto.</p>}
         </div>
         <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} leagues={s.comp.leagues} round={round} roundLabel={round ? roundName(s, round.no) : null} posHint={posHint} />
       </div>

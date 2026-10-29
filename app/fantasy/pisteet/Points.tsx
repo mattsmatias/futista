@@ -60,7 +60,6 @@ export function Points() {
             )}
             <div className="fx-pts-mini"><div><span>Kausi yhteensä</span><b>{s.team.total} p</b></div><div><span>Sijoitus Futista-liigassa</span><b>{s.team.rank ? `${s.team.rank.rank} / ${s.team.rank.of}` : "–"}</b></div></div>
           </section>
-          {p?.provisional && <p className="small muted">Alustava: osa otteluista on kesken tai tilastot voivat vielä päivittyä. Automaattiset vaihdot ja kapteenin siirto varakapteenille tehdään, kun kaikki kierroksen ottelut ovat valmiit.</p>}
           {picks && players.size > 0 && <Pitch picks={picks} players={players} badge={badge} onSelect={setSelId} legend={`${roundName(s, r)} · pisteet`} label={`${roundName(s, r)}: kokoonpano ja pisteet`} />}
           {subs.length > 0 && <p className="small">Automaattiset vaihdot: {subs.map((x) => `${players.get(x.out)?.name ?? x.out} → ${players.get(x.in)?.name ?? x.in}`).join(", ")}</p>}
           {rows.length > 0 && (
@@ -87,7 +86,6 @@ export function Points() {
           )}
         </>
       )}
-      <p className="small"><Link href="/fantasy/liigat">Liigat ja sarjataulukot →</Link></p>
       {sel && <PlayerCard p={sel} onClose={() => setSelId(null)} extra={<RoundItems row={rowOf(sel.id)} />} />}
     </>
   );

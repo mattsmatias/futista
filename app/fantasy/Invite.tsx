@@ -70,7 +70,6 @@ export function InviteCard({ code, teamName }: { code: string; teamName: string 
       <span className="fx-inv-ic" aria-hidden="true">🤝</span>
       <div className="fx-inv-body">
         <h2 id="fx-inv-h">Kutsu kaveri</h2>
-        <p className="muted">Jaa linkki – kaveri pääsee suoraan luomaan joukkueen ja näette toistenne pisteet Futista-liigassa.</p>
         <div className="fx-row">
           {canShare && <button type="button" className="btn" onClick={share}>Jaa kutsulinkki</button>}
           <button type="button" className={`btn${canShare ? " ghost" : ""}`} onClick={copy}>Kopioi linkki</button>

@@ -38,6 +38,9 @@ export default async function Page() {
             <li>Paina pelaajaa: tiedot, kapteeni, vaihto penkin ja avauksen välillä tai siirto.</li>
             <li>Pidä pelaajakorttia pohjassa ja vedä se toisen kortin päälle: saman pelipaikan pelaajat vaihtavat paikkaa avauksen ja penkin välillä tai avauksen sisällä (maalivahti maalivahdin, puolustaja puolustajan jne.). Penkin järjestystä voi muuttaa vetämällä; ensimmäinen vaihtopaikka on aina vaihtomaalivahdin.</li>
             <li>Pelaajien pelipaikat perustuvat otteluiden kokoonpanotietoihin ja pysyvät joukkueessa samana koko kierroksen.</li>
+            <li>Kentän korteissa näkyy valinnan mukaan kierroksen pisteet, seuraavan kierroksen vastustaja – (k) kotiottelu, (v) vierasottelu – tai pelaajan hinta.</li>
+            <li>Loukkaantumis- ja pelikieltotietoja ei vielä näytetä.</li>
+            <li>Joukkueen logo kootaan valmiista osista (muoto, kuvio, värit, symboli ja teksti). Kuvia ei ladata, eikä seurojen logoja voi käyttää. Logo näkyy joukkueen sivulla ja liigojen taulukoissa.</li>
           </ul>
         </section>
         <section>
@@ -80,6 +83,7 @@ export default async function Page() {
             <li>Sen jälkeen saat 1 ilmaisen siirron kierrosta kohden. Käyttämätön ilmainen siirto siirtyy seuraavalle kierrokselle; enintään {RULES.freeTransfersMax} ilmaista siirtoa voi olla käytettävissä.</li>
             <li>Jokainen ylimääräinen siirto vähentää {RULES.hitCost} pistettä kyseisen kierroksen pisteistä. Siirto = pelaaja, joka ei ollut edellisen kierroksen joukkueessa; saman kierroksen aikana peruttu muutos ei ole siirto.</li>
             <li>Siirrot eivät saa rikkoa budjettia, pelipaikkajakoa tai seurarajaa. Näet siirrot, pistevähennyksen ja budjetin ennen vahvistusta.</li>
+            <li>Siirrot-näkymässä paina pelaajaa: kapteeni, varakapteeni, vaihto penkin ja avauksen välillä, penkkijärjestys tai poisto.</li>
           </ul>
         </section>
         <section>
@@ -94,6 +98,8 @@ export default async function Page() {
           <ul>
             <li>Liiga on avoin ja sama kaikille: jokainen tallennettu joukkue on mukana automaattisesti. Sijoitus lasketaan kauden kokonaispisteistä.</li>
             <li>Tasapisteissä joukkueet jakavat saman sijan (1, 2, 2, 4). Tasapisteissä aiemmin perustettu joukkue näytetään ensin.</li>
+            <li>Kaveriliigaan liitytään koodilla tai kutsulinkillä. Koodi näkyy vain liigan jäsenille. Perustaja voi vaihtaa koodin, jolloin vanha koodi ja linkki lakkaavat toimimasta. Kun perustaja poistuu, oikeudet siirtyvät pisimpään mukana olleelle jäsenelle; ainoan jäsenen poistuessa liiga poistetaan.</li>
+            <li>Kutsulinkillä kaveri pääsee suoraan luomaan joukkueen, ja näette toistenne pisteet Futista-liigassa.</li>
           </ul>
         </section>
         {coins && (

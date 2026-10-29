@@ -65,7 +65,6 @@ function LeaguesIn({ s, joinCode, clearJoin }: { s: FState; joinCode: string; cl
       {tab === "futista" ? (
         <section className="panel" aria-labelledby="fx-lg-h">
           <div className="panel-head"><h2 id="fx-lg-h">Futista-liiga</h2>{s.team?.rank && <span className="muted small">Sijasi {s.team.rank.rank} / {s.team.rank.of}</span>}</div>
-          <p className="muted small pad fx-lg-desc">Kaikkien Futista Fantasy -joukkueiden yhteinen sarjataulukko. Jokainen tallennettu joukkue on mukana automaattisesti.</p>
           <Ranking />
         </section>
       ) : !s.team ? null : open ? (
@@ -150,12 +149,11 @@ function LeagueView({ id, onBack, onLeft }: { id: number; onBack: () => void; on
       </section>
       <section className="panel pad fx-linvite" aria-labelledby="fx-li-h">
         <h2 id="fx-li-h">Kutsu kavereita</h2>
-        <p className="muted small">Kaveri liittyy koodilla tai linkillä. Koodi näkyy vain liigan jäsenille.</p>
         <p className="fx-lcode"><span className="sr-only">Liittymiskoodi: </span><code>{l.code}</code><button type="button" className="btn sm ghost" onClick={() => copy(l.code, "koodi")}>Kopioi koodi</button></p>
         <div className="fx-row"><button type="button" className="btn" onClick={share}>Jaa kutsulinkki</button></div>
         <input className="fx-inv-url" readOnly value={url} aria-label="Liigan kutsulinkki" onFocus={(e) => e.currentTarget.select()} />
         {copied && <p className="small" role="status">{copied === "koodi" ? "Koodi kopioitu" : "Linkki kopioitu"}</p>}
-        {l.owner && <p className="small muted">Perustajana voit vaihtaa koodin, jolloin vanha koodi ja linkki lakkaavat toimimasta. <button type="button" className="btn sm ghost" onClick={rotate} disabled={busy}>Vaihda koodi</button></p>}
+        {l.owner && <p className="small muted"><button type="button" className="btn sm ghost" onClick={rotate} disabled={busy}>Vaihda koodi</button></p>}
       </section>
       {err && <Notice kind="error" role="alert">{err}</Notice>}
       {!confirmLeave ? <button type="button" className="btn sm ghost fx-leave" onClick={() => setConfirmLeave(true)}>Poistu liigasta</button> : (

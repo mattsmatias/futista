@@ -41,7 +41,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
       <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2></div>
       <form className="adv-form pad" onSubmit={submit}>
         <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti <Money v={s.comp.budget} />, 15 pelaajaa.</p>
-        {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}. Aiemmilta kierroksilta ei saa pisteitä.</p>}
+        {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}.</p>}
         <div className="adv-field">
           <label htmlFor="fx-tn">Joukkueen nimi</label>
           <input id="fx-tn" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} required />
@@ -183,16 +183,11 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
         <Pitch picks={picks} players={players} onSelect={setSel} badge={badge} legend={legend} drag={drag}
           label={mode === "pts" ? `Kierroksen ${roundNum(s, showRound)} kokoonpano ja pisteet` : `Kokoonpano kierrokselle ${roundNum(s, next?.no)}`} />
       )}
-      {mode === "fx" && picks && <p className="muted small fx-legend-note">Korteissa seuraavan kierroksen vastustaja: (k) kotiottelu, (v) vierasottelu.</p>}
       {mode === "pts" && subs.length > 0 && (
         <p className="muted small">Automaattiset vaihdot: {subs.map((x) => `${players.get(x.out)?.name ?? x.out} → ${players.get(x.in)?.name ?? x.in}`).join(", ")}</p>
       )}
-      {mode === "pts" && showRound && (
-        <p className="muted small">{snap.data?.points?.provisional === false ? "Pisteet ovat lopulliset." : "Pisteet ovat alustavia ja päivittyvät otteluiden edetessä; automaattiset vaihdot tehdään, kun kierroksen kaikki ottelut ovat valmiit."}</p>
-      )}
 
 
-      {t.joined_late && <p className="muted small">Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {roundNum(s, t.first_round)} alkaen.</p>}
       {t.invite && <InviteCard code={t.invite} teamName={t.name} />}
       <div className="fx-home-foot"><DataStatus updated={s.data.updated} stale={s.data.stale} /></div>
       {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} note={mode !== "pts" ? undefined : lockedNote ?? undefined}
