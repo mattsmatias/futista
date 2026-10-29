@@ -31,10 +31,7 @@ export const TOP5: League[] = [
   // Turkin Süper Lig lisätty 29.10.2026 (käyttäjän päätös). Pelaajat haetaan seuraavassa päivityksessä (puuttuva sarja → haku);
   // aiemmilta kierroksilta ei pisteitä, kuten muillakin kesken kauden mukaan tulevilla.
   { af: 203, season: 2026, name: "Süper Lig" },
-  // Veikkausliiga ja MLS lisätty 30.10.2026 (käyttäjän päätös). Veikkausliigan kausi 2026 päättyy 8.11. (vain mestaruusryhmä
-  // pelaa enää) → pelaajilla ei otteluita ennen kautta 2027, jolloin kausi pitää päivittää. MLS:n runkosarja jatkuu.
-  { af: 244, season: 2026, name: "Veikkausliiga" },
-  { af: 253, season: 2026, name: "MLS" },
+  // Veikkausliigaa ja MLS:ää ei lisätä kaudelle 2026 (käyttäjän päätös 30.10.2026: kaudet päättymässä); harkitaan uusille kausille.
 ];
 export const COMPS: Comp[] = [
   // yksi yhteinen peli: pelaajat viidestä isosta sarjasta, kierros = viikko (käyttäjän valinta 27.10.2026)
