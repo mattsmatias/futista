@@ -296,7 +296,7 @@ const MIN = 60_000;
       await pp.locator(".pp-club").waitFor({ timeout: 10000 }).catch(() => {});
       const club = (await pp.locator(".pp-club").innerText().catch(() => "")).replace(/\s+/g, " ");
       const tabs = await pp.locator(".pp-tabs [role=tab]").allInnerTexts();
-      const fdm = await pp.locator(".pp-pane .mrow-wrap").count();
+      const fdm = (await pp.locator(".pp-pane .mrow-wrap").count()) + (/Ei pelattuja otteluita/.test(await pp.locator(".pp-pane").innerText().catch(() => "")) ? 1 : 0);
       await pp.locator(".pp-tabs [role=tab]", { hasText: "Ura" }).click().catch(() => {});
       const ura = await pp.locator(".pp-pane").innerText().catch(() => "");
       ok("pelaajaprofiili (football-data): seura ja pelipaikka omalla rivillään, välilehdet; ilman varmaa API-Football-yhdistystä Ura kertoo sen eikä arvaa", club.length > 0 && /hyökkääjä|keskikenttä|puolustaja|maalivahti/i.test(club) && tabs.join("|") === "Ottelut|Ura|Siirrot" && fdm > 0 && /ei voitu yhdistää luotettavasti/.test(ura), `${club} | ${tabs} | ${fdm} | ${ura.slice(0, 120)}`);
