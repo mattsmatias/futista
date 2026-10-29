@@ -127,7 +127,7 @@ export function AccountWelcome() {
 
 export const ACCOUNT_EVENT = "futista-account";
 
-/** Asetusvalikon tiliosio (vain kotivalikon sovelluksessa) */
+/** Asetusvalikon tiliosio (kirjautuminen, tilin luonti, uloskirjautuminen) – selaimessa ja sovelluksessa */
 export function AccountMenu({ onAction }: { onAction: () => void }) {
   const { t } = useI18n();
   const [app, setApp] = useState(false);
@@ -135,7 +135,7 @@ export function AccountMenu({ onAction }: { onAction: () => void }) {
   const [dialog, setDialog] = useState<null | "login" | "register">(null);
   const load = useCallback(() => { fetchMe().then(setMe); }, []);
   useEffect(() => {
-    if (!isStandaloneApp()) return;
+    // tiliosio asetuksissa kaikille (selain ja kotivalikon sovellus): uloskirjautuminen on vain täällä (käyttäjän valinta 29.10.2026)
     setApp(true); load();
     window.addEventListener(ACCOUNT_EVENT, load);
     return () => window.removeEventListener(ACCOUNT_EVENT, load);

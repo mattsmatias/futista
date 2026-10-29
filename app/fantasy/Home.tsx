@@ -36,7 +36,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
   const next = s.rounds.find((r) => r.no === s.next);
   return (
     <section className="panel" aria-labelledby="fx-new-h">
-      <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2><Logout /></div>
+      <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2></div>
       <form className="adv-form pad" onSubmit={submit}>
         <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti <Money v={s.comp.budget} />, 15 pelaajaa.</p>
         {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}. Aiemmilta kierroksilta ei saa pisteitä.</p>}
@@ -51,10 +51,6 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
   );
 }
 
-export function Logout() {
-  const [busy, setBusy] = useState(false);
-  return <button type="button" className="btn sm ghost" disabled={busy} onClick={async () => { setBusy(true); await api("/api/fantasy/tili", { action: "logout" }); location.href = "/fantasy"; }}>Kirjaudu ulos</button>;
-}
 
 function Home({ s, reload }: { s: FState; reload: () => void }) {
   const [logoEd, setLogoEd] = useState(false);
@@ -92,7 +88,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
           <div><dt>Sijoitus</dt><dd>{t.rank ? `${t.rank.rank.toLocaleString("fi-FI")} / ${t.rank.of.toLocaleString("fi-FI")}` : "–"}</dd></div>
           <div><dt>Budjettia jäljellä</dt><dd>{budgetLeft !== null ? <Money v={Math.round(budgetLeft * 10) / 10} size={18} /> : "–"}</dd></div>
         </dl>
-        <div className="fx-row"><Link className="btn" href="/fantasy/siirrot">{t.picks ? "Muokkaa joukkuetta ja siirrot" : "Valitse pelaajat"}</Link><Logout /></div>
+        <div className="fx-row"><Link className="btn" href="/fantasy/siirrot">{t.picks ? "Muokkaa joukkuetta ja siirrot" : "Valitse pelaajat"}</Link></div>
       </section>
       {logoEd && <div id="fx-logo-panel"><LogoEditor name={t.name} logo={t.logo} onSaved={reload} onCancel={() => setLogoEd(false)} /></div>}
       <DataStatus updated={s.data.updated} stale={s.data.stale} />
