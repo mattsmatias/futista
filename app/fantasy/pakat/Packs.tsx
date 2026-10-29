@@ -175,7 +175,7 @@ function Confirm({ pack, balance, onClose, onOpened }: { pack: Pack; balance: nu
         <dl className="fx-stats fxk-c-stats">
           <div><dt>Hinta</dt><dd><FCoins v={pack.price} size={16} /></dd></div>
           <div><dt>Saldosi</dt><dd><FCoins v={balance} size={16} /></dd></div>
-          <div><dt>Avauksen jälkeen</dt><dd>{enough ? <FCoins v={balance - pack.price} size={16} /> : "–"}</dd></div>
+          <div><dt>Jälkeen</dt><dd>{enough ? <FCoins v={balance - pack.price} size={16} /> : "–"}</dd></div>
         </dl>
         <p className="small">Fantasyhinta on Futistan pelin sisäinen pelaajahinta, ei pelaajan todellinen markkina-arvo.</p>
         {any && o ? (

@@ -2628,7 +2628,8 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fxk-hist-r { display: grid; justify-items: end; gap: 2px; } .fxk-hist-r em { font-style: normal; font: 800 10px/1.4 var(--ui); padding: 0 6px; border-radius: 999px; background: #2de2e6; color: #06232a; }
 .fxk-led li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 8px; border-top: 1px solid var(--line); }
 .fxk-led li:first-child { border-top: 0; }
-.fxk-led li > span { display: grid; min-width: 0; } .fxk-led small { color: var(--muted); }
+.fxk-led li > span:first-child { display: grid; min-width: 0; }
+.fxk-led li > .fx-fcoins, .fxk-led li > .muted { flex: none; } .fxk-led small { color: var(--muted); }
 .fxk-led b { font-weight: 700; font-size: 14px; }
 .fxk-earn { margin: 0; padding-left: 34px !important; display: grid; gap: 6px; }
 
@@ -2642,3 +2643,15 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fxk-empty p { margin: 0; }
 .fxk-empty-art { display: flex; gap: 8px; } .fxk-empty-art .fxk-back { width: 64px; } .fxk-empty-art .fxk-back:first-child { transform: rotate(-8deg); } .fxk-empty-art .fxk-back:last-child { transform: rotate(8deg); }
 @media (min-width: 900px) { .fxg main.fx:has(.fxk-nav) > * { width: 100%; max-width: 760px; margin-inline: auto; } }
+
+:root:has(.fxg) .fxk-confirm .btn:not(.ghost), :root:has(.fxg) .fxk-reveal .btn:not(.ghost), :root:has(.fxg) .fx-note .btn:not(.ghost) { background: linear-gradient(180deg, var(--fx-acc), #f5b51f); color: #0a0f1d; border: 0; font-weight: 800; }
+@media (max-width: 420px) {
+  .fxg-hud:has(.fxg-chip.fc) .fxg-chip { padding: 0 7px; gap: 4px; }
+  .fxg-hud:has(.fxg-chip.fc) .fxg-chips { gap: 4px; }
+  .fxg-hud:has(.fxg-chip.fc) .fxg-brand { font-size: 16px; }
+}
+/* kapea puhelin: kauden pisteet näkyvät Joukkue-sivulla, joten HUDissa tilaa Fantasy-tekstille, kolikoille ja määräajalle */
+@media (max-width: 400px) {
+  .fxg-hud:has(.fxg-chip.fc) .fxg-chip.pts { display: none; }
+}
+.fxk-kpis span { white-space: normal; overflow-wrap: anywhere; }

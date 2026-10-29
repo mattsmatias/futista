@@ -512,7 +512,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
         ok("  sama tili fantasyssa: kirjautuneena suoraan joukkueen luontiin", (await ap.locator("#fx-tn").count()) === 1 && (await ap.locator("#fx-u").count()) === 0);
         // pelinäkymä: Futistan yläpalkki piilossa, oma yläpalkki ja alavalikko; paluu Futistaan
         ok("  pelinäkymä: Futistan yläpalkki ja alavalikko piilossa, pelin HUD ja alavalikko näkyvissä",
-          !(await ap.locator(".appbar").isVisible()) && !(await ap.locator(".bottomnav").isVisible()) && (await ap.locator(".fxg-hud").isVisible()) && (await ap.locator(".fxg-tabs a").count()) === 5);
+          !(await ap.locator(".appbar").isVisible()) && !(await ap.locator(".bottomnav").isVisible()) && (await ap.locator(".fxg-hud").isVisible()) && (await ap.locator(".fxg-tabs a").count()) === 6); // Joukkue, Siirrot, Liiga, Pakat, Pisteet, Säännöt
         await ap.locator(".fxg-exit").click();
         await ap.waitForURL(/\/$/, { timeout: 8000 }).catch(() => {});
         await ap.waitForSelector(".set-btn", { state: "visible", timeout: 8000 }).catch(() => {});

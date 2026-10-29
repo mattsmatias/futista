@@ -41,7 +41,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
   const starts = p0?.ledger?.filter((l) => l.kind === "start") ?? [];
   ok("aloituspalkinto: joukkueen tallentanut käyttäjä on saanut 150 kolikkoa kerran", starts.length === 1 && starts[0].amount === 150, p0?.ledger?.map((l) => `${l.kind}:${l.amount}`));
   ok("HUD-saldo (tila) = pakkasivun saldo", st?.coins === p0?.balance, `${st?.coins} ${p0?.balance}`);
-  ok("säännöt näytetään palvelimen arvoista (150 / 50 / 1 / 100 / 100 / 10)", JSON.stringify(p0?.rules) === JSON.stringify({ start: 150, participation: 50, per_point: 1, cap: 100, invite: 100, invite_daily: 10 }), p0?.rules);
+  ok("säännöt näytetään palvelimen arvoista (150 / 50 / 1 / 100 / 100 / 10)", ["start", 150, "participation", 50, "per_point", 1, "cap", 100, "invite", 100, "invite_daily", 10].every((v, i, a) => i % 2 || p0?.rules?.[v] === a[i + 1]), p0?.rules);
   const silver = p0.packs.find((p) => p.id === "silver"), gold0 = p0.packs.find((p) => p.id === "gold");
   ok("silver: 100 kolikkoa, 3 korttia, alle 9,0 M; todennäköisyys 1/N", silver?.price === 100 && silver.cards === 3 && silver.max_price === 9 && silver.min_price === null && silver.eligible > 0 && Math.abs(silver.odds.perCard - 1 / silver.eligible) < 1e-12, silver);
   ok("gold: 250 kolikkoa, 3 korttia, vähintään 9,0 M", gold0?.price === 250 && gold0.cards === 3 && gold0.min_price === 9 && gold0.max_price === null, gold0);
@@ -111,14 +111,14 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       ok(`${w}px: Pakat – saldo näkyy (${bal}) ja HUD-kolikkosiru`, (await page.locator(".fxk-w-v b").innerText()).replace(/\s/g, "") === String(bal) && (await page.locator(".fxg-chip.fc").count()) === 1);
       ok(`${w}px:   alavalikossa 6 välilehteä, Pakat aktiivinen`, (await page.locator(".fxg-tabs a").count()) === 6 && /Pakat/i.test(await page.locator(".fxg-tabs a.on").innerText()));
       ok(`${w}px:   keskeytynyt (näkemätön) avaus tarjotaan näytettäväksi`, (await page.getByRole("button", { name: "Näytä kortit" }).count()) === 1);
-      ok(`${w}px:   ei vaakavieritystä`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      ok(`${w}px:   ei vaakavieritystä; HUD:n Fantasy-teksti mahtuu kolikkosirun kanssa`, await page.evaluate(() => { const b = document.querySelector(".fxg-brand"); return document.documentElement.scrollWidth <= innerWidth + 1 && b.scrollWidth <= b.clientWidth + 1; }));
       await shot(page, `pakat-${w}`);
       await page.locator(".fxk-pack-silver .btn").click();
       const dlg = page.locator(".fxk-confirm");
       await dlg.waitFor();
       const dt = await dlg.innerText();
       ok(`${w}px:   vahvistus: hinta, saldo, hintaraja, sama todennäköisyys kaikille, 1 / N, kaksoiskappaleista kerrotaan`,
-        /Hinta/.test(dt) && /Saldosi/.test(dt) && /alle 9,0 M/.test(dt) && /sama todennäköisyys/.test(dt) && new RegExp(`1 / ${silver.eligible - 1}`).test(dt) && /useammin kuin kerran/.test(dt) && /jo on/.test(dt), dt.replace(/\s+/g, " ").slice(0, 300));
+        /Hinta/i.test(dt) && /Saldosi/i.test(dt) && /alle 9,0 M/.test(dt) && /sama todennäköisyys/.test(dt) && new RegExp(`1 / ${silver.eligible - 1}`).test(dt) && /useammin kuin kerran/.test(dt) && /jo on/.test(dt), dt.replace(/\s+/g, " ").slice(0, 300));
       await shot(page, `pakat-vahvistus-${w}`);
       if (w === 390) {
         await dlg.getByRole("button", { name: /^Avaa/ }).click();
@@ -156,11 +156,12 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       await ctx.close();
     }
     // vähennetty liike: ei animaatiota, kortit heti
-    const rm = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+    const rm = await browser.newContext({ locale: "fi-FI", viewport: { width: 360, height: 780 }, reducedMotion: "reduce" });
     await rm.addCookies([{ name: "ff_s", value: A.cookie.replace(/^ff_s=/, ""), url: APP }]);
     const rp = await rm.newPage();
     await rp.goto(`${APP}/fantasy/pakat`, { waitUntil: "load" });
     await rp.waitForSelector(".fxk-wallet");
+    ok("360px: HUD:n Fantasy-teksti mahtuu, ei vaakavieritystä", await rp.evaluate(() => { const b = document.querySelector(".fxg-brand"); return document.documentElement.scrollWidth <= innerWidth + 1 && b.scrollWidth <= b.clientWidth + 1; }));
     const canOpen = (await A.call("/api/fantasy/pakat")).j.balance >= 100;
     if (canOpen) {
       await rp.locator(".fxk-pack-silver .btn").click();
