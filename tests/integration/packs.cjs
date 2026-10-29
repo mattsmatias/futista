@@ -307,7 +307,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
           await page.locator(".fx-pcard").getByRole("button", { name: /Vaihda korttityyliä/ }).click();
           await page.waitForSelector(".fxs-opt", { timeout: 8000 });
           const opts = (await page.locator(".fxs-lbl").allTextContents()).map((x) => x.trim());
-          ok(`${w}px: korttityyli: valittavana Perus (valittu) ja omistetut versiot (Elite, Silver 2 kpl)`, opts.length === 3 && /^Perus.*valittu/.test(opts[0]) && opts.some((x) => /^Elite · 1 kpl/.test(x)) && opts.some((x) => /^Silver · 2 kpl/.test(x)), opts.join(" | "));
+          ok(`${w}px: korttityyli: valittavana Perus (valittu) ja omistetut versiot (Elite, Silver ≥ 2 kpl)`, opts.length === 3 && /^Perus.*valittu/.test(opts[0]) && opts.some((x) => /^Elite · 1 kpl/.test(x)) && opts.some((x) => Number((/^Silver · (\d+) kpl/.exec(x) ?? [])[1]) >= 2), opts.join(" | ")); // aiemmista satunnaisista pakoista voi tulla lisää Silver-versioita
           await shot(page, "korttityyli-390");
           await page.locator(".fxs-opt", { hasText: "Elite" }).click();
           await page.waitForSelector(".fx-note.fx-ok", { timeout: 8000 }).catch(() => {});
@@ -316,6 +316,8 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
         }
         const card = page.locator(`.fx-pitch [data-fxid="${target}"]`).first();
         await card.waitFor();
+        // valinta tallentuu palvelimelle ja kenttä päivittyy sen jälkeen → odotetaan päivitystä ennen tarkistusta
+        await page.waitForFunction((id) => /fxc-v-elite/.test(document.querySelector(`.fx-pitch [data-fxid="${id}"]`)?.className ?? ""), target, { timeout: 8000 }).catch(() => {});
         ok(`${w}px: korttityyli: Elite-kortti näkyy kentällä (kehys ja teksti) ${w === 390 ? "valinnan jälkeen" : "uudelleenlatauksen jälkeen"}`, /fxc-v-elite/.test(await card.getAttribute("class")) && /Elite/i.test(await card.innerText()) && /Elite-kortti/.test(await card.getAttribute("aria-label")));
         if (w === 390) { await page.reload({ waitUntil: "load" }); await page.waitForSelector(".fx-pitch .fxc"); ok(`${w}px: korttityyli säilyy uudelleenlatauksessa`, /fxc-v-elite/.test(await page.locator(`.fx-pitch [data-fxid="${target}"]`).first().getAttribute("class"))); await shot(page, "kentta-elite-390"); }
         ok(`${w}px: korttityyli: ei sivuvirheitä, ei vaakavieritystä`, errs.length === 0 && await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), errs.join(" | "));

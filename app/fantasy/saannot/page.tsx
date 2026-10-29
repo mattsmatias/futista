@@ -37,6 +37,7 @@ export default async function Page() {
             <li>Enintään {RULES.clubMax} pelaajaa samasta seurasta.</li>
             <li>Avauskokoonpanossa 11 pelaajaa: 1 maalivahti, vähintään {RULES.xiMin.DEF} puolustajaa, {RULES.xiMin.MID} keskikenttäpelaajaa ja {RULES.xiMin.FWD} hyökkääjä. Penkillä 4 pelaajaa järjestyksessä; ensimmäinen on vaihtomaalivahti.</li>
             <li>Valitse kapteeni ja varakapteeni avauskokoonpanosta.</li>
+            <li>Ensimmäinen joukkue tallentuu automaattisesti heti, kun se on sääntöjen mukainen. Myöhemmät siirrot ja muutokset vahvistetaan Tallenna joukkue -painikkeella. Keskeneräinen joukkue säilyy luonnoksena laitteellasi, vaikka sivulta poistuisi.</li>
             <li>Paina pelaajaa: tiedot, kapteeni, vaihto penkin ja avauksen välillä tai siirto.</li>
             <li>Pidä pelaajakorttia pohjassa ja vedä se toisen kortin päälle: saman pelipaikan pelaajat vaihtavat paikkaa avauksen ja penkin välillä tai avauksen sisällä (maalivahti maalivahdin, puolustaja puolustajan jne.). Penkin järjestystä voi muuttaa vetämällä; ensimmäinen vaihtopaikka on aina vaihtomaalivahdin.</li>
             <li>Pelaajien pelipaikat perustuvat otteluiden kokoonpanotietoihin ja pysyvät joukkueessa samana koko kierroksen.</li>

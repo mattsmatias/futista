@@ -28,6 +28,9 @@ export type Comp = { id: string; name: string; af: number; season: number; leagu
 export const TOP5: League[] = [
   { af: 39, season: 2026, name: "Valioliiga" }, { af: 140, season: 2026, name: "La Liga" }, { af: 78, season: 2026, name: "Bundesliga" },
   { af: 135, season: 2026, name: "Serie A" }, { af: 61, season: 2026, name: "Ligue 1" },
+  // Turkin Süper Lig lisätty 29.10.2026 (käyttäjän päätös). Pelaajat haetaan seuraavassa päivityksessä (puuttuva sarja → haku);
+  // aiemmilta kierroksilta ei pisteitä, kuten muillakin kesken kauden mukaan tulevilla.
+  { af: 203, season: 2026, name: "Süper Lig" },
 ];
 export const COMPS: Comp[] = [
   // yksi yhteinen peli: pelaajat viidestä isosta sarjasta, kierros = viikko (käyttäjän valinta 27.10.2026)

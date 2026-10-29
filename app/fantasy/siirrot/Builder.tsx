@@ -2,7 +2,7 @@
 // Joukkueen rakentaminen ja siirrot: pelaajalista suodattimineen, kenttä, budjetti, sääntövirheet selkokielellä,
 // siirtojen ja pistevähennyksen näyttö ennen vahvistusta. Palvelin tarkistaa kaiken uudelleen tallennettaessa.
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, useLoad, errText, fmtM, fmtMText, roundFx, type FRoundFx, type FPlayersResp, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
 import { Money } from "../Coin";
@@ -11,6 +11,25 @@ import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Over
 
 type Draft = Picks;
 const EMPTY: Draft = { squad: [], xi: [], bench: [], captain: 0, vice: 0 };
+// Keskeneräinen joukkue säilyy laitteella (localStorage), ettei valittu kokoonpano katoa sivulta poistuttaessa tai
+// sivun päivittyessä. Luonnos koskee vain tilannetta, josta se tehtiin (base = tallennettu joukkue): jos joukkue on
+// sillä välin tallennettu muualla, vanha luonnos hylätään. Selaimen tallennustila voi puuttua → toimii ilman sitä.
+const draftKey = (user: string, comp: string, round: number) => `fx-draft:${user}:${comp}:${round}`;
+function readDraft(key: string, base: string, ok: (id: number) => boolean): Draft | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const x = JSON.parse(raw);
+    const p = x?.picks;
+    if (x?.v !== 1 || x.base !== base || !p || !Array.isArray(p.squad) || !Array.isArray(p.xi) || !Array.isArray(p.bench)) { localStorage.removeItem(key); return null; }
+    const ids = [...p.squad, ...p.xi, ...p.bench];
+    if (!ids.every((id: unknown) => typeof id === "number" && ok(id)) || p.squad.length > RULES.squadSize) { localStorage.removeItem(key); return null; }
+    return { squad: p.squad, xi: p.xi, bench: p.bench, captain: Number(p.captain) || 0, vice: Number(p.vice) || 0 };
+  } catch { return null; }
+}
+const writeDraft = (key: string, base: string, picks: Draft | null) => {
+  try { if (picks) localStorage.setItem(key, JSON.stringify({ v: 1, base, picks })); else localStorage.removeItem(key); } catch { /* tallennustila ei käytössä */ }
+};
 
 export function Builder() {
   const st = useLoad<FState>("/api/fantasy/tila");
@@ -31,8 +50,24 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
   const players = useMemo(() => new Map(list.map((p) => [p.id, p])), [list]);
   const asF = players as unknown as Map<number, FPlayer>;
   const saved = t.picks ?? EMPTY;
+  const savedJson = JSON.stringify(saved);
+  const next0 = s.next!;
+  const dKey = draftKey(s.user!.username, s.comp.id, next0);
+  const [restored, setRestored] = useState(false);
   const [d, setD] = useState<Draft>(saved);
-  useEffect(() => { setD(t.picks ?? EMPTY); }, [t.picks]);
+  // luonnos palautetaan selaimessa (ei palvelinrenderöinnissä)
+  useEffect(() => {
+    const r = readDraft(dKey, savedJson, (id) => players.has(id));
+    if (r && JSON.stringify(r) !== savedJson) { setD(r); setRestored(true); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // automaattitallennuksen jälkeen palvelimen joukkue päivittyy; jos käyttäjä ehti muuttaa luonnosta, muutos säilyy
+  const sentRef = useRef<string | null>(null);
+  const firstRef = useRef(true);
+  useEffect(() => {
+    if (firstRef.current) { firstRef.current = false; return; } // ensimmäisellä kerralla ei ohiteta palautettua luonnosta
+    setD((cur) => (sentRef.current !== null && JSON.stringify(cur) !== sentRef.current ? cur : t.picks ?? EMPTY));
+    sentRef.current = null;
+  }, [t.picks]);
   const [sel, setSel] = useState<number | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string; list?: string[] } | null>(null);
@@ -48,7 +83,7 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
     if (!p || !(t.picks?.squad ?? []).includes(id)) return;
     setD((x) => arrange({ ...x, squad: x.squad.filter((y) => y !== id) }, asF));
     setPosHint(p.pos);
-    setOutNote(`${p.name} poistettu luonnoksesta. Valitse tilalle ${POS_LONG[p.pos].toLowerCase()}. Muutos tallentuu vasta, kun vahvistat joukkueen.`);
+    setOutNote(`${p.name} poistettu luonnoksesta. Valitse tilalle ${POS_LONG[p.pos].toLowerCase()}. Muutos tallentuu joukkueeseen, kun vahvistat sen.`);
     try { history.replaceState(history.state, "", location.pathname); } catch { /* ei historiaa */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const budget = s.comp.budget;
@@ -63,7 +98,13 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
   const made = t.base ? transfersBetween(t.base.squad, d.squad) : 0;
   const free = t.free === null ? Infinity : t.free;
   const hit = transferCost(made, free);
-  const changed = JSON.stringify(d) !== JSON.stringify(saved);
+  const changed = JSON.stringify(d) !== savedJson;
+  useEffect(() => { writeDraft(dKey, savedJson, changed ? d : null); }, [d, savedJson, changed, dKey]);
+  // Automaattinen tallennus palvelimelle: vain joukkuetta rakennettaessa (ei vielä lukittua joukkuetta → siirrot ovat
+  // vapaita eikä pistevähennystä voi tulla). Myöhemmät siirrot vahvistetaan itse, ettei pisteitä menetetä vahingossa.
+  const autoOk = !t.base && full && errors.length === 0 && changed && hit === 0;
+  const [auto, setAuto] = useState<"idle" | "saving" | "saved">("idle");
+  const failedRef = useRef<string | null>(null);
 
   const why = (p: FPlayerRow): string | null => {
     if (d.squad.includes(p.id)) return "Valittu";
@@ -87,16 +128,30 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
     return { ...x, bench: b };
   });
 
-  const save = async () => {
-    setBusy(true); setMsg(null);
+  const save = async (isAuto = false) => {
+    const sent = JSON.stringify(d);
+    setBusy(true); setMsg(null); if (isAuto) setAuto("saving");
     const r = await api<{ made: number; cost: number }>("/api/fantasy/joukkue", { action: "save", round: next.no, version: t.version, picks: d, cost: hit });
     setBusy(false); setConfirm(false);
-    if (r.ok) { setOutNote(null); setMsg({ kind: "ok", text: `Joukkue tallennettu kierrokselle ${roundNum(s, next.no)}.${r.data.made ? ` Siirtoja ${r.data.made}.` : ""}${r.data.cost ? ` Pistevähennys ${r.data.cost} p.` : ""}` }); reload(); try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch { /* vanha selain */ } return; }
+    if (r.ok) {
+      writeDraft(dKey, savedJson, null); setRestored(false); setOutNote(null); sentRef.current = sent;
+      if (isAuto) setAuto("saved");
+      else { setAuto("idle"); setMsg({ kind: "ok", text: `Joukkue tallennettu kierrokselle ${roundNum(s, next.no)}.${r.data.made ? ` Siirtoja ${r.data.made}.` : ""}${r.data.cost ? ` Pistevähennys ${r.data.cost} p.` : ""}` }); try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch { /* vanha selain */ } }
+      reload(); return;
+    }
+    if (isAuto) { setAuto("idle"); failedRef.current = sent; } // ei yritetä samaa uudelleen silmukassa
     if (r.err.error === "rules") setMsg({ kind: "error", text: "Joukkue ei täytä sääntöjä:", list: (r.err.errors ?? []).map((e: any) => e.text) });
     else if (r.err.error === "cost") setMsg({ kind: "error", text: `Pistevähennys on ${r.err.cost} p (${r.err.made} siirtoa). Tarkista ja vahvista uudelleen.` });
     else setMsg({ kind: "error", text: errText(r.err) });
     if (r.err.error === "deadline" || r.err.error === "conflict") reload();
   };
+
+  useEffect(() => {
+    if (!autoOk || busy || sentRef.current !== null || failedRef.current === JSON.stringify(d)) return; // tallennettu, odottaa päivitystä
+    const id = window.setTimeout(() => { save(true); }, 1200);
+    return () => window.clearTimeout(id);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (changed && auto === "saved" && sentRef.current === null) setAuto("idle"); });
 
   const selP = sel !== null ? players.get(sel) : undefined;
   const inSquad = sel !== null && d.squad.includes(sel);
@@ -131,6 +186,7 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
       {errors.length > 0 && (
         <Notice kind="warn"><p><b>Korjattavaa ennen tallennusta:</b></p><ul>{errors.map((e) => <li key={e.code + e.text}>{e.text}</li>)}</ul></Notice>
       )}
+      {restored && changed && !msg && !outNote && <Notice role="status">Keskeneräinen joukkueesi palautettiin tältä laitteelta.</Notice>}
       {outNote && !msg && <Notice kind="warn" role="status">{outNote}</Notice>}
       {msg && <Notice kind={msg.kind} role={msg.kind === "error" ? "alert" : "status"}><p>{msg.text}</p>{msg.list && <ul>{msg.list.map((x) => <li key={x}>{x}</li>)}</ul>}</Notice>}
       <div className="fx-build">
@@ -139,8 +195,17 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
             badge={(id) => { const p = players.get(id); return p ? { text: fmtM(p.price), tone: "price" } : null; }} />
           <div className="fx-row">
             <button type="button" className="btn" disabled={!full || errors.length > 0 || !changed || busy} onClick={() => setConfirm(true)}>Tallenna joukkue</button>
-            {changed && <button type="button" className="btn ghost" onClick={() => { setD(saved); setMsg(null); }}>Peru muutokset</button>}
+            {changed && <button type="button" className="btn ghost" onClick={() => { setD(saved); setMsg(null); setRestored(false); failedRef.current = null; }}>Peru muutokset</button>}
           </div>
+          <p className="fx-autosave muted small" role="status">
+            {auto === "saving" ? "Tallennetaan…"
+              : auto === "saved" && !changed ? "✓ Joukkue tallennettu automaattisesti."
+              : !changed ? ""
+              : autoOk ? "Tallennetaan automaattisesti…"
+              : !t.base && !full ? `Luonnos tallessa tällä laitteella. Joukkue tallentuu automaattisesti, kun kaikki ${RULES.squadSize} pelaajaa on valittu.`
+              : !t.base ? "Luonnos tallessa tällä laitteella. Korjaa yllä olevat kohdat, niin joukkue tallentuu."
+              : "Luonnos tallessa tällä laitteella. Vahvista muutokset Tallenna joukkue -painikkeella."}
+          </p>
         </div>
         <PlayerList list={list} why={why} onPick={setSel} picked={d.squad} leagues={s.comp.leagues} round={round} roundLabel={round ? roundName(s, round.no) : null} posHint={posHint} />
       </div>
@@ -171,7 +236,7 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
               );
             })()}
             <div className="fx-card-actions">
-              <button type="button" className="btn" onClick={save} disabled={busy}>{busy ? "Tallennetaan…" : "Vahvista"}</button>
+              <button type="button" className="btn" onClick={() => save()} disabled={busy}>{busy ? "Tallennetaan…" : "Vahvista"}</button>
               <button type="button" className="btn ghost" onClick={() => setConfirm(false)}>Peruuta</button>
             </div>
           </div>
