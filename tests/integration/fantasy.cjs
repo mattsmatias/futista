@@ -227,7 +227,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   Hinnat: korteissa hinta kolikkona, selite "Hinnat"`, (await page.locator(".fx-pitch .fxc-val.price").count()) === 11 && /Hinnat/.test(await page.locator(".fx-legend").innerText()));
     await page.locator(".fx-modes button", { hasText: "Ottelut" }).click();
     const fxv = await page.locator(".fx-pitch .fxc-val").allInnerTexts();
-    ok(`${w}px:   Ottelut: seuraavan kierroksen vastustaja (k/v), selite kertoo kierroksen`, fxv.length === 11 && fxv.every((x) => /\((k|v)\)$|ottelua|Ei ottelua/.test(x)) && /Kierros 3 · vastustajat/.test(await page.locator(".fx-legend").innerText()) && /\(k\) kotiottelu/.test(await page.locator(".fx-legend-note").innerText()), fxv.slice(0, 3).join(" | "));
+    ok(`${w}px:   Ottelut: seuraavan kierroksen vastustaja (k/v), selite kertoo kierroksen`, fxv.length === 11 && fxv.every((x) => /\((k|v)\)$|ottelua|Ei ottelua/.test(x)) && /Kierros 3 · vastustajat/.test(await page.locator(".fx-legend").innerText()) && (await page.locator(".fx-legend-note").count()) === 0, fxv.slice(0, 3).join(" | ")); // (k)/(v)-selite Säännöissä
     // pelaajan tietonäkymä: kierroksen ottelut, toiminnot; penkkipelaaja ei voi olla kapteeni (syy näkyy)
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/koti-ottelut-${w}.png` }).catch(() => {});
     await page.locator(".fx-bench .fxc").nth(1).click();
