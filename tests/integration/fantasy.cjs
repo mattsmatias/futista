@@ -410,6 +410,35 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px: ei sivuvirheitä`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
+  // ---------- tietokone (1280 px) ja näppäimistö ----------
+  {
+    const dctx = await browser.newContext({ locale: "fi-FI", viewport: { width: 1280, height: 900 } });
+    await dctx.addCookies([{ name: "ff_s", value: A.cookie.replace(/^ff_s=/, ""), url: APP }]);
+    const dp = await dctx.newPage();
+    const derr = []; dp.on("pageerror", (e) => derr.push(String(e)));
+    await dp.goto(`${APP}/fantasy`, { waitUntil: "load" });
+    await dp.waitForSelector(".fx-pitch .fxc", { timeout: 15000 }).catch(() => {});
+    const dov = await dp.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    const tabsBox = await dp.locator(".fxg-tabs").boundingBox();
+    const lastBottom = await dp.evaluate(() => { const els = [...document.querySelectorAll("main.fx > *")]; return Math.max(...els.map((e) => e.getBoundingClientRect().bottom + scrollY)); });
+    ok("tietokone 1280 px: kenttä ja kortit näkyvät, ei vaakavieritystä, alavalikko ei peitä sisältöä lopussa", (await dp.locator(".fx-pitch .fxc").count()) === 11 && dov <= 0 && !!tabsBox && await dp.evaluate((lb) => { scrollTo(0, document.body.scrollHeight); return true; }, lastBottom), `${dov}`);
+    await dp.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+    await dp.waitForTimeout(300);
+    const pad = await dp.evaluate(() => { const m = document.querySelector("main.fx"); const last = [...m.children].filter((e) => e.getBoundingClientRect().height > 0).pop(); return { lastB: last.getBoundingClientRect().bottom, tabsT: document.querySelector(".fxg-tabs").getBoundingClientRect().top }; });
+    ok("  viimeinen sisältö jää alavalikon yläpuolelle", pad.lastB <= pad.tabsT + 1, JSON.stringify(pad));
+    if (process.env.SHOTS) await dp.screenshot({ path: `${process.env.SHOTS}/koti-1280.png` }).catch(() => {});
+    // näppäimistö: kortti kohdistetaan ja avataan Enterillä, suljetaan Escillä; kohdistus palaa korttiin
+    await dp.evaluate(() => scrollTo(0, 0));
+    await dp.locator(".fx-pitch .fxc").first().focus();
+    await dp.keyboard.press("Enter");
+    const opened = (await dp.locator(".fx-pcard[role=dialog]").count()) === 1;
+    const focusIn = await dp.evaluate(() => !!document.activeElement?.closest(".fx-pcard"));
+    await dp.keyboard.press("Escape");
+    const back = await dp.evaluate(() => document.activeElement?.classList.contains("fxc"));
+    ok("  näppäimistö: Enter avaa pelaajan, kohdistus ikkunaan, Esc sulkee ja palauttaa kohdistuksen korttiin", opened && focusIn && back && (await dp.locator(".fx-pcard").count()) === 0, JSON.stringify({ opened, focusIn, back }));
+    ok("  ei sivuvirheitä (tietokone)", derr.length === 0, derr.join(" | "));
+    await dctx.close();
+  }
   // ---------- tili kotivalikon sovelluksessa: avausnäkymä (kirjaudu / luo tili / vieraana) ----------
   const STANDALONE = () => {
     const mm = window.matchMedia.bind(window);

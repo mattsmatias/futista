@@ -2496,3 +2496,10 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fx-form { white-space: nowrap; flex: none; }
 .fx-legend { min-width: 0; }
 .fx-legend-note { margin: -4px 0 0; }
+/* Fantasy: tiiviimpi pystyrytmi; kenttä ei veny leveällä näytöllä */
+.fxg main.fx { gap: 14px; }
+.fx-pitch-wrap { width: 100%; max-width: 680px; margin-inline: auto; }
+@media (min-width: 900px) { .fx-teamhead, .fx-kpi3, .fx-deadline, .fx-modes, .fx-home-actions, .fx-legend-note { width: 100%; max-width: 680px; margin-inline: auto; } }
+.fx-build .fx-pitch-wrap { max-width: none; }
+.fxg main.fx > p { margin: 0; }
+@media (min-width: 900px) { .fxg main.fx:has(.fx-teamhead) > * { width: 100%; max-width: 680px; margin-inline: auto; } }
