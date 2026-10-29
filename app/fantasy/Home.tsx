@@ -38,7 +38,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
   const next = s.rounds.find((r) => r.no === s.next);
   return (
     <section className="panel" aria-labelledby="fx-new-h">
-      <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2><Logout /></div>
+      <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2></div>
       <form className="adv-form pad" onSubmit={submit}>
         <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti <Money v={s.comp.budget} />, 15 pelaajaa.</p>
         {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}. Aiemmilta kierroksilta ei saa pisteitä.</p>}
@@ -53,10 +53,6 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
   );
 }
 
-export function Logout() {
-  const [busy, setBusy] = useState(false);
-  return <button type="button" className="btn sm ghost" disabled={busy} onClick={async () => { setBusy(true); await api("/api/fantasy/tili", { action: "logout" }); location.href = "/fantasy"; }}>Kirjaudu ulos</button>;
-}
 
 type Mode = "pts" | "fx" | "price";
 const shortTeam = (n: string) => { const w = n.replace(/^(FC|AC|AS|SC|SV|VfB|VfL|RC|CF|SS|US|1\.)\s+/i, ""); return w.length <= 10 ? w : w.split(" ")[0].length <= 10 ? w.split(" ")[0] : `${w.slice(0, 9)}.`; };
@@ -192,7 +188,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
 
       {t.joined_late && <p className="muted small">Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {roundNum(s, t.first_round)} alkaen.</p>}
       {t.invite && <InviteCard code={t.invite} teamName={t.name} />}
-      <div className="fx-home-foot"><DataStatus updated={s.data.updated} stale={s.data.stale} /><Logout /></div>
+      <div className="fx-home-foot"><DataStatus updated={s.data.updated} stale={s.data.stale} /></div>
       {selP && <PlayerCard p={selP} onClose={() => setSel(null)} actions={actions} swaps={swaps} note={mode !== "pts" ? undefined : lockedNote ?? undefined}
         roundFx={next ? { label: roundName(s, next.no), list: fxOf(selP.id) } : undefined}
         extra={mode === "pts" ? <RoundItems row={ptsOf(selP.id)} /> : null} />}

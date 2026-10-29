@@ -257,6 +257,17 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     ok(`${w}px:   seuraavan kierroksen määräaika ja laskuri`, /Kierros 3 · määräaika/.test(kp), kp);
     await page.locator(".fx-pitch .fxc").first().click();
     ok(`${w}px:   pelaajakortti avautuu ja sulkeutuu Escillä`, (await page.locator(".fx-card[role=dialog]").count()) === 1 && (await page.keyboard.press("Escape"), (await page.locator(".fx-card").count()) === 0));
+    // uloskirjautuminen vain Futistan asetuksissa (myös selaimessa), ei fantasyn sivuilla
+    ok(`${w}px:   fantasyssa ei Kirjaudu ulos -nappia`, (await page.locator("main button", { hasText: "Kirjaudu ulos" }).count()) === 0);
+    {
+      const sp = await ctx.newPage();
+      await sp.goto(`${APP}/tietoa`, { waitUntil: "load" });
+      await sp.locator(".set-btn").click();
+      await sp.waitForSelector(".set-menu .acc-who", { timeout: 8000 }).catch(() => {});
+      const sm = (await sp.locator(".set-menu").innerText().catch(() => "")).replace(/\s+/g, " ");
+      ok(`${w}px:   selaimen Futista-asetuksissa tili: kirjautunut tunnus ja Kirjaudu ulos`, /Kirjautunut:\s*pelaaja_a/.test(sm) && (await sp.locator(".set-menu button", { hasText: "Kirjaudu ulos" }).count()) === 1, sm.slice(0, 200));
+      await sp.close();
+    }
     // kutsulinkki: oma linkki näkyy, avautuu kirjautumattomalle tervetulotiedotteena ja tilin luonnilla
     const invUrl = await page.locator(".fx-inv-url").inputValue().catch(() => "");
     ok(`${w}px: Kutsu kaveri – oma kutsulinkki (allekirjoitettu koodi) ja Kopioi-nappi`, /\/fantasy\?kutsu=[0-9a-z]+-[A-Za-z0-9_-]{12}$/.test(invUrl) && (await page.locator(".fx-invite button", { hasText: "Kopioi linkki" }).count()) === 1, invUrl);
