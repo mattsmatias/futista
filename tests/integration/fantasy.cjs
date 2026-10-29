@@ -242,6 +242,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.locator(".fx-pitch .fxc").nth(cand).click();
     await page.locator(".fx-pcard").getByRole("button", { name: /^Kapteeni/ }).click();
     await page.waitForSelector(".fx-note.fx-ok", { timeout: 8000 }).catch(() => {});
+    await page.locator(".fx-pitch .fxc").nth(cand).locator(".fxc-cap.c").waitFor({ timeout: 5000 }).catch(() => {}); // merkki päivittyy tallennuksen jälkeen
     const capNow = (await A.call("/api/fantasy/tila")).j.team?.picks?.captain;
     const capName = await page.locator(".fx-note.fx-ok").innerText().catch(() => "");
     ok(`${w}px:   kapteenin vaihto Oma joukkue -näkymästä tallentuu (palaute näkyy)`, /on kapteeni/.test(capName) && capNow && (await page.locator(".fx-pitch .fxc").nth(cand).locator(".fxc-cap.c").count()) === 1, `${capName} ${capNow}`);
