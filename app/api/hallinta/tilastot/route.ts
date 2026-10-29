@@ -16,7 +16,9 @@ export async function GET(req: Request) {
     if (!isAdmin(u.username)) return fail("notfound", 404);
     const days = [7, 30, 90, 365].includes(Number(new URL(req.url).searchParams.get("days"))) ? Number(new URL(req.url).searchParams.get("days")) : 30;
     const to = helDay(), from = helDay(Date.parse(`${to}T12:00:00Z`) - (days - 1) * 86400_000);
-    const s = await rpc<any>("s_stats", { p_from: from, p_to: to });
-    return j({ ...s, from, to, range: days });
+    // edellinen yhtä pitkä jakso vertailuun (vain kokonaisluvut)
+    const pTo = helDay(Date.parse(`${from}T12:00:00Z`) - 86400_000), pFrom = helDay(Date.parse(`${pTo}T12:00:00Z`) - (days - 1) * 86400_000);
+    const [s, p] = await Promise.all([rpc<any>("s_stats", { p_from: from, p_to: to }), rpc<any>("s_stats", { p_from: pFrom, p_to: pTo })]);
+    return j({ ...s, from, to, range: days, prev: { from: pFrom, to: pTo, totals: p?.totals ?? { visitors: 0, views: 0 } }, at: new Date().toISOString() });
   } catch (e) { return dbFail(e); }
 }

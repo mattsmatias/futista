@@ -83,21 +83,38 @@ const stats = (cookie, days = 30) => fetch(`${APP}/api/hallinta/tilastot?days=${
     await pg.goto(`${APP}/hallinta`, { waitUntil: "load" });
     await pg.waitForSelector(".adm-kpis, .adm-note, #fx-u", { timeout: 15000 }).catch(() => {});
     if (name === "admin") {
+      await pg.evaluate(() => { try { localStorage.removeItem("adm-range"); } catch {} });
       const kpi = (await pg.locator(".adm-kpis").innerText().catch(() => "")).replace(/\s+/g, " ");
-      const srcs = await pg.locator(".adm-bars .adm-lbl").allInnerTexts();
-      const rows = await pg.locator(".adm-table tbody tr").count();
-      const ov = await pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      const fit = await pg.evaluate(() => ({ seg: [...document.querySelectorAll(".adm-head .seg button")].every((b) => b.scrollWidth <= b.clientWidth + 1), tbl: (() => { const w = document.querySelector(".adm-tablewrap"); return w ? w.scrollWidth - w.clientWidth : 99; })() }));
-      ok("  puhelin: aikavälinapit mahtuvat, päivätaulukko ei vieritä sivusuunnassa", fit.seg && fit.tbl <= 0, JSON.stringify(fit));
-      ok("paneeli (390 px): luvut, lähteet, 30 päivän taulukko, ei vaakavieritystä", /Kävijät tänään/.test(kpi) && srcs.includes("Instagram") && srcs.includes("Google") && rows === 30 && ov <= 0, `${kpi} | ${srcs} | ${rows} | ${ov}`);
-      await pg.locator(".seg button", { hasText: "7 pv" }).click();
-      await pg.waitForFunction(() => document.querySelectorAll(".adm-table tbody tr").length === 7, null, { timeout: 8000 }).catch(() => {});
-      ok("  aikaväli 7 pv → 7 riviä ja 7 pylvästä", (await pg.locator(".adm-table tbody tr").count()) === 7 && (await pg.locator(".adm-bar").count()) === 7);
-      await pg.locator(".adm-bar").last().click();
-      ok("  pylvästä painamalla päivän tiedot ja lähteet", /kävijää/.test(await pg.locator(".adm-sel").innerText().catch(() => "")));
+      const srcs = await pg.locator(".adm-src .adm-src-t > b").allInnerTexts();
+      const fit = await pg.evaluate(() => ({ seg: [...document.querySelectorAll(".adm-range button")].every((b) => b.scrollWidth <= b.clientWidth + 1), ov: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        kpiCols: new Set([...document.querySelectorAll(".adm-kpi")].map((e) => Math.round(e.getBoundingClientRect().left))).size,
+        taps: [...document.querySelectorAll(".adm-range button, .adm-refresh")].every((e) => e.getBoundingClientRect().height >= 40) }));
+      ok("paneeli (390 px): Tänään/Eilen/jakso + vertailu, lähteet, 2×2-luvut, isot napit, ei vaakavieritystä", /Tänään/.test(kpi) && /Eilen/.test(kpi) && /[▲▼•]|uusi/.test(kpi) && srcs.includes("Instagram") && srcs.includes("Google") && fit.seg && fit.ov <= 0 && fit.kpiCols === 2 && fit.taps, `${kpi} | ${srcs} | ${JSON.stringify(fit)}`);
+      const rows30 = await pg.locator(".adm-days li").count();
+      await pg.locator(".adm-more").click().catch(() => {});
+      ok("  päivälista: tyhjät vanhat päivät tiivistetty, Näytä kaikki → 30 päivää", rows30 < 30 && (await pg.locator(".adm-days li").count()) === 30, String(rows30));
+      ok("  30 pv: 30 pylvästä, valittuna tänään", (await pg.locator(".adm-bar").count()) === 30 && (await pg.locator(".adm-bar.on.now").count()) === 1);
+      await pg.locator(".adm-range button", { hasText: "7 pv" }).click();
+      await pg.waitForFunction(() => document.querySelectorAll(".adm-bar").length === 7, null, { timeout: 8000 }).catch(() => {});
+      ok("  aikaväli 7 pv → 7 pylvästä ja 7 päivää", (await pg.locator(".adm-bar").count()) === 7 && (await pg.locator(".adm-days li").count()) === 7);
+      await pg.locator(".adm-bar").first().click();
+      ok("  pylvästä painamalla valitun päivän luvut", (await pg.locator(".adm-bar").first().getAttribute("aria-pressed")) === "true" && /kävijää/.test(await pg.locator(".adm-pick").innerText()));
+      await pg.locator(".adm-range button", { hasText: "90 pv" }).click();
+      await pg.waitForFunction(() => /viikoittain/.test(document.querySelector("#adm-chart-h")?.textContent ?? ""), null, { timeout: 8000 }).catch(() => {});
+      const wk = await pg.locator(".adm-bar").count();
+      ok("  90 pv → viikoittain (13–14 pylvästä), 1 v → kuukausittain", wk >= 13 && wk <= 14 && await (async () => { await pg.locator(".adm-range button", { hasText: "1 v" }).click(); await pg.waitForFunction(() => /kuukausittain/.test(document.querySelector("#adm-chart-h")?.textContent ?? ""), null, { timeout: 8000 }).catch(() => {}); const m = await pg.locator(".adm-bar").count(); return m >= 12 && m <= 13; })(), String(wk));
+      await pg.reload({ waitUntil: "load" });
+      await pg.waitForSelector(".adm-kpis", { timeout: 15000 }).catch(() => {});
+      ok("  valittu aikaväli muistetaan", (await pg.locator(".adm-range button.on").innerText().catch(() => "")) === "1 v");
       const robots = await pg.evaluate(() => document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "");
       ok("  ei hakukoneisiin (noindex)", /noindex/.test(robots), robots);
-      if (process.env.SHOTS) await pg.screenshot({ path: `${process.env.SHOTS}/hallinta-390.png`, fullPage: true }).catch(() => {});
+      await pg.locator(".adm-range button", { hasText: "30 pv" }).click();
+      await pg.waitForFunction(() => document.querySelectorAll(".adm-bar").length === 30, null, { timeout: 8000 }).catch(() => {});
+      if (process.env.SHOTS) {
+        await pg.screenshot({ path: `${process.env.SHOTS}/hallinta-390.png` }).catch(() => {});
+        await pg.evaluate(() => window.scrollTo(0, 700)); await sleep(300);
+        await pg.screenshot({ path: `${process.env.SHOTS}/hallinta-390-b.png` }).catch(() => {});
+      }
     } else if (name === "user") {
       ok("paneeli: tavallinen käyttäjä → ei pääsyä, ei lukuja", (await pg.locator(".adm-note").innerText().catch(() => "")).includes("ei ole pääsyä") && (await pg.locator(".adm-kpis").count()) === 0);
     } else {

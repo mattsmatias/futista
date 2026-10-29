@@ -2175,58 +2175,84 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 :root:has(.fxg) .fx-padd.is-off { background: rgba(160, 185, 255, .06); color: #6f7d9c; border-color: rgba(160, 185, 255, .16); box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .fx-padd { transition: none; } }
 
-/* Hallintapaneeli (/hallinta): kävijät päivittäin ja lähteet */
-.adm { display: grid; gap: 14px; padding-top: 16px; padding-bottom: 40px; }
-.adm-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.adm-head h1 { margin: 0; font: 800 24px/1.1 var(--display); letter-spacing: -.02em; }
-.adm-head .seg { margin-left: auto; }
-.adm-note { padding: 16px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); margin: 0; }
-.adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px; }
-.adm-kpis div { display: grid; gap: 4px; padding: 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
-.adm-kpis span { font-size: 12.5px; color: var(--muted); font-weight: 600; }
-.adm-kpis b { font: 800 28px/1 var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.adm-kpis small { color: var(--muted); font-size: 12px; }
-.adm-sec .panel-head h2 { margin: 0; font: 700 16px/1.2 var(--display); }
-.adm-chart { display: flex; align-items: flex-end; gap: 2px; height: 170px; padding: 14px 14px 0; }
-.adm-bar { flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 4px 4px 0 0; }
-.adm-bar i { display: block; width: 100%; border-radius: 4px 4px 0 0; background: var(--pl, #3b82f6); opacity: .85; }
-.adm-bar:hover i, .adm-bar.on i { opacity: 1; box-shadow: 0 0 0 2px var(--fg) inset; }
-.adm-axis { display: flex; justify-content: space-between; padding: 6px 14px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
-.adm-sel { margin: 0; padding: 10px 14px 14px; font-size: 14px; border-top: 1px solid var(--line); }
-.adm-bars { list-style: none; margin: 0; padding: 8px 14px 12px; display: grid; gap: 4px; }
-.adm-bars li { display: grid; grid-template-columns: 12px minmax(90px, 150px) 1fr auto; align-items: center; gap: 10px; min-height: 36px; }
-.adm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1px var(--line); }
-.adm-lbl { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adm-track { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; min-width: 0; }
+
+
+
+/* Hallintapaneeli (/hallinta) – puhelin ensin */
+.adm { display: grid; gap: 12px; padding-top: 14px; max-width: 760px; }
+.adm-head { display: flex; align-items: center; gap: 12px; }
+.adm-title { flex: 1; min-width: 0; }
+.adm-title h1 { margin: 0; font: 800 26px/1.1 var(--display); letter-spacing: -.02em; }
+.adm-title p { margin: 3px 0 0; font-size: 13px; }
+.adm-refresh { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); flex: none; }
+.adm-refresh:active { transform: scale(.94); }
+.adm-refresh.spin svg { animation: adm-spin .8s linear infinite; }
+@keyframes adm-spin { to { transform: rotate(360deg); } }
+.adm-range { position: sticky; top: calc(var(--appbar-h, 56px) + env(safe-area-inset-top, 0px) + 6px); z-index: 5; margin: 0; width: 100%; max-width: none; flex: none; box-shadow: 0 6px 18px -12px rgba(0, 0, 0, .35); }
+.adm-range button { flex: 1; min-height: 40px; padding: 8px 4px; font-size: 14px; }
+.adm-note { padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); margin: 0; }
+.adm-skel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.adm-skel i { height: 92px; border-radius: 16px; background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: adm-sh 1.2s infinite linear; }
+@keyframes adm-sh { to { background-position: -200% 0; } }
+.adm-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (min-width: 700px) { .adm-kpis { grid-template-columns: repeat(4, 1fr); } }
+.adm-kpi { display: grid; gap: 3px; padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.adm-kpi span { font-size: 12.5px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-kpi b { font: 800 32px/1.05 var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.adm-kpi small { color: var(--muted); font-size: 12.5px; }
+.adm-kpi.hl { background: linear-gradient(135deg, color-mix(in srgb, var(--pl, #3b82f6) 16%, var(--surface)), var(--surface)); border-color: color-mix(in srgb, var(--pl, #3b82f6) 35%, var(--line)); }
+.adm-delta { font-weight: 700; }
+.adm-delta.up { color: var(--win, #16a34a) !important; }
+.adm-delta.down { color: #e5484d !important; }
+.adm-cmp { margin: -2px 2px 0; line-height: 1.45; }
+.adm-card { display: grid; gap: 10px; padding: 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.adm-card h2 { margin: 0; font: 700 17px/1.2 var(--display); }
+.adm-card > p { margin: 0; }
+.adm-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
+.adm-pick > b { font: 800 28px/1 var(--display); font-variant-numeric: tabular-nums; }
+.adm-pick > span { font-weight: 600; }
+.adm-pick small { flex-basis: 100%; color: var(--muted); font-size: 13px; }
+.adm-chart { position: relative; display: flex; align-items: flex-end; gap: 3px; height: 180px; padding-top: 14px; }
+.adm-chart.u-day { gap: 2px; }
+.adm-grid-l { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--line); pointer-events: none; }
+.adm-grid-l em { position: absolute; right: 0; top: -15px; font: 600 10.5px/1 var(--ui); font-style: normal; color: var(--muted); background: var(--surface); padding-left: 4px; }
+.adm-bar { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.adm-bar::before { content: ""; position: absolute; inset: 0 -1px; } /* isompi kosketusalue */
+.adm-bar i { display: block; width: 100%; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--pl, #3b82f6) 45%, var(--surface-2)); transition: background .15s; }
+.adm-bar.now i { background: color-mix(in srgb, var(--pl, #3b82f6) 70%, var(--surface-2)); }
+.adm-bar.on i { background: var(--pl, #3b82f6); }
+.adm-axis { display: flex; gap: 2px; margin-top: -4px; }
+.adm-axis span { flex: 1; min-width: 0; text-align: center; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: visible; }
+.adm-stack { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.adm-stack ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; }
+.adm-stack li { display: inline-flex; align-items: center; gap: 6px; }
+.adm-stackbar { display: flex; gap: 2px; height: 10px; border-radius: 6px; overflow: hidden; background: var(--surface-2); }
+.adm-stackbar.sm { height: 6px; }
+.adm-stackbar i { display: block; min-width: 3px; }
+.adm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.adm-src { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.adm-src li { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.adm-ico { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: #fff; font: 800 16px/1 var(--display); flex: none; text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+.adm-src-m { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.adm-src-t { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; }
+.adm-src-t > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-src-t span { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.adm-src-t small { color: var(--muted); }
+.adm-track { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
 .adm-track i { display: block; height: 100%; border-radius: 6px; }
-.adm-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.adm-num small, .adm-list small { color: var(--muted); font-weight: 500; }
-@media (max-width: 480px) { .adm-bars li { grid-template-columns: 12px 1fr auto; } .adm-track { grid-column: 2 / 4; grid-row: 2; } }
-.adm-tablewrap { overflow-x: auto; max-height: 460px; overflow-y: auto; }
-.adm-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-.adm-table th, .adm-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
-.adm-table thead th { position: sticky; top: 0; background: var(--surface); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; z-index: 1; }
-.adm-table tbody th { font-weight: 600; white-space: nowrap; }
-.adm-table td:nth-child(2), .adm-table td:nth-child(3) { text-align: right; width: 1%; white-space: nowrap; }
-.adm-srcs { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
-.adm-srcs span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.adm-srcs .adm-dot { width: 8px; height: 8px; }
-.adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
-.adm-list { list-style: none; margin: 0; padding: 6px 14px 10px; display: grid; }
-.adm-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; min-width: 0; }
-.adm-list li:last-child { border-bottom: 0; }
-.adm-list li > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.adm-days { list-style: none; margin: 0 -16px; padding: 0; }
+.adm-days li { display: grid; gap: 6px; padding: 11px 16px; border-top: 1px solid var(--line); }
+.adm-days li.zero { opacity: .55; }
+.adm-day-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14.5px; }
+.adm-day-top > span { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.adm-day-top > span b { color: var(--fg); font-size: 16px; }
+.adm-day-src { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.adm-more { justify-self: center; }
+.adm-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.adm-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); font-size: 14.5px; min-width: 0; }
+.adm-list li:first-child { border-top: 0; }
+.adm-list li > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; display: inline-flex; align-items: center; gap: 8px; }
 .adm-list b { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.adm-foot { margin: 0; line-height: 1.5; }
-@media (max-width: 560px) {
-  .adm-head .seg { margin-left: 0; width: 100%; flex: 1 1 100%; max-width: none; }
-  .adm-head .seg button { flex: 1; padding: 8px 6px; }
-  /* päivätaulukko puhelimella: päivä, kävijät ja lataukset rivillä, lähteet koko leveydeltä alla */
-  .adm-table thead th:nth-child(4) { display: none; }
-  .adm-table tbody tr { display: grid; grid-template-columns: 1fr auto auto; column-gap: 0; border-bottom: 1px solid var(--line); }
-  .adm-table thead tr { display: grid; grid-template-columns: 1fr auto auto; }
-  .adm-table tbody th, .adm-table tbody td { border-bottom: 0; }
-  .adm-table td:nth-child(2), .adm-table td:nth-child(3), .adm-table thead th:nth-child(2), .adm-table thead th:nth-child(3) { width: 88px; text-align: right; }
-  .adm-table td.adm-srcs { grid-column: 1 / -1; padding-top: 0; }
-  .adm-table td.adm-srcs:empty { display: none; }
-}
+.adm-list small { color: var(--muted); font-weight: 500; }
+.adm-foot { margin: 4px 2px 0; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { .adm-refresh.spin svg, .adm-skel i { animation: none; } }
