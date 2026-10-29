@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Money } from "./Coin";
 import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, roundName, useLoad, type FPlayerRow, type ApiErr, type FState } from "@/lib/fantasy-client";
 import type { Picks, Pos } from "@/lib/fantasy-core";
 
@@ -152,7 +153,7 @@ export function Pitch({ picks, players, badge, onSelect, label, empty }: {
     if (!p) return null;
     const b = badge(id);
     const role = id === picks.captain ? "C" : id === picks.vice ? "VC" : null;
-    const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.text}` : ""}`;
+    const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.text}${b.tone === "price" ? " kolikkoa" : ""}` : ""}`;
     const inner = (
       <>
         <span className="fx-tok-pic"><TokPic p={p} />{role && <em className={`fx-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
@@ -236,7 +237,7 @@ export function PlayerCard({ p, onClose, actions, swaps, extra }: { p: FPlayerRo
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Sulje">✕</button>
         </div>
         <dl className="fx-stats">
-          <div><dt>Hinta</dt><dd>{fmtM(p.price)}</dd></div>
+          <div><dt>Hinta</dt><dd><Money v={p.price} size={18} /></dd></div>
           <div><dt>Kausi</dt><dd>{p.season} p</dd></div>
           <div><dt>Viimeksi</dt><dd>{p.last === null || p.last === undefined ? "–" : `${p.last} p`}</dd></div>
           <div><dt>Minuutit</dt><dd>{p.minutes}</dd></div>

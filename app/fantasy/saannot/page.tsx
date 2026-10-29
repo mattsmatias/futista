@@ -5,7 +5,7 @@ import { DEFAULT_COMP, compLeagues } from "@/lib/fantasy-sync";
 export const dynamic = "force-dynamic";
 
 // Säännöt suoraan pelin vakioista (sama lähde kuin palvelimen tarkistuksilla ja pisteytyksellä)
-const m = (n: number) => `${n.toFixed(1).replace(".", ",")} M€`;
+const m = (n: number) => `${n.toFixed(1).replace(".", ",")} M kolikkoa`;
 
 export default function Page() {
   const weekly = !!DEFAULT_COMP.anchor;

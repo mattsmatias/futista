@@ -252,6 +252,8 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await page.locator(".fx-filters button", { hasText: /^Kaikki$/ }).click().catch(() => {});
     ok(`${w}px: Siirrot – lista, suodattimet, tila (1 siirto)`, (await page.locator(".fx-plist li").count()) > 10 && /1 \/ 1 ilmaista/.test(await page.locator(".fx-buildbar").innerText()), (await page.locator(".fx-buildbar").innerText()).replace(/\s+/g, " "));
     await shot(page, `siirrot-${w}`);
+    const coin = await page.evaluate(() => ({ bar: document.querySelectorAll(".fx-buildbar .fx-money svg.fx-coin").length, list: document.querySelectorAll(".fx-plist .fx-money svg.fx-coin").length, euro: /M€/.test(document.querySelector("main").innerText), aria: document.querySelector(".fx-plist .fx-money")?.getAttribute("aria-label") ?? "" }));
+    ok(`${w}px:   raha kolikkona (budjetti ja hinnat), ei euromerkkiä; ruudunlukijalle "M kolikkoa"`, coin.bar === 1 && coin.list > 5 && !coin.euro && /^\d+,\d M kolikkoa$/.test(coin.aria), JSON.stringify(coin));
     const ic = await page.evaluate(() => {
       const st = (c) => { const e = document.querySelector(`.fx-plist .fx-padd.${c}`); return e ? { bg: getComputedStyle(e).backgroundColor, svg: !!e.querySelector("svg"), txt: e.textContent } : null; };
       return { sel: st("is-sel"), off: st("is-off"), add: st("is-add"), legacy: document.querySelectorAll(".fx-plist .fx-padd.off").length };

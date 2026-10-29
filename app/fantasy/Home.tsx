@@ -7,6 +7,7 @@ import type { Picks } from "@/lib/fantasy-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
+import { Money } from "./Coin";
 import { InviteBanner, InviteCard, useInviteCode } from "./Invite";
 
 export function FantasyHome() {
@@ -37,7 +38,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
     <section className="panel" aria-labelledby="fx-new-h">
       <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2><Logout /></div>
       <form className="adv-form pad" onSubmit={submit}>
-        <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti {fmtM(s.comp.budget)}, 15 pelaajaa.</p>
+        <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti <Money v={s.comp.budget} />, 15 pelaajaa.</p>
         {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}. Aiemmilta kierroksilta ei saa pisteitä.</p>}
         <div className="adv-field">
           <label htmlFor="fx-tn">Joukkueen nimi</label>
@@ -89,7 +90,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
           <div><dt>{cur ? roundName(s, cur) : "Viimeisin kierros"}</dt><dd>{last ? `${last.total} p${last.provisional ? " (alustava)" : ""}` : "–"}</dd></div>
           <div><dt>Kausi yhteensä</dt><dd>{t.total} p</dd></div>
           <div><dt>Sijoitus</dt><dd>{t.rank ? `${t.rank.rank.toLocaleString("fi-FI")} / ${t.rank.of.toLocaleString("fi-FI")}` : "–"}</dd></div>
-          <div><dt>Budjettia jäljellä</dt><dd>{budgetLeft !== null ? fmtM(Math.round(budgetLeft * 10) / 10) : "–"}</dd></div>
+          <div><dt>Budjettia jäljellä</dt><dd>{budgetLeft !== null ? <Money v={Math.round(budgetLeft * 10) / 10} size={18} /> : "–"}</dd></div>
         </dl>
         <div className="fx-row"><Link className="btn" href="/fantasy/siirrot">{t.picks ? "Muokkaa joukkuetta ja siirrot" : "Valitse pelaajat"}</Link><Logout /></div>
       </section>

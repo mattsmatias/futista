@@ -34,7 +34,7 @@ export const POINTS = {
 export type RuleError = { code: string; text: string };
 const POS_FI: Record<Pos, [string, string]> = { GK: ["maalivahti", "maalivahtia"], DEF: ["puolustaja", "puolustajaa"], MID: ["keskikenttäpelaaja", "keskikenttäpelaajaa"], FWD: ["hyökkääjä", "hyökkääjää"] };
 export const posName = (p: Pos, n = 1) => (n === 1 ? POS_FI[p][0] : POS_FI[p][1]);
-const money = (n: number) => `${n.toFixed(1).replace(".", ",")} M€`;
+const money = (n: number) => `${n.toFixed(1).replace(".", ",")} M kolikkoa`;
 export const fmtPrice = money;
 export const round1 = (n: number) => Math.round(n * 10) / 10;
 

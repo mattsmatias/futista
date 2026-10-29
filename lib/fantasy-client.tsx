@@ -78,7 +78,10 @@ const DTF = new Intl.DateTimeFormat("fi-FI", { weekday: "short", day: "numeric",
 export const localTime = (iso: string) => DTF.format(new Date(iso));
 export const POS_SHORT: Record<Pos, string> = { GK: "MV", DEF: "P", MID: "KK", FWD: "H" };
 export const POS_LONG: Record<Pos, string> = { GK: "Maalivahti", DEF: "Puolustaja", MID: "Keskikenttäpelaaja", FWD: "Hyökkääjä" };
-export const fmtM = (n: number) => `${n.toFixed(1).replace(".", ",")} M€`;
+/** Pelin sisäinen valuutta (kolikot, miljoonina): näkyvä luku kolikkokuvakkeen vieressä */
+export const fmtM = (n: number) => `${n.toFixed(1).replace(".", ",")} M`;
+/** Sama tekstinä (ruudunlukija, ilmoitukset) */
+export const fmtMText = (n: number) => `${n.toFixed(1).replace(".", ",")} M kolikkoa`;
 
 /** Kierroksen näytettävä nimi ("Kierros 7"); viikkokierroksissa numero on juokseva, ei sisäinen viikkonumero */
 export const roundName = (s: Pick<FState, "rounds"> | null | undefined, no: number | null | undefined) =>

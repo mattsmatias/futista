@@ -2347,3 +2347,10 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .pp-tr-c { display: grid; gap: 4px; min-width: 0; }
 .pp-tr-t { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; font-weight: 600; }
 .pp-tr-c small { color: var(--muted); font-size: 12.5px; }
+
+/* Fantasy: pelivaluutta kolikkona (ei oikeaa rahaa) */
+.fx-money { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: -0.15em; }
+.fx-coin { flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .35)); }
+.fx-pnum .fx-money { justify-content: flex-end; }
+.fx-tok-b.price { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+.fx-tok-b.price::before { content: ""; width: 11px; height: 11px; flex: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12.6' r='10.6' fill='%23a86a00'/%3E%3Ccircle cx='12' cy='11.6' r='10.2' fill='%23f2b705'/%3E%3Ccircle cx='12' cy='11.6' r='8.6' fill='%23ffd23f'/%3E%3Ccircle cx='12' cy='11.6' r='7' fill='none' stroke='%23c98a00' stroke-width='1.1'/%3E%3Cpath d='M12 6.7l1.45 2.95 3.25.47-2.35 2.3.55 3.24L12 14.13l-2.9 1.53.55-3.24-2.35-2.3 3.25-.47z' fill='%23c98a00'/%3E%3C/svg%3E") center / contain no-repeat; }

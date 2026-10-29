@@ -3,8 +3,9 @@
 // siirtojen ja pistevähennyksen näyttö ennen vahvistusta. Palvelin tarkistaa kaiken uudelleen tallennettaessa.
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { api, useLoad, errText, fmtM, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
+import { api, useLoad, errText, fmtM, fmtMText, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
+import { Money } from "../Coin";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus, ActIcon, type CardAction, type CardSwaps } from "../ui";
 
 type Draft = Picks;
@@ -109,7 +110,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
       <section className="fx-buildbar" aria-label="Joukkueen tila">
         <div><span className="muted">{roundName(s, next.no)} · määräaika</span><b>{localTime(next.deadline)}</b></div>
         <div><span className="muted">Pelaajia</span><b>{d.squad.length} / {RULES.squadSize}</b></div>
-        <div><span className="muted">Budjettia jäljellä</span><b className={left < 0 ? "neg" : ""}>{fmtM(left)}</b></div>
+        <div><span className="muted">Budjettia jäljellä</span><b className={left < 0 ? "neg" : ""}><Money v={left} size={18} /></b></div>
         {t.base && <div><span className="muted">Siirrot</span><b>{made} / {free === Infinity ? "∞" : `${free} ilmaista`}</b></div>}
         {t.base && <div><span className="muted">Pistevähennys</span><b className={hit ? "neg" : ""}>{hit ? `−${hit} p` : "0 p"}</b></div>}
       </section>
@@ -137,7 +138,7 @@ function Editor({ s, list, reload }: { s: FState; list: FPlayerRow[]; reload: ()
             <dl className="facts fx-facts">
               <div><dt>Siirrot</dt><dd>{t.base ? `${made} (${free === Infinity ? "rajattomasti" : `${free} ilmaista`})` : "Vapaa rakentaminen"}</dd></div>
               <div><dt>Pistevähennys</dt><dd>{hit ? `−${hit} p` : "Ei vähennystä"}</dd></div>
-              <div><dt>Budjettia jäljellä</dt><dd>{fmtM(left)}</dd></div>
+              <div><dt>Budjettia jäljellä</dt><dd><Money v={left} /></dd></div>
               <div><dt>Kapteeni</dt><dd>{players.get(d.captain)?.name}</dd></div>
               <div><dt>Varakapteeni</dt><dd>{players.get(d.vice)?.name}</dd></div>
               <div><dt>Määräaika</dt><dd>{localTime(next.deadline)}</dd></div>
@@ -263,10 +264,10 @@ function PlayerList({ list, why, onPick, picked, leagues }: { list: FPlayerRow[]
           const w = why(p), sel = picked.includes(p.id);
           return (
             <li key={p.id} className={sel ? "sel" : w ? "off" : ""}>
-              <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}${multi && p.league_name ? `, ${p.league_name}` : ""}, ${fmtM(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
+              <button type="button" className="fx-prow-btn" onClick={() => onPick(p.id)} aria-label={`${p.name}, ${POS_LONG[p.pos]}, ${p.team}${multi && p.league_name ? `, ${p.league_name}` : ""}, ${fmtMText(p.price)}, ${p.season} pistettä${w ? `, ${w}` : ""}`}>
                 <PlayerFace p={p} />
                 <span className="fx-pname"><b>{p.name}</b><small className="muted">{p.team}{multi && p.league_name ? ` · ${p.league_name}` : ""}</small></span>
-                <span className="fx-pnum">{fmtM(p.price)}<small className="muted">{p.season} p</small></span>
+                <span className="fx-pnum"><Money v={p.price} size={14} /><small className="muted">{p.season} p</small></span>
                 <span className={`fx-padd ${sel ? "is-sel" : w ? "is-off" : "is-add"}`} aria-hidden="true">{sel ? ADD_ICON.sel : w ? ADD_ICON.off : ADD_ICON.add}</span>
               </button>
             </li>
