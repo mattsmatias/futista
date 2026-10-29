@@ -320,3 +320,28 @@ test("viikkokierros pe–to (isot sarjat): viikonloppu ja sitä seuraava keskivi
   assert.equal(weekRound("2026-11-05T21:59:00Z", A), fri); // to 23:59 Suomessa
   assert.equal(weekRound("2026-11-05T22:01:00Z", A), fri! + 1); // pe 00:01 Suomessa
 });
+
+// ---- vetäminen: vain samaan pelipaikkaan ----
+import { moveCheck, movePlayers } from "../lib/fantasy-lineup";
+test("vetäminen: sama pelipaikka avauksen ja penkin välillä vaihtaa; eri pelipaikka hylätään; penkin järjestys", () => {
+  const pos: [number, "GK" | "DEF" | "MID" | "FWD"][] = [[1, "GK"], [2, "GK"], [3, "DEF"], [4, "DEF"], [5, "DEF"], [6, "DEF"], [7, "DEF"], [8, "MID"], [9, "MID"], [10, "MID"], [11, "MID"], [12, "MID"], [13, "FWD"], [14, "FWD"], [15, "FWD"]];
+  const pl = new Map(pos.map(([id, p]) => [id, { id, name: `P${id}`, team_id: id, team: "T", pos: p, price: 5, active: true } as any]));
+  const d = { squad: pos.map((x) => x[0]), xi: [1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14], bench: [2, 7, 12, 15], captain: 13, vice: 8 };
+  assert.deepEqual(moveCheck(d, 7, 3, pl), { ok: true, kind: "swap" });            // penkin P → avauksen P
+  assert.equal(moveCheck(d, 7, 8, pl).ok, false);                                  // P → KK hylätään
+  assert.equal(moveCheck(d, 12, 13, pl).ok, false);                                // KK → H hylätään
+  assert.equal(moveCheck(d, 13, 9, pl).ok, false);                                 // avauksessa H → KK hylätään
+  assert.deepEqual(moveCheck(d, 3, 4, pl), { ok: true, kind: "order" });            // avauksen P ↔ P: järjestys
+  assert.deepEqual(moveCheck(d, 7, 15, pl), { ok: true, kind: "bench" });           // penkin järjestys
+  assert.equal(moveCheck(d, 2, 7, pl).ok, false);                                  // vaihtomaalivahdin paikka pysyy
+  assert.deepEqual(moveCheck(d, 2, 1, pl), { ok: true, kind: "swap" });             // MV ↔ MV
+  const s = movePlayers(d, 7, 3, pl);
+  assert.ok(s.xi.includes(7) && s.bench.includes(3) && s.xi.length === 11);
+  const o = movePlayers(d, 3, 4, pl);
+  assert.deepEqual(o.xi.slice(1, 3), [4, 3]);
+  const b = movePlayers(d, 7, 15, pl);
+  assert.deepEqual(b.bench, [2, 15, 12, 7]);
+  assert.deepEqual(movePlayers(d, 7, 8, pl), d);                                   // hylätty → ennallaan
+  const c = movePlayers(d, 15, 13, pl);                                           // kapteeni penkille → kapteeni avauksesta
+  assert.ok(c.xi.includes(c.captain) && c.captain !== 13);
+});

@@ -200,6 +200,79 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
   ok("fantasyjoukkue, pisteet ja sijoitus ennallaan pakkojen avausten jälkeen", JSON.stringify(st2.team.picks) === JSON.stringify(st.team.picks) && st2.team.total === st.team.total && JSON.stringify(st2.team.rank) === JSON.stringify(st.team.rank));
   await admin({ action: "price", player: goldGuy.id, price: goldGuy.price }); // hinta takaisin
 
+  // ---------- kokoonpanon vetäminen (Oma joukkue) ----------
+  {
+    const st3 = (await A.call("/api/fantasy/tila")).j;
+    const pos = new Map(((await A.call("/api/fantasy/pelaajat")).j?.players ?? []).map((p) => [p.id, p.pos]));
+    const P = st3.team.picks;
+    const benchDef = P.bench.find((id) => pos.get(id) === "DEF") ?? P.bench.find((id) => pos.get(id) !== "GK");
+    const bp = pos.get(benchDef);
+    const xiSame = P.xi.filter((id) => pos.get(id) === bp && id !== P.captain && id !== P.vice);
+    const xiOther = P.xi.find((id) => pos.get(id) !== bp && pos.get(id) !== "GK");
+    const br = await chromium.launch({ executablePath: process.env.CHROME });
+    try {
+      const ctx = await br.newContext({ locale: "fi-FI", viewport: { width: 390, height: 1200 }, hasTouch: true, isMobile: true });
+      await ctx.addCookies([{ name: "ff_s", value: A.cookie.replace(/^ff_s=/, ""), url: APP }]);
+      const page = await ctx.newPage();
+      const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
+      await page.goto(`${APP}/fantasy`, { waitUntil: "load" });
+      await page.waitForSelector(".fx-pitch .fxc", { timeout: 20000 });
+      const ott = page.getByRole("button", { name: "Ottelut", exact: true });
+      if (await ott.count()) await ott.click();
+      const cdp = await ctx.newCDPSession(page);
+      const center = async (id) => { const b = await page.locator(`[data-fxid="${id}"]`).first().boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+      const touchDrag = async (from, to, probe) => {
+        await page.evaluate(() => document.querySelector(".fx-pitch-wrap")?.scrollIntoView({ block: "start", behavior: "instant" }));
+        await page.waitForTimeout(150);
+        const a = await center(from), b = await center(to);
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: a.x, y: a.y }] });
+        await page.waitForTimeout(450); // pohjassa pito
+        for (let i = 1; i <= 8; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: a.x + (b.x - a.x) * i / 8, y: a.y + (b.y - a.y) * i / 8 }] }); await page.waitForTimeout(30); }
+        const seen = probe ? await probe() : null;
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await page.waitForTimeout(900);
+        return seen;
+      };
+      const cls = (id) => page.locator(`[data-fxid="${id}"]`).first().getAttribute("class");
+      // väärä pelipaikka: korostus estetty, ei tallennusta
+      const probe1 = await touchDrag(benchDef, xiOther, async () => ({ other: await cls(xiOther), same: await cls(xiSame[0]), ghost: await page.locator(".fx-drag-ghost").count(), why: await page.locator(".fx-drag-why").innerText().catch(() => "") }));
+      const after1 = (await A.call("/api/fantasy/tila")).j.team.picks;
+      ok("veto: eri pelipaikan kortti on estetty (himmennetty) ja syy näkyy; pudotus ei muuta kokoonpanoa", /drop-no/.test(probe1.other) && /drop-ok/.test(probe1.same) && probe1.ghost === 1 && /voi siirtyä vain/.test(probe1.why) && JSON.stringify(after1) === JSON.stringify(P), JSON.stringify(probe1));
+      await shot(page, "veto-390");
+      // sama pelipaikka: penkiltä avaukseen
+      await touchDrag(benchDef, xiSame[0]);
+      await page.waitForSelector(".fx-note.fx-ok", { timeout: 8000 }).catch(() => {});
+      const after2 = (await A.call("/api/fantasy/tila")).j.team.picks;
+      ok("veto: penkin pelaaja saman pelipaikan pelaajan päälle → vaihto tallentuu (palaute näkyy)", after2.xi.includes(benchDef) && after2.bench.includes(xiSame[0]) && /avaukseen/.test(await page.locator(".fx-note.fx-ok").innerText().catch(() => "")), JSON.stringify({ xi: after2.xi, bench: after2.bench }));
+      // napautus avaa edelleen pelaajakortin
+      await page.locator(`[data-fxid="${after2.xi[0]}"]`).first().click();
+      ok("veto ei estä napautusta: kortti avautuu", await page.locator(".fx-pcard").isVisible().catch(() => false));
+      await page.keyboard.press("Escape");
+      ok("veto: ei sivuvirheitä, ei vaakavieritystä", errs.length === 0 && await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), errs.join(" | "));
+      await ctx.close();
+      // hiirellä: avauksen sisällä saman pelipaikan järjestys
+      const dctx = await br.newContext({ locale: "fi-FI", viewport: { width: 1280, height: 900 } });
+      await dctx.addCookies([{ name: "ff_s", value: A.cookie.replace(/^ff_s=/, ""), url: APP }]);
+      const dp = await dctx.newPage();
+      await dp.goto(`${APP}/fantasy`, { waitUntil: "load" });
+      await dp.waitForSelector(".fx-pitch .fxc", { timeout: 20000 });
+      const ott2 = dp.getByRole("button", { name: "Ottelut", exact: true });
+      if (await ott2.count()) await ott2.click();
+      const pk = after2;
+      const pair = pk.xi.filter((id) => pos.get(id) === "MID").slice(0, 2);
+      const box = async (id) => { const b = await dp.locator(`[data-fxid="${id}"]`).first().boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+      const a = await box(pair[0]), b = await box(pair[1]);
+      await dp.mouse.move(a.x, a.y); await dp.mouse.down();
+      for (let i = 1; i <= 10; i++) await dp.mouse.move(a.x + (b.x - a.x) * i / 10, a.y + (b.y - a.y) * i / 10);
+      await dp.mouse.up();
+      await dp.waitForTimeout(1200);
+      const after3 = (await A.call("/api/fantasy/tila")).j.team.picks;
+      const i0 = after3.xi.indexOf(pair[0]), i1 = after3.xi.indexOf(pair[1]);
+      ok("veto hiirellä: avauksen saman pelipaikan pelaajien järjestys vaihtuu", i0 === pk.xi.indexOf(pair[1]) && i1 === pk.xi.indexOf(pair[0]) && after3.bench.join() === pk.bench.join(), JSON.stringify({ before: pk.xi, after: after3.xi }));
+      await dctx.close();
+    } finally { await br.close(); }
+  }
+
   const pass = results.filter(Boolean).length;
   console.log(`Pakat ja kokoelma: ${pass}/${results.length} tarkistusta`);
   process.exit(pass === results.length ? 0 : 1);

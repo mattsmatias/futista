@@ -4,7 +4,7 @@ import { pendingInvite } from "@/lib/fantasy-invite-client";
 import { FCoin } from "./FCoin";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Money } from "./Coin";
 import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, useLoad, type FPlayerRow, type ApiErr, type FState } from "@/lib/fantasy-client";
@@ -152,7 +152,7 @@ export function formationOf(xi: number[], players: Map<number, FPlayerRow>): str
 
 /** Futistan pelaajakortti kentällä: pelipaikka (teksti + väri), kuva tai paita, sukunimi, seura, arvo (hinta / pisteet / ottelu)
  *  ja kapteenimerkki. Ei keksittyjä arvosanoja tai taitolukuja: kortissa vain pelin oikeat tiedot. */
-function Card({ p, badge, role, onSelect, desc, bench }: { p: FPlayerRow; badge: Badge | null; role: "C" | "VC" | null; onSelect?: () => void; desc: string; bench?: boolean }) {
+function Card({ p, badge, role, onSelect, desc, bench, dnd }: { p: FPlayerRow; badge: Badge | null; role: "C" | "VC" | null; onSelect?: () => void; desc: string; bench?: boolean; dnd?: string }) {
   const inner = (
     <>
       <span className="fxc-top"><span className="fxc-pos">{POS_SHORT[p.pos]}</span>{role && <em className={`fxc-cap ${role === "C" ? "c" : "vc"}`} aria-hidden="true">{role}</em>}</span>
@@ -162,19 +162,101 @@ function Card({ p, badge, role, onSelect, desc, bench }: { p: FPlayerRow; badge:
       {badge && <span className={`fxc-val ${badge.tone ?? "pts"}`}>{badge.text}</span>}
     </>
   );
-  const cls = `fxc fxc-${p.pos.toLowerCase()}${bench ? " bench" : ""}`;
+  const cls = `fxc fxc-${p.pos.toLowerCase()}${bench ? " bench" : ""}${dnd ? ` ${dnd}` : ""}`;
   return onSelect
-    ? <button type="button" className={cls} onClick={onSelect} aria-label={desc}>{inner}</button>
-    : <div className={cls} role="listitem" aria-label={desc}>{inner}</div>;
+    ? <button type="button" className={cls} onClick={onSelect} aria-label={desc} data-fxid={p.id}>{inner}</button>
+    : <div className={cls} role="listitem" aria-label={desc} data-fxid={p.id}>{inner}</div>;
+}
+
+export type PitchDrag = { canDrop: (from: number, to: number) => boolean; onDrop: (from: number, to: number) => void; why?: (from: number, to: number) => string };
+
+/** Korttien vetäminen: kosketuksella painetaan hetki pohjassa (sivun vieritys toimii normaalisti), hiirellä vedetään suoraan.
+ *  Kelvolliset kohteet korostetaan; pudotus muualle tai kelvottomaan kohteeseen ei tee mitään. Napautus avaa kortin kuten ennen. */
+function useCardDrag(drag?: PitchDrag) {
+  const [from, setFrom] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  const [pt, setPt] = useState<{ x: number; y: number } | null>(null);
+  const st = useRef<{ id: number; x: number; y: number; timer: ReturnType<typeof setTimeout> | null; active: boolean; pid: number; el: HTMLElement | null; suppress: boolean }>({ id: 0, x: 0, y: 0, timer: null, active: false, pid: -1, el: null, suppress: false });
+  const ref = useRef(drag); ref.current = drag;
+  const idAt = (x: number, y: number) => { const e = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-fxid]"); return e ? Number(e.dataset.fxid) : null; };
+  const begin = useCallback((x: number, y: number) => {
+    const s = st.current; s.active = true; s.suppress = true;
+    setFrom(s.id); setPt({ x, y }); setOver(null);
+    try { navigator.vibrate?.(15); } catch { /* ei värinää */ }
+  }, []);
+  const end = useCallback((drop: boolean, x?: number, y?: number) => {
+    const s = st.current;
+    if (s.timer) clearTimeout(s.timer); s.timer = null;
+    if (s.active && drop && x !== undefined && y !== undefined) {
+      const to = idAt(x, y);
+      if (to !== null && to !== s.id && ref.current?.canDrop(s.id, to)) ref.current.onDrop(s.id, to);
+    }
+    s.active = false; s.pid = -1;
+    if (s.suppress) setTimeout(() => { s.suppress = false; }, 60); // vedon jälkeinen klikkaus ei avaa korttia
+    setFrom(null); setOver(null); setPt(null);
+  }, []);
+  useEffect(() => {
+    if (from === null) return;
+    // vedon aikana kosketus ei vieritä sivua
+    const tm = (e: TouchEvent) => { if (st.current.active) e.preventDefault(); };
+    document.addEventListener("touchmove", tm, { passive: false });
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") end(false); };
+    document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("touchmove", tm); document.removeEventListener("keydown", key); };
+  }, [from, end]);
+  if (!drag) return { active: false, handlers: {}, cls: () => undefined, consumeClick: () => false, ghost: null };
+  const handlers = {
+    onPointerDown: (e: React.PointerEvent) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>("[data-fxid]");
+      if (!el || e.button > 0) return;
+      const s = st.current;
+      s.id = Number(el.dataset.fxid); s.x = e.clientX; s.y = e.clientY; s.pid = e.pointerId; s.el = el; s.suppress = false;
+      if (e.pointerType !== "mouse") s.timer = setTimeout(() => { s.timer = null; begin(s.x, s.y); }, 280);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const s = st.current;
+      if (e.pointerId !== s.pid) return;
+      const dist = Math.hypot(e.clientX - s.x, e.clientY - s.y);
+      if (!s.active) {
+        if (s.timer && dist > 10) { clearTimeout(s.timer); s.timer = null; s.pid = -1; return; } // vieritys
+        if (e.pointerType === "mouse" && dist > 6) { begin(e.clientX, e.clientY); try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ei kaappausta */ } } else return;
+      }
+      setPt({ x: e.clientX, y: e.clientY });
+      if (e.clientY < 90) window.scrollBy(0, -14); else if (e.clientY > innerHeight - 110) window.scrollBy(0, 14); // reunalla vieritys (penkki ↔ kenttä)
+      const to = idAt(e.clientX, e.clientY);
+      setOver(to !== null && to !== s.id ? to : null);
+    },
+    onPointerUp: (e: React.PointerEvent) => { if (e.pointerId === st.current.pid || st.current.active) end(true, e.clientX, e.clientY); },
+    onPointerCancel: () => end(false),
+    onContextMenu: (e: React.MouseEvent) => { if (st.current.timer || st.current.active) e.preventDefault(); },
+  };
+  const cls = (id: number) => {
+    if (from === null) return undefined;
+    if (id === from) return "drag-src";
+    const okDrop = drag.canDrop(from, id);
+    return okDrop ? (id === over ? "drop-ok drop-hover" : "drop-ok") : "drop-no";
+  };
+  const consumeClick = () => { const s = st.current; if (s.suppress) { s.suppress = false; return true; } return false; };
+  const src = from !== null ? st.current.el : null;
+  const why = from !== null && over !== null && !drag.canDrop(from, over) ? drag.why?.(from, over) ?? "" : "";
+  const ghost = from !== null && pt && src ? (
+    <div className="fx-drag-ghost" style={{ left: pt.x, top: pt.y, width: src.offsetWidth }} aria-hidden="true">
+      <div dangerouslySetInnerHTML={{ __html: src.innerHTML }} className={src.className.replace(/\b(drag-src|drop-\w+)\b/g, "")} />
+      {why && <span className="fx-drag-why">{why}</span>}
+    </div>
+  ) : null;
+  return { active: from !== null, handlers, cls, consumeClick, ghost };
 }
 
 /** Kokoonpano kentällä (avaus riveittäin pelipaikan mukaan, muodostelma näkyvissä) ja vaihtopenkki järjestyksessä kentän alla.
  *  legend kertoo, mitä korttien arvo tarkoittaa (hinta, kierroksen pisteet tai seuraava ottelu). */
-export function Pitch({ picks, players, badge, onSelect, label, empty, legend }: {
+export function Pitch({ picks, players, badge, onSelect, label, empty, legend, drag }: {
   picks: Picks; players: Map<number, FPlayerRow>; badge: (id: number) => Badge | null; onSelect?: (id: number) => void; label: string;
   empty?: Partial<Record<Pos, number>>; // rakennusvaiheen tyhjät paikat
   legend?: React.ReactNode;
+  drag?: PitchDrag; // kortin vetäminen toisen kortin päälle (painamalla pohjassa puhelimella, hiirellä vetämällä)
 }) {
+  const dd = useCardDrag(drag);
   const row = (pos: Pos) => picks.xi.filter((id) => players.get(id)?.pos === pos);
   const card = (id: number, bench = false) => {
     const p = players.get(id);
@@ -182,7 +264,7 @@ export function Pitch({ picks, players, badge, onSelect, label, empty, legend }:
     const b = badge(id);
     const role = id === picks.captain ? "C" : id === picks.vice ? "VC" : null;
     const desc = `${p.name}, ${POS_LONG[p.pos]}, ${p.team}${role === "C" ? ", kapteeni" : role === "VC" ? ", varakapteeni" : ""}${b ? `, ${b.sr ?? `${b.text}${b.tone === "price" ? " kolikkoa" : ""}`}` : ""}`;
-    return <Card key={id} p={p} badge={b} role={role} bench={bench} desc={desc} onSelect={onSelect ? () => onSelect(id) : undefined} />;
+    return <Card key={id} p={p} badge={b} role={role} bench={bench} desc={desc} dnd={dd.cls(id)} onSelect={onSelect ? () => { if (!dd.consumeClick()) onSelect(id); } : undefined} />;
   };
   const slots = (pos: Pos) => [...Array(empty?.[pos] ?? 0).keys()].map((i) => (
     <div key={`e${pos}${i}`} className={`fxc empty fxc-${pos.toLowerCase()}`} aria-label={`Tyhjä paikka: ${POS_LONG[pos]}`}>
@@ -191,7 +273,7 @@ export function Pitch({ picks, players, badge, onSelect, label, empty, legend }:
   ));
   const form = formationOf(picks.xi, players);
   return (
-    <section className="fx-pitch-wrap" aria-label={label}>
+    <section className={`fx-pitch-wrap${dd.active ? " dragging" : ""}`} aria-label={label} {...dd.handlers}>
       <div className="fx-pitch">
         <i className="fx-line mid" aria-hidden="true" /><i className="fx-line circle" aria-hidden="true" /><i className="fx-line box" aria-hidden="true" /><i className="fx-line box2" aria-hidden="true" />
         {(form || legend) && <div className="fx-pitch-meta">{form && <span className="fx-form" title="Muodostelma: puolustajat–keskikenttä–hyökkääjät"><span className="sr-only">Muodostelma </span>{form}</span>}{legend && <span className="fx-legend">{legend}</span>}</div>}
@@ -199,6 +281,7 @@ export function Pitch({ picks, players, badge, onSelect, label, empty, legend }:
           <div key={pos} className="fx-prow" role="list" aria-label={POS_LONG[pos]}>{row(pos).map((id) => card(id))}{slots(pos)}</div>
         ))}
       </div>
+      {dd.ghost}
       {picks.bench.length > 0 && (
         <div className="fx-bench" role="list" aria-label="Vaihtopelaajat järjestyksessä">
           <span className="fx-bench-h" aria-hidden="true">Penkki</span>

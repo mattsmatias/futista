@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, errText, useLoad, fmtM, localTime, roundName, roundNum, roundFx, type FState, type FPlayerRow, type FPlayersResp } from "@/lib/fantasy-client";
 import { RULES, type Picks, type FPlayer } from "@/lib/fantasy-core";
-import { setCaptain, swapOptions, swapPlayers } from "@/lib/fantasy-lineup";
-import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Countdown, ActIcon, type Badge, type CardAction, type CardSwaps } from "./ui";
+import { moveCheck, movePlayers, setCaptain, swapOptions, swapPlayers } from "@/lib/fantasy-lineup";
+import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Countdown, ActIcon, type Badge, type CardAction, type CardSwaps, type PitchDrag } from "./ui";
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
 import { Money } from "./Coin";
@@ -125,6 +125,18 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
     items: swapOptions(t.picks!, selP.id, asF).map((o) => players.get(o)).filter((o): o is FPlayerRow => !!o)
       .map((o) => ({ p: o, onClick: () => save(swapPlayers(t.picks!, selP.id, o.id, asF), `${inXi ? selP.name : o.name} penkille, ${inXi ? o.name : selP.name} avaukseen.`) })),
   } : undefined;
+  // vetäminen: vain muokattavaan, täyteen joukkueeseen (ei pistenäkymässä); siirto vain samaan pelipaikkaan
+  const drag: PitchDrag | undefined = editable && !busy && t.picks ? {
+    canDrop: (a, b) => moveCheck(t.picks!, a, b, asF).ok,
+    why: (a, b) => { const m = moveCheck(t.picks!, a, b, asF); return "why" in m ? m.why : ""; },
+    onDrop: (a, b) => {
+      const m = moveCheck(t.picks!, a, b, asF);
+      if (!m.ok) return;
+      const A = players.get(a)?.name ?? "", B = players.get(b)?.name ?? "";
+      const text = m.kind === "order" ? "Paikat vaihdettu." : m.kind === "bench" ? "Penkin järjestys vaihdettu." : t.picks!.xi.includes(a) ? `${A} penkille, ${B} avaukseen.` : `${A} avaukseen, ${B} penkille.`;
+      save(movePlayers(t.picks!, a, b, asF), text);
+    },
+  } : undefined;
   const modes: { id: Mode; label: string }[] = [
     ...(showRound ? [{ id: "pts" as Mode, label: "Pisteet" }] : []),
     { id: "fx", label: "Ottelut" }, { id: "price", label: "Hinnat" },
@@ -168,7 +180,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       )}
       {t.picks && (!picks || players.size === 0) && !pl.err && <div className="fx-pitch-skel" aria-label="Ladataan kokoonpanoa" />}
       {picks && players.size > 0 && (
-        <Pitch picks={picks} players={players} onSelect={setSel} badge={badge} legend={legend}
+        <Pitch picks={picks} players={players} onSelect={setSel} badge={badge} legend={legend} drag={drag}
           label={mode === "pts" ? `Kierroksen ${roundNum(s, showRound)} kokoonpano ja pisteet` : `Kokoonpano kierrokselle ${roundNum(s, next?.no)}`} />
       )}
       {mode === "fx" && picks && <p className="muted small fx-legend-note">Korteissa seuraavan kierroksen vastustaja: (k) kotiottelu, (v) vierasottelu.</p>}

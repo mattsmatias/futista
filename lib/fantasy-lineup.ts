@@ -62,3 +62,32 @@ export function setCaptain(d: Draft, id: number, role: "C" | "VC"): Draft {
   if (!d.xi.includes(id)) return d;
   return role === "C" ? { ...d, captain: id, vice: d.vice === id ? d.captain : d.vice } : { ...d, vice: id, captain: d.captain === id ? d.vice : d.captain };
 }
+
+/** Vetäminen kentällä: siirto vain samaan pelipaikkaan (avauksen järjestys tai vaihto penkin ja avauksen välillä);
+ *  penkin järjestystä voi muuttaa kenttäpelaajien kesken (ensimmäinen vaihtopaikka on aina vaihtomaalivahdin). */
+export type Move = { ok: true; kind: "order" | "swap" | "bench" } | { ok: false; why: string };
+export function moveCheck(d: Draft, from: number, to: number, players: Map<number, FPlayer>): Move {
+  if (from === to) return { ok: false, why: "" };
+  const a = players.get(from)?.pos, b = players.get(to)?.pos;
+  if (!a || !b) return { ok: false, why: "Pelaajaa ei löytynyt." };
+  const ax = d.xi.includes(from), bx = d.xi.includes(to), ab = d.bench.includes(from), bb = d.bench.includes(to);
+  if (!(ax || ab) || !(bx || bb)) return { ok: false, why: "" };
+  if (ab && bb) {
+    if (a === "GK" || b === "GK") return { ok: false, why: "Ensimmäinen vaihtopaikka on vaihtomaalivahdille." };
+    return { ok: true, kind: "bench" };
+  }
+  if (a !== b) return { ok: false, why: `${POS_FI[a]} voi siirtyä vain toisen ${POS_GEN[a]} paikalle.` };
+  return { ok: true, kind: ax && bx ? "order" : "swap" };
+}
+const POS_FI: Record<Pos, string> = { GK: "Maalivahti", DEF: "Puolustaja", MID: "Keskikenttäpelaaja", FWD: "Hyökkääjä" };
+const POS_GEN: Record<Pos, string> = { GK: "maalivahdin", DEF: "puolustajan", MID: "keskikenttäpelaajan", FWD: "hyökkääjän" };
+
+/** Tekee kelvollisen siirron (moveCheck); muuten palauttaa joukkueen ennallaan */
+export function movePlayers(d: Draft, from: number, to: number, players: Map<number, FPlayer>): Draft {
+  const m = moveCheck(d, from, to, players);
+  if (!m.ok) return d;
+  const sw = (l: number[]) => l.map((y) => (y === from ? to : y === to ? from : y));
+  if (m.kind === "order") return { ...d, xi: sw(d.xi) };
+  if (m.kind === "bench") return { ...d, bench: sw(d.bench) };
+  return swapPlayers(d, from, to, players);
+}
