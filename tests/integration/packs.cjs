@@ -163,7 +163,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       const sp = await sc.newPage();
       await sp.goto(`${APP}/fantasy/saannot`, { waitUntil: "load" });
       const rt = await sp.locator("main").innerText();
-      ok("säännöt: ei tietopalveluiden nimiä (API-Football ym.) eikä Data-osiota; korjausten uudelleenlaskenta kerrotaan", !/API-Football|ESPN|football-data|Wikidata|TheSportsDB/i.test(rt) && !/^\s*Data\s*$/mi.test(rt) && /4 vuorokauden/.test(rt) && /Futista-kolikot ja pakat/i.test(rt) && /Kaveriliigaan liitytään/.test(rt) && /\(k\) kotiottelu/.test(rt) && /seurojen logoja/.test(rt));
+      ok("säännöt: ei tietopalveluiden nimiä (API-Football ym.) eikä Data-osiota; korjausten uudelleenlaskenta kerrotaan", !/API-Football|ESPN|football-data|Wikidata|TheSportsDB/i.test(rt) && !/^\s*Data\s*$/mi.test(rt) && /4 vuorokauden/.test(rt) && /Futista-kolikot ja pakat/i.test(rt) && /Kaveriliigaan liitytään/.test(rt) && !/Euroopan isot sarjat|Valioliiga 2026/i.test(await sp.locator(".fx-rules .panel-head").innerText()) && /\(k\) kotiottelu/.test(rt) && /seurojen logoja/.test(rt));
       await sc.close();
     }
     // vähennetty liike: ei animaatiota, kortit heti

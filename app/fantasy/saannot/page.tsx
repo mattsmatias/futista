@@ -26,7 +26,7 @@ export default async function Page() {
   const leagues = compLeagues(DEFAULT_COMP).map((l) => l.name);
   return (
     <article className="panel fx-rules">
-      <div className="panel-head"><h2>Säännöt – {DEFAULT_COMP.name}</h2></div>
+      <div className="panel-head"><h2>Säännöt</h2></div>
       <div className="pad legal">
         <section>
           <h3>Joukkue</h3>
