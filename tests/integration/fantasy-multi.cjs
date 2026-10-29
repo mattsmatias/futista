@@ -46,6 +46,15 @@ const mock = (q) => fetch(`${MOCK}/af/__fantasy?${q}`).then((r) => r.json());
   const pl = (await A.call("/api/fantasy/pelaajat")).j.players;
   const byLeague = (id) => pl.filter((p) => p.league === id);
   ok("pelaajat: sarja ja sarjan nimi (Valioliiga 84, La Liga 84)", byLeague(39).length === 84 && byLeague(140).length === 84 && byLeague(140)[0]?.league_name === "La Liga" && byLeague(39)[0]?.league_name === "Valioliiga");
+  // pelistä poistetun sarjan pelaaja (haettu ennen poistoa; vrt. Veikkausliiga 30.10.2026) ei ole valittavissa
+  {
+    const { Pool } = require("pg");
+    const db = new Pool({ connectionString: process.env.PG_URL, max: 1 });
+    await db.query("insert into public.fantasy_players (comp, player_id, name, team_id, team_name, position, price, league, active) values ('top5f-2026', 24400001, 'Poistettu Sarjalainen', 244001, 'Vanha Sarja FC', 'MID', 5, 244, true) on conflict do nothing");
+    await db.end();
+    const px = (await A.call("/api/fantasy/pelaajat")).j.players.find((p) => p.id === 24400001);
+    ok("  poistetun sarjan pelaaja: ei valittavissa (active false), ei sarjan nimeä", !!px && px.active === false && px.league_name === null, JSON.stringify(px));
+  }
   ok("  ottelut molemmista sarjoista samalla viikolla: La Ligan pelaajan seuraava ottelu kierroksella 2", pl.find((p) => p.id === 140110)?.next?.round_no === nos[1], JSON.stringify(pl.find((p) => p.id === 140110)?.next));
 
   // joukkue: sekaisin kahdesta sarjasta (enintään 3 / seura)
@@ -123,6 +132,13 @@ const mock = (q) => fetch(`${MOCK}/af/__fantasy?${q}`).then((r) => r.json());
   await page.waitForTimeout(300);
   const subs = await page.locator(".fx-plist li .fx-pname small").allInnerTexts();
   ok("  La Liga -suodatus: vain La Ligan pelaajat, rivillä seura · sarja", subs.length > 0 && subs.every((x) => /· La Liga$/.test(x)), subs.slice(0, 3).join(" | "));
+  await page.selectOption("#fx-league", "0").catch(() => {});
+  await page.fill("#fx-q", "Poistettu Sarjalainen");
+  await page.waitForTimeout(300);
+  ok("  poistetun sarjan pelaaja ei näy siirtolistassa eikä sen seura seuravalinnassa", (await page.locator(".fx-plist li").count()) === 0 && !(await page.locator("#fx-team").innerText()).includes("Vanha Sarja FC"));
+  await page.fill("#fx-q", "");
+  await page.selectOption("#fx-league", "140");
+  await page.waitForTimeout(300);
   const teamOpts = await page.locator("#fx-team option").count();
   ok("  seuravalinta rajautuu sarjan seuroihin (6 + Kaikki)", teamOpts === 7, String(teamOpts));
   const bar = await page.locator(".fx-buildbar").innerText().catch(() => "");

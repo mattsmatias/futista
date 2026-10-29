@@ -45,6 +45,9 @@ export const DEFAULT_COMP = COMPS.find((c) => c.id === process.env.FANTASY_COMP)
 export const compLeagues = (c: Comp): League[] => c.leagues ?? [{ af: c.af, season: c.season, name: c.name }];
 export const leagueName = (c: Comp, af: number | null | undefined) => compLeagues(c).find((l) => l.af === af)?.name ?? null;
 export const compById = (id: string | null | undefined) => COMPS.find((c) => c.id === id) ?? null;
+/** Kuuluuko pelaajan sarja kilpailuun. Sarjasta, joka on poistettu pelistä (esim. Veikkausliiga 30.10.2026: pelaajat ehdittiin
+ *  hakea ennen poistoa), pelaajat eivät ole valittavissa – ne näkyvät vain joukkueessa, jossa ne jo ovat. */
+export const inComp = (c: Comp, league: number | null | undefined) => !c.leagues || league == null || c.leagues.some((l) => l.af === league);
 
 const AF_POS: Record<string, Pos> = { Goalkeeper: "GK", Defence: "DEF", Midfield: "MID", Offence: "FWD" };
 const DAY = 86400;
@@ -277,7 +280,8 @@ const errCode = (e: unknown) => String((e as Error)?.message ?? (e as { code?: s
 
 export async function playersMap(comp: string): Promise<Map<number, FPlayer>> {
   const list = await rpc<FPlayer[]>("f_players", { p_comp: comp });
-  return new Map((list ?? []).map((p: any) => [p.id, { ...p, price: Number(p.price) }]));
+  const c = compById(comp);
+  return new Map((list ?? []).map((p: any) => [p.id, { ...p, price: Number(p.price), active: !!p.active && (!c || inComp(c, p.league)) }]));
 }
 
 /** Kierroksen pisteet kaikille joukkueille tilannekuvista ja tallennetusta otteludatasta (idempotentti) */

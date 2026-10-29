@@ -266,7 +266,7 @@ function PlayerList({ list, why, onPick, picked, leagues, round, roundLabel, pos
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"price" | "season" | "last" | "name">("price");
   const [n, setN] = useState(PAGE);
-  const teams = useMemo(() => [...new Map(list.filter((p) => !league || p.league === league).map((p) => [p.team_id, p.team])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi")), [list, league]);
+  const teams = useMemo(() => [...new Map(list.filter((p) => (p.active || picked.includes(p.id)) && (!league || p.league === league)).map((p) => [p.team_id, p.team])).entries()].sort((a, b) => a[1].localeCompare(b[1], "fi")), [list, league, picked]);
   useEffect(() => { if (team && !teams.some(([id]) => id === team)) setTeam(0); }, [teams, team]);
   const fold = (x: string) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const rows = useMemo(() => list
