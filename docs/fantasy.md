@@ -78,11 +78,33 @@ vaihdon minuutilla) tai vastustaja ei tehnyt maaleja; muuten ei pisteitä ("ei v
 edellisen kierroksen tilannekuvassa (edestakainen muutos ei ole siirto). Palvelin laskee määrän ja vähennyksen; käyttäjän on
 vahvistettava sama vähennys (`cost`), ja versio (`version`) estää kaksoisvahvistuksen.
 
-## Futista-liiga
+## Futista-liiga ja kaveriliigat
 
-Yksi avoin liiga, sama kaikille (käyttäjän päätös 27.10.2026): jokainen tallennettu joukkue on mukana automaattisesti,
-sijoitus kauden kokonaispisteistä (`f_ranking`, `p_league = null`), sivu `/fantasy/liigat`. Omia/yksityisiä liigoja ja
-liittymiskoodeja ei ole käyttöliittymässä eikä rajapinnassa (migraation `fantasy_leagues*`-taulut jäävät käyttämättä).
+- Futista-liiga: kaikkien tallennettujen joukkueiden yhteinen ranking (`f_ranking`, `p_league = null`), sivu `/fantasy/liigat`.
+- Omat kaveriliigat (palautettu 30.10.2026 käyttäjän pyynnöstä; aiemmin 27.10. pois käytöstä): `/api/fantasy/liigat`
+  (luo / liity / poistu / vaihda koodi) ja `/api/fantasy/ranking?league=ID`. Taulut ja funktiot ovat alkuperäisessä
+  migraatiossa (`fantasy_leagues`, `fantasy_league_members`, `f_league_*`), ei uutta migraatiota.
+  - Liittymiskoodi 8 merkkiä palvelimelta (~10^12 vaihtoehtoa), liittymisyritykset rajoitettu (10 / 10 min käyttäjä, 30 / 10 min osoite).
+  - Liigan tiedot, koodi ja taulukko vain jäsenille (muille 404). Perustaja voi vaihtaa koodin (vanha lakkaa toimimasta).
+  - Kutsulinkki liigaan: `/fantasy/liigat?liity=KOODI` (koodi säilyy istunnossa kirjautumisen ajan; liittyminen vaatii painalluksen).
+  - Joukkue näkyy liigan taulukossa, kun se on tallennettu (sama ehto kuin Futista-liigassa).
+- Pelin kutsulinkki (`/fantasy?kutsu=…`, Oma joukkue → Kutsu kaveri) kutsuu peliin; se ei lisää kaveria mihinkään liigaan.
+
+## Pelimäinen käyttöliittymä (feature/fantasy-game, 30.10.2026)
+
+- Oma joukkue: joukkueen nimi ja logo (painamalla logoeditori), kierroksen pisteet / sijoitus / budjetti, määräaika ja laskuri,
+  kenttä muodostelmineen (esim. 3–4–3) ja penkki. Korttien tieto valitaan: Pisteet (lukittu kierros), Ottelut (seuraavan kierroksen
+  vastustajat, k/v) tai Hinnat; selite kertoo aina, mitä luku tarkoittaa.
+- Pelaajakortit (oma muoto: viistetty kulma, pelipaikan väriraita + teksti MV/P/KK/H, kuva tai paita, sukunimi, seura, arvo,
+  C/VC). Ei keksittyjä arvosanoja, taitolukuja tai harvinaisuuksia.
+- Pelaajan tietonäkymä: hinta, kauden pisteet, viimeisin kierros, minuutit, seuraava ottelu, seuraavan kierroksen ottelut,
+  pisteiden erittely (Pisteet-tilassa). Toiminnot Oma joukkue -näkymästä: kapteeni, varakapteeni, vaihto penkin ja avauksen
+  välillä (tallentuu heti) ja Tee siirto (`/fantasy/siirrot?pois=ID`). Estetyn toiminnon syy näkyy napissa.
+- Siirrot: ottelumäärä seuraavalla kierroksella (vaatii migraation `20261030_fantasy_round_fixtures.sql`; ilman sitä määriä ei
+  näytetä), syy miksi pelaajaa ei voi valita, järjestys hinta/pisteet/viime kierros/nimi, vahvistuksessa pois/sisään,
+  budjetti ennen → jälkeen ja pistevähennys.
+- Pisteet: kierroksen pisteet isona (alustava/lopullinen), kausi, sijoitus, kenttä kierrospisteillä (kapteeni ×2), penkki erikseen,
+  erittely. Sijoituksen muutosta ei näytetä (sitä ei lasketa).
 
 ## Joukkueen logo
 
