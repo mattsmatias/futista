@@ -206,17 +206,17 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     await shot(page, `koti-${w}`);
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/koti-ruutu-${w}.png` }).catch(() => {});
     const sz = await page.evaluate(() => {
-      const on = document.querySelector(".fxg-tabs a.on"), ic = on?.querySelector(".fxg-ic"), cta = document.querySelector(".fx-home-actions .btn:not(.ghost)");
+      const on = document.querySelector(".fxg-tabs a.on"), ic = on?.querySelector(".fxg-ic"), cta = document.querySelector(".fx-pcard .btn:not(.ghost)");
       const r = (e) => e?.getBoundingClientRect();
       return { tabBg: on ? getComputedStyle(on).backgroundImage + getComputedStyle(on).backgroundColor : "", icW: Math.round(r(ic)?.width ?? 0), icH: Math.round(r(ic)?.height ?? 0),
         ctaH: Math.round(r(cta)?.height ?? 0), ctaUpper: cta ? getComputedStyle(cta).textTransform : "" };
     });
-    ok(`${w}px:   keltaiset napit: aktiivinen välilehti = pieni pilleri kuvakkeen takana, päänappi yhdellä rivillä (≤ 46 px)`, /none/.test(sz.tabBg) && /rgba\(0, 0, 0, 0\)/.test(sz.tabBg) && sz.icW <= 56 && sz.icH <= 30 && sz.ctaH > 0 && sz.ctaH <= 46 && sz.ctaUpper === "none", JSON.stringify(sz));
+    ok(`${w}px:   keltaiset napit: aktiivinen välilehti = pieni pilleri kuvakkeen takana; ei erillisiä Siirrot/Pisteet/Liigat-nappeja (alavalikossa)`, /none/.test(sz.tabBg) && /rgba\(0, 0, 0, 0\)/.test(sz.tabBg) && sz.icW <= 56 && sz.icH <= 30 && (await page.locator("main a.btn", { hasText: /^(Siirrot ja kokoonpano|Pisteet|Liigat)$/ }).count()) === 0, JSON.stringify(sz));
     const toks = await page.locator(".fx-pitch .fxc").count(), bench = await page.locator(".fx-bench .fxc").count();
     const k3 = (await page.locator(".fx-kpi3").innerText().catch(() => "")).replace(/\s+/g, " ");
     ok(`${w}px: Oma joukkue – pelaajakortit kentällä (11) ja penkillä (4), C ja VC, kierroksen pisteet, sijoitus, budjetti`, toks === 11 && bench === 4 && (await page.locator(".fxc-cap.c").count()) === 1 && (await page.locator(".fxc-cap.vc").count()) === 1 && /36 p/.test(k3) && /Sijoitus 1 \/ 2/i.test(k3) && /Budjetti/i.test(k3) && (await page.locator(".fx-kpi3 .fx-money svg.fx-coin").count()) === 1, `${toks}/${bench} | ${k3}`);
-    const order = await page.evaluate(() => ["fx-teamhead", "fx-kpi3", "fx-deadline", "fx-pitch-wrap", "fx-home-actions", "fx-invite"].map((c) => Math.round(document.querySelector(`.${c}`)?.getBoundingClientRect().top ?? -1)));
-    ok(`${w}px:   järjestys: nimi ja logo → pisteet/sijoitus/budjetti → määräaika → kenttä → toiminnot → kutsu`, order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), JSON.stringify(order));
+    const order = await page.evaluate(() => ["fx-teamhead", "fx-kpi3", "fx-deadline", "fx-pitch-wrap", "fx-invite"].map((c) => Math.round(document.querySelector(`.${c}`)?.getBoundingClientRect().top ?? -1)));
+    ok(`${w}px:   järjestys: nimi ja logo → pisteet/sijoitus/budjetti → määräaika → kenttä → kutsu`, order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), JSON.stringify(order));
     const form = await page.locator(".fx-form").textContent().catch(() => "");
     const legend = await page.locator(".fx-legend").innerText().catch(() => "");
     ok(`${w}px:   muodostelma ja korttien tiedon selite (pisteet: kierros)`, /\d–\d–\d/.test(form) && /Kierros 2 · pisteet/.test(legend), `${form} | ${legend}`);

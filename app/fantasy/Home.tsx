@@ -179,11 +179,6 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
         <p className="muted small">{snap.data?.points?.provisional === false ? "Pisteet ovat lopulliset." : "Pisteet ovat alustavia ja päivittyvät otteluiden edetessä; automaattiset vaihdot tehdään, kun kierroksen kaikki ottelut ovat valmiit."}</p>
       )}
 
-      <div className="fx-row fx-home-actions">
-        <Link className="btn" href="/fantasy/siirrot">{t.picks ? "Siirrot ja kokoonpano" : "Valitse pelaajat"}</Link>
-        <Link className="btn ghost" href="/fantasy/pisteet">Pisteet</Link>
-        <Link className="btn ghost" href="/fantasy/liigat">Liigat</Link>
-      </div>
       {t.picks && <p className="muted small">Paina pelaajaa: tiedot, kapteeni, vaihto penkin ja avauksen välillä tai siirto.</p>}
 
       {t.joined_late && <p className="muted small">Liityit mukaan kesken kauden: joukkueesi kerää pisteitä kierroksesta {roundNum(s, t.first_round)} alkaen.</p>}
