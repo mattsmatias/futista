@@ -91,7 +91,7 @@ const stats = (cookie, days = 30) => fetch(`${APP}/api/hallinta/tilastot?days=${
       ok("paneeli: Futista Fantasy – käyttäjät (yhteensä, uudet, joukkue luotu / tallennettu)", /Futista Fantasy – käyttäjät/i.test(fxt) && /Käyttäjiä yhteensä/i.test(fxt) && /Joukkue tallennettu/i.test(fxt), fxt.slice(0, 200));
       const srcs = await pg.locator(".adm-src .adm-src-t > b").allInnerTexts();
       const fit = await pg.evaluate(() => ({ seg: [...document.querySelectorAll(".adm-range button")].every((b) => b.scrollWidth <= b.clientWidth + 1), ov: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        kpiCols: new Set([...document.querySelectorAll(".adm-kpi")].map((e) => Math.round(e.getBoundingClientRect().left))).size,
+        kpiCols: new Set([...document.querySelectorAll(".adm-kpis")[0].querySelectorAll(".adm-kpi")].map((e) => Math.round(e.getBoundingClientRect().left))).size,
         taps: [...document.querySelectorAll(".adm-range button, .adm-refresh")].every((e) => e.getBoundingClientRect().height >= 40) }));
       ok("paneeli (390 px): Tänään/Eilen/jakso + vertailu, lähteet, 2×2-luvut, isot napit, ei vaakavieritystä", /Tänään/.test(kpi) && /Eilen/.test(kpi) && /[▲▼•]|uusi/.test(kpi) && srcs.includes("Instagram") && srcs.includes("Google") && fit.seg && fit.ov <= 0 && fit.kpiCols === 2 && fit.taps, `${kpi} | ${srcs} | ${JSON.stringify(fit)}`);
       const rows30 = await pg.locator(".adm-days li").count();
