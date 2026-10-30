@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, errText, useLoad, fmtM, localTime, roundName, roundNum, roundFx, type FState, type FPlayerRow, type FPlayersResp } from "@/lib/fantasy-client";
+import { api, errText, useLoad, fmtM, localTime, roundName, roundNum, roundFx, teamBudgetOf, type FState, type FPlayerRow, type FPlayersResp } from "@/lib/fantasy-client";
 import { RULES, type Picks, type FPlayer } from "@/lib/fantasy-core";
 import { moveCheck, movePlayers, setCaptain, swapOptions, swapPlayers } from "@/lib/fantasy-lineup";
 import { StylePicker } from "./StylePicker";
@@ -85,7 +85,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
   const snapPicks: Picks | null = rawSnap && subs.length ? subs.reduce((p, x) => ({ ...p, xi: p.xi.map((y) => (y === x.out ? x.in : y)), bench: p.bench.map((y) => (y === x.in ? x.out : y)) }), rawSnap) : rawSnap;
   const picks: Picks | null = mode === "pts" ? snapPicks : t.picks;
   const ptsOf = (id: number) => (snap.data?.points?.breakdown?.players ?? []).find((x: any) => x.player_id === id);
-  const budgetLeft = t.picks && players.size ? Math.round((s.comp.budget - t.picks.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0)) * 10) / 10 : null;
+  const budgetLeft = t.picks && players.size ? Math.round((teamBudgetOf(s) - t.picks.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0)) * 10) / 10 : null;
   const round = pl.data?.round ?? null;
   const fxOf = (id: number) => { const p = players.get(id); if (!p) return null; const r = roundFx(round ?? undefined, p.team_id); if (r) return r; return p.next && next && p.next.round_no === next.no ? [{ opp: p.next.opp, home: p.next.home, kickoff: p.next.kickoff }] : round ? [] : null; };
   const editable = !!(next && t.picks && t.picks.squad.length === RULES.squadSize && mode !== "pts");
@@ -181,7 +181,14 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
           <span className="fx-dl-cd"><Countdown to={next.deadline} /></span>
         </p>
       )}
-            {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {roundNum(s, next?.no)} määräaikaa. <Link href="/fantasy/siirrot">Valitse pelaajat →</Link></Notice>}
+      {s.tasks && (
+        <Link href="/fantasy/tehtavat" className="fxt-link">
+          <span className="fxt-link-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg></span>
+          <span className="fxt-link-t"><b>Tehtävät</b><small>Kierroksen tehtävät ja kausitavoitteet{t.budget ? ` · budjetti ${fmtM(t.budget.total)} / ${fmtM(t.budget.cap)}` : ""}</small></span>
+          <span className="fxt-link-go" aria-hidden="true">›</span>
+        </Link>
+      )}
+      {!t.picks && <Notice>Joukkueessa ei vielä ole pelaajia. Valitse 15 pelaajaa ennen kierroksen {roundNum(s, next?.no)} määräaikaa. <Link href="/fantasy/siirrot">Valitse pelaajat →</Link></Notice>}
       {msg && <Notice kind={msg.kind} role={msg.kind === "error" ? "alert" : "status"}>{msg.text}</Notice>}
       {pl.err && <ErrorBox err={pl.err} retry={pl.reload} />}
 

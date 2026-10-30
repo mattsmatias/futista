@@ -213,3 +213,19 @@ Käyttöönotto: aja `supabase/migrations/20261101_fantasy_card_versions.sql` EN
 - Korttityyli: `fantasy_card_styles` (rivi puuttuu = Perus). `f_card_style_set` hyväksyy vain omistetun version.
   Näkyy kentällä (Joukkue, Siirrot, Pisteet) – ei vaikuta valintoihin, siirtoihin, budjettiin, pisteisiin eikä rankingiin.
 - Testit: `tests/integration/versions-db.cjs`, `packs.cjs` (korttityyli selaimessa 390/1280 px), `tests/fantasy-packs.test.ts`.
+
+## Tehtävät ja kausitavoitteet (feature/fantasy-tasks, 30.10.2026)
+Käyttöönotto: aja `supabase/migrations/20261106_fantasy_tasks.sql` (idempotentti, vain uusia tauluja ja funktioita; kolikkokirjauksiin
+uusi laji `task`). Ilman migraatiota peli toimii ennallaan (budjetti 100,0, Tehtävät-sivu kertoo puuttuvasta päivityksestä).
+- Laskenta alkaa kierroksesta, joka on ensimmäinen avoin, kun päivitys kutsuu `f_tasks_ensure` ensimmäisen kerran (`fantasy_task_config.start_round`).
+  Aiempia kierroksia ei lasketa. Esikatselu: `GET /api/fantasy/yllapito?tehtavat=esikatselu` (ei maksa mitään). Ylläpidon päätös
+  aiempien kierrosten huomioimisesta: `POST {action:"tasks_start", round}` (vanhoilla kierroksilla ei ole tehtäviä → vain osallistumiset/budjetti).
+- Kierrostehtävät: 3 / kierros (paikka 1 osallistuminen 25, paikka 2 kapteeni/maalit/syötöt 25, paikka 3 pistetavoite 40/50/60 → 50),
+  kaikille samat, luodaan 3 seuraavalle avoimelle kierrokselle (`horizon`) pankista `fantasy_task_defs`; luotu kierros ei muutu.
+- Maksu (`f_tasks_settle`, tila-pyynnössä, Tehtävät-sivulla ja jokaisessa päivityksessä): osallistuminen ja kapteeni, kun kierros on
+  lopullinen; pisteet/maalit/syötöt, kun lisäksi korjausaika (`confirm_hours`, 96 h viimeisestä ottelusta) on kulunut. Ratkaisu
+  tallennetaan kerran (`fantasy_task_claims`), kolikot `ref task:<kilpailu>:<kierros>:<paikka>`; lompakko lukitaan → ei tuplamaksua.
+  Myöhempi käsin tehty uudelleenlaskenta (ylläpidon recompute) ei muuta ratkaistua tehtävää.
+- Kausitavoitteet (`fantasy_budget_goals`, oletus 4/8/15/22 lopullista osallistumista, kukin +0,5): budjetti = 100,0 + ansaitut,
+  enintään `budget_cap` 102,0 (check-ehto). `f_team_budget` on ainoa lähde; joukkueen tallennus tarkistaa budjetin palvelimella.
+- Testit: `tests/integration/tasks-db.cjs` (tietokanta) ja `tests/integration/tasks.cjs` (rajapinta ja näkymä).

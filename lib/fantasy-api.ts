@@ -79,6 +79,23 @@ export async function readJson(req: Request): Promise<any> {
   try { return await req.json(); } catch { return null; }
 }
 
+/** Joukkuebudjetti palvelimen laskemana (perus + kausitavoitteista ansaittu, enintään katto 102,0). Selaimen ilmoittamaa
+ *  budjettia ei käytetä. Ilman tehtävämigraatiota (20261106) = kilpailun budjetti. */
+export type BudgetInfo = { base: number; bonus: number; cap: number; total: number };
+export async function teamBudget(compId: string, base: number, userId: number): Promise<BudgetInfo> {
+  try {
+    const b = await rpc<Record<string, unknown>>("f_team_budget", { p_comp: compId, p_user: userId });
+    if (b && Number.isFinite(Number(b.total))) return { base: Number(b.base), bonus: Number(b.bonus), cap: Number(b.cap), total: Number(b.total) };
+  } catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) throw e; }
+  return { base, bonus: 0, cap: base, total: base };
+}
+
+/** Tehtävien ja kausitavoitteiden tasaus käyttäjälle (idempotentti). false = ominaisuus ei käytössä (migraatio tai asetus puuttuu). */
+export async function settleTasks(compId: string, userId: number): Promise<boolean> {
+  try { return !!(await rpc<{ ok?: boolean }>("f_tasks_settle", { p_user: userId, p_comp: compId }))?.ok; }
+  catch (e) { if (e instanceof FantasyDbError && e.code === "missing") return false; console.warn("fantasy tehtävät", (e as Error)?.message); return false; }
+}
+
 /** Joukkueiden logot ({id: logo}); ilman logomigraatiota (20261027b) tyhjä → oletuslogot */
 export async function teamLogos(compId: string, ids: number[]): Promise<Record<string, unknown>> {
   if (!ids.length) return {};

@@ -2,7 +2,7 @@ import { rpc, FantasyDbError } from "@/lib/fantasy-db";
 import { normalizeLogo } from "@/lib/fantasy-logo";
 import { squadErrors, lineupErrors, cleanName, type Picks } from "@/lib/fantasy-core";
 import { DEFAULT_COMP, playersMap } from "@/lib/fantasy-sync";
-import { j, fail, dbFail, withUser, loadState, roundInfo, transferInfo, readJson } from "@/lib/fantasy-api";
+import { j, fail, dbFail, withUser, loadState, roundInfo, transferInfo, readJson, teamBudget } from "@/lib/fantasy-api";
 
 // Oma fantasy-joukkue.
 //  GET ?round=N → kierroksen tilannekuva ja pisteiden erittely (vain oma joukkue); ?nimi=1 → nimenvaihdon hinta ja saldo
@@ -75,7 +75,9 @@ export async function POST(req: Request) {
     if (!picks) return fail("picks");
     const players = await playersMap(comp.id);
     const tr = transferInfo(st.team, next.round_no, picks, st.rounds.map((r) => r.round_no));
-    const errors = [...squadErrors(picks.squad, players, Number(st.comp?.budget ?? 100), tr.base?.squad ?? picksSquad(st, next.round_no)), ...lineupErrors(picks, players)];
+    // budjetti palvelimelta (perus + ansaitut kausitavoitteet, katto 102,0); selaimen ilmoittamaa budjettia ei käytetä
+    const budget = (await teamBudget(comp.id, Number(st.comp?.budget ?? 100), a.user.user_id)).total;
+    const errors = [...squadErrors(picks.squad, players, budget, tr.base?.squad ?? picksSquad(st, next.round_no)), ...lineupErrors(picks, players)];
     if (errors.length) return fail("rules", 422, { errors });
     // käyttäjän näkemä pistevähennys ≠ palvelimen laskema → näytä uudelleen ennen vahvistusta
     if (Number(b?.cost ?? -1) !== tr.cost) return fail("cost", 409, { cost: tr.cost, made: tr.made, free: tr.free === Infinity ? null : tr.free });

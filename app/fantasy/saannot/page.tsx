@@ -14,6 +14,13 @@ async function coinInfo(): Promise<{ rules: CoinRules; packs: PackV[] } | null> 
   } catch { return null; }
 }
 
+type TaskRules = { config: { start_round: number; budget_cap: number; confirm_hours: number } | null; base: number; goals: { rounds: number; bonus: number }[];
+  defs: { slot: number; title: string; help: string; reward: number }[] };
+/** Tehtävät ja kausitavoitteet tietokannasta; migraatio puuttuu tai tehtävät eivät vielä käytössä → osio piiloon */
+async function taskInfo(): Promise<TaskRules | null> {
+  try { const r = await rpc<TaskRules>("f_tasks_rules", { p_comp: DEFAULT_COMP.id }); return r?.config ? r : null; } catch { return null; }
+}
+
 // kilpailu ympäristön mukaan (FANTASY_COMP) → renderöidään pyynnöstä, ei käännösvaiheessa
 export const dynamic = "force-dynamic";
 
@@ -21,7 +28,8 @@ export const dynamic = "force-dynamic";
 const m = (n: number) => `${n.toFixed(1).replace(".", ",")} M kolikkoa`;
 
 export default async function Page() {
-  const coins = await coinInfo();
+  const [coins, tasks] = await Promise.all([coinInfo(), taskInfo()]);
+  const m1 = (n: number) => Number(n).toFixed(1).replace(".", ",");
   const weekly = !!DEFAULT_COMP.anchor;
   const leagues = compLeagues(DEFAULT_COMP).map((l) => l.name);
   return (
@@ -33,7 +41,7 @@ export default async function Page() {
           <ul>
             {weekly && <li>Pelaajia voi valita näistä sarjoista: {leagues.join(", ")}. Kaikki pelaavat samaa peliä ja ovat samassa Futista-liigassa.</li>}
             <li>{RULES.squadSize} pelaajaa: {RULES.quota.GK} maalivahtia, {RULES.quota.DEF} puolustajaa, {RULES.quota.MID} keskikenttäpelaajaa ja {RULES.quota.FWD} hyökkääjää.</li>
-            <li>Budjetti {m(RULES.budget)} pelin sisäistä valuuttaa. Oikeat rahasummat eivät liity peliin.</li>
+            <li>Budjetti {m(RULES.budget)} pelin sisäistä valuuttaa. Oikeat rahasummat eivät liity peliin.{tasks ? ` Kausitavoitteista voi ansaita lisää budjettia, enintään ${m(Number(tasks.config!.budget_cap))} (ks. Tehtävät).` : ""}</li>
             <li>Enintään {RULES.clubMax} pelaajaa samasta seurasta.</li>
             <li>Avauskokoonpanossa 11 pelaajaa: 1 maalivahti, vähintään {RULES.xiMin.DEF} puolustajaa, {RULES.xiMin.MID} keskikenttäpelaajaa ja {RULES.xiMin.FWD} hyökkääjä. Penkillä 4 pelaajaa järjestyksessä; ensimmäinen on vaihtomaalivahti.</li>
             <li>Valitse kapteeni ja varakapteeni avauskokoonpanosta.</li>
@@ -106,6 +114,21 @@ export default async function Page() {
             <li>Kutsulinkillä kaveri pääsee suoraan luomaan joukkueen, ja näette toistenne pisteet Futista-liigassa.</li>
           </ul>
         </section>
+        {tasks && (
+          <section id="tehtavat">
+            <h3>Tehtävät ja kausitavoitteet</h3>
+            <ul>
+              <li>Jokaisella kierroksella on kolme tehtävää, jotka ovat kaikille samat ja näkyvät Tehtävät-sivulla ennen kierroksen määräaikaa. Tehtävät vaihtelevat kierroksittain, ja palkintona on Futista-kolikoita (ei budjettia).</li>
+              <li>Tehtäväpankki: {tasks.defs.map((d) => `${d.title} (${d.reward} kolikkoa)`).join(", ")}.</li>
+              <li>Osallistumis- ja kapteenitehtävään riittää, että joukkueesi on tallennettu kierroksen määräajalla. Aiemmin tallennettu joukkue ja aiemmin valittu kapteeni kelpaavat; mitään ei tarvitse vaihtaa palkinnon takia.</li>
+              <li>Maali- ja syöttötehtävissä lasketaan kentälle lasketut 11 pelaajaa (automaattiset vaihdot mukaan lukien, penkki ei). Pistetavoitteessa lasketaan kierroksen pisteet siirtovähennysten jälkeen.</li>
+              <li>Palkinnot tarkistetaan ja maksetaan palvelimella, kukin vain kerran. Osallistumis- ja kapteenitehtävä maksetaan, kun kierros on lopullinen. Pisteisiin, maaleihin ja syöttöihin perustuvat tehtävät ratkaistaan vasta, kun tilastojen korjausaika ({Math.round(tasks.config!.confirm_hours / 24)} vuorokautta kierroksen viimeisestä ottelusta) on päättynyt. Ratkaistu tehtävä ei muutu jälkikäteen, eikä maksettua palkintoa peritä takaisin.</li>
+              <li>Kausitavoitteet: {tasks.goals.map((g) => `${g.rounds} kierrosta +${m1(g.bonus)} M`).join(", ")}. Osallistuminen lasketaan, kun joukkueesi oli tallennettu kierroksen määräajalla ja kierros on lopullinen. Joukkueen vaihtaminen ei ole välttämätöntä.</li>
+              <li>Budjetti on aluksi {m(Number(tasks.base))} ja voi kasvaa kauden aikana enintään {m(Number(tasks.config!.budget_cap))}. Lisäys tulee käyttöön, kun kierros on lopullinen, ja sitä voi käyttää seuraavan avoimen kierroksen siirroissa. Budjettia ei voi ostaa Futista-kolikoilla, saada pakoista eikä siirtää toiselle.</li>
+              <li>Kesken kauden liittyvä aloittaa budjetista {m(Number(tasks.base))} ja etenee tavoitteissa omista osallistumisistaan. Ennen tehtävien käyttöönottoa pelattuja kierroksia ei lasketa.</li>
+            </ul>
+          </section>
+        )}
         {coins && (
           <section>
             <h3>Futista-kolikot ja pakat</h3>

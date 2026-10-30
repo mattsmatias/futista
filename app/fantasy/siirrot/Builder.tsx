@@ -3,7 +3,7 @@
 // siirtojen ja pistevähennyksen näyttö ennen vahvistusta. Palvelin tarkistaa kaiken uudelleen tallennettaessa.
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, useLoad, errText, fmtM, fmtMText, roundFx, type FRoundFx, type FPlayersResp, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
+import { api, useLoad, errText, fmtM, fmtMText, teamBudgetOf, roundFx, type FRoundFx, type FPlayersResp, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
 import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
 import { Money } from "../Coin";
 import { view, arrange, fixCaps, swapOptions } from "@/lib/fantasy-lineup";
@@ -86,7 +86,7 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
     setOutNote(`${p.name} poistettu luonnoksesta. Valitse tilalle ${POS_LONG[p.pos].toLowerCase()}. Muutos tallentuu joukkueeseen, kun vahvistat sen.`);
     try { history.replaceState(history.state, "", location.pathname); } catch { /* ei historiaa */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const budget = s.comp.budget;
+  const budget = teamBudgetOf(s); // palvelimen laskema (perus + kausitavoitteet, katto); palvelin tarkistaa tallennuksessa uudelleen
 
   const cost = d.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0);
   const left = Math.round((budget - cost) * 10) / 10;
@@ -179,7 +179,8 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
       <section className="fx-buildbar" aria-label="Joukkueen tila">
         <div><span className="muted">{roundName(s, next.no)} · määräaika</span><b>{localTime(next.deadline)}</b></div>
         <div><span className="muted">Pelaajia</span><b>{d.squad.length} / {RULES.squadSize}</b></div>
-        <div><span className="muted">Budjettia jäljellä</span><b className={left < 0 ? "neg" : ""}><Money v={left} size={18} /></b></div>
+        <div><span className="muted">Budjettia jäljellä</span><b className={left < 0 ? "neg" : ""}><Money v={left} size={18} /></b>
+          {(t.budget?.bonus ?? 0) > 0 && <small className="muted fx-bud-bonus">Budjetti {fmtM(budget)} (kausitavoitteet +{fmtM(t.budget!.bonus)})</small>}</div>
         {t.base && <div><span className="muted">Siirrot</span><b>{made} / {free === Infinity ? "∞" : `${free} ilmaista`}</b></div>}
         {t.base && <div><span className="muted">Pistevähennys</span><b className={hit ? "neg" : ""}>{hit ? `−${hit} p` : "0 p"}</b></div>}
       </section>

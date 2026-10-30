@@ -65,6 +65,7 @@ function PacksIn() {
         </div>
       </section>
 
+      <p className="small fxk-earn"><Link href="/fantasy/tehtavat">Ansaitse kolikoita kierroksen tehtävistä →</Link></p>
       {msg && <Notice kind={msg.kind} role="alert"><p>{msg.text}</p></Notice>}
       {unseen.length > 0 && (
         <Notice kind="warn">

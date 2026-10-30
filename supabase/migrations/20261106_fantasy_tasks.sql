@@ -3,8 +3,9 @@
 -- valinnat, pisteet, ranking, kolikot ja pakat eivät muutu. Ilman tätä migraatiota sovellus toimii kuten ennen.
 --
 -- Säännöt
---  * Kierrostehtävät luodaan palvelimella jokaiselle avoimelle kierrokselle ennen määräaikaa (kaikille samat; tehtäväpankista
---    kiertävästi). Kerran luotu kierroksen tehtävä ei muutu.
+--  * Kierrostehtävät luodaan palvelimella kolmelle seuraavalle avoimelle kierrokselle (horizon) hyvissä ajoin ennen määräaikaa
+--    (kaikille samat; tehtäväpankista kiertävästi). Kerran luotu kierroksen tehtävä ei muutu; pankin muutokset koskevat
+--    myöhemmin luotavia kierroksia.
 --  * Tehtävä maksetaan vain kerran: suoritus (fantasy_task_claims) ja kolikkokirjaus (ref task:<kilpailu>:<kierros>:<paikka>)
 --    ovat yksilöllisiä; lompakko lukitaan ennen tarkistusta → uusinta- ja samanaikaiset pyynnöt eivät maksa kahdesti.
 --  * Osallistuminen = joukkueella on kierroksen määräajalla otettu tilannekuva (kelvollinen joukkue tallennettuna ajoissa;
@@ -28,6 +29,7 @@ create table if not exists public.fantasy_task_config (
   start_round   integer not null check (start_round > 0),
   budget_cap    numeric(5,1) not null default 102.0 check (budget_cap >= 0 and budget_cap <= 102.0),
   confirm_hours integer not null default 96 check (confirm_hours between 0 and 720),
+  horizon       integer not null default 3 check (horizon between 1 and 60),  -- montako seuraavaa avointa kierrosta saa tehtävät etukäteen
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -177,6 +179,8 @@ begin
     select r.round_no, (select count(*) from public.fantasy_rounds r2 where r2.comp = p_comp and r2.round_no < r.round_no)::int as k
     from public.fantasy_rounds r
     where r.comp = p_comp and r.locked_at is null and r.deadline_at > now() and r.round_no >= v_start
+      and r.round_no in (select r3.round_no from public.fantasy_rounds r3 where r3.comp = p_comp and r3.locked_at is null and r3.deadline_at > now()
+                         order by r3.round_no limit (select horizon from public.fantasy_task_config where comp = p_comp))
       and not exists (select 1 from public.fantasy_round_tasks t where t.comp = p_comp and t.round_no = r.round_no)
     order by r.round_no
   loop
@@ -340,6 +344,17 @@ language sql stable security definer set search_path = '' as $$
       from shown s) x), '[]'::jsonb))
 $$;
 
+-- Säännöt-sivulle: asetukset, kausitavoitteet ja tehtäväpankki (sama lähde kuin palkinnoilla)
+create or replace function public.f_tasks_rules(p_comp text) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'config', (select jsonb_build_object('start_round', start_round, 'budget_cap', budget_cap, 'confirm_hours', confirm_hours) from public.fantasy_task_config where comp = p_comp),
+    'base', (select budget from public.fantasy_comps where id = p_comp),
+    'goals', coalesce((select jsonb_agg(jsonb_build_object('rounds', rounds, 'bonus', bonus) order by rounds, id) from public.fantasy_budget_goals where comp = p_comp), '[]'::jsonb),
+    'defs', coalesce((select jsonb_agg(jsonb_build_object('slot', slot, 'title', title, 'help', help, 'reward', reward, 'kind', kind, 'target', target) order by slot, sort, id)
+              from public.fantasy_task_defs where active), '[]'::jsonb))
+$$;
+
 -- Esikatselu (ylläpito): mitä aloituskierrosta edeltävistä lopullisista kierroksista olisi kertynyt. Ei maksa mitään.
 -- Kolikkoarvio: kevyet tehtävät (osallistuminen + kapteeni) ja 50 pisteen tavoite oletuspalkkioin.
 create or replace function public.f_tasks_backfill_preview(p_comp text) returns jsonb
@@ -387,12 +402,12 @@ end $$;
 do $$ declare f text; begin
   foreach f in array array[
     'f_task_count(jsonb,text)','f_task_captain(jsonb)','f_tasks_ensure(text)','f_team_budget(text,bigint)','f_tasks_settle(bigint,text)',
-    'f_tasks_settle_comp(text)','f_tasks_view(text,bigint)','f_tasks_backfill_preview(text)','f_tasks_start_set(text,integer)'] loop
+    'f_tasks_settle_comp(text)','f_tasks_view(text,bigint)','f_tasks_rules(text)','f_tasks_backfill_preview(text)','f_tasks_start_set(text,integer)'] loop
     execute format('revoke all on function public.%s from public, anon, authenticated', f);
     execute format('grant execute on function public.%s to service_role', f);
   end loop;
 end $$;
 
--- Poisto: drop function public.f_task_count, f_task_captain, f_tasks_*, f_team_budget; drop table public.fantasy_task_claims,
+-- Poisto: drop function public.f_task_count, f_task_captain, f_tasks_* (myös f_tasks_rules), f_team_budget; drop table public.fantasy_task_claims,
 -- public.fantasy_round_tasks, public.fantasy_task_defs, public.fantasy_budget_awards, public.fantasy_participation,
 -- public.fantasy_budget_goals, public.fantasy_task_config; (kolikkokirjausten 'task'-rivit jäävät kirjanpitoon)

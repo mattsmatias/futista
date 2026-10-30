@@ -6,13 +6,15 @@ import type { Picks, Pos } from "./fantasy-core";
 export type { Pos } from "./fantasy-core";
 
 export type FState = {
-  now: string; user: { username: string } | null; coins?: number | null;
+  now: string; user: { username: string } | null; coins?: number | null; tasks?: boolean;
   comp: { id: string; name: string; budget: number; leagues?: { id: number; name: string }[] };
   data: { updated: string | null; stale: boolean; error: boolean };
   rounds: { no: number; label?: string; deadline: string; first: string; locked: boolean; status: string }[];
   next: number | null; current: number | null;
   team: null | {
     id: number; name: string; logo: unknown; invite: string | null; styles?: Record<string, string>; first_round: number | null; version: number; picks: Picks | null; base: Picks | null;
+    /** joukkuebudjetti palvelimelta (perus + kausitavoitteet, katto); puuttuu → kilpailun budjetti */
+    budget?: { base: number; bonus: number; cap: number; total: number } | null;
     free: number | null; made: number; cost: number; total: number; rank: { rank: number; of: number } | null; joined_late: boolean;
     points: { round: number; points: number; hits: number; total: number; provisional: boolean }[];
   };
@@ -90,6 +92,8 @@ export const localTime = (iso: string) => DTF.format(new Date(iso));
 export const POS_SHORT: Record<Pos, string> = { GK: "MV", DEF: "P", MID: "KK", FWD: "H" };
 export const POS_LONG: Record<Pos, string> = { GK: "Maalivahti", DEF: "Puolustaja", MID: "Keskikenttäpelaaja", FWD: "Hyökkääjä" };
 /** Pelin sisäinen valuutta (kolikot, miljoonina): näkyvä luku kolikkokuvakkeen vieressä */
+/** Joukkueen käytettävissä oleva kokonaisbudjetti (palvelimen laskema) */
+export const teamBudgetOf = (s: Pick<FState, "comp" | "team">) => s.team?.budget?.total ?? s.comp.budget;
 export const fmtM = (n: number) => `${n.toFixed(1).replace(".", ",")} M`;
 /** Sama tekstinä (ruudunlukija, ilmoitukset) */
 export const fmtMText = (n: number) => `${n.toFixed(1).replace(".", ",")} M kolikkoa`;

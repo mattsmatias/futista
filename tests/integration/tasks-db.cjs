@@ -59,7 +59,10 @@ const finish = async (r, agoHours) => {
   // ---- käyttöönotto ----
   const e1 = await fn("f_tasks_ensure", { p_comp: C });
   const e2 = await fn("f_tasks_ensure", { p_comp: C });
-  ok("käyttöönotto: aloituskierros = ensimmäinen avoin (3), tehtävät 38 avoimelle kierrokselle; toinen kutsu ei luo uusia", e1.start_round === 3 && e1.rounds === 38 && e2.rounds === 0, { e1, e2 });
+  ok("käyttöönotto: aloituskierros = ensimmäinen avoin (3), tehtävät 3 seuraavalle avoimelle kierrokselle; toinen kutsu ei luo uusia", e1.start_round === 3 && e1.rounds === 3 && e2.rounds === 0, { e1, e2 });
+  await q("update public.fantasy_task_config set horizon = 60 where comp = $1", [C]); // kierron testaus: kaikki kierrokset kerralla
+  const e2b = await fn("f_tasks_ensure", { p_comp: C });
+  ok("pidempi ennakko (horizon 60): loput 35 kierrosta", e2b.rounds === 35, e2b);
   const rt = await q("select round_no, slot, def_id, kind, target, reward from public.fantasy_round_tasks where comp = $1 order by round_no, slot", [C]);
   const by = new Map(); for (const x of rt) by.set(x.round_no, [...(by.get(x.round_no) ?? []), x]);
   ok("joka kierroksella 3 tehtävää: osallistuminen 25, toinen 25, pistetavoite 50", [...by.values()].every((l) => l.length === 3 && l[0].kind === "participate" && l[0].reward === 25 && l[1].reward === 25 && l[2].kind === "points" && l[2].reward === 50));

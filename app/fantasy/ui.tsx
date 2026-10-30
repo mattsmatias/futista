@@ -13,7 +13,7 @@ import type { Picks, Pos } from "@/lib/fantasy-core";
 // Pelinäkymä: oma yläpalkki (HUD) ja alavalikko; Futistan yläpalkki, alavalikko ja alatunniste piiloon (html.fx-game)
 const I = { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
 const TABS: { href: string; also?: string; label: string; icon: React.ReactNode }[] = [
-  { href: "/fantasy", label: "Joukkue", icon: <svg {...I}><path d="M8 3 4 5 2 9l3 2 1-1v10h12V10l1 1 3-2-2-4-4-2c-.5 2-2 3-4 3S8.5 5 8 3Z" /></svg> },
+  { href: "/fantasy", also: "/fantasy/tehtavat", label: "Joukkue", icon: <svg {...I}><path d="M8 3 4 5 2 9l3 2 1-1v10h12V10l1 1 3-2-2-4-4-2c-.5 2-2 3-4 3S8.5 5 8 3Z" /></svg> },
   { href: "/fantasy/siirrot", label: "Siirrot", icon: <svg {...I}><path d="M4 8h13l-3-3M20 16H7l3 3" /></svg> },
   { href: "/fantasy/liigat", label: "Liiga", icon: <svg {...I}><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4" /></svg> },
   { href: "/fantasy/pakat", also: "/fantasy/kokoelma", label: "Pakat", icon: <svg {...I}><path d="M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M6 8h12M10 13l2-2 2 2-2 2z" /></svg> },
@@ -62,7 +62,7 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
       </main>
       <nav className="fxg-tabs" aria-label="Fantasy">
         {TABS.map((x) => {
-          const on = x.href === "/fantasy" ? path === "/fantasy" : path.startsWith(x.href) || (!!x.also && path.startsWith(x.also));
+          const on = x.href === "/fantasy" ? path === "/fantasy" || (!!x.also && path.startsWith(x.also)) : path.startsWith(x.href) || (!!x.also && path.startsWith(x.also));
           return <Link key={x.href} href={x.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}><span className="fxg-ic" aria-hidden="true">{x.icon}</span><span>{x.label}</span></Link>;
         })}
       </nav>

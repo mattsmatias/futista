@@ -2747,3 +2747,71 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .adm-enq-body p.small { margin: 0; overflow-wrap: anywhere; }
 .adm-enq-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn.danger { background: #e5484d; color: #fff; border-color: #e5484d; }
+
+/* ---- Fantasy: Tehtävät (kierrostehtävät, kausitavoitteet) ---- */
+.fxt { display: grid; gap: 12px; }
+.fxt h2 { margin: 0; font: 900 18px/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; }
+.fxt-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 18px; border: 1px solid rgba(255, 210, 63, .32);
+  background: radial-gradient(120% 140% at 0% 0%, rgba(255, 210, 63, .16), transparent 60%), var(--surface); }
+.fxt-hero > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.fxt-hero h2 { font-size: 22px; }
+.fxt-hero p { margin: 0; font-size: 13.5px; line-height: 1.35; }
+.fxt-cd { color: var(--fx-acc, var(--fg)); font-weight: 800; white-space: nowrap; }
+.fxt-pot { display: grid; justify-items: end; gap: 2px; flex: none; }
+.fxt-pot small { font: 700 10.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.fxt-pot .fx-fcoins { font: 900 20px/1 var(--display); }
+.fxt-list { display: grid; gap: 8px; }
+.fxt-task { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.fxt-task.st-done { border-color: rgba(61, 220, 151, .5); background: linear-gradient(0deg, rgba(61, 220, 151, .07), rgba(61, 220, 151, .07)), var(--surface); }
+.fxt-task.st-failed, .fxt-task.st-missed { opacity: .78; }
+.fxt-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 210, 63, .14); color: var(--fx-acc, var(--fg)); }
+.fxt-task.st-done .fxt-ic { background: rgba(61, 220, 151, .18); color: #3ddc97; }
+.fxt-body { display: grid; gap: 6px; min-width: 0; }
+.fxt-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fxt-top h3 { margin: 0; font: 800 15.5px/1.2 var(--ui); overflow-wrap: anywhere; }
+.fxt-rew { flex: none; font: 900 15px/1 var(--display); color: #2de2e6; }
+.fxt-help { margin: 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.fxt-prog { display: flex; align-items: center; gap: 10px; }
+.fxt-prog .fxt-bar { flex: 1; }
+.fxt-num { flex: none; font: 800 13px/1 var(--ui); font-variant-numeric: tabular-nums; }
+.fxt-bar { position: relative; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.fxt-bar.sm { height: 7px; }
+.fxt-bar > i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, var(--fx-acc, #ffd23f), var(--fx-acc-2, #2de2e6)); }
+.fxt-task.st-done .fxt-bar > i { background: #3ddc97; }
+.fxt-st { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0; }
+.fxt-st small { font-size: 12px; line-height: 1.35; }
+.fxt-chip { display: inline-flex; align-items: center; min-height: 22px; padding: 2px 8px; border-radius: 999px; font: 800 11px/1.1 var(--ui); letter-spacing: .03em; text-transform: uppercase;
+  background: rgba(255, 255, 255, .08); color: var(--fg); }
+.fxt-chip.st-open { background: rgba(255, 210, 63, .16); color: var(--fx-acc, var(--fg)); }
+.fxt-chip.st-pending { background: rgba(45, 226, 230, .14); color: #2de2e6; }
+.fxt-chip.st-done { background: rgba(61, 220, 151, .18); color: #3ddc97; }
+.fxt-season, .fxt-past { display: grid; gap: 10px; padding: 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.fxt-season p, .fxt-foot { margin: 0; }
+.fxt-budget { display: grid; gap: 8px; }
+.fxt-budget-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fxt-budget-row span { font: 700 12px/1.2 var(--ui); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.fxt-budget-row b { font: 900 20px/1 var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fxt-budget-row b small { font: 700 13px/1 var(--ui); }
+.fxt-goals { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fxt-goals li { display: grid; gap: 5px; }
+.fxt-goal-h { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.fxt-goal-h b { flex: none; color: var(--fx-acc, var(--fg)); }
+.fxt-goals li.done .fxt-goal-h b, .fxt-goals li.done small { color: #3ddc97; }
+.fxt-goals li.done .fxt-bar > i { background: #3ddc97; }
+.fxt-past details { border-top: 1px solid var(--line); padding-top: 8px; }
+.fxt-past details:first-of-type { border-top: 0; padding-top: 0; }
+.fxt-past summary { display: flex; justify-content: space-between; gap: 8px; min-height: 44px; align-items: center; cursor: pointer; list-style: none; }
+.fxt-past summary::-webkit-details-marker { display: none; }
+.fxt-past summary::after { content: "›"; font-size: 20px; color: var(--muted); transform: rotate(90deg); transition: transform .15s ease; }
+.fxt-past details[open] summary::after { transform: rotate(-90deg); }
+.fxt-past summary .muted { margin-left: auto; font-size: 13px; }
+.fxt-link { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border-radius: 14px; text-decoration: none; color: var(--fg);
+  border: 1px solid rgba(255, 210, 63, .32); background: radial-gradient(120% 160% at 0% 0%, rgba(255, 210, 63, .14), transparent 60%), var(--surface); }
+.fxt-link-ic { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 210, 63, .16); color: var(--fx-acc, var(--fg)); }
+.fxt-link-t { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.fxt-link-t small { color: var(--muted); font-size: 12.5px; line-height: 1.3; }
+.fxt-link-go { font-size: 24px; color: var(--muted); }
+.fxt-link:focus-visible { outline: 3px solid var(--fx-acc); outline-offset: 2px; }
+.fx-bud-bonus { font-size: 11.5px; line-height: 1.3; }
+.fxk-earn { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .fxt-past summary::after { transition: none; } }

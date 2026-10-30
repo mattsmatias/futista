@@ -280,6 +280,12 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     try { await rpc("f_coins_settle_comp", { p_comp: c.id }); }
     catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy kolikot", errCode(e)); } // ei kaada pistepäivitystä
   }
+  // Tehtävät ja kausitavoitteet: seuraavien kierrosten tehtävät etukäteen ja palkinnot lopullisilta / vahvistetuilta
+  // kierroksilta (korjausaika voi päättyä ilman uutta dataa → joka päivityksellä). Migraatio 20261106 puuttuu → ohitetaan.
+  try {
+    await rpc("f_tasks_ensure", { p_comp: c.id });
+    await rpc("f_tasks_settle_comp", { p_comp: c.id });
+  } catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy tehtävät", errCode(e)); } // ei kaada päivitystä
   if (stepErrors.length) out.error = stepErrors.join(",");
   return out;
 }

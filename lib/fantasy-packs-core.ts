@@ -67,6 +67,8 @@ export function ledgerText(kind: string, info: Record<string, any> = {}): string
     case "round": return `Kierros ${info.round}: osallistuminen ${info.participation} + pisteet ${info.from_points}`;
     case "round_fix": return `Kierroksen ${info.round} pisteitä korjattiin (${info.points_before} → ${info.points} p)`;
     case "round_waived": return `Kierroksen ${info.round} korjaus: ${info.uncollected} kolikkoa jäi perimättä, koska ne oli jo käytetty`;
+    case "task": return `Tehtävä suoritettu: ${info.title ?? "kierrostehtävä"}${info.label ? ` (${info.label})` : ""}`;
+    case "rename": return "Joukkueen nimi vaihdettu";
     case "pack": return info.pack === "gold" ? "Gold-pakka avattu" : info.pack === "silver" ? "Silver-pakka avattu" : "Pakka avattu";
     default: return "Kolikkotapahtuma";
   }
