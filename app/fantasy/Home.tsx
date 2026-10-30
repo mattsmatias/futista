@@ -12,6 +12,7 @@ import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Coun
 import { TeamLogo } from "./TeamLogo";
 import { LogoEditor } from "./LogoEditor";
 import { RenameEditor } from "./RenameEditor";
+import { TasksIcon } from "./TaskIcons";
 import { Money } from "./Coin";
 import { InviteBanner, InviteCard, useInviteCode } from "./Invite";
 
@@ -183,7 +184,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
       )}
       {s.tasks && (
         <Link href="/fantasy/tehtavat" className="fxt-link">
-          <span className="fxt-link-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg></span>
+          <span className="fxt-link-ic" aria-hidden="true"><TasksIcon size={22} /></span>
           <span className="fxt-link-t"><b>Tehtävät</b><small>Kierroksen tehtävät ja kausitavoitteet{t.budget ? ` · budjetti ${fmtM(t.budget.total)} / ${fmtM(t.budget.cap)}` : ""}</small></span>
           <span className="fxt-link-go" aria-hidden="true">›</span>
         </Link>

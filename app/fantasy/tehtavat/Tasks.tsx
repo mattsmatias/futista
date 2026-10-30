@@ -7,6 +7,7 @@ import { useLoad, localTime, type ApiErr } from "@/lib/fantasy-client";
 import { AuthBox, Countdown, ErrorBox, Loading, Notice } from "../ui";
 import { FCoins } from "../FCoin";
 import { Money } from "../Coin";
+import { TASK_ICON, TasksIcon } from "../TaskIcons";
 
 type Claim = { status: "done" | "failed"; value: number; reward: number; at: string };
 type Task = { slot: number; id: string; kind: "participate" | "captain" | "points" | "goals" | "assists"; target: number; reward: number; title: string; help: string; claim: Claim | null };
@@ -63,7 +64,7 @@ export function Tasks() {
     <div className="fxt">
       <section className="fxt-hero" aria-labelledby="fxt-h">
         <div>
-          <h2 id="fxt-h">Tehtävät</h2>
+          <h2 id="fxt-h" className="fxt-title"><span className="fxt-title-ic"><TasksIcon size={24} /></span>Tehtävät</h2>
           {open
             ? <p><b>{open.label}</b> · määräaika {localTime(open.deadline)} · <span className="fxt-cd"><Countdown to={open.deadline} /></span></p>
             : <p className="muted">Kauden kaikki kierrokset on lukittu.</p>}
@@ -141,7 +142,7 @@ function TaskCard({ r, t, now }: { r: Round; t: Task; now: number }) {
   const prog = light ? (s.value === null ? null : `${Math.min(1, s.value)}/1`) : s.value === null ? `–/${t.target} ${UNIT[t.kind]}` : `${s.value}/${t.target} ${UNIT[t.kind]}`;
   return (
     <article className={`fxt-task st-${s.state}`} aria-label={`${t.title}: ${STATE_TEXT[s.state]}`}>
-      <div className="fxt-ic" aria-hidden="true">{ICON[t.kind]}</div>
+      <div className="fxt-ic" aria-hidden="true">{TASK_ICON[t.kind]}</div>
       <div className="fxt-body">
         <div className="fxt-top">
           <h3>{t.title}</h3>
@@ -157,12 +158,3 @@ function TaskCard({ r, t, now }: { r: Round; t: Task; now: number }) {
     </article>
   );
 }
-
-const sv = (d: React.ReactNode) => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
-const ICON: Record<Task["kind"], React.ReactNode> = {
-  participate: sv(<><path d="M8 3 4 5 2 9l3 2 1-1v10h12V10l1 1 3-2-2-4-4-2c-.5 2-2 3-4 3S8.5 5 8 3Z" /></>),
-  captain: sv(<><circle cx="12" cy="12" r="9" /><path d="M14.5 9.2a3.5 3.5 0 1 0 0 5.6" /></>),
-  points: sv(<><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>),
-  goals: sv(<><circle cx="12" cy="12" r="9" /><path d="m12 7 4 3-1.5 4.5h-5L8 10z" /></>),
-  assists: sv(<><path d="M4 17c4-8 10-8 16-10" /><path d="m16 5 4 2-2 4" /></>),
-};

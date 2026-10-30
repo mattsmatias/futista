@@ -2815,3 +2815,5 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fx-bud-bonus { font-size: 11.5px; line-height: 1.3; }
 .fxk-earn { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .fxt-past summary::after { transition: none; } }
+.fxt-title { display: flex; align-items: center; gap: 10px; }
+.fxt-title-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 210, 63, .16); color: var(--fx-acc, var(--fg)); }
