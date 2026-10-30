@@ -38,7 +38,7 @@ const mock = (q) => fetch(`${MOCK}/af/__fantasy?${q}`).then((r) => r.json());
   const lg = await A.call("/api/fantasy/tili", { action: "login", username: "pelaaja_d", password: "salasana-000" });
   ok("kirjautuminen samalla tilillä", lg.status === 200, JSON.stringify(lg.j));
   let t = (await A.call("/api/fantasy/tila")).j;
-  ok("tila: kilpailu = isot sarjat, 6 sarjaa (myös Süper Lig; ei Veikkausliigaa eikä MLS:ää), ei vielä joukkuetta tässä pelissä", t.comp?.id === "top5f-2026" && t.comp?.leagues?.length === 6 && t.comp.leagues.some((l) => l.id === 203 && l.name === "Süper Lig") && !t.comp.leagues.some((l) => l.id === 244 || l.id === 253) && t.team === null, JSON.stringify(t.comp));
+  ok("tila: kilpailu = isot sarjat, 6 sarjaa (myös Süper Lig; ei Veikkausliigaa eikä MLS:ää), ei vielä joukkuetta tässä pelissä", t.comp?.id === "top5f-2026" && t.comp?.name === "Euroopan sarjat · Kausi 2026–27" && t.comp?.leagues?.length === 6 && t.comp.leagues.some((l) => l.id === 203 && l.name === "Süper Lig") && !t.comp.leagues.some((l) => l.id === 244 || l.id === 253) && t.team === null, JSON.stringify(t.comp));
   const labels = t.rounds.map((r) => r.label);
   const nos = t.rounds.map((r) => r.no);
   ok("  kierrokset: juokseva nimi (Kierros 1–3), sisäinen numero viikkonumero ja peräkkäiset viikot", JSON.stringify(labels) === JSON.stringify(["Kierros 1", "Kierros 2", "Kierros 3"]) && nos[1] === nos[0] + 1 && nos[2] === nos[1] + 1 && nos[0] > 3, JSON.stringify(t.rounds.map((r) => [r.no, r.label])));

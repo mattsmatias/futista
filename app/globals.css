@@ -2844,3 +2844,6 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fxf-opt:active { transform: scale(.97); }
 @media (max-width: 360px) { .fxf-grid { gap: 6px; } .fxf-opt { padding: 6px 4px; } }
 @media (prefers-reduced-motion: reduce) { .fxf-opt:active { transform: none; } }
+/* HUD: "Futista" pienellä "Fantasy"-tekstin yläpuolella (mahtuu kolikko- ja pistesirun kanssa myös 320 px:ssä) */
+.fxg-brand { flex-direction: column; align-items: flex-start; gap: 2px; }
+.fxg-brand small { font: 800 9.5px/1 var(--ui); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }

@@ -397,7 +397,7 @@ const A_PICKS = { squad: A_SQUAD, xi: [390101, 390202, 390303, 390402, 390513, 3
     const ltxt = await page.locator("main").innerText();
     ok(`${w}px: Liiga – joukkueiden logot taulukossa (koristeena, nimi tekstinä)`, (await page.locator(".fx-rtbl tbody svg.fx-logo[aria-hidden=true]").count()) === 2);
     ok(`${w}px: Liiga – avoin Futista-liiga, taulukko (oma korostettu), ei koodeja`, /Futista-liiga/.test(ltxt) && (await page.locator(".fx-rtbl tbody tr").count()) === 2 && (await page.locator(".fx-rtbl tr.me").count()) >= 1 && !/koodi/i.test(ltxt)
-      && !/avoin ja sama kaikille/.test(ltxt) && !/Futista-liiga ·/.test(ltxt) && (await page.locator(".fxg-brand").innerText()).trim().toLowerCase() === "fantasy", ltxt.slice(0, 200));
+      && !/avoin ja sama kaikille/.test(ltxt) && !/Futista-liiga ·/.test(ltxt) && (await page.locator(".fxg-brand").textContent()).replace(/\s+/g, "").toLowerCase() === "futistafantasy", ltxt.slice(0, 200));
     await page.locator(".fx-ltabs button", { hasText: "Omat liigat" }).click();
     await page.waitForSelector(".fx-llist li, .fx-lforms", { timeout: 10000 }).catch(() => {});
     ok(`${w}px: Omat liigat – oma kaveriliiga listalla, Luo liiga- ja Liity liigaan -lomakkeet`, (await page.locator(".fx-llist li", { hasText: "Työkaverit" }).count()) === 1 && (await page.locator(".fx-lform h2").allTextContents()).join("|") === "Luo liiga|Liity liigaan");

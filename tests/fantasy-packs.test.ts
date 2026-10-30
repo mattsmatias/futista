@@ -76,3 +76,11 @@ test("korttiversiot: vain pakan perusversio tai Elite; jakauma vastaa näytetty�
   assert.ok(drawVersions(100, "gold", 0, (n) => randomInt(n)).every((x) => x === "gold"));
   assert.ok(drawVersions(100, "gold", 1000, (n) => randomInt(n)).every((x) => x === "elite"));
 });
+
+test("kolikkohistoria: kierroksen näytettävä nimi, ei sisäistä viikkonumeroa", () => {
+  const t = ledgerText("round", { round: 14, label: "Kierros 10", participation: 50, from_points: 37 });
+  assert.match(t, /^Kierros 10: osallistuminen 50 \+ pisteet 37$/);
+  assert.doesNotMatch(t, /14/);
+  assert.match(ledgerText("round_fix", { round: 14, label: "Kierros 10", points_before: 37, points: 45 }), /^Kierros 10: /);
+  assert.doesNotMatch(ledgerText("round", { round: 14, participation: 50, from_points: 0 }), /14/); // nimi puuttuu → ei numeroa
+});

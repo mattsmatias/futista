@@ -33,6 +33,8 @@ psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261103_fantasy_ren
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261104_fantasy_team_view.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261105_fantasy_prune.sql
 psql "$PG_URL" -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261106_fantasy_tasks.sql
+# luotettavuus: vain taulut ja funktiot (ajastusosa vaatii Supabasen pg_cronin ja pg_netin)
+sed '/^-- AJASTUS/,$d' supabase/migrations/20261107_fantasy_reliability.sql | psql "$PG_URL" -v ON_ERROR_STOP=1 -q
 node tests/integration/mock-sources.cjs & pids+=($!)
 PORT=9102 node tests/quota-mp/rest.cjs & pids+=($!)
 node tests/integration/toggle-proxy.cjs & pids+=($!)
@@ -72,6 +74,8 @@ node tests/integration/packs.cjs || rc=1
 node tests/integration/rename.cjs || rc=1
 node tests/integration/teamview.cjs || rc=1
 node tests/integration/formation.cjs || rc=1
+node tests/integration/reliability.cjs || rc=1
+node tests/integration/lock-db.cjs || rc=1
 node tests/integration/tasks.cjs || rc=1
 node tests/integration/tasks-db.cjs || rc=1
 node tests/integration/coins-db.cjs || rc=1

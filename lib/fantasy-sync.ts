@@ -37,7 +37,7 @@ export const COMPS: Comp[] = [
   // yksi yhteinen peli: pelaajat viidestä isosta sarjasta, kierros = viikko (käyttäjän valinta 27.10.2026)
   // viikko perjantaista torstaihin (ankkuri pe 31.7.2026). Uusi tunniste: ensimmäinen versio (top5-2026, viikko ti–ma) jäi
   // tietokantaan käyttämättömäksi – siinä ei ollut joukkueita.
-  { id: "top5f-2026", name: "Euroopan isot sarjat 2026–27", af: 39, season: 2026, leagues: TOP5, anchor: testAnchor() ?? "2026-07-31" },
+  { id: "top5f-2026", name: "Euroopan sarjat · Kausi 2026–27", af: 39, season: 2026, leagues: TOP5, anchor: testAnchor() ?? "2026-07-31" },
   { id: "pl-2026", name: "Valioliiga 2026–27", af: 39, season: 2026 },
 ];
 /** Pelattava kilpailu (FANTASY_COMP vain testeille / siirtymään) */
@@ -89,7 +89,7 @@ function srcFixture(f: any): SrcFixture | null {
     home_id: h.id, away_id: a.id, home_name: String(h.name ?? ""), away_name: String(a.name ?? ""), home_goals: f?.goals?.home ?? null, away_goals: f?.goals?.away ?? null };
 }
 
-export type SyncResult = { pruned?: { fixtures: number; rounds: number }; partial?: boolean; skipped?: boolean; rounds?: number; locked?: number[]; stats?: number; recomputed?: number[]; players?: number; error?: string };
+export type SyncResult = { visibility?: { hidden: number[]; shown: number[] }; pruned?: { fixtures: number; rounds: number }; partial?: boolean; skipped?: boolean; rounds?: number; locked?: number[]; stats?: number; recomputed?: number[]; players?: number; error?: string };
 
 export async function syncComp(c: Comp, opts: { force?: boolean; refetch?: boolean } = {}): Promise<SyncResult> {
   if (!hasApiFootball()) return { error: "af off" };
@@ -171,10 +171,24 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
     const rounds = buildWeekRounds(fixtureRows);
     out.rounds = rounds.length;
     await rpc("f_rounds_upsert", { p_comp: c.id, p_rows: rounds });
+    // kierrokset ilman nykyisten sarjojen otteluita (pelistä poistetun sarjan jäänteet) piiloon – vain jos kaikkien sarjojen
+    // ottelulistat saatiin ja kierrokseen ei liity joukkuetietoja (tietokanta tarkistaa). Ei poista mitään. Migraatio 20261107.
+    if (!stepErrors.some((e) => e.startsWith("fixtures")) && rounds.length) {
+      try {
+        const v = await rpc<{ hidden: number[]; shown: number[] }>("f_rounds_visibility", { p_comp: c.id, p_keep: rounds.map((r) => r.round_no) });
+        if (v && (v.hidden?.length || v.shown?.length)) out.visibility = v;
+      } catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) stepErrors.push(`visibility:${errCode(e)}`); }
+    }
   } else {
     const rounds = buildRounds(src);
     out.rounds = rounds.length;
     await rpc("f_rounds_upsert", { p_comp: c.id, p_rows: rounds });
+    if (rounds.length) {
+      try {
+        const v = await rpc<{ hidden: number[]; shown: number[] }>("f_rounds_visibility", { p_comp: c.id, p_keep: rounds.map((r) => r.round_no) });
+        if (v && (v.hidden?.length || v.shown?.length)) out.visibility = v;
+      } catch (e) { if (!(e instanceof FantasyDbError && e.code === "missing")) console.warn("fantasy näkyvyys", errCode(e)); }
+    }
     const rno = (label: string) => { const m = label.match(/^Regular Season - (\d+)$/); return m ? Number(m[1]) : null; };
     fixtureRows = src.filter((f) => rno(f.round) !== null).map((f) => ({ ...f, round_no: rno(f.round)! }));
     upsertRows = fixtureRows;

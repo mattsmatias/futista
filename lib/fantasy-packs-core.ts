@@ -59,14 +59,16 @@ export function bandText(t: Pick<PackType, "min_price" | "max_price">): string {
 
 export const REQUEST_RE = /^[A-Za-z0-9_-]{16,64}$/;
 
+/** Kierroksen näytettävä nimi kirjauksesta: palvelimen lisäämä label ("Kierros 10"); ei koskaan sisäistä viikkonumeroa */
+const rl = (info: Record<string, any>) => (typeof info.label === "string" && info.label ? info.label : "Kierros");
 /** Kolikkokirjauksen selite käyttäjälle */
 export function ledgerText(kind: string, info: Record<string, any> = {}): string {
   switch (kind) {
     case "start": return "Ensimmäinen joukkue luotu";
     case "invite": return "Kaveri liittyi kutsulinkilläsi";
-    case "round": return `Kierros ${info.round}: osallistuminen ${info.participation} + pisteet ${info.from_points}`;
-    case "round_fix": return `Kierroksen ${info.round} pisteitä korjattiin (${info.points_before} → ${info.points} p)`;
-    case "round_waived": return `Kierroksen ${info.round} korjaus: ${info.uncollected} kolikkoa jäi perimättä, koska ne oli jo käytetty`;
+    case "round": return `${rl(info)}: osallistuminen ${info.participation} + pisteet ${info.from_points}`;
+    case "round_fix": return `${rl(info)}: pisteitä korjattiin (${info.points_before} → ${info.points} p)`;
+    case "round_waived": return `${rl(info)}, korjaus: ${info.uncollected} kolikkoa jäi perimättä, koska ne oli jo käytetty`;
     case "task": return `Tehtävä suoritettu: ${info.title ?? "kierrostehtävä"}${info.label ? ` (${info.label})` : ""}`;
     case "rename": return "Joukkueen nimi vaihdettu";
     case "pack": return info.pack === "gold" ? "Gold-pakka avattu" : info.pack === "silver" ? "Silver-pakka avattu" : "Pakka avattu";

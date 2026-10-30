@@ -8,6 +8,7 @@ import { j, fail, dbFail, readJson } from "@/lib/fantasy-api";
 //  POST {action:"sync", refetch?: true} → päivitys heti (myös ajastukselle); refetch = päättyneiden (4 vrk) tilastot heti uudelleen · {action:"recompute", round} → kierroksen pisteet uudelleen
 //       {action:"price", player, price} → pelaajan hinta (0,5 M€ portain 3,5–15,0), kirjataan ylläpidon hinnaksi
 //  GET ?tehtavat=esikatselu → mitä aloituskierrosta edeltävistä kierroksista olisi kertynyt (budjetti, kolikot); ei maksa mitään
+//  POST {action:"tick"} → ajastettu päivitys (ei pakotettu; sama lukko kuin sivukäynnillä)
 //  POST {action:"tasks_start", round} → tehtävien ja kausitavoitteiden laskennan aloituskierros (ylläpidon erillinen päätös)
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -30,6 +31,9 @@ export async function POST(req: Request) {
   try {
     const action = String(b?.action ?? "");
     if (action === "sync") return j(await syncComp(DEFAULT_COMP, { force: true, refetch: b?.refetch === true }));
+    // ajastettu päivitys (pg_cron, migraatio 20261107): kuten sivukäynnin käynnistämä – 5 min lukko ja virhetauko
+    // pätevät, ei pakotettua hakua. Lukitus tehdään lisäksi tietokannassa kerran minuutissa (f_lock_all).
+    if (action === "tick") return j(await syncComp(DEFAULT_COMP));
     if (action === "recompute") {
       const round = Number(b?.round);
       if (!Number.isInteger(round) || round <= 0) return fail("round");

@@ -45,7 +45,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
     <section className="panel" aria-labelledby="fx-new-h">
       <div className="panel-head"><h2 id="fx-new-h">Luo fantasyjoukkue</h2></div>
       <form className="adv-form pad" onSubmit={submit}>
-        <p>Kilpailu: <b>{s.comp.name}</b>. Budjetti <Money v={s.comp.budget} />, 15 pelaajaa.</p>
+        <p><b>Futista Fantasy</b> · {s.comp.name}. Budjetti <Money v={s.comp.budget} />, 15 pelaajaa.</p>
         {next && <p className="muted">Ehdit mukaan kierrokselle {roundNum(s, next.no)}: määräaika {localTime(next.deadline)}.</p>}
         <div className="adv-field">
           <label htmlFor="fx-tn">Joukkueen nimi</label>
@@ -166,7 +166,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /></svg>
             </button>
           </div>
-          <p className="muted">{s.user?.username} · {s.comp.leagues.length > 1 ? `${s.comp.leagues.length} sarjaa` : s.comp.name}</p>
+          <p className="muted">{s.user?.username} · {s.comp.name}</p>
         </div>
       </section>
       {nameEd && <div id="fx-rename-panel"><RenameEditor name={t.name} onSaved={reload} onCancel={() => setNameEd(false)} /></div>}

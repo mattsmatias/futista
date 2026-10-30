@@ -32,12 +32,20 @@ export type TeamState = {
   transfers: { round_no: number; transfers: number; cost: number }[];
   points: { round_no: number; points: number; hits: number; total: number; provisional: boolean; breakdown: any }[];
 };
-export type RoundState = { round_no: number; label: string; deadline_at: string; first_kickoff: string; locked: boolean; status: string };
+export type RoundState = { round_no: number; label: string; deadline_at: string; first_kickoff: string; locked: boolean; status: string; hidden?: boolean };
 export type State = { now: string; comp: any; rounds: RoundState[]; team: TeamState | null };
 
 export async function loadState(comp: Comp, userId: number): Promise<State> {
   const s = await rpc<State>("f_state", { p_comp: comp.id, p_user: userId });
-  return { ...s, rounds: s?.rounds ?? [], team: s?.team ?? null };
+  // piilotetut kierrokset (pelistä poistettujen sarjojen jäänteet, migraatio 20261107) eivät näy käyttäjälle eivätkä
+  // vaikuta seuraavan kierroksen, siirtojen tai pisteiden laskentaan; niihin ei liity joukkuetietoja
+  return { ...s, rounds: (s?.rounds ?? []).filter((r) => !r.hidden), team: s?.team ?? null };
+}
+
+/** Kierrosten näytettävät nimet ({kierrosnumero: "Kierros k"}) – myös piilotetut, jotta vanhat kirjaukset saavat nimen */
+export async function roundLabels(compId: string): Promise<Map<number, string>> {
+  const s = await rpc<{ rounds?: RoundState[] }>("f_state", { p_comp: compId, p_user: 0 });
+  return new Map((s?.rounds ?? []).map((r) => [r.round_no, roundLabel(r)]));
 }
 
 /** Näytettävä kierroksen nimi: viikkokierroksissa juokseva "Kierros k", sarjakierroksissa lähteen numero */

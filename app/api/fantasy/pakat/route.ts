@@ -2,8 +2,8 @@ import { randomInt } from "node:crypto";
 import { rpc } from "@/lib/fantasy-db";
 import { DEFAULT_COMP, leagueName } from "@/lib/fantasy-sync";
 import { allowed } from "@/lib/fantasy-auth";
-import { j, fail, dbFail, withUser, readJson } from "@/lib/fantasy-api";
-import { drawCards, drawVersions, packOdds, versionOdds, isVersion, REQUEST_RE, type PackType, type Version } from "@/lib/fantasy-packs-core";
+import { j, fail, dbFail, withUser, readJson, roundLabels } from "@/lib/fantasy-api";
+import { drawCards, drawVersions, packOdds, versionOdds, isVersion, ledgerText, REQUEST_RE, type PackType, type Version } from "@/lib/fantasy-packs-core";
 
 // Pakat, korttiversiot ja Futista-kolikot (migraatiot 20261031_fantasy_coins_packs.sql ja 20261101_fantasy_card_versions.sql).
 // GET               → saldo (ansainnat tasataan ensin), pakkatyypit pelaaja- ja versiotodennäköisyyksineen, avaukset
@@ -28,13 +28,20 @@ export async function GET(req: Request) {
       return o ? j({ open: withLeague(o) }) : fail("notfound", 404);
     }
     await rpc("f_coins_settle", { p_user: a.user.user_id, p_comp: comp.id });
-    const [types, w] = await Promise.all([
+    const [types, w, labels] = await Promise.all([
       rpc<PackV[]>("f_pack_types_v2", { p_comp: comp.id }),
       rpc<any>("f_wallet", { p_user: a.user.user_id }),
+      roundLabels(comp.id),
     ]);
+    // kolikkohistoria: kierroksen näytettävä nimi (kirjauksessa on sisäinen viikkonumero); summat ja kirjaukset ennallaan
+    const ledger = (w?.ledger ?? []).map((l: { kind: string; info: Record<string, any> }) => {
+      const r = Number(l.info?.round);
+      const info = Number.isInteger(r) && labels.has(r) ? { ...l.info, label: labels.get(r) } : l.info;
+      return { ...l, info, text: ledgerText(l.kind, info) };
+    });
     const packs = (types ?? []).map((t) => ({ ...t, min_price: t.min_price == null ? null : Number(t.min_price), max_price: t.max_price == null ? null : Number(t.max_price),
       odds: packOdds(t.eligible, t.cards, t.by_pos), versions: versionOdds(t.base_version, t.elite_permille, t.cards) }));
-    return j({ balance: w?.balance ?? 0, rules: w?.rules ?? null, packs, ledger: w?.ledger ?? [], opens: w?.opens ?? [] });
+    return j({ balance: w?.balance ?? 0, rules: w?.rules ?? null, packs, ledger, opens: w?.opens ?? [] });
   } catch (e) { return dbFail(e); }
 }
 

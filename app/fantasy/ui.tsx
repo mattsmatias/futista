@@ -50,7 +50,7 @@ export function FantasyShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="fxg-exit" aria-label="Takaisin Futistaan">
           <svg {...I}><path d="M15 18l-6-6 6-6" /></svg>
         </Link>
-        <div className="fxg-brand" aria-label="Futista Fantasy (beta)"><b>Fantasy</b></div>
+        <div className="fxg-brand" aria-label="Futista Fantasy"><small>Futista</small><b>Fantasy</b></div>
         <div className="fxg-chips">
           {s?.coins != null && <Link href="/fantasy/pakat" className="fxg-chip fc" title="Futista-kolikot"><FCoin size={17} /><b>{s.coins.toLocaleString("fi-FI")}</b><span className="sr-only"> Futista-kolikkoa</span></Link>}
           {t && t.first_round != null && <span className="fxg-chip pts" title="Kauden pisteet"><b>{t.total}</b><small>p</small></span>}
