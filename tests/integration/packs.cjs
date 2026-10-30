@@ -265,8 +265,8 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       const pk = after2;
       const pair = pk.xi.filter((id) => pos.get(id) === "MID").slice(0, 2);
       const box = async (id) => { const b = await dp.locator(`[data-fxid="${id}"]`).first().boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
-      // muodostelmapainike kentän yläpuolella siirtää kenttää alaspäin → keskikenttä näkyviin ennen vetoa
-      await dp.locator(`[data-fxid="${pair[0]}"]`).first().scrollIntoViewIfNeeded();
+      // muodostelmapainike siirtää kenttää alaspäin; kiinteä alavalikko peittäisi keskikentän → kortti näkymän keskelle
+      await dp.locator(`[data-fxid="${pair[0]}"]`).first().evaluate((e) => e.scrollIntoView({ block: "center", behavior: "instant" }));
       const a = await box(pair[0]), b = await box(pair[1]);
       await dp.mouse.move(a.x, a.y); await dp.mouse.down();
       for (let i = 1; i <= 10; i++) await dp.mouse.move(a.x + (b.x - a.x) * i / 10, a.y + (b.y - a.y) * i / 10);
