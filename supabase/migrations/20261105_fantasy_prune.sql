@@ -5,13 +5,15 @@
 --  * poistetaan ottelut, joita ei ole pelin sarjojen ottelulistassa (p_keep) ja joilla ei ole pelaajatilastoja
 --  * poistetaan kierrokset, joilla ei ole otteluita eikä yhdenkään joukkueen tilannekuvaa tai pisteitä
 
-create or replace function public.f_fixtures_prune(p_comp text, p_keep integer[]) returns jsonb
+drop function if exists public.f_fixtures_prune(text, integer[]);
+create or replace function public.f_fixtures_prune(p_comp text, p_keep jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $$
-declare v_fx int; v_rounds int;
+declare v_fx int; v_rounds int; v_keep integer[];
 begin
-  if p_keep is null or cardinality(p_keep) = 0 then return jsonb_build_object('error', 'empty'); end if;
+  if p_keep is null or jsonb_typeof(p_keep) <> 'array' or jsonb_array_length(p_keep) = 0 then return jsonb_build_object('error', 'empty'); end if;
+  v_keep := array(select (x)::int from jsonb_array_elements_text(p_keep) x);
   delete from public.fantasy_fixtures f
-  where f.comp = p_comp and not (f.fixture_id = any (p_keep)) and f.stats_at is null
+  where f.comp = p_comp and not (f.fixture_id = any (v_keep)) and f.stats_at is null
     and not exists (select 1 from public.fantasy_player_stats s where s.comp = f.comp and s.fixture_id = f.fixture_id);
   get diagnostics v_fx = row_count;
   delete from public.fantasy_rounds r
@@ -25,5 +27,5 @@ begin
   return jsonb_build_object('fixtures', v_fx, 'rounds', v_rounds);
 end $$;
 
-revoke all on function public.f_fixtures_prune(text, integer[]) from public, anon, authenticated;
-grant execute on function public.f_fixtures_prune(text, integer[]) to service_role;
+revoke all on function public.f_fixtures_prune(text, jsonb) from public, anon, authenticated;
+grant execute on function public.f_fixtures_prune(text, jsonb) to service_role;
