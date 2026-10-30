@@ -28,14 +28,21 @@ const admin = async (body, auth = true) => {
   const r = await fetch(`${APP}/api/fantasy/yllapito`, { method: "POST", headers: { ...(auth ? { authorization: `Bearer ${SECRET}` } : {}), "content-type": "application/json" }, body: JSON.stringify(body) });
   return { status: r.status, j: await r.json().catch(() => null) };
 };
+const MOCK = process.env.MOCK || "http://127.0.0.1:9101";
+const mock = (qs) => fetch(`${MOCK}/af/__fantasy?${qs}`).then((r) => r.json());
 const sync = async () => { for (let i = 0; i < 40; i++) { const r = await admin({ action: "sync" }); if (!r.j?.skipped) return r; await sleep(1000); } return { j: { error: "timeout" } }; };
 
 (async () => {
   const A = client();
+  // testikanta: monet testit kirjautuvat samalla tunnuksella → kirjautumisrajoitin (10 / 10 min / tunnus) nollataan
+  await q("delete from public.fantasy_throttle where key like 'login%'");
   await A.call("/api/fantasy/tili", { action: "login", username: "pelaaja_a", password: "salasana-123" });
   const C = "pl-2026";
   const before = (await A.call("/api/fantasy/tila")).j;
 
+  // simuloitu lähde samaan tilaan kuin tietokanta fantasy.cjs:n jälkeen (kierros 2 pelattu, korjaus tehty);
+  // fantasy.cjs palauttaa lähteen lopuksi alkutilaan, jolloin päivitys näkisi kierroksen 2 pelaamattomana
+  await mock("r2=played&fix=1");
   // ---- vanha ylimääräinen kierros (kuten pelistä poistetun sarjan jäänne): lukittu, ei otteluita, ei joukkuetietoja ----
   await q("insert into public.fantasy_rounds (comp, round_no, label, deadline_at, first_kickoff, status, locked_at) values ($1, 98, 'Kierros 9', now() - interval '2 days', now() - interval '2 days', 'live', now() - interval '2 days')", [C]);
   const raw = await A.call("/api/fantasy/tila");
@@ -43,9 +50,10 @@ const sync = async () => { for (let i = 0; i < 40; i++) { const r = await admin(
   const s = await sync();
   ok("päivitys piilottaa ylimääräisen kierroksen (ei poista)", JSON.stringify(s.j?.visibility?.hidden) === "[98]" && (await q("select hidden from public.fantasy_rounds where comp = $1 and round_no = 98", [C]))[0]?.hidden === true, JSON.stringify(s.j));
   const after = (await A.call("/api/fantasy/tila")).j;
-  ok("Fantasy-tila: piilotettu kierros ei näy, nykyinen ja seuraava kierros ennallaan, pisteet ennallaan", !after.rounds.some((r) => r.no === 98) && after.current === before.current && after.next === before.next && after.team.total === before.team.total && after.rounds.length === before.rounds.length, JSON.stringify({ c: after.current, n: after.next }));
+  ok("Fantasy-tila: piilotettu kierros ei näy, nykyinen ja seuraava kierros ennallaan, pisteet ennallaan", !after.rounds.some((r) => r.no === 98) && after.current === before.current && after.next === before.next && after.team.total === before.team.total && after.rounds.length === before.rounds.length, JSON.stringify({ c: [before.current, after.current], n: [before.next, after.next], t: [before.team.total, after.team.total], r: [before.rounds.length, after.rounds.length] }));
   ok("kierrosnimissä ei kaksoiskappaleita", new Set(after.rounds.map((r) => r.label)).size === after.rounds.length, after.rounds.map((r) => r.label).join(","));
   await q("delete from public.fantasy_rounds where comp = $1 and round_no = 98", [C]); // palautus
+  await mock("r2=future&fix=0"); // lähde takaisin kuten fantasy.cjs sen jätti
 
   // ---- ajastettu päivitys ----
   ok("ajastettu päivitys (tick) ilman tunnistetta → 401", (await admin({ action: "tick" }, false)).status === 401);

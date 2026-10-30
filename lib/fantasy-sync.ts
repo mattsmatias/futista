@@ -280,7 +280,8 @@ async function runSync(c: Comp, refetch: boolean): Promise<SyncResult> {
   out.stats = need.length;
 
   // 5) pisteet: lukitut kierrokset, joiden data muuttui (sekä keskeneräiset lukitut kierrokset)
-  const lockedRounds = (await rpc<any>("f_state", { p_comp: c.id, p_user: 0 }))?.rounds?.filter((r: any) => r.locked) ?? [];
+  // piilotettuja kierroksia (ei joukkuetietoja) ei lasketa uudelleen joka päivityksellä
+  const lockedRounds = (await rpc<any>("f_state", { p_comp: c.id, p_user: 0 }))?.rounds?.filter((r: any) => r.locked && !r.hidden) ?? [];
   for (const r of lockedRounds) if (r.status !== "final") touched.add(r.round_no);
   const recomputed: number[] = [];
   for (const round of [...touched].sort((a, b) => a - b)) {
