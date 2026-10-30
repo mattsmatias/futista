@@ -42,27 +42,22 @@ function client() {
     ok("  ei vaakavieritystä, ei sivuvirheitä", await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1) && errs.length === 0, errs.join(" | "));
     await shot(page, "fantasy-nosto-etusivu-390");
 
-    await page.goto(`${APP}/sarjat/valioliiga`, { waitUntil: "load" });
+    await page.goto(`${APP}/sarjat/bundesliga`, { waitUntil: "load" });
     await page.waitForSelector(".fxp-strip", { timeout: 15000 }).catch(() => {});
-    ok("sarjasivu (Valioliiga): Fantasy-raita linkkinä", (await page.locator("a.fxp-strip").getAttribute("href").catch(() => null)) === "/fantasy");
+    ok("sarjasivu (Bundesliga): Fantasy-raita linkkinä", (await page.locator("a.fxp-strip").getAttribute("href").catch(() => null)) === "/fantasy");
     await page.goto(`${APP}/sarjat/veikkausliiga`, { waitUntil: "load" });
     await page.waitForTimeout(1500);
     ok("sarjasivu (Veikkausliiga, ei Fantasyssa): ei raitaa", (await page.locator(".fxp-strip").count()) === 0);
 
-    const home = await (await fetch(`${APP}/uutiset`)).text();
-    const art = (home.match(/href="(\/uutiset\/[^"]+)"/) ?? [])[1];
-    if (art) {
-      await page.goto(APP + art, { waitUntil: "load" });
-      await page.waitForSelector(".story .fxp-card", { timeout: 15000 }).catch(() => {});
-      ok("uutinen: Fantasy-kortti jutun lopussa", (await page.locator(".story .fxp-card").count()) === 1, art);
-    } else ok("uutinen: Fantasy-kortti jutun lopussa (ei testiuutista saatavilla)", false, "uutislistassa ei linkkiä");
+    // uutisen loppu: tarkistetaan mainosta.cjs:ssä (simuloitu uutislähde on käytössä vain sen palvelimessa)
     await ctx.close();
 
-    // Tee joukkue puolestani: uusi käyttäjä (testikanta)
+    // Tee joukkue puolestani: fantasy.cjs:n käyttäjä C, jonka joukkueessa ei ole vielä pelaajia (rekisteröintirajoitin
+    // estäisi uuden tilin luonnin tässä vaiheessa testiajoa)
     const U = client();
-    const name = `auto_${Date.now().toString(36)}`.slice(0, 20);
-    await U.call("/api/fantasy/tili", { action: "register", username: name, password: "salasana-auto-1" });
-    await U.call("/api/fantasy/joukkue", { action: "create", name: "Automaatti FC" });
+    await U.call("/api/fantasy/tili", { action: "login", username: "pelaaja_c", password: "salasana-789" });
+    const tc = (await U.call("/api/fantasy/tila")).j;
+    ok("valmistelu: käyttäjällä C joukkue ilman pelaajia", !!tc?.team && !tc.team.picks, JSON.stringify(tc?.team ?? null).slice(0, 120));
     const c2 = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     await c2.addCookies([{ name: "ff_s", value: U.cookie.replace(/^ff_s=/, ""), url: APP }]);
     const p2 = await c2.newPage();
