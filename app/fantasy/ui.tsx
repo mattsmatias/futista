@@ -4,7 +4,7 @@ import { pendingInvite } from "@/lib/fantasy-invite-client";
 import { FCoin } from "./FCoin";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Money } from "./Coin";
 import { api, errText, ERR_TEXT, POS_LONG, POS_SHORT, fmtM, localTime, useLoad, type FPlayerRow, type ApiErr, type FState } from "@/lib/fantasy-client";
@@ -174,17 +174,31 @@ function Card({ p, badge, role, onSelect, desc, bench, dnd, style }: { p: FPlaye
 export type PitchDrag = { canDrop: (from: number, to: number) => boolean; onDrop: (from: number, to: number) => void; why?: (from: number, to: number) => string };
 
 /** Korttien vetäminen: kosketuksella painetaan hetki pohjassa (sivun vieritys toimii normaalisti), hiirellä vedetään suoraan.
- *  Kelvolliset kohteet korostetaan; pudotus muualle tai kelvottomaan kohteeseen ei tee mitään. Napautus avaa kortin kuten ennen. */
+ *  Kelvolliset kohteet korostetaan; pudotus muualle tai kelvottomaan kohteeseen ei tee mitään. Napautus avaa kortin kuten ennen.
+ *  Sulavuus: vedettävä kortti on DOM-kopio (kuvat jo ladattuina, ei laiskaa latausta → kuva ei muutu mustaksi), sitä
+ *  liikutetaan transformilla animaatiokehyksissä ilman Reactin uudelleenpiirtoa; tila päivittyy vain kohteen vaihtuessa.
+ *  Reunalla vieritys jatkuu tasaisesti, kun sormi pysyy reunalla. */
 function useCardDrag(drag?: PitchDrag) {
   const [from, setFrom] = useState<number | null>(null);
   const [over, setOver] = useState<number | null>(null);
-  const [pt, setPt] = useState<{ x: number; y: number } | null>(null);
   const st = useRef<{ id: number; x: number; y: number; timer: ReturnType<typeof setTimeout> | null; active: boolean; pid: number; el: HTMLElement | null; suppress: boolean }>({ id: 0, x: 0, y: 0, timer: null, active: false, pid: -1, el: null, suppress: false });
   const ref = useRef(drag); ref.current = drag;
+  const pos = useRef({ x: 0, y: 0 });
+  const overRef = useRef<number | null>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const raf = useRef(0);
   const idAt = (x: number, y: number) => { const e = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-fxid]"); return e ? Number(e.dataset.fxid) : null; };
+  const place = () => { const g = ghostRef.current; if (g) g.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0)`; };
+  const track = useCallback(() => {
+    const to = idAt(pos.current.x, pos.current.y);
+    const v = to !== null && to !== st.current.id ? to : null;
+    if (v !== overRef.current) { overRef.current = v; setOver(v); }
+  }, []);
   const begin = useCallback((x: number, y: number) => {
     const s = st.current; s.active = true; s.suppress = true;
-    setFrom(s.id); setPt({ x, y }); setOver(null);
+    pos.current = { x, y }; overRef.current = null;
+    setFrom(s.id); setOver(null);
     try { navigator.vibrate?.(15); } catch { /* ei värinää */ }
   }, []);
   const end = useCallback((drop: boolean, x?: number, y?: number) => {
@@ -196,8 +210,22 @@ function useCardDrag(drag?: PitchDrag) {
     }
     s.active = false; s.pid = -1;
     if (s.suppress) setTimeout(() => { s.suppress = false; }, 60); // vedon jälkeinen klikkaus ei avaa korttia
-    setFrom(null); setOver(null); setPt(null);
+    overRef.current = null;
+    setFrom(null); setOver(null);
   }, []);
+  // vedettävä kortti: kopio lähdekortista heti näkyviin (kuvat ladattu jo kentällä → välimuistista ilman viivettä)
+  useLayoutEffect(() => {
+    const src = st.current.el, host = cardRef.current, g = ghostRef.current;
+    if (from === null || !src || !host || !g) return;
+    const c = src.cloneNode(true) as HTMLElement;
+    c.classList.remove("drag-src", "drop-ok", "drop-no", "drop-hover");
+    c.removeAttribute("data-fxid"); c.removeAttribute("id"); c.removeAttribute("aria-label"); c.removeAttribute("role"); c.setAttribute("tabindex", "-1");
+    c.querySelectorAll("img").forEach((i) => { i.loading = "eager"; i.decoding = "sync"; });
+    c.querySelectorAll("[data-fxid],[id]").forEach((e) => { e.removeAttribute("data-fxid"); e.removeAttribute("id"); });
+    host.replaceChildren(c);
+    g.style.width = `${src.offsetWidth}px`;
+    place();
+  }, [from]);
   useEffect(() => {
     if (from === null) return;
     // vedon aikana kosketus ei vieritä sivua
@@ -205,8 +233,17 @@ function useCardDrag(drag?: PitchDrag) {
     document.addEventListener("touchmove", tm, { passive: false });
     const key = (e: KeyboardEvent) => { if (e.key === "Escape") end(false); };
     document.addEventListener("keydown", key);
-    return () => { document.removeEventListener("touchmove", tm); document.removeEventListener("keydown", key); };
-  }, [from, end]);
+    // reunavieritys: tasainen niin kauan kuin osoitin on reunalla (nopeus kasvaa reunaa kohti)
+    let loop = 0;
+    const edge = () => {
+      const y = pos.current.y, top = 96, bottom = innerHeight - 116;
+      const dy = y < top ? -Math.ceil((top - y) / 6) : y > bottom ? Math.ceil((y - bottom) / 6) : 0;
+      if (dy) { window.scrollBy(0, Math.max(-18, Math.min(18, dy))); track(); }
+      loop = requestAnimationFrame(edge);
+    };
+    loop = requestAnimationFrame(edge);
+    return () => { document.removeEventListener("touchmove", tm); document.removeEventListener("keydown", key); cancelAnimationFrame(loop); cancelAnimationFrame(raf.current); raf.current = 0; };
+  }, [from, end, track]);
   if (!drag) return { active: false, handlers: {}, cls: () => undefined, consumeClick: () => false, ghost: null };
   const handlers = {
     onPointerDown: (e: React.PointerEvent) => {
@@ -214,7 +251,7 @@ function useCardDrag(drag?: PitchDrag) {
       if (!el || e.button > 0) return;
       const s = st.current;
       s.id = Number(el.dataset.fxid); s.x = e.clientX; s.y = e.clientY; s.pid = e.pointerId; s.el = el; s.suppress = false;
-      if (e.pointerType !== "mouse") s.timer = setTimeout(() => { s.timer = null; begin(s.x, s.y); }, 280);
+      if (e.pointerType !== "mouse") s.timer = setTimeout(() => { s.timer = null; begin(s.x, s.y); }, 260);
     },
     onPointerMove: (e: React.PointerEvent) => {
       const s = st.current;
@@ -224,10 +261,8 @@ function useCardDrag(drag?: PitchDrag) {
         if (s.timer && dist > 10) { clearTimeout(s.timer); s.timer = null; s.pid = -1; return; } // vieritys
         if (e.pointerType === "mouse" && dist > 6) { begin(e.clientX, e.clientY); try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ei kaappausta */ } } else return;
       }
-      setPt({ x: e.clientX, y: e.clientY });
-      if (e.clientY < 90) window.scrollBy(0, -14); else if (e.clientY > innerHeight - 110) window.scrollBy(0, 14); // reunalla vieritys (penkki ↔ kenttä)
-      const to = idAt(e.clientX, e.clientY);
-      setOver(to !== null && to !== s.id ? to : null);
+      pos.current = { x: e.clientX, y: e.clientY };
+      if (!raf.current) raf.current = requestAnimationFrame(() => { raf.current = 0; place(); track(); });
     },
     onPointerUp: (e: React.PointerEvent) => { if (e.pointerId === st.current.pid || st.current.active) end(true, e.clientX, e.clientY); },
     onPointerCancel: () => end(false),
@@ -240,12 +275,13 @@ function useCardDrag(drag?: PitchDrag) {
     return okDrop ? (id === over ? "drop-ok drop-hover" : "drop-ok") : "drop-no";
   };
   const consumeClick = () => { const s = st.current; if (s.suppress) { s.suppress = false; return true; } return false; };
-  const src = from !== null ? st.current.el : null;
   const why = from !== null && over !== null && !drag.canDrop(from, over) ? drag.why?.(from, over) ?? "" : "";
-  const ghost = from !== null && pt && src ? (
-    <div className="fx-drag-ghost" style={{ left: pt.x, top: pt.y, width: src.offsetWidth }} aria-hidden="true">
-      <div dangerouslySetInnerHTML={{ __html: src.innerHTML }} className={src.className.replace(/\b(drag-src|drop-\w+)\b/g, "")} />
-      {why && <span className="fx-drag-why">{why}</span>}
+  const ghost = from !== null ? (
+    <div className="fx-drag-ghost" ref={ghostRef} aria-hidden="true">
+      <div className="fx-drag-in">
+        <div ref={cardRef} className="fx-drag-card" />
+        {why && <span className="fx-drag-why">{why}</span>}
+      </div>
     </div>
   ) : null;
   return { active: from !== null, handlers, cls, consumeClick, ghost };

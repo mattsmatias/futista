@@ -2672,15 +2672,20 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 /* Kokoonpanon vetäminen (Oma joukkue): pohjassa pito / hiirellä veto; vain saman pelipaikan kohteet korostuvat */
 .fx-pitch-wrap .fxc { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .fx-pitch-wrap .fxc img { -webkit-user-drag: none; pointer-events: none; }
-.fx-pitch-wrap.dragging .fxc { transition: opacity .15s ease, transform .15s ease, box-shadow .15s ease; }
+.fx-pitch-wrap.dragging .fxc { transition: opacity .15s ease, transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .15s ease; }
 .fx-pitch-wrap.dragging .fxc.drop-no { opacity: .35; filter: saturate(.4); }
 .fx-pitch-wrap.dragging .fxc.drag-src { opacity: .25; }
 .fx-pitch-wrap.dragging .fxc.drop-ok { box-shadow: 0 0 0 2px #2de2e6, 0 0 18px -4px rgba(45, 226, 230, .8); border-radius: 12px; }
 .fx-pitch-wrap.dragging .fxc.drop-hover { transform: scale(1.08); box-shadow: 0 0 0 3px var(--fx-acc, #ffd23f), 0 0 22px -2px rgba(255, 210, 63, .9); }
-.fx-drag-ghost { position: fixed; z-index: 90; pointer-events: none; transform: translate(-50%, -60%) scale(1.12) rotate(-3deg); filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); display: grid; justify-items: center; gap: 6px; }
-.fx-drag-ghost > div { width: 100%; }
+/* vedettävä kortti: ulompi liikkuu (translate3d animaatiokehyksissä), sisempi nostaa kortin ja kallistaa sitä */
+.fx-drag-ghost { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; will-change: transform; contain: layout style; }
+.fx-drag-in { display: grid; justify-items: center; gap: 6px; transform: translate(-50%, -60%) scale(1.12) rotate(-3deg); transform-origin: 50% 60%;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .6)); animation: fx-lift .14s cubic-bezier(.2, .8, .2, 1) both; }
+.fx-drag-card { width: 100%; }
+.fx-drag-card > .fxc { width: 100%; margin: 0; }
+@keyframes fx-lift { from { transform: translate(-50%, -60%) scale(1) rotate(0deg); } to { transform: translate(-50%, -60%) scale(1.12) rotate(-3deg); } }
 .fx-drag-why { max-width: 200px; padding: 4px 8px; border-radius: 8px; background: #2a0710; color: #ffd4dc; font: 700 11px/1.3 var(--ui); text-align: center; white-space: normal; }
-@media (prefers-reduced-motion: reduce) { .fx-drag-ghost { transform: translate(-50%, -60%); } .fx-pitch-wrap.dragging .fxc { transition: none; } .fx-pitch-wrap.dragging .fxc.drop-hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fx-drag-in { transform: translate(-50%, -60%); animation: none; } .fx-pitch-wrap.dragging .fxc { transition: none; } .fx-pitch-wrap.dragging .fxc.drop-hover { transform: none; } }
 
 /* ===== Korttiversiot: Perus / Silver / Gold / Elite (Futistan oma muotoilu; versio näkyy aina myös tekstinä) ===== */
 .fxk-elite { --t1: #6ef3d6; --t2: #7c3aed; background: conic-gradient(from 210deg, #2de2e6, #7c3aed, #ff4fa3, #ffd23f, #2de2e6); }

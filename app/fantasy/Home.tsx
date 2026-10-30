@@ -62,7 +62,7 @@ function CreateTeam({ s, onDone }: { s: FState; onDone: () => void }) {
 type Mode = "pts" | "fx" | "price";
 const shortTeam = (n: string) => { const w = n.replace(/^(FC|AC|AS|SC|SV|VfB|VfL|RC|CF|SS|US|1\.)\s+/i, ""); return w.length <= 10 ? w : w.split(" ")[0].length <= 10 ? w.split(" ")[0] : `${w.slice(0, 9)}.`; };
 
-function Home({ s, reload }: { s: FState; reload: () => void }) {
+function Home({ s, reload }: { s: FState; reload: () => void | Promise<void> }) {
   const router = useRouter();
   const [logoEd, setLogoEd] = useState(false);
   const [nameEd, setNameEd] = useState(false);
@@ -86,7 +86,9 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
   const rawSnap: Picks | null = snap.data?.snapshot ?? null;
   const subs: { out: number; in: number }[] = snap.data?.points?.breakdown?.subs ?? [];
   const snapPicks: Picks | null = rawSnap && subs.length ? subs.reduce((p, x) => ({ ...p, xi: p.xi.map((y) => (y === x.out ? x.in : y)), bench: p.bench.map((y) => (y === x.in ? x.out : y)) }), rawSnap) : rawSnap;
-  const picks: Picks | null = mode === "pts" ? snapPicks : t.picks;
+  // tallennuksen aikana kenttä näyttää jo uuden kokoonpanon (palvelin vahvistaa; virheessä palataan tallennettuun)
+  const [opt, setOpt] = useState<Picks | null>(null);
+  const picks: Picks | null = mode === "pts" ? snapPicks : opt ?? t.picks;
   const ptsOf = (id: number) => (snap.data?.points?.breakdown?.players ?? []).find((x: any) => x.player_id === id);
   const budgetLeft = t.picks && players.size ? Math.round((teamBudgetOf(s) - t.picks.squad.reduce((a, id) => a + (players.get(id)?.price ?? 0), 0)) * 10) / 10 : null;
   const round = pl.data?.round ?? null;
@@ -109,11 +111,11 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
 
   const save = async (np: Picks, okText: string) => {
     if (!next) return;
-    setBusy(true); setMsg(null);
+    setBusy(true); setMsg(null); setSel(null); setOpt(np);
     const r = await api("/api/fantasy/joukkue", { action: "save", round: next.no, version: t.version, picks: np, cost: t.cost });
-    setBusy(false); setSel(null);
-    if (r.ok) { setMsg({ kind: "ok", text: okText }); reload(); }
-    else { setMsg({ kind: "error", text: errText(r.err) }); if (r.err.error === "conflict" || r.err.error === "deadline") reload(); }
+    if (r.ok) { setMsg({ kind: "ok", text: okText }); await reload(); }
+    else { setMsg({ kind: "error", text: errText(r.err) }); if (r.err.error === "conflict" || r.err.error === "deadline") await reload(); }
+    setOpt(null); setBusy(false);
   };
 
   const selP = sel !== null ? players.get(sel) : undefined;

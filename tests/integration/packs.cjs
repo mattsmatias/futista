@@ -270,6 +270,10 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
       const a = await box(pair[0]), b = await box(pair[1]);
       await dp.mouse.move(a.x, a.y); await dp.mouse.down();
       for (let i = 1; i <= 10; i++) await dp.mouse.move(a.x + (b.x - a.x) * i / 10, a.y + (b.y - a.y) * i / 10);
+      // vedettävä kortti: DOM-kopio (ei toista data-fxid:tä), kuvat ladataan heti (ei laiskaa latausta → ei mustaa kuvaa),
+      // sijainti transformilla osoittimen kohdalla
+      const gh = await dp.evaluate(() => { const g = document.querySelector(".fx-drag-ghost"); const c = g?.querySelector(".fxc"); return g && c ? { fx: c.hasAttribute("data-fxid"), imgs: [...c.querySelectorAll("img")].map((i) => i.loading), tf: g.style.transform, name: c.querySelector(".fxc-name")?.textContent ?? "" } : null; });
+      ok("veto: vedettävä kortti on kopio (nimi näkyy, ei data-fxid), kuvat ladataan heti, liikkuu transformilla", !!gh && !gh.fx && gh.imgs.every((x) => x === "eager") && /translate3d\(/.test(gh.tf) && gh.name.length > 0, JSON.stringify(gh));
       await dp.mouse.up();
       await dp.waitForTimeout(1200);
       const after3 = (await A.call("/api/fantasy/tila")).j.team.picks;
