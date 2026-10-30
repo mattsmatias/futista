@@ -1,4 +1,6 @@
 "use client";
+import FantasyPromo from "./FantasyPromo";
+import { FANTASY_SITE_LEAGUES } from "@/lib/fantasy-promo";
 import { useEffect, useRef } from "react";
 // Kilpailusivu: Otteluohjelma · Tulokset · Sarjataulukko (jos on) · Maalintekijät · Uutiset (jos sarjasta on uutisia).
 // Tyhjää tai toimimatonta välilehteä ei näytetä. Valittu välilehti on osoitteessa (?v=taulukko).
@@ -66,6 +68,7 @@ export default function CompPage({ s, articles }: { s: LeagueStats; articles: Ar
           </div>
         </header>
         {i.lang === "fi" && <p className="comp-intro muted">{leagueIntro(s.source as SourceId, s.league)}</p>}
+        {FANTASY_SITE_LEAGUES.has(s.source) && <FantasyPromo variant="strip" />}
         <div className="etabs" role="tablist" aria-label={i.league(s.source, s.league)} ref={tabsRef}>
           {tabs.map((x) => (
             <button key={x.id} role="tab" id={`tab-${x.id}`} aria-selected={cur === x.id} aria-controls={`pane-${x.id}`} className={cur === x.id ? "on" : ""} onClick={() => setTab(x.id)}>{t(x.label)}</button>

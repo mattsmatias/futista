@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import FantasyPromo from "@/app/ui/FantasyPromo";
+import { FANTASY_SITE_LEAGUES } from "@/lib/fantasy-promo";
 import { SOURCES } from "@/lib/sources";
 import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
@@ -73,6 +75,7 @@ export default async function MatchPage({ params }: Props) {
       <JsonLd data={matchLd({ url, league: d.s.league, date: m.date, time: d.fixture?.time || d.result?.time || null, home: m.home.name, away: m.away.name,
         hs: d.result?.hs ?? null, as: d.result?.as ?? null, finished: !!d.result })} />
       <MatchView s={d.s} result={d.result} fixture={d.fixture} extra={extra} extras={extras} />
+      {FANTASY_SITE_LEAGUES.has(d.s.source) && <div className="wrap"><FantasyPromo variant="strip" /></div>}
     </>
   );
 }

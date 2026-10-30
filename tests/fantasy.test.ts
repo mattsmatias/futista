@@ -369,3 +369,31 @@ test("muodostelma: kaikki 8 mallia kelvollisia; vaihto pitää avauspelaajat, ka
   assert.ok(!b.xi.includes(11) && b.xi.includes(15));                 // halvin KK penkille, penkin H sisään
   assert.equal(setFormation(d, "2-5-3", pl), null);                   // ei sallittu
 });
+
+// ---- Tee joukkue puolestani ----
+import { autoSquad, squadErrors as sqErr, RULES as R2 } from "../lib/fantasy-core";
+test("autoSquad: kelvollinen 15 pelaajan joukkue budjetissa, enintään 3 / seura, vain aktiiviset, valitut säilyvät", () => {
+  const pos = ["GK", "DEF", "MID", "FWD"] as const;
+  const list: any[] = [];
+  let id = 1;
+  for (let club = 1; club <= 10; club++) for (const p of pos) for (let k = 0; k < (p === "GK" ? 2 : 3); k++) {
+    const price = p === "GK" ? 4 + k : p === "DEF" ? 4 + k * 1.5 : p === "MID" ? 4.5 + k * 3 : 4.5 + k * 3.5;
+    list.push({ id: id++, name: `P${id}`, team_id: club, team: `T${club}`, pos: p, price, active: !(club === 1 && p === "FWD"), season: (club * 7 + k * 13) % 40 });
+  }
+  const map = new Map(list.map((p) => [p.id, p]));
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 25; i++) {
+    const ids = autoSquad(list, R2.budget, [], rnd)!;
+    assert.ok(ids && ids.length === 15, `kierros ${i}`);
+    assert.deepEqual(sqErr(ids, map, R2.budget), []);
+    assert.ok(ids.every((x) => map.get(x).active));
+  }
+  const keep = [list.find((p) => p.pos === "FWD" && p.price > 10 && p.active).id];
+  const k = autoSquad(list, R2.budget, keep, rnd)!;
+  assert.ok(k.includes(keep[0]) && sqErr(k, map, R2.budget).length === 0);
+  const tight = autoSquad(list, 66, [], rnd)!;                       // pieni budjetti (halvin mahdollinen 64) → halvemmat
+  assert.ok(tight && sqErr(tight, map, 66).length === 0);
+  assert.equal(autoSquad(list, 30, [], rnd), null);                  // mahdoton budjetti
+  const spent = (ids: number[]) => ids.reduce((a, x) => a + map.get(x).price, 0);
+  assert.ok(spent(autoSquad(list, R2.budget, [], rnd)!) > 85);       // budjetti käytetään järkevästi
+});

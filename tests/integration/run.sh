@@ -72,6 +72,7 @@ node tests/integration/packs.cjs || rc=1
 node tests/integration/rename.cjs || rc=1
 node tests/integration/teamview.cjs || rc=1
 node tests/integration/formation.cjs || rc=1
+node tests/integration/promo.cjs || rc=1
 node tests/integration/tasks.cjs || rc=1
 node tests/integration/tasks-db.cjs || rc=1
 node tests/integration/coins-db.cjs || rc=1
