@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, useLoad, errText, fmtM, fmtMText, teamBudgetOf, roundFx, type FRoundFx, type FPlayersResp, localTime, roundName, roundNum, POS_LONG, POS_SHORT, type FState, type FPlayerRow } from "@/lib/fantasy-client";
-import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
+import { RULES, POSITIONS, squadErrors, lineupErrors, formationOk, transfersBetween, transferCost, autoLineup, autoSquad, type Picks, type Pos, type FPlayer } from "@/lib/fantasy-core";
 import { Money } from "../Coin";
 import { view, arrange, fixCaps, swapOptions } from "@/lib/fantasy-lineup";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, PlayerFace, Overlay, DataStatus, ActIcon, type CardAction, type CardSwaps } from "../ui";
@@ -186,6 +186,18 @@ function Editor({ s, list, round, reload }: { s: FState; list: FPlayerRow[]; rou
       </section>
       {errors.length > 0 && (
         <Notice kind="warn"><p><b>Korjattavaa ennen tallennusta:</b></p><ul>{errors.map((e) => <li key={e.code + e.text}>{e.text}</li>)}</ul></Notice>
+      )}
+      {!t.base && !full && (
+        // ensimmäinen joukkue: palvelimen säännöt (pelipaikat, seuraraja, budjetti) täyttävä ehdotus; käyttäjä voi muuttaa sitä
+        <div className="fx-autopick">
+          <button type="button" className="btn" disabled={busy} onClick={() => {
+            const ids = autoSquad(list, budget, d.squad);
+            if (!ids) { setMsg({ kind: "error", text: "Joukkuetta ei saatu koottua budjettiin. Poista joitakin valintoja ja yritä uudelleen." }); return; }
+            setD(arrange({ ...d, squad: ids }, asF)); setSel(null);
+            setMsg({ kind: "ok", text: `Joukkue koottu${d.squad.length ? " valintojesi ympärille" : ""}. Voit vaihtaa pelaajia vapaasti – joukkue tallentuu automaattisesti.` });
+          }}>{d.squad.length ? "Täydennä joukkue puolestani" : "Tee joukkue puolestani"}</button>
+          <small className="muted">Valitsee {RULES.squadSize - d.squad.length} pelaajaa sääntöjen ja budjetin mukaan kauden pisteiden ja hinnan perusteella.</small>
+        </div>
       )}
       {restored && changed && !msg && !outNote && <Notice role="status">Keskeneräinen joukkueesi palautettiin tältä laitteelta.</Notice>}
       {outNote && !msg && <Notice kind="warn" role="status">{outNote}</Notice>}

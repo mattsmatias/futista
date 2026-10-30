@@ -100,6 +100,43 @@ export function autoLineup(squad: number[], players: Map<number, FPlayer>): Pick
   return { squad: [...squad], xi, bench, captain: ranked[0], vice: ranked[1] ?? ranked[0] };
 }
 
+/** "Tee joukkue puolestani": sääntöjen mukainen 15 pelaajan joukkue (pelipaikat, enintään 3 / seura, budjetti, vain
+ *  aktiiviset). Säilyttää jo valitut (keep), jos ne ovat kelvollisia. Arvo = kauden fantasy-pisteet ja hinta (hinta kertoo
+ *  pelaajan aiemman kauden tasosta) pienellä satunnaisuudella, jotta kaikki eivät saa samaa joukkuetta. Ahne valinta niin, että
+ *  jäljelle jääville paikoille riittää aina halvimpien hinta. null = ei kelvollista ratkaisua. */
+export function autoSquad(list: (FPlayer & { season?: number | null })[], budget = RULES.budget, keep: number[] = [], rnd: () => number = Math.random): number[] | null {
+  const act = list.filter((p) => p.active);
+  const byId = new Map(act.map((p) => [p.id, p]));
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const picked: FPlayer[] = [];
+    const club = new Map<number, number>();
+    const need = { ...RULES.quota } as Record<Pos, number>;
+    let cost = 0;
+    const take = (p: FPlayer) => { picked.push(p); club.set(p.team_id, (club.get(p.team_id) ?? 0) + 1); need[p.pos]--; cost += p.price; };
+    for (const id of keep) { const p = byId.get(id); if (p && need[p.pos] > 0 && (club.get(p.team_id) ?? 0) < RULES.clubMax && !picked.includes(p)) take(p); }
+    // halvimmat hinnat pelipaikoittain (varaus jäljellä oleville paikoille)
+    const cheap = Object.fromEntries(POSITIONS.map((pos) => [pos, act.filter((p) => p.pos === pos).map((p) => p.price).sort((a, b) => a - b)])) as Record<Pos, number[]>;
+    const reserve = (n: Record<Pos, number>) => POSITIONS.reduce((s, pos) => s + cheap[pos].slice(0, Math.max(0, n[pos])).reduce((a, b) => a + b, 0), 0);
+    const jitter = attempt === 0 ? 0.25 : 0.5;
+    const score = (p: FPlayer & { season?: number | null }) => (Math.max(0, p.season ?? 0) + p.price * 2.5) * (1 - jitter / 2 + rnd() * jitter);
+    const cands = act.filter((p) => !picked.includes(p)).map((p) => ({ p, s: score(p) })).sort((a, b) => b.s - a.s);
+    for (const { p } of cands) {
+      if (need[p.pos] <= 0 || (club.get(p.team_id) ?? 0) >= RULES.clubMax) continue;
+      const after = { ...need, [p.pos]: need[p.pos] - 1 };
+      if (cost + p.price + reserve(after) > budget + 1e-9) continue;
+      take(p);
+      if (POSITIONS.every((pos) => need[pos] === 0)) break;
+    }
+    if (POSITIONS.every((pos) => need[pos] === 0)) {
+      const ids = picked.map((p) => p.id);
+      const m = new Map<number, FPlayer>(act.map((p) => [p.id, p]));
+      if (squadErrors(ids, m, budget).length === 0) return ids;
+    }
+    keep = attempt >= 2 ? [] : keep; // valitut eivät sovi budjettiin → yritetään ilman niitä
+  }
+  return null;
+}
+
 // ---------------- Pisteytys ----------------
 export type StatLine = { fixture_id: number; player_id: number; team_id: number; minutes: number; goals: number; assists: number; saves: number | null; yellow: number; red: number; conceded: number | null };
 export type FixtureRow = { fixture_id: number; status: string; home_id: number; away_id: number; home_goals: number | null; away_goals: number | null; consistent: boolean | null; stats_at: string | null };

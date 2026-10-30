@@ -1,4 +1,5 @@
 import { CompLogoChip } from "@/app/ui/CompMark";
+import FantasyPromo from "@/app/ui/FantasyPromo";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getFullArticle, type FullArticle } from "@/lib/article";
@@ -81,6 +82,7 @@ export default async function ArticlePage({ params }: Props) {
         <div className="source"><T k="source" />: <a href={a.source} target="_blank" rel="noopener">{a.sourceName}</a></div>
         {a.tags.length > 0 && <div className="tags">{a.tags.map((t) => <span key={t}>{t}</span>)}</div>}
         <StoryActions article={params.path.join("/")} title={a.title} />
+        <FantasyPromo />
       </article>
 
       {more.length > 0 && (

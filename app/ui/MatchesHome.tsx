@@ -1,6 +1,7 @@
 "use client";
 // Ottelut-sivulla ei kertoimia (käyttäjän valinta 26.10.2026); sarja- ja suosikkisivuilla edelleen
 // Ottelut – Futistan etusivu: päivämäärä, suodatin (Kaikki / Live / Suosikit) ja ottelut kilpailuittain.
+import FantasyPromo from "./FantasyPromo";
 import { useEffect, useMemo, useState } from "react";
 import type { LeagueStats, Team } from "@/lib/stats";
 import { useI18n, type Key } from "@/lib/i18n";
@@ -89,6 +90,8 @@ export default function MatchesHome({ stats: first, today: serverToday }: { stat
             <div className="cg-list">{favRows.map((r) => <MatchRow key={"f" + r.key} href={r.href} home={r.home} away={r.away} s={r.s} time={r.time} highlight={isFav} odds={false} />)}</div>
           </section>
         )}
+
+        {filter === "all" && <FantasyPromo />}
 
         {comps.filter((c) => c.rows.length > 0 || (c.status === "loading" && filter === "all")).map((c) => (
           <CompGroup key={c.id} c={c} open={!closed.has(c.id)} onToggle={() => toggle(c.id)} isFav={isFav} />
