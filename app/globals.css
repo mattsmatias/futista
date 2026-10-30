@@ -2870,3 +2870,7 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fxp-strip-t small { color: var(--muted); font-size: 12.5px; line-height: 1.3; }
 .fxp-go { font-size: 24px; color: var(--muted); }
 .fxp-strip:focus-visible { outline: 3px solid #ffd23f; outline-offset: 2px; }
+/* Hallintapaneeli: Fantasyn käyttäjät */
+.adm-fx { display: grid; gap: 10px; }
+.adm-fx h2 { margin: 0; font-size: 16px; }
+.adm-fx-days { margin: 0; }

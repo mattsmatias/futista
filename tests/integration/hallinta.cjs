@@ -49,6 +49,8 @@ const stats = (cookie, days = 30) => fetch(`${APP}/api/hallinta/tilastot?days=${
 
   // oikeudet
   ok("oikeudet: kirjautumaton → 401, tavallinen käyttäjä → 404, ylläpitäjä → 200", (await stats("")).status === 401 && (await stats(user)).status === 404 && s.status === 200);
+  const fx = s.j?.fantasy;
+  ok("Fantasy-käyttäjät: lukumäärät (käyttäjät ≥ 3, tallennettu ≤ luotu ≤ käyttäjät), ei käyttäjätunnuksia", fx && fx.users >= 3 && fx.saved >= 1 && fx.saved <= fx.teams && fx.teams <= fx.users && fx.period >= 1 && Array.isArray(fx.days) && !/pelaaja_/.test(JSON.stringify(fx)), JSON.stringify(fx));
   const meA = await fetch(`${APP}/api/fantasy/tili`, { headers: { cookie: admin } }).then((r) => r.json()), meB = await fetch(`${APP}/api/fantasy/tili`, { headers: { cookie: user } }).then((r) => r.json());
   ok("  tilitieto: admin-merkintä vain ylläpitäjällä", meA.user?.admin === true && meB.user?.admin === undefined, JSON.stringify([meA, meB]));
 
@@ -84,7 +86,9 @@ const stats = (cookie, days = 30) => fetch(`${APP}/api/hallinta/tilastot?days=${
     await pg.waitForSelector(".adm-kpis, .adm-note, #fx-u", { timeout: 15000 }).catch(() => {});
     if (name === "admin") {
       await pg.evaluate(() => { try { localStorage.removeItem("adm-range"); } catch {} });
-      const kpi = (await pg.locator(".adm-kpis").innerText().catch(() => "")).replace(/\s+/g, " ");
+      const kpi = (await pg.locator(".adm-kpis").first().innerText().catch(() => "")).replace(/\s+/g, " ");
+      const fxt = (await pg.locator(".adm-fx").innerText().catch(() => "")).replace(/\s+/g, " ");
+      ok("paneeli: Futista Fantasy – käyttäjät (yhteensä, uudet, joukkue luotu / tallennettu)", /Futista Fantasy – käyttäjät/i.test(fxt) && /Käyttäjiä yhteensä/i.test(fxt) && /Joukkue tallennettu/i.test(fxt), fxt.slice(0, 200));
       const srcs = await pg.locator(".adm-src .adm-src-t > b").allInnerTexts();
       const fit = await pg.evaluate(() => ({ seg: [...document.querySelectorAll(".adm-range button")].every((b) => b.scrollWidth <= b.clientWidth + 1), ov: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         kpiCols: new Set([...document.querySelectorAll(".adm-kpi")].map((e) => Math.round(e.getBoundingClientRect().left))).size,

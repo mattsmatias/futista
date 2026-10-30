@@ -15,6 +15,8 @@ type Raw = {
   refs: { host: string; visitors: number }[];
   pages: { path: string; views: number; visitors: number }[];
   devices: { device: string; visitors: number }[];
+  /** Futista Fantasy: käyttäjät (vain lukumäärät); null = tietokantafunktio puuttuu */
+  fantasy?: { users: number; today: number; period: number; prev: number; teams: number; saved: number; days: { day: string; n: number }[] } | null;
 };
 type Bucket = { key: string; label: string; long: string; days: string[]; visitors: number; views: number; sources: { source: string; visitors: number }[] };
 
@@ -156,6 +158,18 @@ function View({ s }: { s: Raw }) {
         <div className="adm-kpi"><span>Kävijät · {span}</span><b>{n(tv)}</b><Delta now={tv} prev={s.prev.totals.visitors} /></div>
         <div className="adm-kpi"><span>Sivulataukset · {span}</span><b>{n(s.totals.views)}</b><Delta now={s.totals.views} prev={s.prev.totals.views} /></div>
       </section>
+      {s.fantasy && (
+        <section className="adm-card adm-fx" aria-labelledby="adm-fx-h">
+          <h2 id="adm-fx-h">Futista Fantasy – käyttäjät</h2>
+          <div className="adm-kpis">
+            <div className="adm-kpi hl"><span>Käyttäjiä yhteensä</span><b>{n(s.fantasy.users)}</b><small>{n(s.fantasy.today)} uutta tänään</small></div>
+            <div className="adm-kpi"><span>Uusia · {span}</span><b>{n(s.fantasy.period)}</b><Delta now={s.fantasy.period} prev={s.fantasy.prev} /></div>
+            <div className="adm-kpi"><span>Joukkue luotu</span><b>{n(s.fantasy.teams)}</b><small>{pct(s.fantasy.teams, s.fantasy.users)} käyttäjistä</small></div>
+            <div className="adm-kpi"><span>Joukkue tallennettu</span><b>{n(s.fantasy.saved)}</b><small>{pct(s.fantasy.saved, s.fantasy.users)} käyttäjistä</small></div>
+          </div>
+          {s.fantasy.days.length > 0 && <p className="muted small adm-fx-days">Uudet käyttäjät: {[...s.fantasy.days].reverse().slice(0, 7).map((d) => `${fmtDay(d.day)} ${d.n}`).join(" · ")}</p>}
+        </section>
+      )}
       <p className="muted small adm-cmp">Vertailu edelliseen {span}:n jaksoon ({fmtDay(s.prev.from)}–{fmtDay(s.prev.to)}). Keskimäärin {(tv / allDays(s.from, s.to).length).toLocaleString("fi-FI", { maximumFractionDigits: tv / allDays(s.from, s.to).length < 10 ? 1 : 0 })} kävijää päivässä, {tv ? (s.totals.views / tv).toLocaleString("fi-FI", { maximumFractionDigits: 1 }) : "–"} sivua kävijää kohden.</p>
 
       <section className="adm-card" aria-labelledby="adm-chart-h">
