@@ -8,7 +8,9 @@
 -- 2) Lukitus tietokannassa ilman sivukäyntiä: f_lock_all() lukitsee kaikkien kilpailujen erääntyneet kierrokset
 --    (sama f_lock_due kuin ennen). Ajastus alla (pg_cron, kerran minuutissa) – ei verkkokutsua eikä salaisuutta.
 -- 3) Datan päivitys ilman sivukäyntiä: pg_cron + pg_net kutsuu ylläpitorajapintaa 10 min välein (sama malli ja sama
---    Vaultin salaisuus futista_cron_secret kuin kohokohdissa). Ilman salaisuutta kutsu saa 401:n, mutta lukitus toimii silti.
+--    Vaultin salaisuus futista_cron_secret kuin kohokohdissa). Ilman salaisuutta kutsua ei tehdä; lukitus toimii silti.
+--    Salaisuuden lisäys (arvo = Vercelin CRON_SECRET; ajetaan erikseen, arvo ei tule versionhallintaan):
+--      select vault.create_secret('<CRON_SECRET-arvo>', 'futista_cron_secret');
 
 alter table public.fantasy_rounds add column if not exists hidden boolean not null default false;
 
@@ -106,6 +108,7 @@ select cron.schedule(
                                   'Content-Type', 'application/json'),
     body := '{"action":"tick"}'::jsonb,
     timeout_milliseconds := 58000
-  );
+  )
+  where exists (select 1 from vault.decrypted_secrets where name = 'futista_cron_secret'); -- ilman salaisuutta ei kutsuta
   $$
 );
