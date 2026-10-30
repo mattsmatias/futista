@@ -2817,3 +2817,30 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 @media (prefers-reduced-motion: reduce) { .fxt-past summary::after { transition: none; } }
 .fxt-title { display: flex; align-items: center; gap: 10px; }
 .fxt-title-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 210, 63, .16); color: var(--fx-acc, var(--fg)); }
+
+/* ---- Fantasy: muodostelman valinta malleina ---- */
+.fxf-mini { display: block; width: 100%; height: auto; }
+.fxf-grass { fill: #12693c; stroke: rgba(255, 255, 255, .5); stroke-width: 1; }
+.fxf-line { fill: none; stroke: rgba(255, 255, 255, .45); stroke-width: 1; }
+.fxf-dot { fill: #ffd23f; stroke: #0a0f1d; stroke-width: 1; }
+.fxf-dot.gk { fill: #2de2e6; }
+.fxf-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 14px 8px 8px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); text-align: left; cursor: pointer; }
+.fxf-btn .fxf-mini { width: 30px; flex: none; }
+.fxf-btn > span:nth-child(2) { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.fxf-btn small { font: 700 11px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.fxf-btn b { font: 900 19px/1 var(--display); font-variant-numeric: tabular-nums; }
+.fxf-btn-go { flex: none; padding: 7px 12px; border-radius: 999px; background: rgba(255, 210, 63, .16); color: var(--fx-acc, var(--fg)); font: 800 12.5px/1 var(--ui); }
+.fxf-btn:disabled { opacity: .6; cursor: default; }
+.fxf-btn:focus-visible, .fxf-opt:focus-visible { outline: 3px solid var(--fx-acc); outline-offset: 2px; }
+.fxf-sheet { display: grid; gap: 12px; }
+.fxf-sheet h2 { margin: 0; }
+.fxf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.fxf-opt { display: grid; justify-items: center; gap: 4px; padding: 8px 6px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface-2); color: var(--fg); cursor: pointer; min-height: 44px; }
+.fxf-opt b { font: 900 14px/1 var(--display); font-variant-numeric: tabular-nums; }
+.fxf-opt small { font: 800 10px/1 var(--ui); text-transform: uppercase; letter-spacing: .04em; color: var(--fx-acc, var(--fg)); }
+.fxf-opt.on { border-color: var(--fx-acc, #ffd23f); box-shadow: 0 0 0 1px rgba(255, 210, 63, .35), 0 8px 24px -12px rgba(255, 210, 63, .6); }
+.fxf-opt:not(.on):hover { border-color: rgba(255, 210, 63, .5); }
+.fxf-opt:active { transform: scale(.97); }
+@media (max-width: 360px) { .fxf-grid { gap: 6px; } .fxf-opt { padding: 6px 4px; } }
+@media (prefers-reduced-motion: reduce) { .fxf-opt:active { transform: none; } }

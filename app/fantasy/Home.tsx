@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, errText, useLoad, fmtM, localTime, roundName, roundNum, roundFx, teamBudgetOf, type FState, type FPlayerRow, type FPlayersResp } from "@/lib/fantasy-client";
 import { RULES, type Picks, type FPlayer } from "@/lib/fantasy-core";
-import { moveCheck, movePlayers, setCaptain, swapOptions, swapPlayers } from "@/lib/fantasy-lineup";
+import { moveCheck, movePlayers, setCaptain, swapOptions, swapPlayers, setFormation, formationNow } from "@/lib/fantasy-lineup";
+import { FormationPicker, FormationMini } from "./FormationPicker";
 import { StylePicker } from "./StylePicker";
 import { VERSION_NAME, type Style } from "@/lib/fantasy-packs-core";
 import { AuthBox, ErrorBox, Loading, Notice, Pitch, PlayerCard, DataStatus, Countdown, ActIcon, type Badge, type CardAction, type CardSwaps, type PitchDrag } from "./ui";
@@ -79,6 +80,7 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [styleFor, setStyleFor] = useState<FPlayerRow | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const last = t.points.find((p) => p.round === cur) ?? null;
   // lukitun kierroksen kentällä automaattisten vaihtojen jälkeinen kokoonpano (sisään tullut avaukseen, pelaamaton penkille)
   const rawSnap: Picks | null = snap.data?.snapshot ?? null;
@@ -197,6 +199,20 @@ function Home({ s, reload }: { s: FState; reload: () => void }) {
         <div className="seg fx-modes" role="group" aria-label="Korttien tieto">
           {modes.map((m) => <button key={m.id} type="button" aria-pressed={mode === m.id} className={mode === m.id ? "on" : ""} onClick={() => setMode(m.id)}>{m.label}</button>)}
         </div>
+      )}
+      {editable && players.size > 0 && (() => {
+        const cur = formationNow(t.picks!, asF);
+        return (
+          <button type="button" className="fxf-btn" onClick={() => setFormOpen(true)} aria-haspopup="dialog" disabled={busy}>
+            {cur && <FormationMini f={cur} />}
+            <span><small>Muodostelma</small><b>{cur ? cur.replace(/-/g, "–") : "–"}</b></span>
+            <span className="fxf-btn-go">Vaihda</span>
+          </button>
+        );
+      })()}
+      {formOpen && t.picks && (
+        <FormationPicker current={formationNow(t.picks, asF)} busy={busy} onClose={() => setFormOpen(false)}
+          onPick={(f) => { const np = setFormation(t.picks!, f, asF); setFormOpen(false); if (np) save(np, `Muodostelma ${f.replace(/-/g, "–")}.`); }} />
       )}
       {t.picks && (!picks || players.size === 0) && !pl.err && <div className="fx-pitch-skel" aria-label="Ladataan kokoonpanoa" />}
       {picks && players.size > 0 && (

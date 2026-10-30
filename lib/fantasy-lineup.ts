@@ -91,3 +91,43 @@ export function movePlayers(d: Draft, from: number, to: number, players: Map<num
   if (m.kind === "bench") return { ...d, bench: sw(d.bench) };
   return swapPlayers(d, from, to, players);
 }
+
+// ---------------- Muodostelmat ----------------
+/** Sääntöjen sallimat muodostelmat (1 MV; P 3–5, KK 2–5, H 1–3; joukkueessa 5 / 5 / 3) */
+export const FORMATIONS = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-2-3", "5-3-2", "5-4-1"] as const;
+export type Formation = (typeof FORMATIONS)[number];
+export const formationCounts = (f: string): Record<Pos, number> => { const [d, m, w] = f.split("-").map(Number); return { GK: 1, DEF: d, MID: m, FWD: w }; };
+export function formationNow(d: Draft, players: Map<number, FPlayer>): string | null {
+  const c = { GK: 0, DEF: 0, MID: 0, FWD: 0 } as Record<Pos, number>;
+  for (const id of d.xi) { const p = players.get(id); if (p) c[p.pos]++; }
+  return d.xi.length === RULES.xiSize ? `${c.DEF}-${c.MID}-${c.FWD}` : null;
+}
+/** Muodostelman vaihto. Avauspelaajat pysyvät mahdollisimman pitkälle: ylimääräiset siirtyvät penkin loppuun (ei kapteeni
+ *  eikä varakapteeni, jos vältettävissä; ensin halvin), puuttuvat tulevat penkiltä penkin järjestyksessä. null = ei mahdollinen. */
+export function setFormation(d: Draft, f: string, players: Map<number, FPlayer>): Draft | null {
+  const need = formationCounts(f);
+  if (!formationOk(need) || d.squad.length !== RULES.squadSize) return null;
+  const pos = (id: number) => players.get(id)?.pos;
+  const price = (id: number) => players.get(id)?.price ?? 0;
+  for (const p of ["DEF", "MID", "FWD"] as Pos[]) if (d.squad.filter((id) => pos(id) === p).length < need[p]) return null;
+  let xi = [...d.xi], bench = [...d.bench];
+  const out: number[] = [];
+  for (const p of ["DEF", "MID", "FWD"] as Pos[]) {
+    let cur = xi.filter((id) => pos(id) === p);
+    while (cur.length > need[p]) {
+      const free = cur.filter((id) => id !== d.captain && id !== d.vice);
+      const drop = [...(free.length ? free : cur)].sort((a, b) => price(a) - price(b) || xi.indexOf(b) - xi.indexOf(a))[0];
+      xi = xi.filter((x) => x !== drop); out.push(drop); cur = cur.filter((x) => x !== drop);
+    }
+  }
+  for (const p of ["DEF", "MID", "FWD"] as Pos[]) {
+    while (xi.filter((id) => pos(id) === p).length < need[p]) {
+      const take = bench.find((id) => pos(id) === p);
+      if (take === undefined) return null;
+      bench = bench.filter((x) => x !== take); xi.push(take);
+    }
+  }
+  bench = [...bench, ...out];
+  bench.sort((a, b) => (pos(a) === "GK" ? -1 : pos(b) === "GK" ? 1 : 0));
+  return fixCaps({ ...d, xi, bench }, players);
+}

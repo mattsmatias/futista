@@ -345,3 +345,27 @@ test("vetäminen: sama pelipaikka avauksen ja penkin välillä vaihtaa; eri peli
   const c = movePlayers(d, 15, 13, pl);                                           // kapteeni penkille → kapteeni avauksesta
   assert.ok(c.xi.includes(c.captain) && c.captain !== 13);
 });
+
+// ---- muodostelman valinta malleina ----
+import { FORMATIONS, setFormation, formationNow, formationCounts } from "../lib/fantasy-lineup";
+import { formationOk } from "../lib/fantasy-core";
+test("muodostelma: kaikki 8 mallia kelvollisia; vaihto pitää avauspelaajat, kapteenit ja vaihtomaalivahdin", () => {
+  const pos: [number, "GK" | "DEF" | "MID" | "FWD", number][] = [[1, "GK", 5], [2, "GK", 4], [3, "DEF", 6], [4, "DEF", 5], [5, "DEF", 4.5], [6, "DEF", 4], [7, "DEF", 4], [8, "MID", 9], [9, "MID", 7], [10, "MID", 6], [11, "MID", 5], [12, "MID", 4.5], [13, "FWD", 10], [14, "FWD", 7], [15, "FWD", 5]];
+  const pl = new Map(pos.map(([id, p, price]) => [id, { id, name: `P${id}`, team_id: id, team: "T", pos: p, price, active: true } as any]));
+  const d = { squad: pos.map((x) => x[0]), xi: [1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14], bench: [2, 7, 12, 15], captain: 13, vice: 6 };
+  assert.equal(formationNow(d, pl), "4-4-2");
+  for (const f of FORMATIONS) {
+    assert.ok(formationOk(formationCounts(f)), f);
+    const n = setFormation(d, f, pl)!;
+    assert.ok(n, f);
+    assert.equal(formationNow(n, pl), f);
+    assert.deepEqual(lineupErrors(n, pl), [], f);
+    assert.equal(n.bench[0], 2, `${f}: vaihtomaalivahti penkin ensimmäisenä`);
+    assert.equal(n.captain, 13, f); assert.equal(n.vice, 6, f);       // kapteeni ja varakapteeni (halvin P) pysyvät
+  }
+  const a = setFormation(d, "3-5-2", pl)!;
+  assert.ok(!a.xi.includes(5) && a.xi.includes(6) && a.xi.includes(12) && a.bench.at(-1) === 5); // halvin ei-kapteeni P penkille, penkin KK sisään
+  const b = setFormation(d, "4-3-3", pl)!;
+  assert.ok(!b.xi.includes(11) && b.xi.includes(15));                 // halvin KK penkille, penkin H sisään
+  assert.equal(setFormation(d, "2-5-3", pl), null);                   // ei sallittu
+});
