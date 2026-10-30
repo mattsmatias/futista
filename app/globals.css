@@ -2844,3 +2844,7 @@ button.fxc:focus-visible { outline: 3px solid #fff; outline-offset: 2px; clip-pa
 .fxf-opt:active { transform: scale(.97); }
 @media (max-width: 360px) { .fxf-grid { gap: 6px; } .fxf-opt { padding: 6px 4px; } }
 @media (prefers-reduced-motion: reduce) { .fxf-opt:active { transform: none; } }
+/* Hallintapaneeli: Fantasyn käyttäjät */
+.adm-fx { display: grid; gap: 10px; }
+.adm-fx h2 { margin: 0; font-size: 16px; }
+.adm-fx-days { margin: 0; }
