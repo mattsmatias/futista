@@ -28,10 +28,12 @@ const admin = async (body) => {
 const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
 
 (async () => {
-  const A = client(), B = client(), G = client();
+  // köyhä käyttäjä = C (joukkuetta ei tallennettu → ei ansaintoja): B:n saldo riippuu kierros- ja tehtäväpalkinnoista
+  const A = client(), B = client(), G = client(), P = client();
   await A.call("/api/fantasy/tili", { action: "login", username: "pelaaja_a", password: "salasana-123" });
   await B.call("/api/fantasy/tili", { action: "login", username: "pelaaja_b", password: "salasana-456" });
-  ok("tunnukset kirjautuvat", !!A.cookie && !!B.cookie);
+  await P.call("/api/fantasy/tili", { action: "login", username: "pelaaja_c", password: "salasana-789" });
+  ok("tunnukset kirjautuvat", !!A.cookie && !!B.cookie && !!P.cookie);
 
   // ---------- rajapinta ----------
   ok("pakat ilman kirjautumista → 401", (await G.call("/api/fantasy/pakat")).status === 401 && (await G.call("/api/fantasy/kokoelma")).status === 401);
@@ -70,8 +72,9 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
   const after = (await A.call("/api/fantasy/pakat")).j.balance;
   const okCount = [x1, x2].filter((x) => x.status === 200).length;
   ok("kaksi samanaikaista avausta: saldo veloitetaan täsmälleen onnistuneista", after === o1.j.balance - 100 * okCount && after >= 0, `${okCount} onnistui, saldo ${after}`);
-  const poor = (await B.call("/api/fantasy/pakat", { action: "open", pack: "gold", request: rid("b") }));
-  ok("riittämätön saldo → 409 funds, ei veloitusta", poor.status === 409 && poor.j?.error === "funds" && (await B.call("/api/fantasy/pakat")).j.balance === b0.balance, poor);
+  const pc0 = (await P.call("/api/fantasy/pakat")).j;
+  const poor = (await P.call("/api/fantasy/pakat", { action: "open", pack: "gold", request: rid("b") }));
+  ok("riittämätön saldo → 409 funds, ei veloitusta", pc0.balance < 250 && poor.status === 409 && poor.j?.error === "funds" && (await P.call("/api/fantasy/pakat")).j.balance === pc0.balance, poor);
   ok("toisen käyttäjän avausta ei näe (404)", (await B.call(`/api/fantasy/pakat?avaus=${o1.j.open.id}`)).status === 404);
   ok("oma avaus löytyy tunnisteella (keskeytynyt avaus)", (await A.call(`/api/fantasy/pakat?avaus=${o1.j.open.id}`)).j?.open?.cards?.length === 3);
   const hist = (await A.call("/api/fantasy/pakat")).j;
@@ -183,7 +186,7 @@ const rid = (s) => `${s}-${Date.now().toString(36)}-testpyynto`.slice(0, 40);
     await rm.close();
     // tyhjä kokoelma
     const bc = await browser.newContext({ locale: "fi-FI", viewport: { width: 390, height: 844 } });
-    await bc.addCookies([{ name: "ff_s", value: B.cookie.replace(/^ff_s=/, ""), url: APP }]);
+    await bc.addCookies([{ name: "ff_s", value: P.cookie.replace(/^ff_s=/, ""), url: APP }]);
     const bp = await bc.newPage();
     await bp.goto(`${APP}/fantasy/kokoelma`, { waitUntil: "load" });
     await bp.waitForSelector(".fxk-empty");
