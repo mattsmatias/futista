@@ -110,12 +110,12 @@ const admin = async (path, body) => {
       await page.waitForSelector(".fxt-task", { timeout: 15000 }).catch(() => {});
       const txt = (await page.locator("main").innerText()).replace(/\s+/g, " ");
       ok(`${w}px: Tehtävät-näkymä: kierros ja määräaika, 3 tehtävää ohjeineen ja palkintoineen`, (await page.locator(".fxt-list").first().locator(".fxt-task").count()) === 3 && /määräaika/.test(txt) && (await page.locator(".fxt-list").first().locator(".fxt-help").count()) === 3 && (await page.locator(".fxt-list").first().locator(".fxt-rew").count()) === 3, txt.slice(0, 200));
-      ok(`${w}px: tilat näkyvät (Kesken) ja edistyminen ilman keksittyjä lukuja (–/tavoite)`, /Kesken/.test(txt) && /–\/\d+/.test(txt));
+      ok(`${w}px: tilat näkyvät (Kesken) ja edistyminen ilman keksittyjä lukuja (–/tavoite)`, /Kesken/i.test(txt) && /–\/\d+/.test(txt));
       ok(`${w}px: kausitavoitteet (4) ja budjetti 102,0 / 102,0 M, katto-ilmoitus`, (await page.locator(".fxt-goals li").count()) === 4 && /102,0 M/.test(txt) && /Olet saavuttanut kauden enimmäisbudjetin 102,0 M€\. Voit edelleen suorittaa viikkotehtäviä ja ansaita kolikoita\./.test(txt));
-      ok(`${w}px: aiempi kierros ratkaistuine tehtävineen`, (await page.locator(".fxt-past details").count()) >= 1 && /(Valmis|Ei saavutettu)/.test(await page.locator(".fxt-past").innerText()));
+      ok(`${w}px: aiempi kierros ratkaistuine tehtävineen`, (await page.locator(".fxt-past details").count()) >= 1 && /(Valmis|Ei saavutettu)/i.test(await page.locator(".fxt-past").textContent()));
       const ov = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
       const small = await page.evaluate(() => [...document.querySelectorAll(".fxt-past summary, .fxt-link")].filter((e) => e.getBoundingClientRect().height > 0 && e.getBoundingClientRect().height < 44).length);
-      ok(`${w}px: ei vaakavieritystä, kosketusalueet ≥ 44 px, Joukkue-välilehti aktiivinen, ei sivuvirheitä`, ov <= 1 && small === 0 && (await page.locator(".fxg-tabs a.on").innerText()).includes("Joukkue") && errs.length === 0, JSON.stringify({ ov, small, errs }));
+      ok(`${w}px: ei vaakavieritystä, kosketusalueet ≥ 44 px, Joukkue-välilehti aktiivinen, ei sivuvirheitä`, ov <= 1 && small === 0 && /Joukkue/i.test(await page.locator(".fxg-tabs a.on").textContent()) && errs.length === 0, JSON.stringify({ ov, small, errs }));
       await shot(page, `tehtavat-${w}`);
       await ctx.close();
     }

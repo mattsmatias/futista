@@ -104,7 +104,7 @@ export function Tasks() {
               <li key={g.id} className={done ? "done" : ""}>
                 <div className="fxt-goal-h">
                   <span>Osallistu {g.rounds} lopulliseen kierrokseen</span>
-                  <b>{done && g.awarded === 0 ? "katto täynnä" : `+${m1(g.bonus)} M`}</b>
+                  <b>{(done && g.awarded === 0) || (!done && atCap) ? "katto täynnä" : `+${m1(done ? g.awarded! : g.bonus)} M`}</b>
                 </div>
                 <div className="fxt-bar sm" role="progressbar" aria-label={`Osallistu ${g.rounds} kierrokseen`} aria-valuemin={0} aria-valuemax={g.rounds} aria-valuenow={Math.min(g.rounds, d.participated)}>
                   <i style={{ width: `${Math.min(100, (d.participated / g.rounds) * 100)}%` }} />
