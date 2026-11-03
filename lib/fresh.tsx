@@ -11,15 +11,20 @@ export function useVisibleInterval(fn: () => void, ms: number, immediate = false
   ref.current = fn;
   useEffect(() => {
     let last = Date.now();
-    // heti avattaessa (esim. kotivalikon sovellus näyttää tallennetun sivun → tuoreet tiedot perään)
-    if (immediate && !document.hidden) ref.current();
-    const tick = () => { if (!document.hidden) { last = Date.now(); ref.current(); } };
+    // heti avattaessa (esim. kotivalikon sovellus näyttää tallennetun sivun → tuoreet tiedot perään). Jos sivu on
+    // käynnistyessä vielä piilossa, ensimmäinen haku tehdään heti, kun se tulee näkyviin (tarkistus sekunnin välein,
+    // koska visibilitychange voi jäädä tulematta kotivalikosta avattaessa).
+    let owed = immediate;
+    const tick = () => { if (!document.hidden) { owed = false; last = Date.now(); ref.current(); } };
+    if (owed) tick();
     const id = setInterval(tick, ms);
+    const wake = owed ? setInterval(() => { if (!owed) clearInterval(wake); else tick(); }, 1000) : undefined;
     // palattaessa sovellukseen päivitetään heti, jos edellisestä on kulunut hetki
-    const vis = () => { if (!document.hidden && Date.now() - last > 15_000) tick(); };
+    const vis = () => { if (!document.hidden && (owed || Date.now() - last > 15_000)) tick(); };
     document.addEventListener("visibilitychange", vis);
     window.addEventListener("focus", vis);
-    return () => { clearInterval(id); document.removeEventListener("visibilitychange", vis); window.removeEventListener("focus", vis); };
+    window.addEventListener("pageshow", vis);
+    return () => { clearInterval(id); if (wake) clearInterval(wake); document.removeEventListener("visibilitychange", vis); window.removeEventListener("focus", vis); window.removeEventListener("pageshow", vis); };
   }, [ms, immediate]);
 }
 

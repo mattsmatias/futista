@@ -112,6 +112,29 @@ const MIN = 60_000;
     await ctx.close();
   }
 
+  // ---------- Kotivalikon sovellus käynnistyy piilossa (iOS): live- ja tulostiedot haetaan heti näkyviin tultaessa,
+  // vaikka visibilitychange-tapahtumaa ei tulisi ja navigator.onLine olisi käynnistyksessä virheellisesti false ----------
+  {
+    const ctx = await browser.newContext({ locale: "fi-FI" }); await markTestTraffic(ctx, APP);
+    await ctx.addInitScript(() => {
+      window.__vis = false;
+      Object.defineProperty(document, "hidden", { get: () => !window.__vis, configurable: true });
+      Object.defineProperty(document, "visibilityState", { get: () => (window.__vis ? "visible" : "hidden"), configurable: true });
+      Object.defineProperty(navigator, "onLine", { get: () => false, configurable: true });
+    });
+    const page = await ctx.newPage(); let live = 0, stats = 0;
+    await page.route("**/api/live", (r) => { live++; r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ enabled: true, matches: [], checkedAt: Date.now(), sources: null, error: false }) }); });
+    await page.route("**/api/stats", (r) => { stats++; r.continue(); });
+    await page.goto(APP + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(1500);
+    ok("kylmäkäynnistys: piilossa ei haeta", live === 0 && stats === 0, `live ${live}, stats ${stats}`);
+    await page.evaluate(() => { window.__vis = true; }); // ei tapahtumaa
+    for (let i = 0; i < 40 && (live < 1 || stats < 1); i++) await page.waitForTimeout(100);
+    ok("kylmäkäynnistys: näkyviin tultaessa live- ja tulostiedot haetaan ilman visibilitychange-tapahtumaa", live >= 1 && stats >= 1, `live ${live}, stats ${stats}`);
+    await page.waitForTimeout(2000);
+    ok("  ei ylimääräisiä hakuja", live === 1 && stats === 1, `live ${live}, stats ${stats}`);
+    await ctx.close();
+  }
+
   // ---------- PWA: offline, rajattu välimuisti, vanhojen versioiden siivous ----------
   {
     await net(true);

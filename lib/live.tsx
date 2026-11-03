@@ -43,7 +43,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
   const subscribe = useCallback(() => { setSubs((n) => n + 1); return () => setSubs((n) => n - 1); }, []);
   const active = subs > 0;
   // tila säilyy tilausten välillä (esim. sivulta toiselle siirryttäessä), haku vain aktiivisena
-  const st = useRef({ checkedAt: null as number | null, fails: 0, current: [] as LiveMatch[], lastAttempt: 0, inflight: false });
+  const st = useRef({ checkedAt: null as number | null, fails: 0, current: [] as LiveMatch[], lastAttempt: 0, inflight: false, waiting: false });
   useEffect(() => {
     if (!active) return;
     let stop = false;
@@ -52,13 +52,15 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     const schedule = (ms: number) => { if (timer) clearTimeout(timer); timer = setTimeout(load, ms); };
     async function load() {
       if (stop || s.inflight) return;
-      if (document.hidden) return; // jatkuu, kun välilehti tulee näkyviin
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        setMeta((m) => ({ ...m, offline: true, loading: false }));
-        return; // jatkuu online-tapahtumasta
-      }
+      // Piilossa (esim. kotivalikon sovellus käynnistyy taustalla): haku odottaa. Sekuntiajastin hakee heti, kun sivu
+      // on näkyvissä – ei luoteta pelkkään visibilitychange-tapahtumaan, joka voi jäädä tulematta (iOS-kotivalikko).
+      if (document.hidden) { s.waiting = true; return; }
+      s.waiting = false;
+      // navigator.onLine voi olla käynnistyksessä virheellisesti false (iOS): yhteydettömyys näytetään, mutta haku
+      // yritetään silti; oikeasti ilman yhteyttä haku epäonnistuu ja seuraava yritys odottaa normaalisti
+      const offlineHint = typeof navigator !== "undefined" && navigator.onLine === false;
       s.inflight = true; s.lastAttempt = Date.now();
-      setMeta((m) => ({ ...m, pending: true, offline: false }));
+      setMeta((m) => ({ ...m, pending: true, offline: offlineHint }));
       try {
         const ctl = new AbortController();
         const to = setTimeout(() => ctl.abort(), 15_000);
@@ -98,6 +100,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
       ticks++;
       const anyLive = s.current.some((m) => m.status === "IN_PLAY" || m.status === "EXTRA_TIME");
       if (!document.hidden && (anyLive || ticks % 30 === 0)) setNow(Date.now());
+      if (s.waiting && !document.hidden && !s.inflight) load();
     }, 1000);
     const vis = () => {
       if (document.hidden) return;
@@ -107,11 +110,14 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     const online = () => { setMeta((m) => ({ ...m, offline: false })); load(); };
     const offline = () => setMeta((m) => ({ ...m, offline: true }));
     document.addEventListener("visibilitychange", vis);
+    window.addEventListener("pageshow", vis);
+    window.addEventListener("focus", vis);
     window.addEventListener("online", online);
     window.addEventListener("offline", offline);
     return () => {
       stop = true; if (timer) clearTimeout(timer); clearInterval(b);
       document.removeEventListener("visibilitychange", vis);
+      window.removeEventListener("pageshow", vis); window.removeEventListener("focus", vis);
       window.removeEventListener("online", online); window.removeEventListener("offline", offline);
     };
   }, [active]);
