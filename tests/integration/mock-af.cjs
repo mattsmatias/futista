@@ -177,7 +177,9 @@ function handle(u, send, mode, res, hdr) {
     const L = LEAGUES[lg];
     if (!L) return send({ errors: [], response: [] }), true;
     const y = new Date(now).getUTCFullYear();
-    const season = L.ended ? { year: y, start: iso(now - 90 * DAY), end: iso(now - 40 * DAY), current: true } : { year: y, start: iso(now - 120 * DAY), end: iso(now + 60 * DAY), current: true };
+    // kalenterivuoden kausi: päivät pysyvät vuoden y sisällä (muuten loppuvuodesta kausi ylittäisi vuodenvaihteen → "2026–27")
+    const inYear = (t) => Math.min(Date.UTC(y, 11, 31), Math.max(Date.UTC(y, 0, 1), t));
+    const season = L.ended ? { year: y, start: iso(inYear(now - 90 * DAY)), end: iso(inYear(now - 40 * DAY)), current: true } : { year: y, start: iso(inYear(now - 120 * DAY)), end: iso(inYear(now + 60 * DAY)), current: true };
     send({ errors: [], response: [{ league: { id: lg, name: L.name, type: L.type }, country: { name: "Test" }, seasons: [{ year: y - 1, start: iso(now - 400 * DAY), end: iso(now - 200 * DAY), current: false }, season] }] });
     return true;
   }
