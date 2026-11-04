@@ -14,6 +14,8 @@ async function login(u, p) {
 const pngSize = (b) => (b.length > 24 && b.readUInt32BE(0) === 0x89504e47 ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null);
 
 (async () => {
+  // aiemmat testit kirjautuvat samoilla tunnuksilla: kirjautumisrajoitin (10 / 10 min / tunnus) nollataan testikannassa
+  if (process.env.PG_URL) require("node:child_process").execSync(`psql "${process.env.PG_URL}" -qAtc "delete from public.fantasy_throttle where key like 'login%'"`);
   const admin = await login("pelaaja_a", "salasana-123"), user = await login("pelaaja_b", "salasana-456");
   ok("valmistelu: ylläpitäjä ja tavallinen käyttäjä kirjautuneet", !!admin && !!user);
   const anon = await fetch(`${APP}/api/hallinta/ig`);
