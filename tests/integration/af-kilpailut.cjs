@@ -206,6 +206,14 @@ const DAY = 86400_000;
   ok("  Siirrot: uusin ensin, summa lähteen mukaan, vapaa siirto, kaksoisrivi poistettu", tr.length === 2 && /2024/.test(tr[0]) && /Vanha Seura/.test(tr[0]) && /€ 250K/.test(tr[0]) && /Pohjoisseura 244/.test(tr[0]) && /Vapaa siirto/.test(tr[1]), JSON.stringify(tr));
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/pelaaja-390.png`, fullPage: true }).catch(() => {});
   ok("  390 px: ei vaakavieritystä", !(await wide()));
+  // asettelu: kokoonpanokentän .pp-säännöt eivät saa osua profiiliin (käyttäjän havainto 4.11.2026)
+  const lay = await page.evaluate(() => {
+    const m = document.querySelector("main.pp"), cs = getComputedStyle(m);
+    const ph = document.querySelector(".pp-who .pp-photo").getBoundingClientRect(), h1 = document.querySelector(".pp-txt h1").getBoundingClientRect();
+    const foot = document.querySelector("footer")?.getBoundingClientRect();
+    return { pos: cs.position, align: cs.textAlign, photoLeft: ph.right <= h1.left + 1, photoW: Math.round(ph.width), below: !foot || foot.top >= m.getBoundingClientRect().bottom - 1 };
+  });
+  ok("  asettelu: tavallinen sivu (ei kentän merkkien sijoittelua), kuva vasemmalla ja nimi sen vieressä, alatunniste sisällön alla", lay.pos === "static" && lay.align !== "center" && lay.photoLeft && lay.photoW === 84 && lay.below, JSON.stringify(lay));
   await page.goto(`${APP}/pelaaja/af-999999`, { waitUntil: "load" });
   ok("  tuntematon pelaaja → Pelaajaa ei löytynyt", (await page.locator("h1").innerText().catch(() => "")) === "Pelaajaa ei löytynyt");
 

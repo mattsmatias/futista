@@ -1438,7 +1438,7 @@ html { touch-action: manipulation; }
 .pitch-team { position: absolute; display: flex; align-items: center; gap: 6px; z-index: 2; }
 .pt-h { top: 8px; left: 8px; } .pt-a { bottom: 8px; right: 8px; }
 .pt-avg { font: 700 12px var(--mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); padding: 2px 6px; border-radius: 6px; }
-.pp { position: absolute; display: grid; justify-items: center; gap: 3px; text-align: center; z-index: 1; min-width: 0; }
+.pitch .pp { position: absolute; display: grid; justify-items: center; gap: 3px; text-align: center; z-index: 1; min-width: 0; }
 .pp-h { transform: translate(-50%, -50%); } .pp-a { transform: translate(-50%, 50%); }
 .pp-pic { position: relative; width: 44px; height: 44px; }
 .pp-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: top; background: var(--surface); border: 1px solid var(--line); display: block; }
