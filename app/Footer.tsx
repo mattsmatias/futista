@@ -3,6 +3,8 @@ import { useI18n } from "@/lib/i18n";
 import { SOURCES } from "@/lib/sources";
 import { COMP_ORDER } from "@/lib/comps";
 
+export const IG_URL = "https://www.instagram.com/futista.fi/";
+
 export default function Footer() {
   const i = useI18n();
   const { t } = i;
@@ -13,6 +15,8 @@ export default function Footer() {
         <div className="foot-brand">
           <a href="/" className="logo">Futista</a>
           <span>{t("tagline")}</span>
+          {/* Futistan Instagram-tili (käyttäjän pyyntö 5.11.2026); ei palvelun logoa, pelkkä teksti */}
+          <a className="foot-ig" href={IG_URL} target="_blank" rel="noopener me">{t("followIg")} <b>@futista.fi</b></a>
         </div>
         {/* kaikki sarjat jokaisen sivun alareunassa: hakukoneet ja käyttäjät löytävät sarjasivut ("laliiga", "valioliiga" …) */}
         <nav className="foot-leagues" aria-label={t("nav_comps")}>

@@ -100,6 +100,7 @@ const DAY = 86400_000;
   ok("  390 px: ei vaakavieritystä", !(await wide()));
   const fc = await page.locator(".foot-credits").innerText();
   ok("  alatunniste: football-data.org:n vaatima maininta, ei muita tietopalveluiden nimiä", fc.includes("Football data provided by the Football-Data.org API") && !/API-Football|ESPN|TheSportsDB/.test(fc), fc);
+  ok("  alatunniste: Futistan Instagram-linkki (uusi välilehti, ≥ 44 px)", (await page.locator('.foot a.foot-ig[href="https://www.instagram.com/futista.fi/"][target="_blank"]').count()) === 1 && ((await page.locator(".foot a.foot-ig").boundingBox())?.height ?? 0) >= 44 && /Seuraa Instagramissa @futista\.fi/.test(await page.locator(".foot a.foot-ig").innerText()));
   ok("  alanavigaatiossa 6 kohtaa (Ottelut, Suosikit, Live, Fantasy, Sarjat, Uutiset)", (await page.locator(".bottomnav a").allTextContents()).join("|") === "Ottelut|Suosikit|Live|Fantasy|Sarjat|Uutiset");
 
   // ---------- Haku: kotimaiset ja muut kilpailut löytyvät hausta (käyttäjän havainto 4.11.2026) ----------
