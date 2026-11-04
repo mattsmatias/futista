@@ -52,8 +52,13 @@ const quotaRows = () => PG ? execSync(`psql "${PG}" -qAtc "select count(*) from 
   // kiintiövaraston katko → fail closed
   execSync(`psql "${PG}" -qAtc "delete from public.fd_quota_state;"`); resetQuota();
   await fetch(`${REST}/__down`); before = await fdHits();
-  v = await visit("/pelaaja/7005"); ok("kiintiövarasto alhaalla → virhesivu", v.h1 === "Pelaajan tietoja ei saada juuri nyt", v.h1);
-  ok("  ei lähdehakuja ilman kiintiötä (fail closed)", (await fdHits()) === before);
+  const personHits = async () => (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => x.url.startsWith("/v4/persons")).length;
+  const pBefore = await personHits();
+  v = await visit("/pelaaja/7005"); ok("kiintiövarasto alhaalla → virhesivu (palvelin odotti vuoroa enintään ~20 s)", v.h1 === "Pelaajan tietoja ei saada juuri nyt", v.h1);
+  // pelaajahaku (matala prioriteetti) ei koskaan ilman kiintiötä. Odotuksen aikana muut sivun taustapäivitykset voivat
+  // käyttää varaston häiriötilan pientä korkean prioriteetin varalukua (2 / min / instanssi, lib/fd.ts) – se on tarkoituksellista.
+  const other = (await (await fetch(`${MOCK}/__log`)).json()).filter((x) => x.url.startsWith("/v4")).slice(before).map((x) => x.url);
+  ok("  ei pelaajahakuja ilman kiintiötä (fail closed); muita enintään varaluvun verran", (await personHits()) === pBefore && other.length <= 2, other.join(", "));
   await fetch(`${REST}/__up`); await sleep(11000); // kiintiövaraston uudelleenyritysväli 10 s
 
   // --- H2H ---
