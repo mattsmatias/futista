@@ -1,5 +1,5 @@
 // Futista Fantasy -nosto ja "Tee joukkue puolestani" (pl-2026; ajetaan fantasy.cjs:n jälkeen):
-// etusivun kortti (kierros, määräaika, linkki), sarjasivun raita vain Fantasyn sarjoissa, uutisen loppu, julkinen
+// etusivun kortti (kierros, määräaika, linkki); muilla sivuilla ei nostoa (4.11.2026), julkinen
 // kierrosrajapinta, uusi käyttäjä kokoaa joukkueen yhdellä painalluksella ja se tallentuu sääntöjen mukaisena. 390 px.
 //   APP=http://localhost:3100 CHROME=... node tests/integration/promo.cjs
 const { chromium } = require("playwright-core");
@@ -42,14 +42,14 @@ function client() {
     ok("  ei vaakavieritystä, ei sivuvirheitä", await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1) && errs.length === 0, errs.join(" | "));
     await shot(page, "fantasy-nosto-etusivu-390");
 
+    // Fantasy-nosto vain etusivulla (käyttäjän valinta 4.11.2026: ei mainosta joka sivulla)
     await page.goto(`${APP}/sarjat/bundesliga`, { waitUntil: "load" });
-    await page.waitForSelector(".fxp-strip", { timeout: 15000 }).catch(() => {});
-    ok("sarjasivu (Bundesliga): Fantasy-raita linkkinä", (await page.locator("a.fxp-strip").getAttribute("href").catch(() => null)) === "/fantasy");
+    await page.waitForTimeout(1500);
+    ok("sarjasivu (Bundesliga): ei Fantasy-nostoa", (await page.locator(".fxp-strip, .fxp-card").count()) === 0);
     await page.goto(`${APP}/sarjat/veikkausliiga`, { waitUntil: "load" });
     await page.waitForTimeout(1500);
-    ok("sarjasivu (Veikkausliiga, ei Fantasyssa): ei raitaa", (await page.locator(".fxp-strip").count()) === 0);
+    ok("sarjasivu (Veikkausliiga): ei Fantasy-nostoa", (await page.locator(".fxp-strip, .fxp-card").count()) === 0);
 
-    // uutisen loppu: tarkistetaan mainosta.cjs:ssä (simuloitu uutislähde on käytössä vain sen palvelimessa)
     await ctx.close();
 
     // Tee joukkue puolestani: fantasy.cjs:n käyttäjä C, jonka joukkueessa ei ole vielä pelaajia (rekisteröintirajoitin

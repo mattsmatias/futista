@@ -56,8 +56,7 @@ const setMode = (q) => fetch(`${MOCK}/__mode?${q}`);
   for (let k = 0; k < 20; k++) { const h = await (await fetch(APP + "/uutiset")).text(); if (h.includes("Testiuutinen 1")) break; await sleep(1500); }
   const html = await (await fetch(APP + "/uutiset")).text();
   ok("uutiset palvelimelta (SSR) ja kortti mukana jo HTML:ssä", html.includes("Testiuutinen 1") && html.includes("adcard"), String(html.includes("Testiuutinen 1")));
-  // Futista Fantasy -kortti uutisen lopussa: simuloidun lähteen jutut eivät avaudu Futistan juttusivulle (linkit ulkoisiin
-  // osoitteisiin), joten juttusivun korttia ei voi testata tässä ympäristössä.
+  // Futista Fantasy -nosto on vain etusivulla (käyttäjän valinta 4.11.2026), ei uutissivuilla.
 
   for (const [w, h, tag] of [[1280, 900, "tietokone"], [360, 760, "mobiili"]]) {
     const ctx = await browser.newContext({ locale: "fi-FI", viewport: { width: w, height: h }, isMobile: w < 500, hasTouch: w < 500 });
