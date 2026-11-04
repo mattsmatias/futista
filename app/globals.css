@@ -2273,14 +2273,15 @@ button.fx-tok:focus-visible { outline: 3px solid #fff; outline-offset: 1px; }
 .adm-foot { margin: 4px 2px 0; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) { .adm-refresh.spin svg, .adm-skel i { animation: none; } }
 
-/* Pelaajaprofiili: otsikko, seura, välilehdet Ottelut / Ura / Siirrot (puhelin ensin) */
-.pp { display: grid; gap: 14px; }
+/* Pelaajaprofiili: otsikko, seura, välilehdet Ottelut / Ura / Siirrot (puhelin ensin).
+   Rajattu profiiliin: kokoonpanokentän pelaajamerkit käyttävät samoja nimiä .pp / .pp-photo (MatchExtras). */
+main.pp { display: grid; gap: 14px; }
 .pp-head { display: grid; gap: 10px; }
 .pp-nat { margin: 0; font: 700 12.5px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .pp-nat .flag img { width: 22px; height: 15px; }
 .pp-who { display: flex; align-items: center; gap: 16px; }
-.pp-photo { flex: none; width: 84px; height: 84px; border-radius: 20px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; }
-.pp-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pp-who .pp-photo { flex: none; width: 84px; height: 84px; border-radius: 20px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; }
+.pp-who .pp-photo img { width: 100%; height: 100%; object-fit: cover; }
 .pp-txt { min-width: 0; display: grid; gap: 4px; }
 .pp-txt h1 { margin: 0; font: 800 clamp(24px, 6.5vw, 34px)/1.08 var(--display); letter-spacing: -.02em; overflow-wrap: anywhere; }
 .pp-txt p { margin: 0; color: var(--muted); font-size: 15px; }
