@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         {/* alarivi */}
         <div style={{ position: "absolute", left: 64, right: 64, bottom: 64, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 28, fontWeight: 500, color: "rgba(255,255,255,0.82)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <div style={{ display: "flex", background: "#fff", color: "#10240f", fontWeight: 700, padding: "16px 30px", borderRadius: 999 }}>Lue koko juttu → futista.fi</div>
+            <div style={{ display: "flex", background: "#fff", color: "#10240f", fontWeight: 700, padding: "16px 30px", borderRadius: 999 }}>Lue koko juttu: futista.fi</div>
           </div>
           <div style={{ display: "flex" }}>{date}</div>
         </div>
