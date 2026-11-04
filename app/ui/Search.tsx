@@ -8,6 +8,7 @@ import { useI18n, type Key } from "@/lib/i18n";
 import { search, type SearchComp, type SearchIndex, type SearchNation, type SearchTeam } from "@/lib/search-core";
 import { SOURCES } from "@/lib/sources";
 import { COMP_META, COMP_ORDER } from "@/lib/comps";
+import { activeAfComps } from "@/lib/af-registry";
 import { country } from "@/lib/flags";
 import { HeartButton, useFavorites } from "@/lib/favorites";
 
@@ -54,6 +55,8 @@ export default function SearchDialog({ open, onClose }: { open: boolean; onClose
       const s = SOURCES.find((x) => x.id === id)!;
       return { kind: "comp" as const, id, name: i.league(id, s.league), country: t(`c_${COMP_META[id].country}` as Key), href: `/sarjat/${id}` };
     }),
+    // muut kilpailut (Veikkausliiga, cupit, Pohjoismaat, naiset …): sama rekisteri kuin Sarjat-sivulla
+    ...activeAfComps().map((c) => ({ kind: "comp" as const, id: c.id, name: c.name[i.lang === "sv" ? 1 : i.lang === "en" ? 2 : 0], country: t(`c_${c.country}` as Key), href: `/sarjat/${c.id}` })),
     { kind: "comp", id: "intl", name: t("nationalTeams"), country: t("intlGroup"), href: "/maajoukkueet" },
   ], [i.lang]); // eslint-disable-line react-hooks/exhaustive-deps
 

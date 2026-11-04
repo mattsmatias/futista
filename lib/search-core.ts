@@ -29,14 +29,27 @@ export const ALIASES: Record<string, string[]> = {
   englanti: ["england"], saksa: ["germany"], ranska: ["france"], espanja: ["spain"], italia: ["italy"],
 };
 
-/** Kuinka hyvin haku osuu nimeen: 0 = ei, suurempi = parempi */
-export function scoreName(q: string, name: string): number {
-  const n = fold(name);
+/** Seuranimien yleiset etu- ja jälkiliitteet ("FC Lahti" = "Lahti", "Turku PS" = "Turku"), joita ei vaadita osumaan */
+const AFFIX = new Set(["fc", "ac", "afc", "cf", "sc", "fk", "ff", "if", "ik", "sk", "bk", "ps", "cd", "ud", "sv", "ssc", "as", "rc", "fsv", "tsv", "vfb", "vfl"]);
+const core = (s: string) => s.split(" ").filter((w) => !AFFIX.has(w)).join(" ");
+
+function rawScore(q: string, n: string): number {
   if (!q || !n) return 0;
   if (n === q) return 100;
   if (n.startsWith(q)) return 80;
   if (n.split(" ").some((w) => w.startsWith(q))) return 60;
   if (q.length >= 3 && n.includes(q)) return 40;
+  return 0;
+}
+
+/** Kuinka hyvin haku osuu nimeen: 0 = ei, suurempi = parempi */
+export function scoreName(q: string, name: string): number {
+  const n = fold(name);
+  const direct = rawScore(q, n);
+  if (direct) return direct;
+  // seuraliitteet pois molemmista: "fc lahti" → "lahti", "ac oulu" ↔ "oulu" (hieman suoraa osumaa heikompi)
+  const cq = core(q), cn = core(n);
+  if ((cq !== q || cn !== n) && cq.length >= 2) return Math.max(0, rawScore(cq, cn) - 5);
   return 0;
 }
 

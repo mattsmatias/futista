@@ -60,6 +60,26 @@ test("haku: lempinimet ja aksentit", () => {
   assert.equal(search(idx, "la liga").comps[0]?.id, "laliga");
 });
 
+test("haku: seuraliitteet (FC, AC, PS …) eivät estä osumaa; kotimaiset sarjat löytyvät", () => {
+  const fi = {
+    teams: [
+      { kind: "team", name: "Lahti", code: "LAH", comps: ["veikkausliiga"], href: "/joukkue/veikkausliiga/lahti" },
+      { kind: "team", name: "AC Oulu", code: "ACO", comps: ["veikkausliiga"], href: "/joukkue/veikkausliiga/ac-oulu" },
+      { kind: "team", name: "Turku PS", code: "TUR", comps: ["veikkausliiga"], href: "/joukkue/veikkausliiga/turku-ps" },
+    ] as SearchTeam[],
+    comps: [{ kind: "comp", id: "veikkausliiga", name: "Veikkausliiga", country: "Suomi", href: "/sarjat/veikkausliiga" }] as SearchComp[],
+    nations: [] as SearchNation[],
+  };
+  assert.equal(search(fi, "FC Lahti").teams[0]?.name, "Lahti");
+  assert.equal(search(fi, "lahti").teams[0]?.name, "Lahti");
+  assert.equal(search(fi, "oulu").teams[0]?.name, "AC Oulu");
+  assert.equal(search(fi, "fc oulu").teams[0]?.name, "AC Oulu");
+  assert.equal(search(fi, "tps").teams.length, 0); // ei keksitä lyhenteitä
+  assert.equal(search(fi, "veikkausliiga").comps[0]?.id, "veikkausliiga");
+  assert.equal(search(fi, "fc").teams.length, 0); // pelkkä liite ei osu kaikkiin
+  assert.equal(search(idx, "fc barcelona").teams[0]?.name, "Barcelona");
+});
+
 test("haku: lyhyt tai osumaton haku ei palauta mitään", () => {
   assert.deepEqual(search(idx, "b"), { teams: [], comps: [], nations: [] });
   const none = search(idx, "zzzz");

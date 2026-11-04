@@ -102,6 +102,19 @@ const DAY = 86400_000;
   ok("  alatunniste: football-data.org:n vaatima maininta, ei muita tietopalveluiden nimiä", fc.includes("Football data provided by the Football-Data.org API") && !/API-Football|ESPN|TheSportsDB/.test(fc), fc);
   ok("  alanavigaatiossa 6 kohtaa (Ottelut, Suosikit, Live, Fantasy, Sarjat, Uutiset)", (await page.locator(".bottomnav a").allTextContents()).join("|") === "Ottelut|Suosikit|Live|Fantasy|Sarjat|Uutiset");
 
+  // ---------- Haku: kotimaiset ja muut kilpailut löytyvät hausta (käyttäjän havainto 4.11.2026) ----------
+  {
+    await page.locator(".search-btn").first().click();
+    await page.waitForSelector(".s-dialog input", { timeout: 5000 }).catch(() => {});
+    await page.fill(".s-dialog input", "veikkausliiga");
+    await page.waitForSelector('.s-dialog a[href="/sarjat/veikkausliiga"]', { timeout: 5000 }).catch(() => {});
+    ok("haku: 'veikkausliiga' löytää sarjan", (await page.locator('.s-dialog a[href="/sarjat/veikkausliiga"]').count()) === 1);
+    await page.fill(".s-dialog input", "allsvenskan");
+    await page.waitForSelector('.s-dialog a[href="/sarjat/allsvenskan"]', { timeout: 5000 }).catch(() => {});
+    ok("  'allsvenskan' löytää sarjan", (await page.locator('.s-dialog a[href="/sarjat/allsvenskan"]').count()) === 1);
+    await page.keyboard.press("Escape");
+  }
+
   // ---------- Sarjasivut ----------
   await go("/sarjat/veikkausliiga");
   const tabs = await page.locator(".etabs [role=tab]").allTextContents();
