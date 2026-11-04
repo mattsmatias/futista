@@ -90,6 +90,7 @@ kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || 
 # mainoskortti ja Mainosta-sivu: simuloitu uutissyöte (muut testit ajetaan ilman uutisia)
 start env NEWS_FEED_BASE_URL=http://127.0.0.1:9101/feed
 node tests/integration/mainosta.cjs || rc=1
+node tests/integration/ig.cjs || rc=1
 kill -- "-$srv"; for i in $(seq 40); do curl -s -o /dev/null localhost:3100/ || break; sleep 0.5; done
 start env AF_EXTRAS_OFF=
 node tests/integration/af-isot.cjs || rc=1

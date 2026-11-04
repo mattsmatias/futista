@@ -10,6 +10,8 @@ module.exports = {
   },
   experimental: {
     serverComponentsExternalPackages: ["linkedom", "@mozilla/readability", "sanitize-html"],
+    // Instagram-luonnoskuvien fontit (luetaan levyltä palvelimella)
+    outputFileTracingIncludes: { "/api/hallinta/ig/kuva": ["./assets/fonts/**"] },
   },
   // www.futista.fi on ensisijainen osoite (Vercelin verkkotunnusasetus ohjaa futista.fi → www.futista.fi).
   // ÄLÄ lisää tänne ohjausta www → futista.fi: se tekisi uudelleenohjaussilmukan.

@@ -129,6 +129,7 @@ export default function Dashboard() {
       {state.kind === "setup" && <p className="adm-note">Kävijätilaston tietokantataulua ei ole vielä luotu.</p>}
       {state.kind === "error" && <p className="adm-note">Tilastoja ei saatu juuri nyt. <button type="button" className="btn sm ghost" onClick={load}>Yritä uudelleen</button></p>}
       {s && <Enquiries />}
+      {s && <IgDrafts />}
       {s && <View s={s} />}
     </main>
   );
@@ -333,6 +334,88 @@ function Enquiries() {
           })}
         </ul>
       )}
+    </section>
+  );
+}
+
+
+/** Instagram-luonnokset: jokaisesta uudesta uutisesta valmis kuva (Futistan pohja) ja kuvateksti. Julkaisu käsin:
+ *  puhelimessa "Jaa" avaa jakovalikon (Instagram), muuten "Lataa kuva" + "Kopioi teksti". Päivittyy minuutin välein. */
+type IgItem = { id: string; title: string; date: string; type: string; league: string; sourceName: string; href: string; caption: string; file: string };
+const IG_SEEN = "futista-ig-nahty";
+function IgDrafts() {
+  const [d, setD] = useState<IgItem[] | "error" | null>(null);
+  const [seen, setSeen] = useState<string>("");
+  const [all, setAll] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ id: string; text: string } | null>(null);
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/hallinta/ig", { cache: "no-store" });
+      const x = await r.json().catch(() => null);
+      setD(r.ok && Array.isArray(x?.items) ? x.items : "error");
+    } catch { setD("error"); }
+  }, []);
+  useEffect(() => {
+    try { setSeen(localStorage.getItem(IG_SEEN) ?? ""); } catch {}
+    load();
+    const tick = () => { if (document.visibilityState === "visible") load(); };
+    const id = window.setInterval(tick, 60_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", tick); };
+  }, [load]);
+  if (d === "error") return <p className="adm-note">Instagram-luonnoksia ei saatu juuri nyt. <button type="button" className="btn sm ghost" onClick={load}>Yritä uudelleen</button></p>;
+  if (!d) return null;
+  const fresh = d.filter((x) => !seen || x.date > seen).length;
+  const markSeen = () => { const top = d[0]?.date ?? ""; try { localStorage.setItem(IG_SEEN, top); } catch {} setSeen(top); };
+  const img = (x: IgItem) => `/api/hallinta/ig/kuva?id=${encodeURIComponent(x.id)}`;
+  const flash = (id: string, text: string) => { setMsg({ id, text }); setTimeout(() => setMsg((m) => (m?.id === id ? null : m)), 2500); };
+  const copy = async (x: IgItem) => {
+    try { await navigator.clipboard.writeText(x.caption); flash(x.id, "Kuvateksti kopioitu"); } catch { flash(x.id, "Kopiointi ei onnistunut – valitse teksti käsin"); }
+  };
+  const share = async (x: IgItem) => {
+    try {
+      const blob = await (await fetch(img(x))).blob();
+      const file = new File([blob], x.file, { type: "image/png" });
+      try { await navigator.clipboard.writeText(x.caption); } catch {}
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text: x.caption }); flash(x.id, "Kuvateksti on leikepöydällä – liitä se Instagramissa"); }
+      else flash(x.id, "Jakaminen ei ole tuettu tällä laitteella – käytä Lataa kuva");
+    } catch (e) { if ((e as Error)?.name !== "AbortError") flash(x.id, "Jakaminen ei onnistunut"); }
+  };
+  const when = (iso: string) => new Date(iso).toLocaleString("fi-FI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Helsinki" });
+  const shown = all ? d : d.slice(0, 5);
+  return (
+    <section className="adm-card adm-ig" aria-labelledby="adm-ig-h">
+      <div className="adm-enq-h">
+        <h2 id="adm-ig-h">Instagram-luonnokset</h2>
+        {fresh > 0 ? <button type="button" className="adm-badge" onClick={markSeen} title="Merkitse nähdyiksi">{fresh} uutta</button> : <span className="muted small">ei uusia</span>}
+      </div>
+      <p className="muted small">Jokaisesta uudesta uutisesta tehdään valmis kuva ja kuvateksti. Julkaise itse: Jaa → Instagram, tai lataa kuva ja kopioi teksti.</p>
+      {d.length === 0 ? <p className="muted">Ei uutisia juuri nyt.</p> : (
+        <ul className="adm-ig-list">
+          {shown.map((x) => {
+            const isNew = !seen || x.date > seen, isOpen = open === x.id;
+            return (
+              <li key={x.id} className={`adm-ig-i${isNew ? " new" : ""}`}>
+                <a className="adm-ig-pic" href={img(x)} target="_blank" rel="noopener"><img src={img(x)} alt={`Luonnoskuva: ${x.title}`} width={108} height={135} loading="lazy" decoding="async" /></a>
+                <div className="adm-ig-txt">
+                  <p className="adm-ig-meta">{isNew && <i className="adm-enq-dot" aria-label="Uusi" />}{x.league} · {x.type} · {when(x.date)}</p>
+                  <a className="adm-ig-title" href={x.href}>{x.title}</a>
+                  <div className="adm-enq-acts">
+                    <button type="button" className="btn sm" onClick={() => share(x)}>Jaa</button>
+                    <a className="btn sm ghost" href={img(x)} download={x.file}>Lataa kuva</a>
+                    <button type="button" className="btn sm ghost" onClick={() => copy(x)}>Kopioi teksti</button>
+                    <button type="button" className="btn sm ghost" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : x.id)}>{isOpen ? "Piilota teksti" : "Näytä teksti"}</button>
+                  </div>
+                  {msg?.id === x.id && <p className="small adm-ig-msg" role="status">{msg.text}</p>}
+                  {isOpen && <pre className="adm-ig-cap">{x.caption}</pre>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {d.length > 5 && <button type="button" className="btn sm ghost" onClick={() => setAll(!all)}>{all ? "Näytä vähemmän" : `Näytä kaikki (${d.length})`}</button>}
     </section>
   );
 }

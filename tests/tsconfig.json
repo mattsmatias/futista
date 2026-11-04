@@ -39,6 +39,7 @@
     "fantasy-invite.test.ts",
     "site-stats.test.ts",
     "player-profile.test.ts",
-    "fantasy-packs.test.ts"
+    "fantasy-packs.test.ts",
+    "ig.test.ts"
   ]
 }
