@@ -4,6 +4,7 @@
 // 2) ilman rajapinnan vahvistusta aloitusajan jälkeen tila on "unconfirmed": näytetään
 //    "Aloitusaika ohitettu – tilaa ei vahvistettu" (ei väitetä alkaneeksi tai päättyneeksi):
 //    näytetään "Alkanut" / "Odottaa tulosta" eikä keksittyä tulosta tai minuuttia
+import { sourceNameOf } from "./fi-names";
 
 export type LiveStatus =
   | "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED" | "EXTRA_TIME" | "PENALTY_SHOOTOUT"
@@ -127,7 +128,10 @@ export const words = (s: string) =>
     .replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w && !FILLER.has(w));
 
 /** Löytyvätkö kaikki meidän nimen sanat rajapinnan nimistä (tai päinvastoin lyhyissä nimissä) */
-function same(ours: string, theirs: string[]) {
+function same(ours: string, theirs: string[]): boolean {
+  // suomalaistettu nimi ("TPS") ↔ lähteen raakanimi ("Turku PS")
+  const src = sourceNameOf(ours);
+  if (src && src !== ours && same(src, theirs)) return true;
   const w = words(ours);
   if (!w.length) return false;
   const alias: Record<string, string> = { wolves: "wolverhampton", spurs: "tottenham", inter: "internazionale", atleti: "atletico", nottingham: "nottingham" };

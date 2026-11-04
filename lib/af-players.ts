@@ -12,6 +12,7 @@ import { AF_COMPS, afCompOn } from "./af-registry";
 import { todayHel } from "./day";
 import { parseSquad, parseAfPlayer, type AfSquad, type AfPlayer } from "./af-players-core";
 
+import { fiTeamName } from "./fi-names";
 const DAY = 86400;
 
 export type SquadLeague = { key: string; af: number; calendar: boolean; europe: boolean };
@@ -52,7 +53,7 @@ const phaseTeams = stableCache(async (league: number, season: number): Promise<A
   const j = await once(`pst${league}/${season}`, () => afGet(`/standings?league=${league}&season=${season}`));
   const rows: any[] = (j?.response?.[0]?.league?.standings ?? []).flat();
   const seen = new Map<number, AfTeam>();
-  for (const r of rows) if (Number.isInteger(r?.team?.id) && typeof r?.team?.name === "string") seen.set(r.team.id, { id: r.team.id, name: r.team.name, logo: r.team.logo ?? null });
+  for (const r of rows) if (Number.isInteger(r?.team?.id) && typeof r?.team?.name === "string") seen.set(r.team.id, { id: r.team.id, name: fiTeamName(r.team.id, r.team.name), logo: r.team.logo ?? null });
   if (!seen.size) throw new AfError("standings: empty");
   return [...seen.values()];
 }, ["af-phase-teams-v1"], { revalidate: DAY });

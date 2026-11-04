@@ -267,3 +267,36 @@ test("MLS: konferenssit omiksi taulukoiksi, kausi kalenterivuotena", async () =>
   assert.deepEqual(seasonYears(new Date("2026-10-22T12:00:00Z"), true), [2026]);
   assert.deepEqual(seasonYears(new Date("2026-10-22T12:00:00Z")), [2026, 2027]);
 });
+
+test("suomalaiset seuranimet: FC Lahti, TPS, HJK …; vanhat linkit, suosikit ja lähteen nimet tunnistetaan", async () => {
+  const { fiTeamName, sourceNameOf, fiNameOf } = await import("../lib/fi-names");
+  const { slugIs } = await import("../lib/routes");
+  const { sameTeamStrict, words } = await import("../lib/live-core");
+  const fav = await import("../lib/fav-core");
+  assert.equal(fiTeamName(1166, "Lahti"), "FC Lahti");
+  assert.equal(fiTeamName(1168, "Turku PS"), "TPS");
+  assert.equal(fiTeamName(649, "HJK Helsinki"), "HJK");
+  assert.equal(fiTeamName(1166, "Joku Muu"), "Joku Muu"); // tunniste ja nimi eivät täsmää → ei arvata
+  assert.equal(fiTeamName(9999, "Lahti"), "Lahti"); // vain tunnisteella, ei pelkällä nimellä
+  assert.equal(sourceNameOf("TPS"), "Turku PS");
+  assert.equal(fiNameOf("Mariehamn"), "IFK Mariehamn");
+  assert.ok(slugIs("FC Lahti", "fc-lahti") && slugIs("FC Lahti", "lahti")); // uusi ja vanha osoite
+  assert.ok(slugIs("TPS", "turku-ps") && !slugIs("TPS", "fc-inter"));
+  assert.ok(sameTeamStrict("TPS", words("Turku PS")));
+  assert.ok(!sameTeamStrict("TPS", words("Inter Turku")));
+  assert.ok(sameTeamStrict("FC Inter", words("Inter Turku")));
+  assert.ok(fav.sameTeam({ n: "Turku PS" }, { name: "TPS" })); // vanha suosikki säilyy
+  assert.ok(!fav.sameTeam({ n: "Turku PS" }, { name: "FC Inter" }));
+  const idx2 = {
+    teams: [
+      { kind: "team", name: "FC Lahti", code: "FCL", comps: ["veikkausliiga"], href: "/joukkue/veikkausliiga/fc-lahti" },
+      { kind: "team", name: "TPS", code: "TPS", comps: ["veikkausliiga"], href: "/joukkue/veikkausliiga/tps" },
+      { kind: "team", name: "FC Inter", code: "FCI", comps: ["veikkausliiga"], href: "/joukkue/veikkausliiga/fc-inter" },
+    ] as SearchTeam[], comps: [] as SearchComp[], nations: [] as SearchNation[],
+  };
+  assert.equal(search(idx2, "FC Lahti").teams[0]?.name, "FC Lahti");
+  assert.equal(search(idx2, "lahti").teams[0]?.name, "FC Lahti");
+  assert.equal(search(idx2, "tps").teams[0]?.name, "TPS");
+  assert.equal(search(idx2, "Turku PS").teams[0]?.name, "TPS");
+  assert.deepEqual(search(idx2, "turku").teams.map((t) => t.name).sort(), ["FC Inter", "TPS"]);
+});

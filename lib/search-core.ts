@@ -25,6 +25,7 @@ export const ALIASES: Record<string, string[]> = {
   juve: ["juventus"], inter: ["inter", "internazionale"], milan: ["milan", "ac milan"],
   psg: ["paris saint germain", "psg", "paris sg"], om: ["marseille", "olympique marseille"],
   ajax: ["ajax", "afc ajax"], psv: ["psv", "psv eindhoven"], benfica: ["benfica", "sl benfica"], porto: ["porto", "fc porto"],
+  "turku ps": ["tps"], turku: ["tps", "fc inter"], "inter turku": ["fc inter"], "hjk helsinki": ["hjk"],
   huuhkajat: ["suomi", "finland"], suomi: ["finland"], ruotsi: ["sweden"], norja: ["norway"], tanska: ["denmark"],
   englanti: ["england"], saksa: ["germany"], ranska: ["france"], espanja: ["spain"], italia: ["italy"],
 };

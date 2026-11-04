@@ -9,6 +9,7 @@ import { reasonKind } from "./absence";
 import type { Fixture, Result, Row, Team, AfLive } from "./stats";
 import type { Lineup, LPlayer, StatRow, StatKey, StatValue, Unavailable } from "./match-core";
 import { helsinkiParts, sameTeam, sameTeamStrict, words } from "./live-core";
+import { fiTeamName } from "./fi-names";
 
 const num = (v: unknown): number | null => { const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v.replace("%", "")) : NaN; return Number.isFinite(n) ? n : null; };
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
@@ -17,10 +18,12 @@ export const FINISHED = new Set(["FT", "AET", "PEN"]);
 const AWARDED = new Set(["AWD", "WO"]);
 
 export function afTeam(t: any, women: boolean): Team | null {
-  const n = str(t?.name);
+  const raw = str(t?.name);
+  const n = raw ? fiTeamName(t?.id, raw) : null;
   if (!n) return null;
   const name = women && !/\sW$/.test(n) ? `${n} W` : n;
-  const code = name.replace(/\s+W$/, "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "?";
+  // lyhenne lähteen nimestä ("Lahti" → LAH); suomalainen lyhennenimi sellaisenaan (TPS, HJK)
+  const code = (/^[A-ZÄÖ]{2,4}$/.test(n) ? n : raw!).replace(/\s+W$/, "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "?";
   return { name, code, ...(str(t?.logo) ? { crest: str(t.logo)! } : {}) };
 }
 

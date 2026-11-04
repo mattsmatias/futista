@@ -2,6 +2,7 @@
 //  - Joukkueen kokoonpano: /players/squads?team=ID → id, nimi (usein "K. Sukunimi"), numero, pelipaikka, kuva
 //  - Pelaajaprofiili: /players?id=ID&season=V → henkilötiedot ja kauden tilastot kilpailuittain
 // Puuttuva arvo pysyy null-arvona (ei nollaa). Kuva vain lähteen pelaajatunnisteella.
+import { fiTeamName } from "./fi-names";
 
 export type AfSquadPlayer = { id: number; name: string; number: number | null; position: string | null; photo: string | null };
 export type AfSquad = { team: { id: number; name: string; logo: string | null }; players: AfSquadPlayer[] };
@@ -19,7 +20,7 @@ export function parseSquad(j: any): AfSquad | null | undefined {
   if (!j || !Array.isArray(j.response)) return undefined;
   const r = j.response[0];
   if (!r) return null; // tyhjä vastaus: joukkueella ei kokoonpanoa
-  const tid = int(r.team?.id), tname = str(r.team?.name);
+  const tid = int(r.team?.id), tname0 = str(r.team?.name), tname = tname0 ? fiTeamName(tid, tname0) : null;
   if (!tid || !tname) return undefined;
   const players = (Array.isArray(r.players) ? r.players : [])
     .map((p: any): AfSquadPlayer | null => {
@@ -55,7 +56,7 @@ export function parseAfPlayer(j: any): AfPlayer | null {
   const dob = str(p.birth?.date);
   const season: AfSeasonLine[] = (Array.isArray(r.statistics) ? r.statistics : []).map((s: any) => ({
     league: str(s?.league?.name) ?? "", leagueId: int(s?.league?.id), leagueLogo: url(s?.league?.logo),
-    team: str(s?.team?.name) ?? "", teamId: int(s?.team?.id), teamLogo: url(s?.team?.logo),
+    team: fiTeamName(int(s?.team?.id), str(s?.team?.name) ?? ""), teamId: int(s?.team?.id), teamLogo: url(s?.team?.logo),
     apps: int(s?.games?.appearences), minutes: int(s?.games?.minutes), goals: int(s?.goals?.total), assists: int(s?.goals?.assists),
     yellow: int(s?.cards?.yellow), red: int(s?.cards?.red),
   })).filter((s: AfSeasonLine) => s.league && s.team);

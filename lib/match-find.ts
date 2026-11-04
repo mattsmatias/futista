@@ -2,7 +2,7 @@
 // Vain Futistan tuntemat ottelut (sarjan tulokset/otteluohjelma) hyväksytään: mielivaltaiset osoitteet eivät tee lähdehakuja.
 import { getStatsWith } from "./stats";
 import { SOURCES } from "./sources";
-import { teamSlug, findTeam } from "./routes";
+import { teamSlug, findTeam, slugIs } from "./routes";
 import { todayHel } from "./day";
 import { helsinkiEpoch } from "./live-core";
 import { isDate } from "./day";
@@ -16,7 +16,7 @@ export async function ourMatch(source: string, date: string, pair: string): Prom
   const s = all?.find((x) => x.source === source);
   if (!s) return "unavailable";
   const [h, a] = pair.split("--");
-  const hit = (x: { date: string; home: { name: string }; away: { name: string } }) => x.date === date && teamSlug(x.home.name) === h && teamSlug(x.away.name) === a;
+  const hit = (x: { date: string; home: { name: string }; away: { name: string } }) => x.date === date && slugIs(x.home.name, h) && slugIs(x.away.name, a);
   const r = s.results.find(hit), f = r ? undefined : s.fixtures.find(hit);
   const m = r ?? f;
   // lähde ei antanut kaikkia osia → ei voida sanoa, ettei ottelua ole

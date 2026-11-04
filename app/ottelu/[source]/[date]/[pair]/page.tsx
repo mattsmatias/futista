@@ -4,7 +4,7 @@ import { FANTASY_SITE_LEAGUES } from "@/lib/fantasy-promo";
 import { SOURCES } from "@/lib/sources";
 import type { Metadata } from "next";
 import { getStatsWith } from "@/lib/stats";
-import { teamSlug, findTeam, matchHref } from "@/lib/routes";
+import { teamSlug, findTeam, matchHref, slugIs } from "@/lib/routes";
 import { getMatchExtra } from "@/lib/match-extra";
 import MatchView from "./MatchView";
 import { afBigOn } from "@/lib/af-league";
@@ -24,7 +24,7 @@ async function load(p: Props["params"]) {
   if (!s) throw new Error("league source unavailable");
   const [h, a] = decodeURIComponent(p.pair).split("--");
   const hit = (x: { date: string; home: { name: string }; away: { name: string } }) =>
-    x.date === p.date && teamSlug(x.home.name) === h && teamSlug(x.away.name) === a;
+    x.date === p.date && slugIs(x.home.name, h) && slugIs(x.away.name, a);
   const result = s.results.find(hit);
   let fixture = result ? undefined : s.fixtures.find(hit);
   if (!result && !fixture) {
