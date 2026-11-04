@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { fd, fdTry } from "@/lib/fd";
+import { fdTry, type FdOutcome } from "@/lib/fd";
 import { getStatsWith, type LeagueStats, type Team } from "@/lib/stats";
 import { SOURCES } from "@/lib/sources";
 import { helsinkiParts } from "@/lib/live-core";
@@ -25,6 +25,17 @@ function ours(stats: LeagueStats[], source: string | undefined, id: number): Tea
   for (const s of pool) {
     const t = [...s.table.map((r) => r.team), ...s.results.flatMap((r) => [r.home, r.away]), ...s.fixtures.flatMap((f) => [f.home, f.away])].find((x) => x.id === id);
     if (t) return t;
+  }
+}
+
+/** Pelaajahaku on matalan prioriteetin haku, jolle yhteinen kiintiö antaa vain osan minuutin hauista. Kun raja on
+ *  hetkellisesti täynnä tai kiintiövarasto ei vastaa heti, odotetaan vuoroa palvelimella (enintään ~20 s) sen
+ *  sijaan, että näytettäisiin heti virhe. Tauko (paused), puuttuva avain ja muut virheet palautetaan heti. */
+async function fdPatient<T = any>(path: string, ttl: number, until: number): Promise<FdOutcome<T>> {
+  for (;;) {
+    const r = await fdTry<T>(path, ttl);
+    if (r.status !== "unavailable" || (r.reason !== "limit" && r.reason !== "quota") || Date.now() + 4000 > until) return r;
+    await new Promise((res) => setTimeout(res, 4000));
   }
 }
 
@@ -54,10 +65,12 @@ async function load(id: string): Promise<PlayerData | null> {
   if (af) return loadAf(Number(af[1]));
   // 404 vain, kun pelaajan puuttuminen on varmistettu: virheellinen tunniste tai lähteen 404
   if (!/^\d{1,9}$/.test(id)) return null;
-  const [pr, pm] = await Promise.all([
-    fdTry<any>(`/persons/${id}`, 86400),
-    fd<any>(`/persons/${id}/matches?limit=12`, 1800),
+  const until = Date.now() + 20_000;
+  const [pr, pmr] = await Promise.all([
+    fdPatient<any>(`/persons/${id}`, 86400, until),
+    fdPatient<any>(`/persons/${id}/matches?limit=12`, 1800, until),
   ]);
+  const pm = pmr.status === "ok" ? pmr.data : null;
   if (pr.status === "notfound") return null;
   if (pr.status !== "ok") throw new PlayerUnavailable(pr.status === "off" ? "off" : pr.reason);
   const p = pr.data;

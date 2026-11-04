@@ -366,6 +366,7 @@ const D = {
   err_nation: ["Maajoukkueen tietoja ei saada juuri nyt", "Landslagets uppgifter kan inte hämtas just nu", "National team data unavailable right now"],
   errTxt: ["Tietolähde ei vastaa tai hakuja on rajoitettu hetkellisesti. Kyse ei ole puuttuvasta sivusta.", "Källan svarar inte eller hämtningarna är tillfälligt begränsade. Sidan saknas inte.", "The data source isn't responding or requests are temporarily limited. The page does exist."],
   retry: ["Yritä uudelleen", "Försök igen", "Try again"],
+  autoRetry: ["Yritetään uudelleen automaattisesti…", "Försöker igen automatiskt…", "Retrying automatically…"],
   notifUnavailable: ["Ilmoitukset eivät ole vielä käytössä.", "Notiser är inte i bruk ännu.", "Notifications aren't available yet."],
   notifScope: ["Koskee La Ligaa, Valioliigaa ja Mestarien liigaa.", "Gäller La Liga, Premier League och Champions League.", "Covers La Liga, the Premier League and the Champions League."],
   offlineBanner: ["Ei verkkoyhteyttä – näytetään tallennettu versio. Tiedot eivät päivity.", "Ingen nätanslutning – en sparad version visas. Uppgifterna uppdateras inte.", "No connection – showing a saved version. Data is not updating."],

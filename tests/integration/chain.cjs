@@ -34,7 +34,7 @@ const quotaRows = () => PG ? execSync(`psql "${PG}" -qAtc "select count(*) from 
   ok("  404-sivulla paluulinkki etusivulle", await page.locator('a[href="/"]', { hasText: "Palaa etusivulle" }).count() > 0);
   v = await visit("/pelaaja/abc"); ok("pelaaja: virheellinen tunniste → 404-teksti", v.h1 === "Pelaajaa ei löytynyt", v.h1);
   resetQuota(); await mode("fd=down");
-  v = await visit("/pelaaja/7002"); ok("pelaaja: lähteen katko → virhesivu, ei 404", v.h1 === "Pelaajan tietoja ei saada juuri nyt" && v.text.includes("Yritä uudelleen"), v.h1);
+  v = await visit("/pelaaja/7002"); ok("pelaaja: lähteen katko → virhesivu, ei 404", v.h1 === "Pelaajan tietoja ei saada juuri nyt" && v.text.includes("Yritä uudelleen") && v.text.includes("Yritetään uudelleen automaattisesti"), v.h1);
   // uudelleenyritys samalla sivulla lähteen palattua (ei pitkää negatiivista välimuistia).
   // Vartija pitää 5xx:n jälkeen 15 s tauon (tarkoituksellista) → odotetaan se ennen uudelleenyritystä.
   await mode("fd=ok"); await sleep(16000); resetQuota();
