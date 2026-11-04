@@ -70,7 +70,9 @@ export function search(index: { teams: SearchTeam[]; comps: SearchComp[]; nation
       .map((x) => {
         const ns = names(x);
         const direct = bestScore(q, ns);
-        const viaAlias = alt.length ? Math.max(0, ...alt.map((a) => bestScore(a, ns))) - 5 : 0; // alias hieman suoran osuman alle
+        // alias hieman suoran osuman alle. Aliakseen verrataan ilman seuraliitteiden ohitusta: "turku" → "fc inter"
+        // osuu vain FC Interiin, ei kaikkiin Inter-nimisiin seuroihin
+        const viaAlias = alt.length ? Math.max(0, ...alt.flatMap((a) => ns.map((nm) => rawScore(a, fold(nm))))) - 5 : 0;
         return { x, s: Math.max(direct, viaAlias) };
       })
       .filter((r) => r.s > 0)

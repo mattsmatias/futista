@@ -6,7 +6,7 @@
 //  - Vanha tallennusmuoto (lista nimiä) siirretään uuteen muotoon; nimi saa tunnisteen, kun sama nimi
 //    nähdään tunnisteellisena (esim. sarjataulukossa).
 import { norm } from "./teams";
-import { fiNameOf } from "./fi-names";
+import { sourceNameOf } from "./fi-names";
 
 export type Fav = { n: string; id?: number };
 export type TeamLike = { name: string; id?: number };
@@ -16,7 +16,8 @@ const asTeam = (t: TeamLike | string): TeamLike => (typeof t === "string" ? { na
 // Seuran nimen yleiset etu- ja jälkiliitteet ("Fenerbahçe SK" = "Fenerbahçe", "AS Monaco" = "Monaco").
 // Vain nämä sanat ohitetaan; muuten nimen pitää täsmätä kokonaan (ei osittaista vertailua).
 const FILLER = new Set(["fc", "cf", "afc", "sk", "ac", "as", "sc", "ssc", "cp", "fk", "jk", "sv", "club", "calcio", "1907", "1909"]);
-const core = (s0: string) => { const s = fiNameOf(s0) ?? s0; const n = norm(s); return n.split(" ").filter((w) => !FILLER.has(w)).join(" ") || n; };
+// suomalaistettu nimi verrataan lähteen nimellä: "FC Inter" = "Inter Turku" (ei sekoitu Interiin), "TPS" = "Turku PS"
+const core = (s0: string) => { const s = sourceNameOf(s0) ?? s0; const n = norm(s); return n.split(" ").filter((w) => !FILLER.has(w)).join(" ") || n; };
 
 export function sameTeam(f: Fav, t: TeamLike | string): boolean {
   const x = asTeam(t);

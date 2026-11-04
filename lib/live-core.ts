@@ -130,8 +130,9 @@ export const words = (s: string) =>
 /** Löytyvätkö kaikki meidän nimen sanat rajapinnan nimistä (tai päinvastoin lyhyissä nimissä) */
 function same(ours: string, theirs: string[]): boolean {
   // suomalaistettu nimi ("TPS") ↔ lähteen raakanimi ("Turku PS")
+  // vain lähteen nimellä: "FC Inter" ei saa osua muihin Inter-nimisiin seuroihin
   const src = sourceNameOf(ours);
-  if (src && src !== ours && same(src, theirs)) return true;
+  if (src && src !== ours) return same(src, theirs);
   const w = words(ours);
   if (!w.length) return false;
   const alias: Record<string, string> = { wolves: "wolverhampton", spurs: "tottenham", inter: "internazionale", atleti: "atletico", nottingham: "nottingham" };
@@ -170,7 +171,7 @@ export function bestTeam<T extends { name: string }>(teams: T[], theirs: string[
 /** Löytyykö nimestä vähintään yksi selvä (väh. 4 kirjaimen) sana, esim. "Sabah FC Masazir" ↔ "Sabah" */
 function partly(ours: string, theirs: string[]) {
   // sama sana, tai pitkä sana on toisen alku tai loppu (Erzurum BB ↔ Erzurumspor FK, M'gladbach ↔ Mönchengladbach); vain väljässä vertailussa
-  return words(ours).some((x) => x.length >= 4 && (theirs.includes(x) || (x.length >= 6 && theirs.some((t) => t.length >= 6 && (t.startsWith(x) || x.startsWith(t) || t.endsWith(x) || x.endsWith(t))))));
+  return words(sourceNameOf(ours) ?? ours).some((x) => x.length >= 4 && (theirs.includes(x) || (x.length >= 6 && theirs.some((t) => t.length >= 6 && (t.startsWith(x) || x.startsWith(t) || t.endsWith(x) || x.endsWith(t))))));
 }
 
 function tzOffset(epoch: number) {

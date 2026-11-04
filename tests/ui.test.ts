@@ -299,4 +299,16 @@ test("suomalaiset seuranimet: FC Lahti, TPS, HJK …; vanhat linkit, suosikit ja
   assert.equal(search(idx2, "tps").teams[0]?.name, "TPS");
   assert.equal(search(idx2, "Turku PS").teams[0]?.name, "TPS");
   assert.deepEqual(search(idx2, "turku").teams.map((t) => t.name).sort(), ["FC Inter", "TPS"]);
+  // käyttäjän havainto 4.11.2026: "turku" näytti myös Interin, Inter Miamin ja muut Inter-nimiset seurat
+  const idx3 = { ...idx2, teams: [...idx2.teams,
+    { kind: "team", name: "Inter", code: "INT", id: 108, comps: ["seriea"], href: "/joukkue/seriea/inter" },
+    { kind: "team", name: "Inter Miami CF", code: "MIA", comps: ["mls"], href: "/joukkue/mls/inter-miami-cf" },
+    { kind: "team", name: "Inter D'Escaldes", code: "IDE", comps: ["uecl"], href: "/joukkue/uecl/inter-d-escaldes" },
+  ] as SearchTeam[] };
+  assert.deepEqual(search(idx3, "turku").teams.map((t) => t.name).sort(), ["FC Inter", "TPS"]);
+  assert.ok(search(idx3, "inter").teams.some((t) => t.name === "FC Inter")); // suora haku löytää silti
+  assert.ok(!fav.sameTeam({ n: "Inter", id: 108 }, { name: "FC Inter" })); // Interin suosikki ei merkitse FC Interiä
+  assert.ok(!fav.sameTeam({ n: "Inter" }, { name: "FC Inter" }));
+  assert.ok(fav.sameTeam({ n: "FC Inter" }, { name: "Inter Turku" }));
+  assert.ok(!sameTeamStrict("FC Inter", words("Inter")) && !sameTeamStrict("FC Inter", words("Inter Miami CF")));
 });
