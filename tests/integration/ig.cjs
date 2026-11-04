@@ -25,7 +25,7 @@ const pngSize = (b) => (b.length > 24 && b.readUInt32BE(0) === 0x89504e47 ? [b.r
   const d = await r.json().catch(() => null);
   const it = d?.items?.[0];
   ok("ylläpitäjä: luonnos jokaisesta uusimmasta uutisesta, uusin ensin", r.status === 200 && d.items.length > 0 && d.items.every((x, i, a) => i === 0 || a[i - 1].date >= x.date) && /no-store/.test(r.headers.get("cache-control") ?? ""), JSON.stringify(d?.items?.map((x) => x.title)));
-  ok("  kuvateksti: uutisen otsikko, ohjaus juttuun, lähde ja tunnisteet; ei keksittyä sisältöä", !!it && it.caption.startsWith(it.title) && /linkki biossa/.test(it.caption) && new RegExp(`Lähde: ${it.sourceName.replace(/\./g, "\\.")}`).test(it.caption) && /#futista/.test(it.caption), it?.caption);
+  ok("  kuvateksti: uutisen otsikko, ohjaus juttuun, lähde ja tunnisteet; ei keksittyä sisältöä", !!it && it.caption.startsWith(it.title) && /linkki biossa/.test(it.caption) && new RegExp(`Lähde( ja kuva)?: ${it.sourceName.replace(/\./g, "\\.")}`).test(it.caption) && /#futista/.test(it.caption), it?.caption);
   // simuloidun lähteen linkit eivät ole lähdesivuston juttumuotoa → alkuperäinen osoite; oikeat jutut → /uutiset/…
   ok("  linkki juttuun ja tiedostonimi", /^(\/uutiset\/|https:\/\/)/.test(it?.href ?? "") && /^futista-\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.png$/.test(it?.file ?? ""), `${it?.href} ${it?.file}`);
   const imgUrl = `${APP}/api/hallinta/ig/kuva?id=${encodeURIComponent(it?.id ?? "")}`;
