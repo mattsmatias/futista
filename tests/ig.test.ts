@@ -9,6 +9,7 @@ test("ig: kuvateksti uutisen omasta tekstistä, lähde ja tunnisteet", () => {
   assert.ok(c.startsWith("Real Madrid voitti El Clásicon\n\n"));
   assert.ok(c.includes("Real Madrid kaatoi Barcelonan 2–1."));
   assert.ok(c.includes("Lähde: LaLiiga.com"));
+  assert.ok(igCaption({ ...a, image: "https://x/kuva.jpg" }).includes("Lähde ja kuva: LaLiiga.com"));
   assert.ok(c.includes("#futista") && c.includes("#laliga"));
   assert.ok(c.includes("linkki biossa"));
   const long = igCaption({ ...a, excerpt: "Sana ".repeat(200) });

@@ -34,6 +34,13 @@ const pngSize = (b) => (b.length > 24 && b.readUInt32BE(0) === 0x89504e47 ? [b.r
   const im = await fetch(imgUrl, { headers: { cookie: admin } });
   const buf = Buffer.from(await im.arrayBuffer());
   ok("kuva: PNG 1080 × 1350 (Instagramin 4:5), yksityinen välimuisti", im.status === 200 && /image\/png/.test(im.headers.get("content-type") ?? "") && JSON.stringify(pngSize(buf)) === "[1080,1350]" && /private/.test(im.headers.get("cache-control") ?? ""), `${im.status} ${JSON.stringify(pngSize(buf))} ${buf.length} t`);
+  // uutisen oma kuva taustalla (käyttäjän valinta 5.11.2026); ilman kuvaa Futistan pohja
+  ok("  uutisen kuva taustalla ja kuvatekstissä 'Lähde ja kuva'", im.headers.get("x-futista-kuva") === "uutinen" && /Lähde ja kuva: /.test(it.caption), `${im.headers.get("x-futista-kuva")} | ${it.caption.split("\n\n")[3]}`);
+  const noPic = d.items.find((x) => x.title === "Testiuutinen 2");
+  const im2 = await fetch(`${APP}/api/hallinta/ig/kuva?id=${encodeURIComponent(noPic?.id ?? "")}`, { headers: { cookie: admin } });
+  await im2.arrayBuffer();
+  ok("  uutinen ilman kuvaa → Futistan pohja, kuvatekstissä vain 'Lähde'", im2.status === 200 && im2.headers.get("x-futista-kuva") === "pohja" && /\n\nLähde: /.test(noPic.caption), `${im2.status} ${im2.headers.get("x-futista-kuva")}`);
+  if (process.env.SHOTS) require("fs").writeFileSync(`${process.env.SHOTS}/ig-luonnos-pohja.png`, Buffer.from(await (await fetch(`${APP}/api/hallinta/ig/kuva?id=${encodeURIComponent(noPic?.id ?? "")}`, { headers: { cookie: admin } })).arrayBuffer()));
   const bad = await fetch(`${APP}/api/hallinta/ig/kuva?id=ei-ole`, { headers: { cookie: admin } });
   ok("  tuntematon uutinen → 404", bad.status === 404, String(bad.status));
   if (process.env.SHOTS) require("fs").writeFileSync(`${process.env.SHOTS}/ig-luonnos.png`, buf);

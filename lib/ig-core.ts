@@ -1,9 +1,10 @@
 // Instagram-luonnokset uutisista (puhdas logiikka; testataan tests/ig.test.ts).
-// Luonnos = Futistan oma kuvapohja (otsikko, sarja, juttutyyppi) + valmis kuvateksti. Lähteen kuvaa EI käytetä
-// (tekijänoikeus, käyttäjän valinta 4.11.2026). Teksti on uutisen omaa otsikkoa ja ingressiä – mitään ei keksitä.
+// Luonnos = uutisen oma kuva taustalla (käyttäjän valinta 5.11.2026; kuvan käyttöoikeus on julkaisijan vastuulla)
+// tai Futistan kuvapohja, jos uutisella ei ole kuvaa, + otsikko, sarja, juttutyyppi ja valmis kuvateksti.
+// Teksti on uutisen omaa otsikkoa ja ingressiä – mitään ei keksitä. Lähde ja kuvan lähde mainitaan kuvatekstissä.
 // Julkaisu tehdään käsin (ei suoraa Instagram-yhteyttä).
 
-export type IgArticle = { id: string; title: string; date: string; type: string; league: string; sourceName: string; excerpt: string; link: string };
+export type IgArticle = { id: string; title: string; date: string; type: string; league: string; sourceName: string; excerpt: string; link: string; image?: string | null };
 
 const clip = (s: string, n: number) => {
   const t = s.replace(/\s+/g, " ").trim();
@@ -29,7 +30,7 @@ export function igCaption(a: IgArticle): string {
     a.title.trim(),
     a.excerpt.trim() ? clip(a.excerpt, 260) : "",
     "Lue koko juttu Futistasta – linkki biossa 👆",
-    a.sourceName ? `Lähde: ${a.sourceName}` : "",
+    a.sourceName ? `${a.image ? "Lähde ja kuva" : "Lähde"}: ${a.sourceName}` : "",
     tags.join(" "),
   ].filter(Boolean);
   return parts.join("\n\n");

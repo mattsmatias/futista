@@ -201,6 +201,7 @@ function af(path, req, res) {
 }
 
 // Uutissyöte (simuloitu RSS, vain Mainosta-testien palvelimelle NEWS_FEED_BASE_URL): La Liga 9 juttua, Valioliiga 3
+const NEWS_JPG = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCABkAKADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDn6KKK8k/QAooooAKKKKACiiigAooooAbRRRX6UfkAUUUUAFFFFABRRRQAUUUUAOooor81P18KKKKACiiigAooooAKKK0LTQNVvU3wWUhTAIZ8IGB6EbsZ/CplOMFeTsTKUYq8nYzaK1J/DWs2yB3sJCCcfuyHP5KSay6/RqOIo11elNSXk0/yPyWdOcNJKwUUUVsQFFFFABRRRQAUUUUAOooor81P18KKKKACiiigApURpHVEUs7HCqoySfQUldD4M08XerNcSJujtV3Dpjefu8H8T9QKzrVFSpub6GdSapwcn0N7w74Yi06Jbi9jSW7bBAIBEXcY9/f8vU9DRRXyVWrOrLmmz56pUlUlzSCsbXvDttrEDOipFdjlZQMbuOjeo4H0/Q7NFXhsTVwtVVaMrSX9fcY1KcakXGSujyG5tprS4e3uIzHLGcMp7VHXXeO9PCSwahGmPM/dykYAyOV9ycZ59hXI1+0ZZjVjsJCut3v5Nb/12PksRR9jVcAooor0DAKKKKACiiigB1FFFfmp+vhRRRQAUUUUAFdf4BdQ98hYbyIyFzyQN2T+o/OuQrS0DU/7K1aKdjiJvkl/3T36HocHj0rmxdN1KEorcwxEHOk4o9OopEdZEV0YMjDKspyCPUUtfJHzwUUUUAcz47dBpECFgHa4BC55ICtk/qPzrg63fFurJqeqCOBw9vbDajLyGY/eI4+g9OMjrWFX7Hw9hZ4XL4QqaN627X2/A+Ux1RVK7cdtgooor3TjCiiigAooooAdRRRX5qfr4UUUUAFFFFABRRRQBuaB4mm0gfZ5kM9qTkLnmPnkj9ePX05z2Np4k0i7Tct7HGQASsx2EZ7c8H8M15lRXDXwFKs+bZnJVwlOo77M9Pn8QaRbIHfUICCcfu23n8lya5PXvF8mowNaWUbwQNw7sfncY6cdB17nP5iuaor7LAcMYLCVFVlecltfZfL/ADufndfMatWPKtEFFFFfTHnhRRRQAUUUUAFFFFADqKKK/NT9fCiiigAooooAKKKKACiiigBtFFFfpR+QBRRRQAUUUUAFFFFABRRRQA6iiivzU/XwooooAKKKKACiiigAooooAbRRRX6UfkAUUUUAFFFFABRRRQAUUUUAf//Z";
 function feed(id, res) {
   const n = { laliga: 9, valioliiga: 3 }[id];
   if (!n) { res.writeHead(404); return res.end(); }
@@ -208,7 +209,7 @@ function feed(id, res) {
   const off = id === "laliga" ? 0 : 30; // Valioliigan jutut vanhempia → kaikki-näkymän kuusi ensimmäistä ovat La Ligasta
   const items = Array.from({ length: n }, (_, k) => `<item><title>${pre} ${k + 1}</title><link>https://www.${site}.com/testi-${k + 1}/</link>
 <guid>${id}-testi-${k + 1}</guid><dc:creator>Testaaja</dc:creator><pubDate>${new Date(now - (k + 1 + off) * 3600_000).toUTCString()}</pubDate>
-<category>Uutiset</category><description><![CDATA[<p>Testijutun ${k + 1} ingressi. Toinen lause.</p>]]></description></item>`).join("\n");
+<category>Uutiset</category><description><![CDATA[${id === "laliga" && k === 0 ? `<img src="http://127.0.0.1:9101/newsimg/1.jpg" />` : ""}<p>Testijutun ${k + 1} ingressi. Toinen lause.</p>]]></description></item>`).join("\n");
   res.writeHead(200, { "content-type": "application/rss+xml" });
   res.end(`<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Testi</title>${items}</channel></rss>`);
 }
@@ -303,5 +304,7 @@ http.createServer((req, res) => {
   if (u.pathname === "/wd/sparql") return wd(u, res);
   if (u.pathname.startsWith("/yt/")) return yt(u, res);
   if (u.pathname.startsWith("/ytimg/")) return ytimg(u, res);
+  // uutisen kuva (Instagram-luonnoksen tausta): pieni värikäs JPEG
+  if (u.pathname === "/newsimg/1.jpg") { res.writeHead(200, { "content-type": "image/jpeg" }); return res.end(Buffer.from(NEWS_JPG, "base64")); }
   json(res, 404, {});
 }).listen(Number(process.env.PORT || 9101), "127.0.0.1", () => console.log("mock-sources ready"));
