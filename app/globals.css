@@ -425,7 +425,7 @@ h1, h2, h3 { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
 .foot-in { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px 24px; padding-block: 28px 34px; }
 .foot-brand { display: grid; gap: 6px; }
 .foot-brand > span { font-size: 13px; color: var(--muted); }
-.foot-ig { justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; margin-top: 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 14px; font-weight: 600; }
+.foot-ig { justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; margin-top: 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 14px; font-weight: 600; }
 .foot-ig b { font-weight: 800; }
 .foot-ig:hover { border-color: var(--fg); }
 .foot-links { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; font-weight: 600; }

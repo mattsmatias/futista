@@ -15,8 +15,13 @@ export default function Footer() {
         <div className="foot-brand">
           <a href="/" className="logo">Futista</a>
           <span>{t("tagline")}</span>
-          {/* Futistan Instagram-tili (käyttäjän pyyntö 5.11.2026); ei palvelun logoa, pelkkä teksti */}
-          <a className="foot-ig" href={IG_URL} target="_blank" rel="noopener me">{t("followIg")} <b>@futista.fi</b></a>
+          {/* Futistan Instagram-tili (käyttäjän pyyntö 5.11.2026). Instagram-kuvake sallittu somelinkissä (käyttäjän lupa 5.11.2026) */}
+          <a className="foot-ig" href={IG_URL} target="_blank" rel="noopener me">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4.2" /><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none" />
+            </svg>
+            <span>{t("followIg")} <b>@futista.fi</b></span>
+          </a>
         </div>
         {/* kaikki sarjat jokaisen sivun alareunassa: hakukoneet ja käyttäjät löytävät sarjasivut ("laliiga", "valioliiga" …) */}
         <nav className="foot-leagues" aria-label={t("nav_comps")}>
